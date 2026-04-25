@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Coins, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatAddress, formatSol } from "@/lib/format";
 import { CopyButton } from "./CopyButton";
@@ -50,19 +50,7 @@ export function TokenStatsRow({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="inline-flex items-center gap-2 text-caption uppercase tracking-wider text-fg-muted">
-          <Coins className="size-3.5" />
-          Token
-          <span className="rounded-md border border-border/60 px-1.5 py-px text-mono-sm font-normal normal-case tracking-normal text-fg-secondary">
-            {stats.symbol}
-          </span>
-          {stats.isStub ? (
-            <span className="rounded-md border border-border/60 px-1.5 py-px text-mono-sm font-normal normal-case tracking-normal text-fg-muted">
-              stub
-            </span>
-          ) : null}
-        </div>
+      <div className="flex justify-end">
         <TokenActionsMenu
           tokenMint={stats.tokenMint}
           ghOwner={ghOwner}
