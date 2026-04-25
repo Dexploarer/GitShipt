@@ -2,13 +2,20 @@ import { Trophy } from "lucide-react";
 import { ContributorRow } from "./ContributorRow";
 import { HowScoringWorksModal } from "./HowScoringWorksModal";
 import { formatSol } from "@/lib/format";
+import { Card } from "@/components/ui/card";
 import type { LeaderboardRow } from "@/lib/queries/project-page";
 import type { ScoringConfig, PayoutConfig } from "@/db/schema";
 
 /**
- * The leaderboard. Server component; the only client island is the modal
- * trigger inside the header. Renders an empty state when no contributors
- * have been ranked yet (e.g. before the first snapshot job runs).
+ * Leaderboard component — single floating card with three regions:
+ *   1. Header (icon + title + scoring info modal trigger)
+ *   2. Sticky column header (Rank | Contributor | Score | % | Earnings)
+ *   3. Scrollable list of contributor rows (max-h-96, internal scroll)
+ *   4. Footer with the daily pool total
+ *
+ * The list scrolls independently of the page so the header + footer stay
+ * pinned while the user explores ranks. The card uses Card depth=raised
+ * so it pops off the bg without competing with the Pool hero.
  */
 export function LeaderboardTable({
   rows,
@@ -24,42 +31,40 @@ export function LeaderboardTable({
   payoutConfig: PayoutConfig;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-surface">
-      <header className="flex flex-col gap-1.5 border-b border-border px-6 pt-6 pb-5">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="flex items-center gap-2 text-headline-md text-fg">
-            <Trophy className="size-5 text-fg-secondary" aria-hidden />
-            Leaderboard
-          </h2>
-          <HowScoringWorksModal
-            scoringConfig={scoringConfig}
-            payoutConfig={payoutConfig}
-          />
+    <Card depth="raised" padding="none" className="flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Trophy className="size-4 text-fg-secondary" aria-hidden />
+          <h2 className="text-headline-sm leading-none text-fg">Leaderboard</h2>
+          <span className="hidden items-center gap-1.5 text-caption text-fg-muted sm:inline-flex">
+            <span className="size-1.5 animate-pulse-dot rounded-full bg-success" />
+            Updates daily 00:00 UTC
+          </span>
         </div>
-        <p className="text-body-sm text-fg-secondary">
-          Top {payoutConfig.topN} contributors ranked by 30-day GitHub activity.
-        </p>
-        <div className="mt-1 flex items-center gap-2 text-body-sm text-fg-secondary">
-          <span className="size-1.5 animate-pulse-dot rounded-full bg-success" />
-          Updates daily at 00:00 UTC
-        </div>
-      </header>
+        <HowScoringWorksModal
+          scoringConfig={scoringConfig}
+          payoutConfig={payoutConfig}
+        />
+      </div>
 
       {rows.length === 0 ? (
-        <div className="px-6 py-12 text-center text-body-md text-fg-secondary">
-          No contributors ranked yet — the first snapshot will land at
-          midnight UTC.
+        <div className="border-t border-border px-4 py-10 text-center text-body-md text-fg-secondary">
+          No contributors ranked yet — the first snapshot lands at midnight UTC.
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-[56px_minmax(0,1fr)_96px_88px_140px] items-center gap-4 border-b border-border px-4 py-3 text-label-sm text-fg-muted">
-            <div>Rank</div>
+          <div className="grid grid-cols-[44px_minmax(0,1fr)_84px_72px_120px] items-center gap-3 border-y border-border bg-surface-elevated/40 px-4 py-2 text-label-sm text-fg-muted">
+            <div>#</div>
             <div>Contributor</div>
             <div className="text-right">Score</div>
-            <div className="text-right">% of Pool</div>
+            <div className="text-right">% Pool</div>
             <div className="text-right">Earnings</div>
           </div>
-          <div>
+
+          <div
+            className="max-h-[420px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent]"
+            aria-label="Contributor rankings, scrollable"
+          >
             {rows.map((row) => (
               <ContributorRow
                 key={row.contributorId}
@@ -72,14 +77,10 @@ export function LeaderboardTable({
         </>
       )}
 
-      <footer className="flex items-center justify-between border-t border-border bg-surface-elevated px-6 py-4">
-        <span className="text-label-sm text-fg-muted">
-          Total Pool Distributed Daily
-        </span>
-        <span className="text-mono-md text-fg">
-          {formatSol(dailyFeeLamports)}
-        </span>
-      </footer>
-    </section>
+      <div className="flex items-center justify-between border-t border-border bg-surface-elevated/40 px-4 py-2.5">
+        <span className="text-label-sm text-fg-muted">Daily pool</span>
+        <span className="text-mono-md text-fg">{formatSol(dailyFeeLamports)}</span>
+      </div>
+    </Card>
   );
 }

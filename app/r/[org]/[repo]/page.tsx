@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Github, Twitter } from "lucide-react";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { ProjectHeader } from "./_components/ProjectHeader";
 import { NextPayoutCountdown } from "./_components/NextPayoutCountdown";
@@ -9,7 +11,6 @@ import { RecentPayoutsFeed } from "./_components/RecentPayoutsFeed";
 import { SystemStatusCard } from "./_components/SystemStatusCard";
 import { ProjectSidebar } from "@/components/sidebar/ProjectSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
 
 type Params = { org: string; repo: string };
 
@@ -74,11 +75,12 @@ export default async function ProjectPage({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <main className="min-w-0 flex-1 overflow-y-auto px-3 pt-3 pb-3">
-            <div className="grid grid-cols-1 gap-gutter lg:grid-cols-[minmax(0,1fr)_380px]">
-              {/* Left column */}
-              <div className="flex min-w-0 flex-col gap-gutter">
-                <div className="grid grid-cols-1 gap-gutter md:grid-cols-[minmax(0,1fr)_280px]">
+          <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+              {/* Left column — flat: header floats directly on bg, then the
+                  leaderboard card. Countdown sits inline next to header. */}
+              <div className="flex min-w-0 flex-col gap-4">
+                <div className="flex items-start justify-between gap-3">
                   <ProjectHeader header={header} />
                   <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
                 </div>
@@ -93,7 +95,7 @@ export default async function ProjectPage({
               </div>
 
               {/* Right column */}
-              <aside className="flex min-w-0 flex-col gap-gutter">
+              <aside className="flex min-w-0 flex-col gap-3">
                 <PoolOverviewCard pool={pool} />
                 <RecentPayoutsFeed payouts={recentPayouts} />
                 <SystemStatusCard items={systemStatus} />
@@ -103,29 +105,55 @@ export default async function ProjectPage({
 
           <footer
             className={[
-              "shrink-0 mx-3",
-              // Width-matched to the main content column (mx-3 mirrors main's
-              // px-3 inset). Top-left + top-right rounded so the bar reads as
-              // a floating ribbon; bottom flush to viewport.
-              "rounded-tl-2xl rounded-tr-2xl rounded-bl-none rounded-br-none",
-              "border-t border-x border-border/60",
+              "shrink-0 ml-4",
+              // Anchored bottom-right of viewport: top-left rounded toward
+              // the sidebar, the right side runs flush to the viewport edge.
+              "rounded-tl-2xl",
+              "border-t border-l border-border/60",
               "glass shadow-card-elevated surface-highlight",
-              "flex items-center justify-between gap-4",
-              "px-4 py-2",
+              "flex items-center justify-between gap-3",
+              "px-4 py-1.5",
             ].join(" ")}
           >
-            <div className="flex min-w-0 items-center gap-2">
-              <Badge variant="success" dot size="sm">
-                {header.status}
-              </Badge>
-              <span className="truncate text-caption text-fg-muted">{slug}</span>
-            </div>
-            <span className="shrink-0 text-caption text-fg-muted">
-              devnet · BAGS.fm
+            <span className="truncate text-caption text-fg-muted">
+              {slug} · devnet · BAGS.fm
             </span>
+            <div className="flex items-center gap-1">
+              <SocialLink
+                href={`https://github.com/${header.ghOwner}/${header.ghRepo}`}
+                label="GitHub repo"
+              >
+                <Github className="size-4" />
+              </SocialLink>
+              <SocialLink href="https://x.com/bagsdotfm" label="Bags on X">
+                <Twitter className="size-4" />
+              </SocialLink>
+            </div>
           </footer>
         </div>
       </div>
     </SidebarProvider>
+  );
+}
+
+function SocialLink({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      aria-label={label}
+      className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-surface-elevated hover:text-fg"
+    >
+      {children}
+    </Link>
   );
 }
