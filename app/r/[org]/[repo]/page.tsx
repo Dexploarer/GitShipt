@@ -3,11 +3,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
 import { getProjectPageData } from "@/lib/queries/project-page";
+import { getTokenStats } from "@/lib/queries/token-stats";
 import { ProjectHeader } from "./_components/ProjectHeader";
 import { NextPayoutCountdown } from "./_components/NextPayoutCountdown";
 import { LeaderboardTable } from "./_components/LeaderboardTable";
 import { PoolOverviewCard } from "./_components/PoolOverviewCard";
 import { RecentPayoutsFeed } from "./_components/RecentPayoutsFeed";
+import { TokenInfoCard } from "./_components/TokenInfoCard";
 import { ProjectSidebar } from "@/components/sidebar/ProjectSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -53,6 +55,7 @@ export default async function ProjectPage({
 
   const { header, leaderboard, pool, recentPayouts, nextPayoutAt } = data;
   const slug = `${header.ghOwner}/${header.ghRepo}`;
+  const tokenStats = await getTokenStats(header);
 
   return (
     <SidebarProvider>
@@ -80,8 +83,16 @@ export default async function ProjectPage({
               scroll where needed. No page scroll, no double-scrollbars. */}
           <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 lg:overflow-hidden">
             <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_minmax(0,1fr)]">
-              <div className="lg:col-span-2">
+              <div className="min-w-0">
                 <ProjectHeader header={header} />
+              </div>
+
+              <div className="min-w-0">
+                <TokenInfoCard
+                  stats={tokenStats}
+                  ghOwner={header.ghOwner}
+                  ghRepo={header.ghRepo}
+                />
               </div>
 
               <div className="min-w-0 lg:min-h-0">
