@@ -1,8 +1,8 @@
-import { PublicShell } from "@/components/public/PublicShell";
+import { PublicAppShell } from "@/components/public/PublicAppShell";
 
 export default function ExploreLoading() {
   return (
-    <PublicShell active="explore">
+    <PublicAppShell active="explore">
       <div className="flex flex-col gap-3">
         <h1 className="text-headline-lg tracking-tight">Explore projects</h1>
         <p className="max-w-2xl text-body-lg text-fg-secondary">
@@ -23,6 +23,6 @@ export default function ExploreLoading() {
           </li>
         ))}
       </ul>
-    </PublicShell>
+    </PublicAppShell>
   );
 }

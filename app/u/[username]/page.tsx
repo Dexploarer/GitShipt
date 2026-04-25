@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ExternalLink, Github } from "lucide-react";
-import { PublicShell } from "@/components/public/PublicShell";
+import { PublicAppShell } from "@/components/public/PublicAppShell";
 import { getContributorProfile } from "@/lib/queries/discovery";
 import { formatScore, formatSol } from "@/lib/format";
 import { ProjectsContributedTo } from "./_components/ProjectsContributedTo";
@@ -36,7 +36,7 @@ export default async function ContributorProfilePage({
   if (!profile) notFound();
 
   return (
-    <PublicShell>
+    <PublicAppShell>
       <header className="flex flex-col gap-6">
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -96,7 +96,7 @@ export default async function ContributorProfilePage({
         <ProjectsContributedTo rows={profile.byProject} />
         <EarningsHistory rows={profile.recentPayouts} />
       </section>
-    </PublicShell>
+    </PublicAppShell>
   );
 }
 

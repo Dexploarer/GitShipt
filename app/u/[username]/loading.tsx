@@ -1,8 +1,8 @@
-import { PublicShell } from "@/components/public/PublicShell";
+import { PublicAppShell } from "@/components/public/PublicAppShell";
 
 export default function ContributorLoading() {
   return (
-    <PublicShell>
+    <PublicAppShell>
       <header className="flex flex-col gap-6">
         <div className="flex items-center gap-5">
           <div className="size-24 shrink-0 animate-pulse rounded-2xl bg-surface-elevated" />
@@ -25,6 +25,6 @@ export default function ContributorLoading() {
         <div className="h-96 animate-pulse rounded-lg border border-border bg-surface shadow-card-elevated" />
         <div className="h-96 animate-pulse rounded-lg border border-border bg-surface shadow-card-elevated" />
       </section>
-    </PublicShell>
+    </PublicAppShell>
   );
 }

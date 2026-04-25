@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PublicShell } from "@/components/public/PublicShell";
+import { PublicAppShell } from "@/components/public/PublicAppShell";
 import { CopyButton } from "@/app/r/[org]/[repo]/_components/CopyButton";
 import { DocSection } from "./_components/DocSection";
 
@@ -34,7 +34,7 @@ const EMBED_SNIPPET = `<iframe
  */
 export default function DocsPage() {
   return (
-    <PublicShell active="docs">
+    <PublicAppShell active="docs">
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-[200px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <nav aria-label="Docs sections" className="flex flex-col gap-1">
@@ -235,6 +235,6 @@ export default function DocsPage() {
           </DocSection>
         </article>
       </div>
-    </PublicShell>
+    </PublicAppShell>
   );
 }

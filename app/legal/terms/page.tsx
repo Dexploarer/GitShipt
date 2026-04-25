@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PublicShell } from "@/components/public/PublicShell";
+import { PublicAppShell } from "@/components/public/PublicAppShell";
 
 export const metadata: Metadata = {
   title: "Terms · GitBags",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
  */
 export default function TermsPage() {
   return (
-    <PublicShell active={undefined}>
+    <PublicAppShell active={undefined}>
       <article className="mx-auto flex max-w-prose flex-col gap-6">
         <header className="flex flex-col gap-2">
           <span className="text-label-sm uppercase tracking-wide text-fg-muted">
@@ -77,6 +77,6 @@ export default function TermsPage() {
           </p>
         </div>
       </article>
-    </PublicShell>
+    </PublicAppShell>
   );
 }

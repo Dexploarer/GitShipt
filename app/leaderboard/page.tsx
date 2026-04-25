@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { PublicShell } from "@/components/public/PublicShell";
+import { PublicAppShell } from "@/components/public/PublicAppShell";
 import { cn } from "@/lib/utils";
 import { getGlobalLeaderboard } from "@/lib/queries/global";
 import { GlobalLeaderboardTable } from "./_components/GlobalLeaderboardTable";
@@ -34,7 +34,7 @@ export default async function LeaderboardPage({
   const data = await getGlobalLeaderboard();
 
   return (
-    <PublicShell active="leaderboard">
+    <PublicAppShell active="leaderboard">
       <div className="flex flex-col gap-8">
         <header className="flex flex-col gap-3">
           <h1 className="text-headline-lg tracking-tight text-fg">
@@ -58,7 +58,7 @@ export default async function LeaderboardPage({
           <GlobalLeaderboardTable mode="project" rows={data.byProject} />
         )}
       </div>
-    </PublicShell>
+    </PublicAppShell>
   );
 }
 

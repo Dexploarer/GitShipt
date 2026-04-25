@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Compass } from "lucide-react";
-import { PublicShell } from "@/components/public/PublicShell";
+import { PublicAppShell } from "@/components/public/PublicAppShell";
 import {
   getAllPublicProjects,
   type ExploreFilters,
@@ -50,7 +50,7 @@ export default async function ExplorePage({
   const projects = await getAllPublicProjects(filters);
 
   return (
-    <PublicShell active="explore">
+    <PublicAppShell active="explore">
       <div className="flex flex-col gap-3">
         <h1 className="text-headline-lg tracking-tight">Explore projects</h1>
         <p className="max-w-2xl text-body-lg text-fg-secondary">
@@ -76,7 +76,7 @@ export default async function ExplorePage({
           </ul>
         )}
       </div>
-    </PublicShell>
+    </PublicAppShell>
   );
 }
 
