@@ -55,7 +55,7 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
             </Link>
           </div>
           {header.description ? (
-            <p className="mt-2 line-clamp-2 text-body-lg leading-relaxed text-fg-secondary lg:mt-3 lg:text-[18px]">
+            <p className="mt-2 line-clamp-2 text-body-md text-fg-secondary lg:mt-2.5 lg:text-body-lg">
               {header.description}
             </p>
           ) : null}
