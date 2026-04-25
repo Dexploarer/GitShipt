@@ -28,16 +28,10 @@ export function NextPayoutCountdown({ targetIso }: { targetIso: string }) {
 
   return (
     <section className="flex h-full flex-col rounded-lg border border-border bg-surface p-6">
-      <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex items-center gap-2 text-label-sm text-fg-muted">
-          <Timer className="size-4" />
-          Next Payout
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-label-sm text-success">
-          <span className="size-1.5 animate-pulse-dot rounded-full bg-success" />
-          Cron Active
-        </span>
-      </div>
+      <span className="inline-flex items-center gap-2 text-label-sm text-fg-muted">
+        <Timer className="size-4" />
+        Next Payout
+      </span>
 
       <div
         className="mt-4 text-mono-md text-fg tabular-nums"
