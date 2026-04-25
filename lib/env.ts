@@ -7,9 +7,9 @@ const serverEnvSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
   DATABASE_URL_UNPOOLED: z.string().url().optional(),
 
-  // Redis (Upstash)
-  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  // Redis (any provider speaking standard Redis protocol — Redis Cloud,
+  // Upstash, Dragonfly, self-hosted). Format: redis://[user]:[pass]@host:port
+  REDIS_URL: z.string().optional(),
 
   // Auth
   BETTER_AUTH_SECRET: z.string().min(32).optional(),
@@ -24,6 +24,9 @@ const serverEnvSchema = z.object({
   BAGS_API_KEY: z.string().min(1).optional(),
   BAGS_API_BASE_URL: z.string().url().default("https://public-api-v2.bags.fm/api/v1/"),
   BAGS_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Safety guard: refuse real launch txns when devnet cluster + prod key
+  // unless explicitly opted in. Read-only Bags calls always work.
+  BAGS_ALLOW_PROD_LAUNCH: z.coerce.boolean().default(false),
 
   // Solana
   HELIUS_RPC_URL: z.string().url().optional(),
@@ -75,15 +78,9 @@ export function clientEnv(): ClientEnv {
   return cachedClient;
 }
 
-/**
- * Cheap helper: are we configured to call a given external service?
- * Used by stub-flippable clients (Bags, Helius, GitHub App) to decide between
- * live calls and deterministic stubs.
- */
 export const hasCredentials = {
   db: () => Boolean(serverEnv().DATABASE_URL),
-  redis: () =>
-    Boolean(serverEnv().UPSTASH_REDIS_REST_URL && serverEnv().UPSTASH_REDIS_REST_TOKEN),
+  redis: () => Boolean(serverEnv().REDIS_URL),
   github: () => Boolean(serverEnv().GITHUB_CLIENT_ID && serverEnv().GITHUB_CLIENT_SECRET),
   githubApp: () =>
     Boolean(
@@ -96,3 +93,23 @@ export const hasCredentials = {
   payoutKey: () => Boolean(serverEnv().SOLANA_PAYOUT_KEYPAIR),
   cron: () => Boolean(serverEnv().CRON_SECRET),
 };
+
+/**
+ * Safety check: should we allow a real Bags launch transaction?
+ * Refuses when the cluster is devnet AND the key looks production-y,
+ * unless BAGS_ALLOW_PROD_LAUNCH=true is explicitly set.
+ */
+export function canLaunchOnBags(): { ok: true } | { ok: false; reason: string } {
+  const env = serverEnv();
+  if (!env.BAGS_API_KEY) return { ok: false, reason: "BAGS_API_KEY missing" };
+  const cluster = clientEnv().NEXT_PUBLIC_SOLANA_CLUSTER;
+  const isProdKey = env.BAGS_API_KEY.startsWith("bags_prod_");
+  if (cluster !== "mainnet-beta" && isProdKey && !env.BAGS_ALLOW_PROD_LAUNCH) {
+    return {
+      ok: false,
+      reason:
+        "Refusing prod-key launch on non-mainnet cluster. Set BAGS_ALLOW_PROD_LAUNCH=true to override.",
+    };
+  }
+  return { ok: true };
+}

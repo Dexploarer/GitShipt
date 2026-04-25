@@ -47,7 +47,7 @@ export async function issueNonce(address: string): Promise<string> {
   const nonce = nanoid(24);
   const r = redis();
   if (r) {
-    await r.set(NONCE_KEY(address, nonce), "1", { ex: NONCE_TTL_SECONDS });
+    await r.set(NONCE_KEY(address, nonce), "1", "EX", NONCE_TTL_SECONDS);
   }
   return nonce;
 }
@@ -124,7 +124,7 @@ export async function verifySiws({
 
   const r = redis();
   if (r) {
-    const exists = await r.get<string>(NONCE_KEY(m.address, m.nonce));
+    const exists = await r.get(NONCE_KEY(m.address, m.nonce));
     if (!exists) return { ok: false, reason: "nonce" };
   }
 

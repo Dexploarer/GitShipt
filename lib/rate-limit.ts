@@ -1,4 +1,3 @@
-import { Ratelimit } from "@upstash/ratelimit";
 import { redis } from "@/lib/redis";
 
 type LimiterKind =
@@ -8,35 +7,13 @@ type LimiterKind =
   | "force-snapshot"
   | "default";
 
-const SLIDING: Record<LimiterKind, [number, `${number} ${"s" | "m" | "h"}`]> = {
-  auth: [5, "1 m"],
-  "siws-verify": [10, "1 m"],
-  "project-create": [3, "1 h"],
-  "force-snapshot": [1, "1 h"],
-  default: [60, "1 m"],
+const SLIDING: Record<LimiterKind, { limit: number; windowSeconds: number }> = {
+  auth: { limit: 5, windowSeconds: 60 },
+  "siws-verify": { limit: 10, windowSeconds: 60 },
+  "project-create": { limit: 3, windowSeconds: 60 * 60 },
+  "force-snapshot": { limit: 1, windowSeconds: 60 * 60 },
+  default: { limit: 60, windowSeconds: 60 },
 };
-
-const cache: Partial<Record<LimiterKind, Ratelimit>> = {};
-
-/**
- * Token-bucket rate limiter keyed by IP or user ID. When Redis is absent
- * (local dev without Upstash creds), `check` returns `{ success: true }` so
- * the app stays responsive — production must always have Redis configured.
- */
-export function getLimiter(kind: LimiterKind): Ratelimit | null {
-  const r = redis();
-  if (!r) return null;
-  if (cache[kind]) return cache[kind]!;
-  const [n, window] = SLIDING[kind];
-  const limiter = new Ratelimit({
-    redis: r,
-    limiter: Ratelimit.slidingWindow(n, window),
-    analytics: true,
-    prefix: `gitbags:rl:${kind}`,
-  });
-  cache[kind] = limiter;
-  return limiter;
-}
 
 export interface RateLimitResult {
   success: boolean;
@@ -45,19 +22,51 @@ export interface RateLimitResult {
   reset: number;
 }
 
+/**
+ * Sliding-window rate limiter via Redis sorted set. Atomic via pipeline:
+ *   1. Drop entries older than (now - window).
+ *   2. Add current request.
+ *   3. Count remaining in window.
+ *   4. Refresh expiry so the key gets cleaned up if the user goes idle.
+ *
+ * When Redis is absent (local dev without REDIS_URL), returns success=true
+ * so the app stays responsive. Production must always have Redis configured.
+ */
 export async function check(
   kind: LimiterKind,
   identifier: string,
 ): Promise<RateLimitResult> {
-  const limiter = getLimiter(kind);
-  if (!limiter) {
-    return { success: true, limit: 0, remaining: 0, reset: 0 };
+  const r = redis();
+  const cfg = SLIDING[kind];
+  if (!r) {
+    return { success: true, limit: cfg.limit, remaining: cfg.limit, reset: 0 };
   }
-  const result = await limiter.limit(identifier);
+
+  const key = `gitbags:rl:${kind}:${identifier}`;
+  const now = Date.now();
+  const windowMs = cfg.windowSeconds * 1000;
+  const windowStart = now - windowMs;
+  const member = `${now}-${Math.random().toString(36).slice(2, 10)}`;
+
+  const pipe = r.pipeline();
+  pipe.zremrangebyscore(key, 0, windowStart);
+  pipe.zadd(key, now, member);
+  pipe.zcard(key);
+  pipe.pexpire(key, windowMs);
+
+  const result = await pipe.exec();
+  if (!result) {
+    return { success: true, limit: cfg.limit, remaining: cfg.limit, reset: now + windowMs };
+  }
+
+  // result[2] is the [error, count] tuple from ZCARD
+  const zcard = result[2];
+  const count = zcard && !zcard[0] ? Number(zcard[1] ?? 0) : 0;
+
   return {
-    success: result.success,
-    limit: result.limit,
-    remaining: result.remaining,
-    reset: result.reset,
+    success: count <= cfg.limit,
+    limit: cfg.limit,
+    remaining: Math.max(0, cfg.limit - count),
+    reset: now + windowMs,
   };
 }

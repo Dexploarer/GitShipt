@@ -1,31 +1,43 @@
-import { Redis } from "@upstash/redis";
+import IORedis, { type Redis as IORedisClient } from "ioredis";
 import { serverEnv, hasCredentials } from "@/lib/env";
 
-let client: Redis | null = null;
+let _client: IORedisClient | null = null;
 
 /**
- * Lazy Upstash Redis client. Returns `null` when credentials are absent;
- * callers must guard their usage so the app keeps booting in stubbed mode.
+ * Lazy ioredis client. Works with Redis Cloud, Upstash (TCP/TLS), Dragonfly,
+ * or self-hosted Redis. URL must include password if auth is required:
+ *   redis://default:PASSWORD@host:port
+ *   rediss://default:PASSWORD@host:port  (TLS)
+ *
+ * Returns null when REDIS_URL is absent — callers must guard so the app
+ * keeps booting in stubbed mode.
  */
-export function redis(): Redis | null {
+export function redis(): IORedisClient | null {
   if (!hasCredentials.redis()) return null;
-  if (client) return client;
+  if (_client) return _client;
   const env = serverEnv();
-  client = new Redis({
-    url: env.UPSTASH_REDIS_REST_URL!,
-    token: env.UPSTASH_REDIS_REST_TOKEN!,
+  _client = new IORedis(env.REDIS_URL!, {
+    // Vercel Fluid Compute supports persistent connections, but we still want
+    // resilient cold-start behavior.
+    maxRetriesPerRequest: 3,
+    enableReadyCheck: false,
+    connectTimeout: 5_000,
+    lazyConnect: false,
   });
-  return client;
+  _client.on("error", (err) => {
+    console.error("[redis] connection error:", err.message);
+  });
+  return _client;
 }
 
 export class RedisUnavailableError extends Error {
   constructor() {
-    super("Redis is not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.");
+    super("Redis is not configured. Set REDIS_URL.");
     this.name = "RedisUnavailableError";
   }
 }
 
-export function requireRedis(): Redis {
+export function requireRedis(): IORedisClient {
   const r = redis();
   if (!r) throw new RedisUnavailableError();
   return r;

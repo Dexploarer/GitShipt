@@ -19,11 +19,17 @@ export async function withIdempotency<T>(
   if (!r) return fn();
 
   const cacheKey = `gitbags:idem:${key}`;
-  const cached = await r.get<{ result: T }>(cacheKey);
-  if (cached?.result !== undefined) return cached.result;
+  const cachedRaw = await r.get(cacheKey);
+  if (cachedRaw) {
+    try {
+      return JSON.parse(cachedRaw) as T;
+    } catch {
+      // fall through and re-run
+    }
+  }
 
   const result = await fn();
-  await r.set(cacheKey, { result }, { ex: TTL_SECONDS });
+  await r.set(cacheKey, JSON.stringify(result), "EX", TTL_SECONDS);
   return result;
 }
 

@@ -43,6 +43,8 @@ export async function GET(): Promise<Response> {
     } catch {
       status.redis = "fail";
     }
+  } else {
+    status.redis = "stub";
   }
 
   return NextResponse.json({
