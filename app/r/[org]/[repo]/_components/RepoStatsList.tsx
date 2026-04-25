@@ -9,47 +9,44 @@ import type { ProjectHeader as ProjectHeaderType } from "@/lib/queries/project-p
  * boxed-in modules).
  */
 export function RepoStatsList({ header }: { header: ProjectHeaderType }) {
+  // Compact list — no caption header, no dividers, dense vertical rhythm
+  // so the cell stays short and doesn't push row 2 down. self-start keeps
+  // the list anchored to the top of its grid cell.
   return (
-    <div className="flex flex-col">
-      <div className="pb-2 text-caption uppercase tracking-wider text-fg-muted">
-        Repository
-      </div>
-
-      <ul className="divide-y divide-border/40">
-        <Row label="Language">
-          {header.language ? (
-            <span className="inline-flex items-center gap-2">
-              <span
-                className="inline-block size-2.5 shrink-0 rounded-full"
-                style={{ background: languageColor(header.language) }}
-                aria-hidden
-              />
-              <span className="text-body-md text-fg">{header.language}</span>
-            </span>
-          ) : (
-            <span className="text-body-md text-fg-muted">—</span>
-          )}
-        </Row>
-
-        <Row label="Stars" icon={<Star className="size-3.5" />}>
-          <span className="text-mono-md text-fg">
-            {header.stars.toLocaleString("en-US")}
+    <ul className="flex flex-col gap-1 self-start">
+      <Row label="Language">
+        {header.language ? (
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className="inline-block size-2 shrink-0 rounded-full"
+              style={{ background: languageColor(header.language) }}
+              aria-hidden
+            />
+            <span className="text-body-sm text-fg">{header.language}</span>
           </span>
-        </Row>
+        ) : (
+          <span className="text-body-sm text-fg-muted">—</span>
+        )}
+      </Row>
 
-        <Row label="Forks" icon={<GitFork className="size-3.5" />}>
-          <span className="text-mono-md text-fg">
-            {header.forks.toLocaleString("en-US")}
-          </span>
-        </Row>
+      <Row label="Stars" icon={<Star className="size-3" />}>
+        <span className="text-mono-sm text-fg">
+          {header.stars.toLocaleString("en-US")}
+        </span>
+      </Row>
 
-        <Row label="Contributors" icon={<Users className="size-3.5" />}>
-          <span className="text-mono-md text-fg">
-            {header.contributorsCount.toLocaleString("en-US")}
-          </span>
-        </Row>
-      </ul>
-    </div>
+      <Row label="Forks" icon={<GitFork className="size-3" />}>
+        <span className="text-mono-sm text-fg">
+          {header.forks.toLocaleString("en-US")}
+        </span>
+      </Row>
+
+      <Row label="Contributors" icon={<Users className="size-3" />}>
+        <span className="text-mono-sm text-fg">
+          {header.contributorsCount.toLocaleString("en-US")}
+        </span>
+      </Row>
+    </ul>
   );
 }
 
@@ -63,8 +60,8 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <li className="flex items-center justify-between gap-3 py-2">
-      <span className="inline-flex items-center gap-2 text-body-sm text-fg-secondary">
+    <li className="flex items-center justify-between gap-3">
+      <span className="inline-flex items-center gap-1.5 text-body-sm text-fg-secondary">
         {icon ? <span className="text-fg-muted">{icon}</span> : null}
         {label}
       </span>
