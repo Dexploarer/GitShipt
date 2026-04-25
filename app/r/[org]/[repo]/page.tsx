@@ -73,13 +73,18 @@ export default async function ProjectPage({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-              {/* Left column — flat: header floats directly on bg, then the
-                  leaderboard card. Countdown sits inline next to header. */}
-              <div className="flex min-w-0 flex-col gap-4">
+          {/* Bento shell. Mobile (< lg): vertical scroll, single column.
+              Desktop (lg+): the page slots into the viewport — main is
+              overflow-hidden, header spans both cols, leaderboard +
+              right-rail fill the remaining height with their own internal
+              scroll where needed. No page scroll, no double-scrollbars. */}
+          <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 lg:overflow-hidden">
+            <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_minmax(0,1fr)]">
+              <div className="lg:col-span-2">
                 <ProjectHeader header={header} />
+              </div>
 
+              <div className="min-w-0 lg:min-h-0">
                 <LeaderboardTable
                   rows={leaderboard}
                   dailyFeeLamports={pool.dailyFeeLamports}
@@ -89,9 +94,7 @@ export default async function ProjectPage({
                 />
               </div>
 
-              {/* Right column — countdown rides above the pool hero so the
-                  next-payout signal is the first thing you see in the rail. */}
-              <aside className="flex min-w-0 flex-col gap-3">
+              <aside className="flex min-w-0 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--border-strong)_transparent]">
                 <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
                 <PoolOverviewCard pool={pool} />
                 <RecentPayoutsFeed payouts={recentPayouts} />

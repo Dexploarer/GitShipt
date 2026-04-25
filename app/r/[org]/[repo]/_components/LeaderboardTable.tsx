@@ -31,7 +31,7 @@ export function LeaderboardTable({
   payoutConfig: PayoutConfig;
 }) {
   return (
-    <Card depth="raised" padding="none" className="flex flex-col overflow-hidden">
+    <Card depth="raised" padding="none" className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-5 py-4 lg:px-6 lg:py-5">
         <div className="flex min-w-0 items-center gap-2.5">
           <Trophy className="size-5 text-fg-secondary" aria-hidden />
@@ -62,7 +62,7 @@ export function LeaderboardTable({
           </div>
 
           <div
-            className="max-h-[520px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent]"
+            className="min-h-0 max-h-[520px] flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent] lg:max-h-none"
             aria-label="Contributor rankings, scrollable"
           >
             {rows.map((row) => (
