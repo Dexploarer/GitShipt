@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, Github } from "lucide-react";
+import { TokenActionsMenu } from "./TokenActionsMenu";
 import type { ProjectHeader as ProjectHeaderType } from "@/lib/queries/project-page";
 
 /**
@@ -57,6 +58,12 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
           </p>
         ) : null}
       </div>
+      <TokenActionsMenu
+        tokenMint={header.tokenMint}
+        ghOwner={header.ghOwner}
+        ghRepo={header.ghRepo}
+        className="shrink-0 self-start"
+      />
     </header>
   );
 }

@@ -11,7 +11,6 @@ import { PoolOverviewCard } from "./_components/PoolOverviewCard";
 import { RecentPayoutsFeed } from "./_components/RecentPayoutsFeed";
 import { RepoStatsList } from "./_components/RepoStatsList";
 import { TokenStatsRow } from "./_components/TokenStatsRow";
-import { TokenActionsMenu } from "./_components/TokenActionsMenu";
 import { ProjectSidebar } from "@/components/sidebar/ProjectSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -90,16 +89,7 @@ export default async function ProjectPage({
                 <ProjectHeader header={header} />
               </div>
               <div className="min-w-0 lg:self-start">
-                <RepoStatsList
-                  header={header}
-                  action={
-                    <TokenActionsMenu
-                      tokenMint={tokenStats?.tokenMint ?? null}
-                      ghOwner={header.ghOwner}
-                      ghRepo={header.ghRepo}
-                    />
-                  }
-                />
+                <RepoStatsList header={header} />
               </div>
 
               {/* Row 2 col 1: token stats strip — width-matched to the
