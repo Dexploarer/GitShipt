@@ -28,18 +28,18 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
 
   return (
     <header className="flex min-w-0 flex-col gap-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <Image
           src={avatar}
           alt=""
-          width={44}
-          height={44}
-          className="size-11 shrink-0 rounded-xl bg-surface-elevated ring-1 ring-border"
+          width={72}
+          height={72}
+          className="size-[72px] shrink-0 rounded-2xl bg-surface-elevated ring-1 ring-border"
           unoptimized
         />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-            <h1 className="truncate text-headline-md leading-tight text-fg">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="truncate text-headline-lg leading-tight text-fg">
               {header.name}
             </h1>
             <Link
@@ -47,15 +47,15 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
               target="_blank"
               rel="noreferrer noopener"
               aria-label={`Open ${header.ghOwner}/${header.ghRepo} on GitHub`}
-              className="inline-flex items-center gap-1 text-body-sm text-fg-secondary transition-colors hover:text-fg"
+              className="inline-flex items-center gap-1 text-body-md text-fg-secondary transition-colors hover:text-fg"
             >
-              <Github className="size-3.5" />
+              <Github className="size-4" />
               {header.ghOwner}/{header.ghRepo}
-              <ExternalLink className="size-3" />
+              <ExternalLink className="size-3.5" />
             </Link>
           </div>
           {header.description ? (
-            <p className="mt-1 line-clamp-2 text-body-sm text-fg-secondary">
+            <p className="mt-1.5 line-clamp-2 text-body-lg text-fg-secondary">
               {header.description}
             </p>
           ) : null}
