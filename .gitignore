@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Generated artifacts (regenerated in CI)
+tailwind.theme.json
+
+# Production builds
+build/
+dist/
+
+# Vercel
+.vercel
+.turbo
+
+# Env files (no secrets in repo)
+.env
+.env.*
+!.env.example
+
+# Solana keypairs (NEVER commit)
+*.keypair.json
+keypair.json
+id.json
+
+# Drizzle
+drizzle/meta/_journal.json.bak
+
+# Test artifacts
+playwright-report/
+test-results/
+playwright/.cache/
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.cache/
+*.pid
+*.seed
+*.pid.lock
