@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
-import { PublicShell } from "@/components/public/PublicShell";
+import { PublicAppShell } from "@/components/public/PublicAppShell";
 import { getLandingData } from "@/lib/queries/global";
 import { HowItWorksSection } from "./_components/HowItWorksSection";
 import { LiveTicker } from "./_components/LiveTicker";
@@ -17,14 +17,15 @@ import { TopProjectsGrid } from "./_components/TopProjectsGrid";
  *   3. Top projects (Card depth=raised grid)
  *   4. How it works (3-step explainer, depth=flat)
  *
- * Public chrome (nav + footer) comes from `<PublicShell>`.
+ * Wrapped in `<PublicAppShell>` — same viewport-locked sidebar layout used
+ * on /r/[org]/[repo] and the dashboard, with a public-nav `<PublicSidebar>`.
  */
 export default async function LandingPage() {
   const { topProjects, ticker } = await getLandingData();
 
   return (
-    <PublicShell active={undefined}>
-      <div className="flex flex-col gap-12">
+    <PublicAppShell active="home">
+      <div className="flex flex-col gap-12 py-2">
         {/* Hero */}
         <section className="flex flex-col items-start gap-6">
           <Pill variant="primary" size="default" className="gap-2">
@@ -83,6 +84,6 @@ export default async function LandingPage() {
         {/* How it works */}
         <HowItWorksSection />
       </div>
-    </PublicShell>
+    </PublicAppShell>
   );
 }
