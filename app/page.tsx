@@ -1,116 +1,88 @@
 import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { ArrowUpRight, Github, Sparkles, Wallet } from "lucide-react";
+import { ArrowUpRight, Github } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Pill } from "@/components/ui/pill";
+import { PublicShell } from "@/components/public/PublicShell";
+import { getLandingData } from "@/lib/queries/global";
+import { HowItWorksSection } from "./_components/HowItWorksSection";
+import { LiveTicker } from "./_components/LiveTicker";
+import { TopProjectsGrid } from "./_components/TopProjectsGrid";
 
-export default function HomePage() {
+/**
+ * Landing page — the public marketing surface for GitBags. Server-rendered
+ * end-to-end except for the `<LiveTicker>` island. Sections, top to bottom:
+ *
+ *   1. Hero (no card — floats on bg)
+ *   2. Live ticker (client island, KPIs that shimmer)
+ *   3. Top projects (Card depth=raised grid)
+ *   4. How it works (3-step explainer, depth=flat)
+ *
+ * Public chrome (nav + footer) comes from `<PublicShell>`.
+ */
+export default async function LandingPage() {
+  const { topProjects, ticker } = await getLandingData();
+
   return (
-    <div className="flex min-h-screen flex-col bg-bg text-fg">
-      <header className="sticky top-0 z-40 w-full border-b border-border bg-bg/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-content items-center justify-between px-margin">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="grid size-8 place-items-center rounded-md bg-primary text-bg">
-              <Sparkles className="size-4" />
+    <PublicShell active={undefined}>
+      <div className="flex flex-col gap-12">
+        {/* Hero */}
+        <section className="flex flex-col items-start gap-6">
+          <Pill variant="primary" size="default" className="gap-2">
+            <span
+              aria-hidden
+              className="size-1.5 animate-pulse-dot rounded-full bg-success"
+            />
+            Live on Solana devnet
+            <span aria-hidden className="text-fg-muted">
+              ·
             </span>
-            <span className="text-headline-sm tracking-tight">
-              GitBags
-              <span className="ml-2 text-label-sm font-normal text-fg-muted">
-                by BAGS.fm
-              </span>
-            </span>
-          </Link>
-          <nav className="flex items-center gap-2">
-            <Link
-              href="/explore"
-              className="rounded-md px-3 py-2 text-label-md text-fg-secondary transition-colors hover:bg-surface-elevated hover:text-fg"
-            >
-              Explore
-            </Link>
-            <Link
-              href="/docs"
-              className="rounded-md px-3 py-2 text-label-md text-fg-secondary transition-colors hover:bg-surface-elevated hover:text-fg"
-            >
-              Docs
-            </Link>
-            <ThemeToggle />
-            <Link
-              href="/auth/signin"
-              className="ml-2 inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-label-md text-fg transition-colors hover:bg-primary-hover"
-            >
-              <Github className="size-4" />
-              Sign in
-            </Link>
-          </nav>
-        </div>
-      </header>
+            April 28 hackathon submission
+          </Pill>
 
-      <main className="mx-auto flex w-full max-w-content flex-1 flex-col gap-16 px-margin py-24">
-        <section className="flex flex-col gap-8">
-          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-3 py-1.5 text-label-sm text-primary">
-            <span className="size-1.5 animate-pulse-dot rounded-full bg-success" />
-            Hackathon build · April 28 submission
-          </span>
-          <h1 className="max-w-3xl text-display tracking-tight">
+          <h1 className="text-display tracking-tight text-fg">
             Pump.fm for open source.
             <br />
             <span className="text-fg-muted">The repo is the project.</span>
           </h1>
+
           <p className="max-w-xl text-body-lg text-fg-secondary">
             Spin up a Bags.fm token for any GitHub repo. Trading fees flow to
             the top contributors automatically — daily, on-chain, transparent.
           </p>
-          <div className="flex flex-wrap gap-3">
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button asChild variant="primary" size="lg">
+              <Link href="/launch">
+                Launch a token
+                <ArrowUpRight className="size-4" aria-hidden />
+              </Link>
+            </Button>
+            <Button asChild variant="secondary" size="lg">
+              <Link href="/explore">
+                Browse projects
+              </Link>
+            </Button>
             <Link
-              href="/launch"
-              className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-5 text-label-md text-fg transition-colors hover:bg-primary-hover"
+              href="https://github.com/bagsdotfm"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-2 px-2 py-2 text-label-md text-fg-secondary transition-colors hover:text-fg"
             >
-              Launch a token
-              <ArrowUpRight className="size-4" />
-            </Link>
-            <Link
-              href="/explore"
-              className="inline-flex h-11 items-center gap-2 rounded-md border border-border-strong bg-surface-elevated px-5 text-label-md text-fg transition-colors hover:bg-surface-overlay"
-            >
-              Browse projects
+              <Github className="size-4" aria-hidden />
+              GitHub
             </Link>
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-gutter md:grid-cols-3">
-          {[
-            {
-              icon: Github,
-              title: "Index commits + PRs",
-              body: "GitHub App pulls deltas every 15 minutes. Score uses merged PRs and default-branch commits, with linear time decay.",
-            },
-            {
-              icon: Wallet,
-              title: "Daily payouts",
-              body: "Bags claim at 00:30 UTC. Top 10 contributors get tier-weighted SPL transfers; unclaimed lands in escrow.",
-            },
-            {
-              icon: Sparkles,
-              title: "On-chain transparent",
-              body: "Snapshots are Merkle-rooted. Every payout has a tx signature. Audit log is append-only.",
-            },
-          ].map(({ icon: Icon, title, body }) => (
-            <article
-              key={title}
-              className="rounded-lg border border-border bg-surface p-6"
-            >
-              <Icon className="size-5 text-primary" />
-              <h3 className="mt-4 text-headline-sm">{title}</h3>
-              <p className="mt-2 text-body-md text-fg-secondary">{body}</p>
-            </article>
-          ))}
-        </section>
-      </main>
+        {/* Live ticker — client island for the heartbeat animation. */}
+        <LiveTicker initial={ticker} />
 
-      <footer className="border-t border-border px-margin py-6">
-        <div className="mx-auto flex w-full max-w-content items-center justify-between text-caption text-fg-muted">
-          <span>Powered by BAGS.fm API</span>
-          <span>© {new Date().getFullYear()} GitBags</span>
-        </div>
-      </footer>
-    </div>
+        {/* Top projects */}
+        <TopProjectsGrid projects={topProjects} />
+
+        {/* How it works */}
+        <HowItWorksSection />
+      </div>
+    </PublicShell>
   );
 }
