@@ -1,0 +1,318 @@
+/*
+ * GitBags global styles.
+ *
+ * Source of truth: DESIGN.md at repo root.
+ * Token names mirror the YAML frontmatter exactly.
+ *
+ * Theme model:
+ *   - :root holds the dark palette (canonical, default).
+ *   - [data-theme="light"] overrides each token with the light palette.
+ *   - @theme inline routes every CSS variable through Tailwind v4 so utilities
+ *     like `bg-surface`, `text-fg-secondary`, `border-border-strong`,
+ *     `text-rank-gold` resolve correctly per theme without rebuild.
+ *   - Components reference utility classes only. They never read --vars directly.
+ */
+@import "tailwindcss";
+
+/* ============================================================
+ * Dark palette (canonical default). Mirrors DESIGN.md `colors:`
+ * ============================================================ */
+:root {
+  /* Surfaces */
+  --bg: #08080c;
+  --surface: #101015;
+  --surface-elevated: #16161e;
+  --surface-overlay: #1c1c25;
+  --border: #23232e;
+  --border-strong: #33333f;
+
+  /* Brand */
+  --primary: #a855f7;
+  --primary-hover: #9333ea;
+  --primary-pressed: #7e22ce;
+  --primary-soft: #1f1429;
+
+  /* Text */
+  --fg: #f5f5f7;
+  --fg-secondary: #9494a0;
+  --fg-muted: #5a5a66;
+  --fg-disabled: #3a3a45;
+
+  /* Semantic */
+  --success: #22c55e;
+  --success-soft: #0f2a1a;
+  --warning: #eab308;
+  --warning-soft: #2a2110;
+  --danger: #ef4444;
+  --danger-soft: #2a1414;
+  --info: #3b82f6;
+  --info-soft: #0f1f33;
+
+  /* Rank tiers (medals) */
+  --rank-gold: #fbbf24;
+  --rank-silver: #cbd5e1;
+  --rank-bronze: #d97706;
+
+  /* Charts */
+  --chart-1: #a855f7;
+  --chart-2: #7e22ce;
+  --chart-3: #22c55e;
+  --chart-4: #3b82f6;
+  --chart-5: #eab308;
+
+  /* Shadow tokens — theme-aware */
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================================
+ * Light palette (mirror). Mirrors DESIGN.md `colors-light:`
+ * ============================================================ */
+[data-theme="light"] {
+  /* Surfaces */
+  --bg: #fafafc;
+  --surface: #ffffff;
+  --surface-elevated: #f4f4f8;
+  --surface-overlay: #ffffff;
+  --border: #e5e5ec;
+  --border-strong: #d4d4dd;
+
+  /* Brand — slightly darkened purple for AA contrast on white */
+  --primary: #9333ea;
+  --primary-hover: #7e22ce;
+  --primary-pressed: #6b21a8;
+  --primary-soft: #f3e8ff;
+
+  /* Text */
+  --fg: #0f0f14;
+  --fg-secondary: #52525b;
+  --fg-muted: #8b8b95;
+  --fg-disabled: #c4c4cc;
+
+  /* Semantic — darkened for AA on white */
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --warning: #ca8a04;
+  --warning-soft: #fef9c3;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --info: #2563eb;
+  --info-soft: #dbeafe;
+
+  /* Rank tiers — darkened to maintain readability on light cards */
+  --rank-gold: #d97706;
+  --rank-silver: #71717a;
+  --rank-bronze: #b45309;
+
+  /* Charts */
+  --chart-1: #9333ea;
+  --chart-2: #6b21a8;
+  --chart-3: #16a34a;
+  --chart-4: #2563eb;
+  --chart-5: #ca8a04;
+
+  /* Shadows — lighter, tighter on high-luminance backgrounds */
+  --shadow-popover: 0 4px 16px rgba(15, 15, 20, 0.08);
+  --shadow-modal: 0 20px 60px rgba(15, 15, 20, 0.15);
+}
+
+/* ============================================================
+ * Tailwind v4 token registration via `@theme inline`.
+ * `inline` keeps the var() reference live so theme switches
+ * are runtime-only (no rebuild).
+ * ============================================================ */
+@theme inline {
+  /* Colors */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-pressed: var(--primary-pressed);
+  --color-primary-soft: var(--primary-soft);
+
+  --color-fg: var(--fg);
+  --color-fg-secondary: var(--fg-secondary);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-disabled: var(--fg-disabled);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-rank-gold: var(--rank-gold);
+  --color-rank-silver: var(--rank-silver);
+  --color-rank-bronze: var(--rank-bronze);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Fonts (variables wired by next/font in app/layout.tsx) */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Radius */
+  --radius-none: 0px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+
+  /* Layout dimensions */
+  --container-content: 1440px;
+  --spacing-sidebar: 240px;
+  --spacing-gutter: 24px;
+  --spacing-margin: 32px;
+
+  /* Shadows */
+  --shadow-popover: var(--shadow-popover);
+  --shadow-modal: var(--shadow-modal);
+}
+
+/* ============================================================
+ * Custom typography utilities mapped from DESIGN.md `typography:`.
+ * Use as Tailwind utilities: `text-display`, `text-headline-md`, etc.
+ * ============================================================ */
+@utility text-display {
+  font-family: var(--font-sans);
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+@utility text-headline-lg {
+  font-family: var(--font-sans);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+@utility text-headline-md {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+@utility text-headline-sm {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+@utility text-body-lg {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+@utility text-body-md {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+@utility text-body-sm {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+@utility text-label-md {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+@utility text-label-sm {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+@utility text-caption {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+@utility text-mono-md {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+@utility text-mono-sm {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+/* ============================================================
+ * Live indicator pulse — used on cron-status dots and live badges.
+ * One canonical animation; components compose it with semantic colors.
+ * ============================================================ */
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+@utility animate-pulse-dot {
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================================
+ * Base resets and selection.
+ * ============================================================ */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* Mono utility: ensure tabular figures everywhere we render numbers. */
+.font-mono,
+[class*="text-mono-"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" on, "ss01" on;
+}

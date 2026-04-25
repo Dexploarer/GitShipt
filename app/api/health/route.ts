@@ -1,0 +1,53 @@
+import { NextResponse } from "next/server";
+import { redis } from "@/lib/redis";
+import { dbHttp } from "@/db";
+import { sql } from "drizzle-orm";
+import { hasCredentials } from "@/lib/env";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Lightweight health check. Probes:
+ *  - DB connectivity (SELECT 1)
+ *  - Redis connectivity (PING)
+ *  - Env presence for each external service
+ *
+ * Always returns 200 with a JSON body so monitoring can parse the
+ * sub-statuses; only the HTTP layer being reachable is the "up" signal.
+ */
+export async function GET(): Promise<Response> {
+  const status: Record<string, "ok" | "stub" | "fail"> = {
+    db: "stub",
+    redis: "stub",
+    bags: hasCredentials.bags() ? "ok" : "stub",
+    github: hasCredentials.github() ? "ok" : "stub",
+    githubApp: hasCredentials.githubApp() ? "ok" : "stub",
+    solana: hasCredentials.solana() ? "ok" : "stub",
+    payoutKey: hasCredentials.payoutKey() ? "ok" : "stub",
+  };
+
+  if (hasCredentials.db()) {
+    try {
+      await dbHttp.execute(sql`select 1`);
+      status.db = "ok";
+    } catch {
+      status.db = "fail";
+    }
+  }
+
+  const r = redis();
+  if (r) {
+    try {
+      const pong = await r.ping();
+      status.redis = pong === "PONG" ? "ok" : "fail";
+    } catch {
+      status.redis = "fail";
+    }
+  }
+
+  return NextResponse.json({
+    ok: !Object.values(status).some((v) => v === "fail"),
+    status,
+    at: new Date().toISOString(),
+  });
+}
