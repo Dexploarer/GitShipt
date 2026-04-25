@@ -51,7 +51,7 @@ export function ContributorRow({
           alt=""
           width={32}
           height={32}
-          className="size-8 shrink-0 rounded-full bg-surface-elevated"
+          className="size-8 shrink-0 rounded-lg bg-surface-elevated"
           unoptimized
         />
         <div className="min-w-0">

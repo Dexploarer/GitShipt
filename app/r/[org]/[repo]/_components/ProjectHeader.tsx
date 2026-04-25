@@ -34,7 +34,7 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
           alt=""
           width={44}
           height={44}
-          className="size-11 shrink-0 rounded-full bg-surface-elevated ring-1 ring-border"
+          className="size-11 shrink-0 rounded-xl bg-surface-elevated ring-1 ring-border"
           unoptimized
         />
         <div className="min-w-0 flex-1">
