@@ -46,6 +46,9 @@ yarn-error.log*
 
 # Solana keypairs (NEVER commit)
 *.keypair.json
+*-keypair.json
+.payout-keypair.json
+.*-keypair.json
 keypair.json
 id.json
 
