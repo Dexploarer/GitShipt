@@ -92,8 +92,9 @@ export default async function ProjectPage({
                 <RepoStatsList header={header} />
               </div>
 
-              {/* Row 2: token stats strip spans both cols on lg+ */}
-              <div className="min-w-0 lg:col-span-2">
+              {/* Row 2 col 1: token stats strip — width-matched to the
+                  leaderboard column so it never extends past it. */}
+              <div className="min-w-0 lg:col-start-1">
                 <TokenStatsRow
                   stats={tokenStats}
                   ghOwner={header.ghOwner}
@@ -101,8 +102,17 @@ export default async function ProjectPage({
                 />
               </div>
 
-              {/* Row 3: leaderboard | right rail */}
-              <div className="min-w-0 lg:min-h-0">
+              {/* Row 2-3 col 2: aside spans both rows so the right rail
+                  starts higher up, fills the available height, and the
+                  countdown isn't pinched by row 3's flex height. */}
+              <aside className="flex min-w-0 flex-col gap-3 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--border-strong)_transparent]">
+                <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
+                <PoolOverviewCard pool={pool} />
+                <RecentPayoutsFeed payouts={recentPayouts} />
+              </aside>
+
+              {/* Row 3 col 1: leaderboard fills the remaining vertical space */}
+              <div className="min-w-0 lg:col-start-1 lg:row-start-3 lg:min-h-0">
                 <LeaderboardTable
                   rows={leaderboard}
                   dailyFeeLamports={pool.dailyFeeLamports}
@@ -111,12 +121,6 @@ export default async function ProjectPage({
                   payoutConfig={header.payoutConfig}
                 />
               </div>
-
-              <aside className="flex min-w-0 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--border-strong)_transparent]">
-                <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
-                <PoolOverviewCard pool={pool} />
-                <RecentPayoutsFeed payouts={recentPayouts} />
-              </aside>
             </div>
           </main>
 
