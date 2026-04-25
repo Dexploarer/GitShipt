@@ -8,7 +8,6 @@ import { NextPayoutCountdown } from "./_components/NextPayoutCountdown";
 import { LeaderboardTable } from "./_components/LeaderboardTable";
 import { PoolOverviewCard } from "./_components/PoolOverviewCard";
 import { RecentPayoutsFeed } from "./_components/RecentPayoutsFeed";
-import { SystemStatusCard } from "./_components/SystemStatusCard";
 import { ProjectSidebar } from "@/components/sidebar/ProjectSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -52,8 +51,7 @@ export default async function ProjectPage({
     notFound();
   }
 
-  const { header, leaderboard, pool, recentPayouts, systemStatus, nextPayoutAt } =
-    data;
+  const { header, leaderboard, pool, recentPayouts, nextPayoutAt } = data;
   const slug = `${header.ghOwner}/${header.ghRepo}`;
 
   return (
@@ -97,7 +95,6 @@ export default async function ProjectPage({
                 <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
                 <PoolOverviewCard pool={pool} />
                 <RecentPayoutsFeed payouts={recentPayouts} />
-                <SystemStatusCard items={systemStatus} />
               </aside>
             </div>
           </main>

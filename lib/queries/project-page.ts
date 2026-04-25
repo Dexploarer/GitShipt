@@ -6,7 +6,6 @@ import {
   contributorClaims,
   payouts,
   payoutRecipients,
-  platformConfig,
   type ScoringConfig,
   type PayoutConfig,
 } from "@/db/schema";
@@ -69,18 +68,11 @@ export interface PoolOverview {
   isStub: boolean; // true when Bags creds absent
 }
 
-export interface SystemStatusItem {
-  name: string;
-  lastBeatAt: string | null;
-  ageMs: number | null;
-}
-
 export interface ProjectPageData {
   header: ProjectHeader;
   leaderboard: LeaderboardRow[];
   pool: PoolOverview;
   recentPayouts: RecentPayoutRow[];
-  systemStatus: SystemStatusItem[];
   nextPayoutAt: Date;
 }
 
@@ -325,34 +317,6 @@ function buildStubSparkline(currentLamports: bigint): { date: string; lamports: 
   return out;
 }
 
-export async function getSystemStatus(): Promise<SystemStatusItem[]> {
-  const heartbeatRows = await dbHttp
-    .select()
-    .from(platformConfig)
-    .where(sql`${platformConfig.key} like 'heartbeat.%'`);
-
-  const map = new Map<string, { lastBeatAt: string | null; ageMs: number | null }>(
-    heartbeatRows.map((r) => {
-      const v = r.value as { lastBeatAt?: string };
-      const lastBeatAt = v.lastBeatAt ?? null;
-      const ageMs = lastBeatAt ? Date.now() - new Date(lastBeatAt).getTime() : null;
-      return [r.key, { lastBeatAt, ageMs }];
-    }),
-  );
-
-  const named = (key: string): SystemStatusItem => ({
-    name: key,
-    lastBeatAt: map.get(`heartbeat.${key}`)?.lastBeatAt ?? null,
-    ageMs: map.get(`heartbeat.${key}`)?.ageMs ?? null,
-  });
-
-  return [
-    named("runtime"),
-    named("indexer"),
-    named("payouts"),
-  ];
-}
-
 export async function getProjectPageData(
   ghOwner: string,
   ghRepo: string,
@@ -360,11 +324,10 @@ export async function getProjectPageData(
   const header = await getProjectBySlug(ghOwner, ghRepo);
   if (!header) return null;
 
-  const [leaderboard, recentPayouts, pool, systemStatus] = await Promise.all([
+  const [leaderboard, recentPayouts, pool] = await Promise.all([
     getProjectLeaderboard(header.id, header.payoutConfig),
     getRecentPayouts(header.id),
     getPoolOverview(header),
-    getSystemStatus(),
   ]);
 
   return {
@@ -372,7 +335,6 @@ export async function getProjectPageData(
     leaderboard,
     pool,
     recentPayouts,
-    systemStatus,
     nextPayoutAt: nextPayoutDate(),
   };
 }

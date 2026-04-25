@@ -32,11 +32,11 @@ export function LeaderboardTable({
 }) {
   return (
     <Card depth="raised" padding="none" className="flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Trophy className="size-4 text-fg-secondary" aria-hidden />
-          <h2 className="text-headline-sm leading-none text-fg">Leaderboard</h2>
-          <span className="hidden items-center gap-1.5 text-caption text-fg-muted sm:inline-flex">
+      <div className="flex items-center justify-between gap-3 px-5 py-4 lg:px-6 lg:py-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Trophy className="size-5 text-fg-secondary" aria-hidden />
+          <h2 className="text-headline-md leading-none text-fg">Leaderboard</h2>
+          <span className="hidden items-center gap-1.5 text-body-sm text-fg-muted sm:inline-flex">
             <span className="size-1.5 animate-pulse-dot rounded-full bg-success" />
             Updates daily 00:00 UTC
           </span>
@@ -48,12 +48,12 @@ export function LeaderboardTable({
       </div>
 
       {rows.length === 0 ? (
-        <div className="border-t border-border px-4 py-10 text-center text-body-md text-fg-secondary">
+        <div className="border-t border-border px-5 py-12 text-center text-body-md text-fg-secondary">
           No contributors ranked yet — the first snapshot lands at midnight UTC.
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-[44px_minmax(0,1fr)_84px_72px_120px] items-center gap-3 border-y border-border bg-surface-elevated/40 px-4 py-2 text-label-sm text-fg-muted">
+          <div className="grid grid-cols-[48px_minmax(0,1fr)_92px_80px_140px] items-center gap-3 border-y border-border bg-surface-elevated/40 px-5 py-2.5 text-label-sm text-fg-muted lg:px-6">
             <div>#</div>
             <div>Contributor</div>
             <div className="text-right">Score</div>
@@ -62,7 +62,7 @@ export function LeaderboardTable({
           </div>
 
           <div
-            className="max-h-[420px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent]"
+            className="max-h-[520px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent]"
             aria-label="Contributor rankings, scrollable"
           >
             {rows.map((row) => (
@@ -77,8 +77,8 @@ export function LeaderboardTable({
         </>
       )}
 
-      <div className="flex items-center justify-between border-t border-border bg-surface-elevated/40 px-4 py-2.5">
-        <span className="text-label-sm text-fg-muted">Daily pool</span>
+      <div className="flex items-center justify-between border-t border-border bg-surface-elevated/40 px-5 py-3 lg:px-6">
+        <span className="text-label-md text-fg-muted">Daily pool</span>
         <span className="text-mono-md text-fg">{formatSol(dailyFeeLamports)}</span>
       </div>
     </Card>
