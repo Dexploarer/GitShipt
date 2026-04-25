@@ -1,30 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ExternalLink,
-  Github,
-  GitFork,
-  Sparkles,
-  Star,
-  Users,
-} from "lucide-react";
-import { formatAddress } from "@/lib/format";
+import { ExternalLink, Github } from "lucide-react";
+import { TokenStatsRow } from "./TokenStatsRow";
 import type { ProjectHeader as ProjectHeaderType } from "@/lib/queries/project-page";
+import type { TokenStats } from "@/lib/queries/token-stats";
 
 /**
- * Project hero — floating directly on the page bg (no card wrapper).
- * Avatar + name + repo link + description, then a row of QuickStat cards
- * (Language / Stars / Forks / Contributors / Token).
- *
- * The status pill is intentionally NOT rendered here — the footer + sidebar
- * status indicators carry that signal globally so the header stays clean.
+ * Project hero — floats directly on the page bg (no card wrapper).
+ * Avatar + name + description, then the inline TokenStatsRow strip
+ * (price / cap / volume / holders / contract). Repo stats (language,
+ * stars, forks, contributors) live in a sibling RepoStatsList on the
+ * right side of the header in the page grid.
  */
-export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
+export function ProjectHeader({
+  header,
+  tokenStats,
+}: {
+  header: ProjectHeaderType;
+  tokenStats: TokenStats | null;
+}) {
   const avatar = header.imageUrl ?? `https://github.com/${header.ghOwner}.png`;
   const repoUrl = `https://github.com/${header.ghOwner}/${header.ghRepo}`;
-  const tokenSymbol = header.tokenMint
-    ? header.ghRepo.toUpperCase().slice(0, 8)
-    : null;
 
   return (
     <header className="flex min-w-0 flex-col gap-5 lg:gap-6">
@@ -62,106 +58,11 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-5 lg:gap-3">
-        <QuickStat label="Language">
-          {header.language ? (
-            <>
-              <span
-                className="inline-block size-2.5 shrink-0 rounded-full"
-                style={{ background: languageColor(header.language) }}
-                aria-hidden
-              />
-              <span className="truncate text-fg">{header.language}</span>
-            </>
-          ) : (
-            <span className="text-fg-muted">—</span>
-          )}
-        </QuickStat>
-
-        <QuickStat label="Stars">
-          <Star className="size-3.5 text-fg-muted lg:size-4" />
-          <span className="text-mono-md text-fg lg:text-[15px]">
-            {header.stars.toLocaleString("en-US")}
-          </span>
-        </QuickStat>
-
-        <QuickStat label="Forks">
-          <GitFork className="size-3.5 text-fg-muted lg:size-4" />
-          <span className="text-mono-md text-fg lg:text-[15px]">
-            {header.forks.toLocaleString("en-US")}
-          </span>
-        </QuickStat>
-
-        <QuickStat label="Contributors">
-          <Users className="size-3.5 text-fg-muted lg:size-4" />
-          <span className="text-mono-md text-fg lg:text-[15px]">
-            {header.contributorsCount.toLocaleString("en-US")}
-          </span>
-        </QuickStat>
-
-        <QuickStat label="Token">
-          {tokenSymbol ? (
-            <>
-              <span className="grid size-4 shrink-0 place-items-center rounded-md bg-primary text-bg lg:size-5">
-                <Sparkles className="size-2.5 lg:size-3" />
-              </span>
-              <span className="text-label-md text-fg lg:text-[15px]" title={header.tokenMint ?? undefined}>
-                {tokenSymbol}
-              </span>
-            </>
-          ) : (
-            <span className="text-mono-sm text-fg-muted">
-              {header.tokenMint ? formatAddress(header.tokenMint) : "—"}
-            </span>
-          )}
-        </QuickStat>
-      </div>
+      <TokenStatsRow
+        stats={tokenStats}
+        ghOwner={header.ghOwner}
+        ghRepo={header.ghRepo}
+      />
     </header>
   );
-}
-
-function QuickStat({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-lg border border-border/60 bg-surface/40 px-3 py-2 lg:px-4 lg:py-2.5">
-      <div className="text-caption text-fg-muted lg:text-label-sm">{label}</div>
-      <div className="mt-1 flex min-w-0 items-center gap-1.5 lg:mt-1.5 lg:gap-2">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-/**
- * GitHub-style language color map. Tiny subset — extend as needed; falls
- * back to a neutral gray for unknown languages.
- */
-function languageColor(lang: string): string {
-  const map: Record<string, string> = {
-    TypeScript: "#3178c6",
-    JavaScript: "#f1e05a",
-    Python: "#3572A5",
-    Go: "#00ADD8",
-    Rust: "#dea584",
-    Solidity: "#AA6746",
-    Java: "#b07219",
-    Ruby: "#701516",
-    Swift: "#F05138",
-    Kotlin: "#A97BFF",
-    C: "#555555",
-    "C++": "#f34b7d",
-    "C#": "#178600",
-    Shell: "#89e051",
-    HTML: "#e34c26",
-    CSS: "#563d7c",
-    Vue: "#41b883",
-    Svelte: "#ff3e00",
-    Dart: "#00B4AB",
-  };
-  return map[lang] ?? "#8b8b95";
 }
