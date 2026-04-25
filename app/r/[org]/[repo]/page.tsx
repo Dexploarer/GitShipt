@@ -103,12 +103,12 @@ export default async function ProjectPage({
 
           <footer
             className={[
-              "shrink-0 ml-3",
-              // Anchored: top-left rounded toward the sidebar; bottom + right
-              // meet the viewport edges so the bar feels "bolted" in. ml-3
-              // breathes a 12px gap from the sidebar's right edge.
-              "rounded-tl-2xl rounded-tr-none rounded-bl-none rounded-br-none",
-              "border-t border-l border-border/60",
+              "shrink-0 mx-3",
+              // Width-matched to the main content column (mx-3 mirrors main's
+              // px-3 inset). Top-left + top-right rounded so the bar reads as
+              // a floating ribbon; bottom flush to viewport.
+              "rounded-tl-2xl rounded-tr-2xl rounded-bl-none rounded-br-none",
+              "border-t border-x border-border/60",
               "glass shadow-card-elevated surface-highlight",
               "flex items-center justify-between gap-4",
               "px-4 py-2",
