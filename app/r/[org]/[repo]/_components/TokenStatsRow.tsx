@@ -3,7 +3,7 @@ import { ArrowUpRight, Coins, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatAddress, formatSol } from "@/lib/format";
 import { CopyButton } from "./CopyButton";
-import { EmbedCopyButton } from "./EmbedCopyButton";
+import { TokenActionsMenu } from "./TokenActionsMenu";
 import type { TokenStats } from "@/lib/queries/token-stats";
 
 /**
@@ -36,7 +36,11 @@ export function TokenStatsRow({
           </Link>{" "}
           to start the daily fee pool.
         </div>
-        <EmbedCopyButton ghOwner={ghOwner} ghRepo={ghRepo} />
+        <TokenActionsMenu
+          tokenMint={null}
+          ghOwner={ghOwner}
+          ghRepo={ghRepo}
+        />
       </div>
     );
   }
@@ -59,7 +63,11 @@ export function TokenStatsRow({
             </span>
           ) : null}
         </div>
-        <EmbedCopyButton ghOwner={ghOwner} ghRepo={ghRepo} />
+        <TokenActionsMenu
+          tokenMint={stats.tokenMint}
+          ghOwner={ghOwner}
+          ghRepo={ghRepo}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
