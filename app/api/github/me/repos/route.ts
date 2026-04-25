@@ -1,0 +1,197 @@
+import "server-only";
+import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { Octokit } from "@octokit/rest";
+import { eq } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { dbHttp } from "@/db";
+import { accounts, projects } from "@/db/schema";
+import { check } from "@/lib/rate-limit";
+import { hasCredentials } from "@/lib/env";
+import { redis } from "@/lib/redis";
+import {
+  GithubReposResponseSchema,
+  type GithubRepo,
+} from "@/shared";
+
+export const dynamic = "force-dynamic";
+
+const CACHE_TTL_SECONDS = 30;
+
+interface GithubRepoApiResponse {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  permissions?: { admin?: boolean; push?: boolean; pull?: boolean };
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
+/**
+ * List the authed user's admin-permission GitHub repos for the launch wizard.
+ *
+ * Reads the GitHub OAuth access token from `accounts.access_token` (better-auth
+ * persists it there during OAuth callback). Calls Octokit user-context
+ * `GET /user/repos`. Filters to repos where `permissions.admin === true`.
+ *
+ * Marks repos that already exist in `projects` (any status) as
+ * `alreadyLaunched: true` so the UI can disable them.
+ *
+ * Cached 30s in Redis under `gitbags:gh:me:repos:{userId}`.
+ */
+export async function GET(req: Request): Promise<Response> {
+  if (!hasCredentials.github()) {
+    return NextResponse.json(
+      { error: "auth_unavailable", message: "GitHub OAuth not configured." },
+      { status: 503 },
+    );
+  }
+  if (!hasCredentials.db()) {
+    return NextResponse.json(
+      { error: "db_unavailable", message: "DB not configured." },
+      { status: 503 },
+    );
+  }
+
+  // Rate-limit GET reads with the default limiter (60/min/user).
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+
+  const session = await auth().api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: "unauthorized", message: "Sign in with GitHub to list repos." },
+      { status: 401 },
+    );
+  }
+  const userId = session.user.id;
+
+  const limit = await check("default", `gh-repos:${userId ?? ip}`);
+  if (!limit.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
+  // Cache hit?
+  const r = redis();
+  const cacheKey = `gitbags:gh:me:repos:${userId}`;
+  if (r) {
+    const cached = await r.get(cacheKey);
+    if (cached) {
+      try {
+        const parsed = GithubReposResponseSchema.parse(JSON.parse(cached));
+        return NextResponse.json(parsed, {
+          headers: { "x-cache": "HIT" },
+        });
+      } catch {
+        // fall through and re-fetch
+      }
+    }
+  }
+
+  // Look up the GitHub access token from the better-auth `accounts` table.
+  const [account] = await dbHttp
+    .select({
+      accessToken: accounts.accessToken,
+      scope: accounts.scope,
+    })
+    .from(accounts)
+    .where(eq(accounts.userId, userId))
+    .limit(1);
+
+  if (!account?.accessToken) {
+    return NextResponse.json(
+      {
+        error: "missing_github_token",
+        message:
+          "No GitHub OAuth token on file. Sign out and sign back in with GitHub.",
+      },
+      { status: 401 },
+    );
+  }
+
+  const octokit = new Octokit({ auth: account.accessToken });
+
+  let raw: GithubRepoApiResponse[];
+  try {
+    const resp = await octokit.request("GET /user/repos", {
+      per_page: 100,
+      affiliation: "owner",
+      visibility: "public",
+      sort: "updated",
+    });
+    raw = resp.data as GithubRepoApiResponse[];
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "GitHub list-repos failed.";
+    return NextResponse.json(
+      { error: "github_error", message },
+      { status: 502 },
+    );
+  }
+
+  const adminRepos = raw.filter((r) => r.permissions?.admin === true);
+
+  // Look up which of these repos already have a project.
+  const ownerRepoPairs = adminRepos.map((r) => ({
+    owner: r.owner.login,
+    name: r.name,
+  }));
+  const launchedSet = new Set<string>();
+  if (ownerRepoPairs.length > 0) {
+    // Single round-trip: pull every project for these owners and filter
+    // by repo names client-side. Owners list is bounded by GitHub's 100
+    // per_page, so this is cheap.
+    const ownerLogins = Array.from(new Set(ownerRepoPairs.map((p) => p.owner)));
+    if (ownerLogins.length > 0) {
+      const existing = await dbHttp
+        .select({
+          ghOwner: projects.ghOwner,
+          ghRepo: projects.ghRepo,
+        })
+        .from(projects);
+      for (const row of existing) {
+        if (ownerLogins.includes(row.ghOwner)) {
+          launchedSet.add(`${row.ghOwner}/${row.ghRepo}`);
+        }
+      }
+    }
+  }
+
+  const repos: GithubRepo[] = adminRepos.map((r) => ({
+    id: String(r.id),
+    owner: r.owner.login,
+    name: r.name,
+    fullName: r.full_name,
+    description: r.description,
+    language: r.language,
+    stargazersCount: r.stargazers_count,
+    forksCount: r.forks_count,
+    ownerAvatarUrl: r.owner.avatar_url,
+    alreadyLaunched: launchedSet.has(r.full_name),
+  }));
+
+  const responseBody = GithubReposResponseSchema.parse({
+    repos,
+    visibilityNote:
+      "Showing public repos you administer. Grant the `repo` scope to also list private repos.",
+  });
+
+  if (r) {
+    await r.set(
+      cacheKey,
+      JSON.stringify(responseBody),
+      "EX",
+      CACHE_TTL_SECONDS,
+    );
+  }
+
+  return NextResponse.json(responseBody, {
+    headers: { "x-cache": "MISS" },
+  });
+}

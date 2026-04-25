@@ -1,0 +1,64 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Timer } from "lucide-react";
+
+/**
+ * Live countdown to the next payout window. Server passes the absolute target
+ * timestamp (a serialized Date) so the client doesn't need to know cron rules.
+ *
+ * The interval ticks at 1s. We compute remaining ms each tick from the wall
+ * clock — never accumulate — so tab-throttling can't skew the readout.
+ */
+export function NextPayoutCountdown({ targetIso }: { targetIso: string }) {
+  const [now, setNow] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const target = new Date(targetIso).getTime();
+  const remaining = Math.max(0, target - now);
+  const totalSec = Math.floor(remaining / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const display = `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+
+  return (
+    <section className="flex h-full flex-col rounded-lg border border-border bg-surface p-6">
+      <div className="flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-2 text-label-sm text-fg-muted">
+          <Timer className="size-4" />
+          Next Payout
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-label-sm text-success">
+          <span className="size-1.5 animate-pulse-dot rounded-full bg-success" />
+          Cron Active
+        </span>
+      </div>
+
+      <div
+        className="mt-4 text-mono-md text-fg tabular-nums"
+        suppressHydrationWarning
+        style={{
+          fontSize: "28px",
+          lineHeight: 1.1,
+          letterSpacing: "-0.01em",
+        }}
+        aria-live="polite"
+      >
+        {display}
+      </div>
+
+      <p className="mt-2 text-body-sm text-fg-secondary">
+        Daily snapshot + payout at 00:30 UTC.
+      </p>
+    </section>
+  );
+}
+
+function pad(n: number): string {
+  return n.toString().padStart(2, "0");
+}
