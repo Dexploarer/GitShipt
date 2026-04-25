@@ -57,17 +57,24 @@ export default async function ProjectPage({
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen gap-3 bg-bg p-3 text-fg">
-        <ProjectSidebar
-          slug={slug}
-          active="leaderboard"
-          canAdmin={false}
-          token={{ header, pool }}
-          wallet={{}}
-        />
+      {/* App shell: viewport-locked. Only <main> scrolls. Sidebar + footer stay
+          pinned. Outer container has 12px left/top gutter only — the right
+          column extends to viewport right edge, and the footer to viewport
+          bottom edge, so the footer feels "anchored" to the corner of the
+          screen with only its top-left rounded toward the sidebar. */}
+      <div className="flex h-screen overflow-hidden bg-bg text-fg">
+        <div className="shrink-0 p-3 pr-0">
+          <ProjectSidebar
+            slug={slug}
+            active="leaderboard"
+            canAdmin={false}
+            token={{ header, pool }}
+            wallet={{}}
+          />
+        </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <main className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="min-w-0 flex-1 overflow-y-auto px-3 pt-3 pb-3">
             <div className="grid grid-cols-1 gap-gutter lg:grid-cols-[minmax(0,1fr)_380px]">
               {/* Left column */}
               <div className="flex min-w-0 flex-col gap-gutter">
@@ -96,31 +103,25 @@ export default async function ProjectPage({
 
           <footer
             className={[
-              "rounded-tl-2xl rounded-bl-none",
-              "rounded-tr-2xl rounded-br-2xl",
-              "border border-border/60",
+              "shrink-0",
+              // Anchored: top-left rounded toward the sidebar; the other three
+              // corners sit on the viewport edges so the bar feels "bolted" in.
+              "rounded-tl-2xl rounded-tr-none rounded-bl-none rounded-br-none",
+              "border-t border-l border-border/60",
               "glass shadow-card-elevated surface-highlight",
-              "flex flex-wrap items-center justify-between gap-3",
-              "px-5 py-3",
+              "flex items-center justify-between gap-4",
+              "px-4 py-2",
             ].join(" ")}
           >
-            <div className="flex items-center gap-3">
-              <Badge variant="success" dot>
+            <div className="flex min-w-0 items-center gap-2">
+              <Badge variant="success" dot size="sm">
                 {header.status}
               </Badge>
-              <span className="text-caption text-fg-muted">
-                Project · {slug}
-              </span>
+              <span className="truncate text-caption text-fg-muted">{slug}</span>
             </div>
-            <div className="flex items-center gap-4 text-caption text-fg-muted">
-              <span>
-                {leaderboard.length} contributors ranked
-              </span>
-              <span aria-hidden>·</span>
-              <span>Powered by BAGS.fm</span>
-              <span aria-hidden>·</span>
-              <span>devnet</span>
-            </div>
+            <span className="shrink-0 text-caption text-fg-muted">
+              devnet · BAGS.fm
+            </span>
           </footer>
         </div>
       </div>

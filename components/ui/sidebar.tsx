@@ -95,7 +95,11 @@ export function Sidebar({
     <aside
       data-collapsed={collapsed ? "true" : "false"}
       className={cn(
-        "relative flex flex-col shrink-0",
+        // Designed to live inside an overflow:hidden viewport-locked shell.
+        // Stretches to fill the parent's full height — internal regions
+        // (header / scrollable nav / footer) handle their own overflow so
+        // the nav can scroll independently of the page.
+        "flex h-full flex-col shrink-0",
         "rounded-2xl",
         "glass shadow-floating surface-highlight",
         "border border-border/50",

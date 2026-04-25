@@ -74,10 +74,7 @@ export function ProjectSidebar({
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href="/" className="flex items-center gap-2 min-w-0">
-          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-bg shadow-card-elevated">
-            <Sparkles className="size-4" />
-          </span>
+        <Link href="/" className="flex min-w-0 items-center">
           <CollapsibleBrand />
         </Link>
         <SidebarToggle className="ml-auto" />
