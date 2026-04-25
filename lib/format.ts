@@ -88,3 +88,30 @@ export function formatAddress(addr: string, prefix = 4, suffix = 4): string {
   if (addr.length <= prefix + suffix + 1) return addr;
   return `${addr.slice(0, prefix)}...${addr.slice(-suffix)}`;
 }
+
+/**
+ * Sparkline point shape used by the Recharts pool sparkline. BigInt can't
+ * cross the props boundary into Recharts cleanly, so we pre-convert to
+ * `number` SOL on the server.
+ */
+export type SparklinePoint = {
+  date: string;
+  /** SOL value (already converted from lamports). */
+  sol: number;
+};
+
+/**
+ * Convert the lamports sparkline series from the data layer into the
+ * numeric form Recharts can serialize. Lives here (server-safe utility
+ * module) rather than alongside the chart component, because Server
+ * Components can't call functions exported from `"use client"` modules
+ * in Next.js 16.
+ */
+export function lamportsSeriesToSol(
+  series: { date: string; lamports: bigint }[],
+): SparklinePoint[] {
+  return series.map((p) => ({
+    date: p.date,
+    sol: Number(p.lamports) / 1_000_000_000,
+  }));
+}

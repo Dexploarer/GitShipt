@@ -1,6 +1,7 @@
 "use client";
 
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
+import type { SparklinePoint } from "@/lib/format";
 
 /**
  * 30-day pool sparkline. Recharts area chart with `chart-1` stroke and a soft
@@ -8,14 +9,9 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
  * as a glance-curve, not a quantitative chart.
  *
  * BigInts can't cross the props boundary into Recharts cleanly, so the parent
- * passes pre-converted numeric SOL values per data point.
+ * passes pre-converted numeric SOL values per data point. The helper
+ * `lamportsSeriesToSol` lives in `lib/format.ts` (server-safe).
  */
-export type SparklinePoint = {
-  date: string;
-  /** SOL value (already converted from lamports). */
-  sol: number;
-};
-
 export function PoolSparkline({ data }: { data: SparklinePoint[] }) {
   return (
     <div className="h-20 w-full">
@@ -73,18 +69,5 @@ export function PoolSparkline({ data }: { data: SparklinePoint[] }) {
   );
 }
 
-/**
- * Helper to convert the lamports sparkline series from the data layer into the
- * numeric form Recharts can serialize. Used by the server parent.
- */
-export function lamportsSeriesToSol(
-  series: { date: string; lamports: bigint }[],
-): SparklinePoint[] {
-  return series.map((p) => ({
-    date: p.date,
-    sol: Number(p.lamports) / 1_000_000_000,
-  }));
-}
-
-// Re-export the helper output type so callers don't have to invent another name.
-export type { SparklinePoint as PoolSparklinePoint };
+// Re-export so callers can use a chart-specific alias.
+export type { SparklinePoint as PoolSparklinePoint } from "@/lib/format";

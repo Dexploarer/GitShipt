@@ -1,6 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
-import { formatSol, formatUsd } from "@/lib/format";
-import { PoolSparkline, lamportsSeriesToSol } from "./PoolSparkline";
+import { formatSol, formatUsd, lamportsSeriesToSol } from "@/lib/format";
+import { PoolSparkline } from "./PoolSparkline";
 import type { PoolOverview } from "@/lib/queries/project-page";
 
 /**
