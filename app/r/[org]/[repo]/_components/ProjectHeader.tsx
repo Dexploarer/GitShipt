@@ -27,19 +27,19 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
     : null;
 
   return (
-    <header className="flex min-w-0 flex-col gap-4">
-      <div className="flex items-center gap-4">
+    <header className="flex min-w-0 flex-col gap-5 lg:gap-6">
+      <div className="flex items-center gap-4 sm:gap-5 lg:gap-6">
         <Image
           src={avatar}
           alt=""
-          width={72}
-          height={72}
-          className="size-[72px] shrink-0 rounded-2xl bg-surface-elevated ring-1 ring-border"
+          width={112}
+          height={112}
+          className="size-20 shrink-0 rounded-2xl bg-surface-elevated ring-1 ring-border sm:size-24 lg:size-28"
           unoptimized
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="truncate text-headline-lg leading-tight text-fg">
+            <h1 className="truncate text-[28px] font-semibold leading-tight tracking-[-0.02em] text-fg sm:text-[36px] lg:text-[44px]">
               {header.name}
             </h1>
             <Link
@@ -47,22 +47,22 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
               target="_blank"
               rel="noreferrer noopener"
               aria-label={`Open ${header.ghOwner}/${header.ghRepo} on GitHub`}
-              className="inline-flex items-center gap-1 text-body-md text-fg-secondary transition-colors hover:text-fg"
+              className="inline-flex items-center gap-1 text-body-md text-fg-secondary transition-colors hover:text-fg lg:text-body-lg"
             >
-              <Github className="size-4" />
+              <Github className="size-4 lg:size-5" />
               {header.ghOwner}/{header.ghRepo}
-              <ExternalLink className="size-3.5" />
+              <ExternalLink className="size-3.5 lg:size-4" />
             </Link>
           </div>
           {header.description ? (
-            <p className="mt-1.5 line-clamp-2 text-body-lg text-fg-secondary">
+            <p className="mt-2 line-clamp-2 text-body-lg leading-relaxed text-fg-secondary lg:mt-3 lg:text-[18px]">
               {header.description}
             </p>
           ) : null}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-5 lg:gap-3">
         <QuickStat label="Language">
           {header.language ? (
             <>
@@ -79,22 +79,22 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
         </QuickStat>
 
         <QuickStat label="Stars">
-          <Star className="size-3.5 text-fg-muted" />
-          <span className="text-mono-md text-fg">
+          <Star className="size-3.5 text-fg-muted lg:size-4" />
+          <span className="text-mono-md text-fg lg:text-[15px]">
             {header.stars.toLocaleString("en-US")}
           </span>
         </QuickStat>
 
         <QuickStat label="Forks">
-          <GitFork className="size-3.5 text-fg-muted" />
-          <span className="text-mono-md text-fg">
+          <GitFork className="size-3.5 text-fg-muted lg:size-4" />
+          <span className="text-mono-md text-fg lg:text-[15px]">
             {header.forks.toLocaleString("en-US")}
           </span>
         </QuickStat>
 
         <QuickStat label="Contributors">
-          <Users className="size-3.5 text-fg-muted" />
-          <span className="text-mono-md text-fg">
+          <Users className="size-3.5 text-fg-muted lg:size-4" />
+          <span className="text-mono-md text-fg lg:text-[15px]">
             {header.contributorsCount.toLocaleString("en-US")}
           </span>
         </QuickStat>
@@ -102,10 +102,10 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
         <QuickStat label="Token">
           {tokenSymbol ? (
             <>
-              <span className="grid size-4 shrink-0 place-items-center rounded-md bg-primary text-bg">
-                <Sparkles className="size-2.5" />
+              <span className="grid size-4 shrink-0 place-items-center rounded-md bg-primary text-bg lg:size-5">
+                <Sparkles className="size-2.5 lg:size-3" />
               </span>
-              <span className="text-label-md text-fg" title={header.tokenMint ?? undefined}>
+              <span className="text-label-md text-fg lg:text-[15px]" title={header.tokenMint ?? undefined}>
                 {tokenSymbol}
               </span>
             </>
@@ -128,9 +128,11 @@ function QuickStat({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-surface/40 px-3 py-2">
-      <div className="text-caption text-fg-muted">{label}</div>
-      <div className="mt-1 flex min-w-0 items-center gap-1.5">{children}</div>
+    <div className="rounded-lg border border-border/60 bg-surface/40 px-3 py-2 lg:px-4 lg:py-2.5">
+      <div className="text-caption text-fg-muted lg:text-label-sm">{label}</div>
+      <div className="mt-1 flex min-w-0 items-center gap-1.5 lg:mt-1.5 lg:gap-2">
+        {children}
+      </div>
     </div>
   );
 }
