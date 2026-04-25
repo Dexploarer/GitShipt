@@ -54,6 +54,12 @@ if (!owner) {
   console.log("Reusing demo owner:", owner.id);
 }
 
+// Fake but plausibly-shaped mint address (44 base58 chars). Real launches
+// fill this in via the Bags SDK. The Solscan link will 404 on this fake
+// — that's expected for the demo.
+const DEMO_TOKEN_MINT = "GBAGSdemoTokenMint11111111111111111111111111";
+const DEMO_BAGS_LAUNCH_ID = "bags_launch_demo_gitbags_v0";
+
 let [project] = await sql`
   select * from projects where gh_owner = 'SYMBaiEX' and gh_repo = 'gitbags' limit 1
 `;
@@ -62,17 +68,27 @@ if (!project) {
   await sql`
     insert into projects (
       id, owner_user_id, gh_owner, gh_repo, gh_repo_id, name, description,
-      status, platform_fee_bps, scoring_config, payout_config
+      status, platform_fee_bps, scoring_config, payout_config,
+      token_mint, bags_launch_id
     ) values (
       ${id}, ${owner.id}, 'SYMBaiEX', 'gitbags', 'demo-repo-1', 'GitBags',
       'Pump.fm for open source. Daily trading fees redistribute to top contributors.',
-      'live', 500, ${JSON.stringify(DEFAULT_SCORING)}::jsonb, ${JSON.stringify(DEFAULT_PAYOUT)}::jsonb
+      'live', 500, ${JSON.stringify(DEFAULT_SCORING)}::jsonb, ${JSON.stringify(DEFAULT_PAYOUT)}::jsonb,
+      ${DEMO_TOKEN_MINT}, ${DEMO_BAGS_LAUNCH_ID}
     )
   `;
   project = { id };
   console.log("Created demo project:", id);
 } else {
-  console.log("Reusing demo project:", project.id);
+  // Idempotent: ensure the demo project always has the launched-token state.
+  await sql`
+    update projects
+    set token_mint = ${DEMO_TOKEN_MINT},
+        bags_launch_id = ${DEMO_BAGS_LAUNCH_ID},
+        status = 'live'
+    where id = ${project.id}
+  `;
+  console.log("Reusing demo project:", project.id, "(token_mint refreshed)");
 }
 
 for (let i = 0; i < DEMO_CONTRIBUTORS.length; i++) {
