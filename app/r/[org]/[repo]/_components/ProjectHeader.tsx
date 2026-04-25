@@ -1,35 +1,33 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ExternalLink, Github, Users } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  ExternalLink,
+  Github,
+  GitFork,
+  Sparkles,
+  Star,
+  Users,
+} from "lucide-react";
 import { formatAddress } from "@/lib/format";
 import type { ProjectHeader as ProjectHeaderType } from "@/lib/queries/project-page";
 
-const STATUS_PILL: Record<ProjectHeaderType["status"], string> = {
-  live: "bg-success-soft text-success",
-  paused: "bg-warning-soft text-warning",
-  killed: "bg-danger-soft text-danger",
-  draft: "bg-primary-soft text-primary",
-};
-
-const STATUS_LABEL: Record<ProjectHeaderType["status"], string> = {
-  live: "Live",
-  paused: "Paused",
-  killed: "Killed",
-  draft: "Draft",
-};
-
 /**
- * Project hero — floating: lives directly on the page bg, no card wrapper.
- * Left: avatar + name + repo link + description + status/stat chips.
- * Vertical padding kept tight so the page scrolls less above the fold.
+ * Project hero — floating directly on the page bg (no card wrapper).
+ * Avatar + name + repo link + description, then a row of QuickStat cards
+ * (Language / Stars / Forks / Contributors / Token).
+ *
+ * The status pill is intentionally NOT rendered here — the footer + sidebar
+ * status indicators carry that signal globally so the header stays clean.
  */
 export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
   const avatar = header.imageUrl ?? `https://github.com/${header.ghOwner}.png`;
   const repoUrl = `https://github.com/${header.ghOwner}/${header.ghRepo}`;
+  const tokenSymbol = header.tokenMint
+    ? header.ghRepo.toUpperCase().slice(0, 8)
+    : null;
 
   return (
-    <header className="flex min-w-0 flex-col gap-3">
+    <header className="flex min-w-0 flex-col gap-4">
       <div className="flex items-center gap-3">
         <Image
           src={avatar}
@@ -64,45 +62,104 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-label-sm",
-            STATUS_PILL[header.status],
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        <QuickStat label="Language">
+          {header.language ? (
+            <>
+              <span
+                className="inline-block size-2.5 shrink-0 rounded-full"
+                style={{ background: languageColor(header.language) }}
+                aria-hidden
+              />
+              <span className="truncate text-fg">{header.language}</span>
+            </>
+          ) : (
+            <span className="text-fg-muted">—</span>
           )}
-        >
-          <span className="size-1.5 animate-pulse-dot rounded-full bg-current" />
-          {STATUS_LABEL[header.status]}
-        </span>
+        </QuickStat>
 
-        <Chip>
-          <Users className="size-3" />
-          <span>{header.contributorsCount} contributors</span>
-        </Chip>
+        <QuickStat label="Stars">
+          <Star className="size-3.5 text-fg-muted" />
+          <span className="text-mono-md text-fg">
+            {header.stars.toLocaleString("en-US")}
+          </span>
+        </QuickStat>
 
-        {header.tokenMint ? (
-          <Chip>
-            <span className="size-1.5 rounded-full bg-success" />
-            <span className="text-fg-secondary">Token</span>
-            <span className="text-mono-sm text-fg">
-              {formatAddress(header.tokenMint)}
+        <QuickStat label="Forks">
+          <GitFork className="size-3.5 text-fg-muted" />
+          <span className="text-mono-md text-fg">
+            {header.forks.toLocaleString("en-US")}
+          </span>
+        </QuickStat>
+
+        <QuickStat label="Contributors">
+          <Users className="size-3.5 text-fg-muted" />
+          <span className="text-mono-md text-fg">
+            {header.contributorsCount.toLocaleString("en-US")}
+          </span>
+        </QuickStat>
+
+        <QuickStat label="Token">
+          {tokenSymbol ? (
+            <>
+              <span className="grid size-4 shrink-0 place-items-center rounded-md bg-primary text-bg">
+                <Sparkles className="size-2.5" />
+              </span>
+              <span className="text-label-md text-fg" title={header.tokenMint ?? undefined}>
+                {tokenSymbol}
+              </span>
+            </>
+          ) : (
+            <span className="text-mono-sm text-fg-muted">
+              {header.tokenMint ? formatAddress(header.tokenMint) : "—"}
             </span>
-          </Chip>
-        ) : (
-          <Chip>
-            <span className="size-1.5 rounded-full bg-fg-muted" />
-            <span>No token launched</span>
-          </Chip>
-        )}
+          )}
+        </QuickStat>
       </div>
     </header>
   );
 }
 
-function Chip({ children }: { children: React.ReactNode }) {
+function QuickStat({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated/40 px-2 py-0.5 text-label-sm text-fg-secondary">
-      {children}
-    </span>
+    <div className="rounded-lg border border-border/60 bg-surface/40 px-3 py-2">
+      <div className="text-caption text-fg-muted">{label}</div>
+      <div className="mt-1 flex min-w-0 items-center gap-1.5">{children}</div>
+    </div>
   );
+}
+
+/**
+ * GitHub-style language color map. Tiny subset — extend as needed; falls
+ * back to a neutral gray for unknown languages.
+ */
+function languageColor(lang: string): string {
+  const map: Record<string, string> = {
+    TypeScript: "#3178c6",
+    JavaScript: "#f1e05a",
+    Python: "#3572A5",
+    Go: "#00ADD8",
+    Rust: "#dea584",
+    Solidity: "#AA6746",
+    Java: "#b07219",
+    Ruby: "#701516",
+    Swift: "#F05138",
+    Kotlin: "#A97BFF",
+    C: "#555555",
+    "C++": "#f34b7d",
+    "C#": "#178600",
+    Shell: "#89e051",
+    HTML: "#e34c26",
+    CSS: "#563d7c",
+    Vue: "#41b883",
+    Svelte: "#ff3e00",
+    Dart: "#00B4AB",
+  };
+  return map[lang] ?? "#8b8b95";
 }

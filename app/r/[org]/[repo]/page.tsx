@@ -80,10 +80,7 @@ export default async function ProjectPage({
               {/* Left column — flat: header floats directly on bg, then the
                   leaderboard card. Countdown sits inline next to header. */}
               <div className="flex min-w-0 flex-col gap-4">
-                <div className="flex items-start justify-between gap-3">
-                  <ProjectHeader header={header} />
-                  <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
-                </div>
+                <ProjectHeader header={header} />
 
                 <LeaderboardTable
                   rows={leaderboard}
@@ -94,8 +91,10 @@ export default async function ProjectPage({
                 />
               </div>
 
-              {/* Right column */}
+              {/* Right column — countdown rides above the pool hero so the
+                  next-payout signal is the first thing you see in the rail. */}
               <aside className="flex min-w-0 flex-col gap-3">
+                <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
                 <PoolOverviewCard pool={pool} />
                 <RecentPayoutsFeed payouts={recentPayouts} />
                 <SystemStatusCard items={systemStatus} />

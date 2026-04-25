@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import { eq, and, desc, sql, asc, isNotNull } from "drizzle-orm";
 import { bags } from "@/lib/bags/client";
+import { redis } from "@/lib/redis";
 
 export interface ProjectHeader {
   id: string;
@@ -29,6 +30,10 @@ export interface ProjectHeader {
   payoutConfig: PayoutConfig;
   contributorsCount: number;
   createdAt: Date;
+  /** GitHub repo metadata (cached 5min via Redis). Null when fetch fails. */
+  language: string | null;
+  stars: number;
+  forks: number;
 }
 
 export interface LeaderboardRow {
@@ -88,6 +93,65 @@ function nextPayoutDate(now: Date = new Date()): Date {
   return next;
 }
 
+interface GitHubRepoMeta {
+  language: string | null;
+  stars: number;
+  forks: number;
+}
+
+/**
+ * Fetch lightweight GitHub repo metadata (language, stars, forks) with a
+ * 5-minute Redis cache. Uses the unauthenticated public API (60 req/hr per
+ * IP) — fine for the demo project. When the indexer-grade GitHub App is
+ * installed, this could be swapped to use installationOctokit() for higher
+ * rate limits.
+ */
+async function fetchGitHubRepoMeta(
+  ghOwner: string,
+  ghRepo: string,
+): Promise<GitHubRepoMeta> {
+  const cacheKey = `gitbags:gh:repo:${ghOwner}/${ghRepo}`;
+  const r = redis();
+  if (r) {
+    const cached = await r.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached) as GitHubRepoMeta;
+      } catch {
+        // fall through to refetch
+      }
+    }
+  }
+
+  let meta: GitHubRepoMeta = { language: null, stars: 0, forks: 0 };
+  try {
+    const res = await fetch(`https://api.github.com/repos/${ghOwner}/${ghRepo}`, {
+      headers: { accept: "application/vnd.github+json" },
+      // Tag for Next's dedup; this also caches per request inside an RSC tree.
+      next: { revalidate: 300 },
+    });
+    if (res.ok) {
+      const data = (await res.json()) as {
+        language?: string | null;
+        stargazers_count?: number;
+        forks_count?: number;
+      };
+      meta = {
+        language: data.language ?? null,
+        stars: data.stargazers_count ?? 0,
+        forks: data.forks_count ?? 0,
+      };
+    }
+  } catch {
+    // network/parse failure → return zero defaults
+  }
+
+  if (r) {
+    await r.set(cacheKey, JSON.stringify(meta), "EX", 300);
+  }
+  return meta;
+}
+
 export async function getProjectBySlug(
   ghOwner: string,
   ghRepo: string,
@@ -99,10 +163,13 @@ export async function getProjectBySlug(
     .limit(1);
   if (!row) return null;
 
-  const countRows = await dbHttp
-    .select({ count: sql<number>`count(*)::int` })
-    .from(contributors)
-    .where(eq(contributors.projectId, row.id));
+  const [countRows, ghMeta] = await Promise.all([
+    dbHttp
+      .select({ count: sql<number>`count(*)::int` })
+      .from(contributors)
+      .where(eq(contributors.projectId, row.id)),
+    fetchGitHubRepoMeta(row.ghOwner, row.ghRepo),
+  ]);
   const count = countRows[0]?.count ?? 0;
 
   return {
@@ -121,6 +188,9 @@ export async function getProjectBySlug(
     payoutConfig: row.payoutConfig,
     contributorsCount: count,
     createdAt: row.createdAt,
+    language: ghMeta.language,
+    stars: ghMeta.stars,
+    forks: ghMeta.forks,
   };
 }
 
