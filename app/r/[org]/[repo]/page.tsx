@@ -103,9 +103,10 @@ export default async function ProjectPage({
 
           <footer
             className={[
-              "shrink-0",
-              // Anchored: top-left rounded toward the sidebar; the other three
-              // corners sit on the viewport edges so the bar feels "bolted" in.
+              "shrink-0 ml-3",
+              // Anchored: top-left rounded toward the sidebar; bottom + right
+              // meet the viewport edges so the bar feels "bolted" in. ml-3
+              // breathes a 12px gap from the sidebar's right edge.
               "rounded-tl-2xl rounded-tr-none rounded-bl-none rounded-br-none",
               "border-t border-l border-border/60",
               "glass shadow-card-elevated surface-highlight",
