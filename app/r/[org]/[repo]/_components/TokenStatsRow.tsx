@@ -3,7 +3,6 @@ import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatAddress, formatSol } from "@/lib/format";
 import { CopyButton } from "./CopyButton";
-import { TokenActionsMenu } from "./TokenActionsMenu";
 import type { TokenStats } from "@/lib/queries/token-stats";
 
 /**
@@ -16,16 +15,12 @@ import type { TokenStats } from "@/lib/queries/token-stats";
  */
 export function TokenStatsRow({
   stats,
-  ghOwner,
-  ghRepo,
 }: {
   stats: TokenStats | null;
-  ghOwner: string;
-  ghRepo: string;
 }) {
   if (!stats) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-surface/40 px-3 py-2.5">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-surface/40 px-3 py-2.5">
         <div className="text-body-sm text-fg-secondary">
           No token launched —{" "}
           <Link
@@ -36,11 +31,6 @@ export function TokenStatsRow({
           </Link>{" "}
           to start the daily fee pool.
         </div>
-        <TokenActionsMenu
-          tokenMint={null}
-          ghOwner={ghOwner}
-          ghRepo={ghRepo}
-        />
       </div>
     );
   }
@@ -49,15 +39,7 @@ export function TokenStatsRow({
   const TrendIcon = isUp ? TrendingUp : TrendingDown;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex justify-end">
-        <TokenActionsMenu
-          tokenMint={stats.tokenMint}
-          ghOwner={ghOwner}
-          ghRepo={ghRepo}
-        />
-      </div>
-
+    <div className="flex flex-col">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Price">
           <span className="text-mono-md text-fg">

@@ -12,6 +12,9 @@ import type { ProjectHeader as ProjectHeaderType } from "@/lib/queries/project-p
 export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
   const avatar = header.imageUrl ?? `https://github.com/${header.ghOwner}.png`;
   const repoUrl = `https://github.com/${header.ghOwner}/${header.ghRepo}`;
+  const ticker = header.tokenMint
+    ? header.ghRepo.toUpperCase().slice(0, 8)
+    : null;
 
   return (
     <header className="flex min-w-0 items-center gap-4 sm:gap-5 lg:gap-6">
@@ -40,8 +43,16 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
             <ExternalLink className="size-3.5 lg:size-4" />
           </Link>
         </div>
+        {ticker ? (
+          <div className="mt-1 text-body-sm text-fg-secondary lg:text-body-md">
+            Ticker:{" "}
+            <span className="text-mono-md text-fg lg:text-[15px]">
+              ${ticker}
+            </span>
+          </div>
+        ) : null}
         {header.description ? (
-          <p className="mt-2 line-clamp-2 text-body-md text-fg-secondary lg:mt-2.5 lg:text-body-lg">
+          <p className="mt-1.5 line-clamp-2 text-body-md text-fg-secondary lg:mt-2 lg:text-body-lg">
             {header.description}
           </p>
         ) : null}
