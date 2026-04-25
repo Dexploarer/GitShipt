@@ -1,9 +1,16 @@
 import { TrendingUp } from "lucide-react";
 import { formatSol } from "@/lib/format";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type {
   ProjectHeader,
   PoolOverview,
 } from "@/lib/queries/project-page";
+
+export interface TokenSparkCardProps {
+  header: ProjectHeader;
+  pool: PoolOverview;
+}
 
 /**
  * Lower-sidebar token snapshot. Day 2 placeholder: when no token has been
@@ -14,16 +21,10 @@ import type {
  * The +12.4% delta and 24H Vol are deterministic stubs (do NOT use Math.random
  * here — server/client mismatch and unstable test snapshots).
  */
-export function TokenSparkCard({
-  header,
-  pool,
-}: {
-  header: ProjectHeader;
-  pool: PoolOverview;
-}) {
+export function TokenSparkCard({ header, pool }: TokenSparkCardProps) {
   if (!header.tokenMint) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-4">
+      <Card depth="raised" padding="sm">
         <div className="text-label-sm text-fg-muted">Token</div>
         <div className="mt-2 text-body-md text-fg-secondary">
           No token launched
@@ -31,7 +32,7 @@ export function TokenSparkCard({
         <div className="mt-1 text-caption text-fg-muted">
           Launch on Bags.fm to start the daily fee pool.
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -45,16 +46,16 @@ export function TokenSparkCard({
   })}`;
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <Card depth="raised" padding="sm">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-label-sm text-fg">{symbol}</div>
           <div className="text-caption text-fg-muted">BAGS Token</div>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-label-sm text-success">
+        <Badge variant="success" size="sm">
           <TrendingUp className="size-3" />
           +12.4%
-        </span>
+        </Badge>
       </div>
       <div className="mt-3 text-mono-md text-fg">{priceLabel}</div>
       <div className="mt-1 flex items-center justify-between text-caption text-fg-muted">
@@ -67,6 +68,6 @@ export function TokenSparkCard({
           {formatSol(pool.lifetimeLamports, 2)}
         </span>
       </div>
-    </div>
+    </Card>
   );
 }

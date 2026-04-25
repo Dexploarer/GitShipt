@@ -8,6 +8,8 @@ import { PoolOverviewCard } from "./_components/PoolOverviewCard";
 import { RecentPayoutsFeed } from "./_components/RecentPayoutsFeed";
 import { SystemStatusCard } from "./_components/SystemStatusCard";
 import { ProjectSidebar } from "@/components/sidebar/ProjectSidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 
 type Params = { org: string; repo: string };
 
@@ -30,12 +32,13 @@ export async function generateMetadata({
 }
 
 /**
- * Public project page (`/r/[org]/[repo]`). Server-rendered with one client
- * island (the countdown), the chart (Recharts), and the modal trigger.
+ * Public project page (`/r/[org]/[repo]`).
  *
- * Layout: 240px sidebar + content area. Inside content: a 2-column main
- * (leaderboard left, supporting cards right). The header card and the
- * countdown sit side-by-side at the top.
+ * Layout (macOS Tahoe-flavored): the whole page sits inside a 12px gutter
+ * so the floating sidebar + content columns appear to lift off a deeper bg.
+ * Sidebar is a Liquid-Glass aside (collapsable, full-height, rounded). The
+ * right column stacks: main content card stack, then a tucked footer with
+ * rounded-tl that visually meets the sidebar.
  */
 export default async function ProjectPage({
   params,
@@ -50,41 +53,77 @@ export default async function ProjectPage({
 
   const { header, leaderboard, pool, recentPayouts, systemStatus, nextPayoutAt } =
     data;
+  const slug = `${header.ghOwner}/${header.ghRepo}`;
 
   return (
-    <div className="flex min-h-screen bg-bg text-fg">
-      <ProjectSidebar header={header} pool={pool} canAdmin={false} />
+    <SidebarProvider>
+      <div className="flex min-h-screen gap-3 bg-bg p-3 text-fg">
+        <ProjectSidebar
+          slug={slug}
+          active="leaderboard"
+          canAdmin={false}
+          token={{ header, pool }}
+          wallet={{}}
+        />
 
-      <main className="min-w-0 flex-1">
-        <div className="mx-auto w-full max-w-content px-margin py-8">
-          <div className="grid grid-cols-1 gap-gutter lg:grid-cols-[minmax(0,1fr)_380px]">
-            {/* Left column */}
-            <div className="flex min-w-0 flex-col gap-gutter">
-              <div className="grid grid-cols-1 gap-gutter md:grid-cols-[minmax(0,1fr)_280px]">
-                <ProjectHeader header={header} />
-                <NextPayoutCountdown
-                  targetIso={nextPayoutAt.toISOString()}
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <main className="min-w-0 flex-1">
+            <div className="grid grid-cols-1 gap-gutter lg:grid-cols-[minmax(0,1fr)_380px]">
+              {/* Left column */}
+              <div className="flex min-w-0 flex-col gap-gutter">
+                <div className="grid grid-cols-1 gap-gutter md:grid-cols-[minmax(0,1fr)_280px]">
+                  <ProjectHeader header={header} />
+                  <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
+                </div>
+
+                <LeaderboardTable
+                  rows={leaderboard}
+                  dailyFeeLamports={pool.dailyFeeLamports}
+                  dailyFeeUsd={pool.dailyFeeUsd}
+                  scoringConfig={header.scoringConfig}
+                  payoutConfig={header.payoutConfig}
                 />
               </div>
 
-              <LeaderboardTable
-                rows={leaderboard}
-                dailyFeeLamports={pool.dailyFeeLamports}
-                dailyFeeUsd={pool.dailyFeeUsd}
-                scoringConfig={header.scoringConfig}
-                payoutConfig={header.payoutConfig}
-              />
+              {/* Right column */}
+              <aside className="flex min-w-0 flex-col gap-gutter">
+                <PoolOverviewCard pool={pool} />
+                <RecentPayoutsFeed payouts={recentPayouts} />
+                <SystemStatusCard items={systemStatus} />
+              </aside>
             </div>
+          </main>
 
-            {/* Right column */}
-            <aside className="flex min-w-0 flex-col gap-gutter">
-              <PoolOverviewCard pool={pool} />
-              <RecentPayoutsFeed payouts={recentPayouts} />
-              <SystemStatusCard items={systemStatus} />
-            </aside>
-          </div>
+          <footer
+            className={[
+              "rounded-tl-2xl rounded-bl-none",
+              "rounded-tr-2xl rounded-br-2xl",
+              "border border-border/60",
+              "glass shadow-card-elevated surface-highlight",
+              "flex flex-wrap items-center justify-between gap-3",
+              "px-5 py-3",
+            ].join(" ")}
+          >
+            <div className="flex items-center gap-3">
+              <Badge variant="success" dot>
+                {header.status}
+              </Badge>
+              <span className="text-caption text-fg-muted">
+                Project · {slug}
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-caption text-fg-muted">
+              <span>
+                {leaderboard.length} contributors ranked
+              </span>
+              <span aria-hidden>·</span>
+              <span>Powered by BAGS.fm</span>
+              <span aria-hidden>·</span>
+              <span>devnet</span>
+            </div>
+          </footer>
         </div>
-      </main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }

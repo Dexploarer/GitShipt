@@ -1,40 +1,40 @@
 import Link from "next/link";
 import { ArrowUpRight, Wallet } from "lucide-react";
 import { formatAddress } from "@/lib/format";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+export interface UserWalletCardProps {
+  walletAddress?: string | null;
+  balanceSolLabel?: string;
+}
 
 /**
- * Wallet snapshot for the lower sidebar. Day 2 always renders the
+ * Wallet snapshot for the lower sidebar. Day 2 default renders the
  * "not linked" state because the public project page is anonymous —
- * the dashboard layer will pass the linked wallet from session in
- * a future phase. Keeping the API surface stable now (props-less)
- * means we won't refactor consumers when session wiring lands.
+ * the dashboard layer can pass walletAddress + balance from session
+ * when it's available.
  */
 export function UserWalletCard({
   walletAddress,
   balanceSolLabel,
-}: {
-  walletAddress?: string | null;
-  balanceSolLabel?: string;
-} = {}) {
+}: UserWalletCardProps = {}) {
   if (!walletAddress) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-4">
+      <Card depth="raised" padding="sm">
         <div className="flex items-center gap-2 text-label-sm text-fg-muted">
           <Wallet className="size-3.5" />
           Wallet
         </div>
-        <Link
-          href="/auth/signin"
-          className="mt-3 inline-flex w-full items-center justify-center rounded-md border border-border-strong bg-surface-elevated px-3 py-2 text-label-md text-fg transition-colors hover:bg-surface-overlay"
-        >
-          Sign in to link
-        </Link>
-      </div>
+        <Button asChild variant="secondary" size="sm" className="mt-3 w-full">
+          <Link href="/auth/signin">Sign in to link</Link>
+        </Button>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <Card depth="raised" padding="sm">
       <div className="flex items-center justify-between">
         <div className="text-label-sm text-fg-muted">Wallet</div>
         <a
@@ -55,6 +55,6 @@ export function UserWalletCard({
           {balanceSolLabel}
         </div>
       ) : null}
-    </div>
+    </Card>
   );
 }

@@ -63,6 +63,26 @@
   /* Shadow tokens — theme-aware */
   --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.6);
+
+  /* Liquid Glass / macOS Tahoe depth — multi-layer for floating surfaces.
+     Layers: glass border + top inner highlight + key shadow + ambient. */
+  --shadow-floating:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    0 12px 28px -8px rgba(0, 0, 0, 0.55),
+    0 28px 56px -16px rgba(0, 0, 0, 0.4);
+
+  --shadow-card-elevated:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+    0 6px 16px -4px rgba(0, 0, 0, 0.35),
+    0 14px 32px -10px rgba(0, 0, 0, 0.25);
+
+  --shadow-inset-light:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+
+  --shadow-press: inset 0 1px 2px 0 rgba(0, 0, 0, 0.25);
 }
 
 /* ============================================================
@@ -114,6 +134,24 @@
   /* Shadows — lighter, tighter on high-luminance backgrounds */
   --shadow-popover: 0 4px 16px rgba(15, 15, 20, 0.08);
   --shadow-modal: 0 20px 60px rgba(15, 15, 20, 0.15);
+
+  --shadow-floating:
+    0 0 0 1px rgba(15, 15, 20, 0.06),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 8px 24px -4px rgba(15, 15, 20, 0.12),
+    0 24px 48px -12px rgba(15, 15, 20, 0.10);
+
+  --shadow-card-elevated:
+    0 0 0 1px rgba(15, 15, 20, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+    0 4px 12px -2px rgba(15, 15, 20, 0.08),
+    0 12px 24px -8px rgba(15, 15, 20, 0.06);
+
+  --shadow-inset-light:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+
+  --shadow-press: inset 0 1px 2px 0 rgba(15, 15, 20, 0.08);
 }
 
 /* ============================================================
@@ -181,6 +219,10 @@
   /* Shadows */
   --shadow-popover: var(--shadow-popover);
   --shadow-modal: var(--shadow-modal);
+  --shadow-floating: var(--shadow-floating);
+  --shadow-card-elevated: var(--shadow-card-elevated);
+  --shadow-inset-light: var(--shadow-inset-light);
+  --shadow-press: var(--shadow-press);
 }
 
 /* ============================================================
@@ -282,6 +324,52 @@
 
 @utility animate-pulse-dot {
   animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================================
+ * Liquid Glass surface — composable backdrop for the sidebar,
+ * popovers, and any floating panel. Combines a translucent
+ * surface fill with backdrop blur and a saturation lift so the
+ * underlying page color tints the glass slightly (very macOS).
+ *
+ * Use as: <div class="glass shadow-floating rounded-2xl">…</div>
+ * Pair with `glass-strong` for popovers/modals where contrast is critical.
+ * ============================================================ */
+@utility glass {
+  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+@utility glass-strong {
+  background-color: color-mix(in oklab, var(--surface-overlay) 85%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* Subtle gradient hairline at the top edge of glass surfaces to mimic
+   the catch-light of physical glass. Plain CSS class (Tailwind v4 @utility
+   can't carry pseudo-elements). */
+.surface-highlight {
+  position: relative;
+  isolation: isolate;
+}
+.surface-highlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--fg) 5%, transparent) 0%,
+    transparent 28%
+  );
+  z-index: 0;
+}
+.surface-highlight > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ============================================================
