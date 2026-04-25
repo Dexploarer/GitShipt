@@ -4,7 +4,7 @@ import {
   BookOpen,
   Coins,
   Github,
-  Home,
+  History,
   Key,
   Settings,
   Sparkles,
@@ -31,9 +31,9 @@ import { cn } from "@/lib/utils";
 export interface ProjectSidebarProps {
   slug: string;
   active?:
-    | "overview"
     | "leaderboard"
     | "payouts"
+    | "snapshots"
     | "repository"
     | "token"
     | "settings"
@@ -46,11 +46,11 @@ export interface ProjectSidebarProps {
 }
 
 const NAV_ITEMS = [
-  { key: "overview", label: "Overview", icon: Home, suffix: "" },
   { key: "leaderboard", label: "Leaderboard", icon: Trophy, suffix: "" },
   { key: "payouts", label: "Payouts", icon: Coins, suffix: "/payouts" },
-  { key: "repository", label: "Repository", icon: Github, suffix: "/repository" },
+  { key: "snapshots", label: "Snapshots", icon: History, suffix: "/snapshots" },
   { key: "token", label: "Token", icon: Sparkles, suffix: "/token" },
+  { key: "repository", label: "Repository", icon: Github, suffix: "/repository" },
 ] as const;
 
 const ADMIN_ITEMS = [

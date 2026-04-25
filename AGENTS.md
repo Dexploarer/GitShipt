@@ -54,3 +54,12 @@ Foundation in progress: scaffold + design system + DB schema + auth shells + fir
 ## When you hit a credential blocker
 
 Stop and tell the user exactly what env var you need in one sentence. Do not invent secrets. External clients (`lib/bags/`, `lib/solana/`, `lib/github/`) ship with stub fallbacks — flipping to live is one env-presence check per service.
+
+
+<claude-mem-context>
+# Memory Context
+
+# [gitbags] recent context, 2026-04-25 6:47pm CDT
+
+No previous sessions found.
+</claude-mem-context>

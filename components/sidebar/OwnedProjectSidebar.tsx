@@ -4,7 +4,10 @@ import {
   ArrowLeft,
   BookOpen,
   Coins,
+  ExternalLink,
+  Eye,
   Github,
+  History,
   Home,
   Key,
   Settings,
@@ -60,6 +63,20 @@ const ADMIN_ITEMS = [
 
 const FOOTER_NAV = [
   { key: "docs", label: "Docs", icon: BookOpen, suffix: "/docs" },
+] as const;
+
+/**
+ * Public counterparts — link to the visitor-facing version of each surface.
+ * Lets owners flip between the admin view and what their contributors see
+ * without leaving the sidebar.
+ */
+const PUBLIC_ITEMS = [
+  { key: "leaderboard", label: "Public leaderboard", icon: Eye, suffix: "" },
+  { key: "payouts", label: "Public payouts", icon: Coins, suffix: "/payouts" },
+  { key: "snapshots", label: "Snapshots ledger", icon: History, suffix: "/snapshots" },
+  { key: "token", label: "Public token page", icon: Sparkles, suffix: "/token" },
+  { key: "repository", label: "Public repo page", icon: Github, suffix: "/repository" },
+  { key: "docs", label: "Public docs", icon: BookOpen, suffix: "/docs" },
 ] as const;
 
 /**
@@ -126,6 +143,18 @@ export function OwnedProjectSidebar({
               label={label}
               href={`${base}${suffix}`}
               active={active === key}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="Public view">
+          {PUBLIC_ITEMS.map(({ key, label, icon, suffix }) => (
+            <SidebarItem
+              key={`public-${key}`}
+              icon={icon}
+              label={label}
+              href={`/r/${slug}${suffix}`}
+              badge={<ExternalLink className="size-3 text-fg-muted" aria-hidden />}
             />
           ))}
         </SidebarSection>

@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, History } from "lucide-react";
-import { ProjectSidebar } from "@/components/sidebar/ProjectSidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { ProjectShell } from "../_components/ProjectShell";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { getProjectSnapshots } from "@/lib/queries/discovery";
 import { SnapshotRow } from "./_components/SnapshotRow";
@@ -49,68 +48,46 @@ export default async function ProjectSnapshotsPage({
   const hasNextPage = allSnapshots.length === page * PAGE_SIZE;
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen overflow-hidden bg-bg text-fg">
-        <div className="shrink-0 p-3 pr-0">
-          <ProjectSidebar
-            slug={slug}
-            // 'snapshots' isn't a top-level sidebar key — leaderboard is the
-            // closest semantic anchor (snapshots are leaderboard freezes).
-            active="leaderboard"
-            canAdmin={false}
-            token={{ header, pool }}
-            wallet={{}}
-          />
-        </div>
+    <ProjectShell header={header} pool={pool} active="snapshots">
+      <div className="flex flex-col gap-4">
+        <nav>
+          <Link
+            href={`/r/${slug}`}
+            className="inline-flex items-center gap-1.5 text-label-sm text-fg-secondary transition-colors hover:text-fg"
+          >
+            <ArrowLeft className="size-3.5" />
+            Back to overview
+          </Link>
+        </nav>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-6">
-            <div className="mx-auto flex w-full max-w-content flex-col gap-6">
-              <nav>
-                <Link
-                  href={`/r/${slug}`}
-                  className="inline-flex items-center gap-1.5 text-label-sm text-fg-secondary transition-colors hover:text-fg"
-                >
-                  <ArrowLeft className="size-3.5" />
-                  Back to overview
-                </Link>
-              </nav>
+        <header className="flex flex-col gap-2">
+          <h1 className="text-headline-lg tracking-tight">
+            {header.name} · Snapshots
+          </h1>
+          <p className="max-w-2xl text-body-md text-fg-secondary">
+            Each snapshot freezes the leaderboard, computes a Merkle
+            root, and feeds the next on-chain payout. Re-running scoring
+            on the same inputs must reproduce the same root.
+          </p>
+        </header>
 
-              <header className="flex flex-col gap-2">
-                <h1 className="text-headline-lg tracking-tight">
-                  {header.name} · Snapshots
-                </h1>
-                <p className="max-w-2xl text-body-md text-fg-secondary">
-                  Each snapshot freezes the leaderboard, computes a Merkle
-                  root, and feeds the next on-chain payout. Re-running scoring
-                  on the same inputs must reproduce the same root.
-                </p>
-              </header>
+        {snapshots.length === 0 ? (
+          <Empty />
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {snapshots.map((row) => (
+              <li key={row.id}>
+                <SnapshotRow row={row} />
+              </li>
+            ))}
+          </ul>
+        )}
 
-              {snapshots.length === 0 ? (
-                <Empty />
-              ) : (
-                <ul className="flex flex-col gap-3">
-                  {snapshots.map((row) => (
-                    <li key={row.id}>
-                      <SnapshotRow row={row} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {snapshots.length > 0 ? (
-                <Pagination
-                  slug={slug}
-                  page={page}
-                  hasNextPage={hasNextPage}
-                />
-              ) : null}
-            </div>
-          </main>
-        </div>
+        {snapshots.length > 0 ? (
+          <Pagination slug={slug} page={page} hasNextPage={hasNextPage} />
+        ) : null}
       </div>
-    </SidebarProvider>
+    </ProjectShell>
   );
 }
 
