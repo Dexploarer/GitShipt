@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
+import { start } from "workflow/api";
+import { executePayout } from "@/workflows/executePayout";
 import { isAuthorizedCron } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Daily payout cron — 00:30 UTC.
- * Day 1 stub. Day 3 wires in `executePayout` workflow.
+ * Daily payout cron — 00:30 UTC. Triggers `executePayout`, which fans out
+ * a per-snapshot pipeline (claim Bags fees, distribute, escrow leftovers).
  */
 export async function GET(req: Request): Promise<Response> {
   if (!isAuthorizedCron(req)) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
-  // TODO(day-3): const run = await start(executePayout, [])
-  return NextResponse.json({ ok: true, scheduled: "executePayout (day-3)" });
+  const run = await start(executePayout, []);
+  return NextResponse.json({ ok: true, runId: run.runId });
 }

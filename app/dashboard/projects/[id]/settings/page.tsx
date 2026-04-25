@@ -1,0 +1,139 @@
+import { hasCredentials } from "@/lib/env";
+import { loadProjectFor } from "../../../_components/loadProject";
+import { AppShell } from "../../../_components/AppShell";
+import { OwnedProjectSidebar } from "@/components/sidebar/OwnedProjectSidebar";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { Sparkles } from "lucide-react";
+import { GeneralForm } from "./_components/GeneralForm";
+import { PauseSection } from "./_components/PauseSection";
+import { TransferForm } from "./_components/TransferForm";
+import { DangerSection } from "./_components/DangerSection";
+
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  if (!hasCredentials.db()) return <Stub />;
+  const { id } = await params;
+  const ctx = await loadProjectFor(id, "project.update");
+  const { project } = ctx;
+
+  return (
+    <AppShell
+      sidebar={
+        <OwnedProjectSidebar
+          projectId={id}
+          slug={project.slug}
+          projectName={project.name}
+          active="settings"
+        />
+      }
+      footerLeft={`${project.slug} · devnet · BAGS.fm`}
+    >
+      <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+        <header>
+          <h1 className="text-headline-lg leading-tight text-fg">Settings</h1>
+          <p className="text-body-md text-fg-secondary">
+            Project metadata, pause controls, ownership transfer, and deletion.
+          </p>
+        </header>
+
+        <Card depth="flat" padding="none">
+          <CardHeader className="border-b border-border px-6 py-4">
+            <CardTitle>General</CardTitle>
+            <CardDescription>Display name, description, image.</CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 py-5">
+            <GeneralForm
+              projectId={id}
+              initialName={project.name}
+              initialDescription={project.description}
+              initialImageUrl={project.imageUrl}
+            />
+          </CardContent>
+        </Card>
+
+        <Card depth="flat" padding="none">
+          <CardHeader className="border-b border-border px-6 py-4">
+            <CardTitle>Pause project</CardTitle>
+            <CardDescription>
+              While paused, snapshots and payouts are skipped. Public page shows
+              a paused badge. Toggle anytime.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 py-5">
+            <PauseSection
+              projectId={id}
+              status={project.status}
+              pausedReason={project.pausedReason}
+            />
+          </CardContent>
+        </Card>
+
+        <Card depth="flat" padding="none">
+          <CardHeader className="border-b border-border px-6 py-4">
+            <CardTitle>Transfer ownership</CardTitle>
+            <CardDescription>
+              Hand the project to another GitBags user — by their GitHub
+              username. They must already have signed in at least once.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 py-5">
+            <TransferForm projectId={id} />
+          </CardContent>
+        </Card>
+
+        <Card
+          depth="flat"
+          padding="none"
+          className="border-danger/40"
+        >
+          <CardHeader className="border-b border-danger/40 px-6 py-4">
+            <CardTitle className="text-danger">Danger zone</CardTitle>
+            <CardDescription>
+              Deleting marks the project killed. Funds in escrow remain
+              claimable. There is a 24-hour cool-down before re-launching the
+              same repo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 py-5">
+            <DangerSection projectId={id} slug={project.slug} />
+          </CardContent>
+        </Card>
+      </div>
+    </AppShell>
+  );
+}
+
+function Stub() {
+  return (
+    <AppShell
+      sidebar={
+        <OwnedProjectSidebar
+          projectId=""
+          slug="—/—"
+          projectName="—"
+          active="settings"
+        />
+      }
+    >
+      <div className="mx-auto w-full max-w-content">
+        <EmptyState
+          icon={Sparkles}
+          title="Stub mode"
+          description="Set DATABASE_URL to manage settings."
+        />
+      </div>
+    </AppShell>
+  );
+}

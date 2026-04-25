@@ -1,0 +1,549 @@
+import "server-only";
+import { dbHttp } from "@/db";
+import {
+  projects,
+  users,
+  payouts,
+  snapshots,
+  contributors,
+  escrowHoldings,
+  auditLogs,
+  platformConfig,
+  payoutRecipients,
+  type ScoringConfig,
+  type PayoutConfig,
+} from "@/db/schema";
+import { and, desc, eq, gte, like, sql, count, inArray } from "drizzle-orm";
+
+/**
+ * Admin-only query helpers. All callers must `requirePermission('admin.access')`
+ * (or stricter) before invoking. These helpers do not enforce permissions —
+ * authorization happens one layer up.
+ */
+
+export interface OpsKpis {
+  activeProjects: number;
+  frozenAwaitingPayout: number;
+  failedPayouts: number;
+  hotWalletSol: number | null;
+  pendingEscrowSol: number;
+}
+
+export async function getOpsKpis(hotWalletLamports: number | null): Promise<OpsKpis> {
+  const [activeRows, frozenRows, failedRows, escrowRows] = await Promise.all([
+    dbHttp
+      .select({ c: count() })
+      .from(projects)
+      .where(eq(projects.status, "live")),
+    dbHttp
+      .select({ c: count() })
+      .from(snapshots)
+      .where(eq(snapshots.status, "frozen")),
+    dbHttp
+      .select({ c: count() })
+      .from(payouts)
+      .where(eq(payouts.status, "failed")),
+    dbHttp
+      .select({ total: sql<string>`COALESCE(SUM(${escrowHoldings.amountLamports}), 0)::text` })
+      .from(escrowHoldings)
+      .where(sql`${escrowHoldings.drainedAt} IS NULL`),
+  ]);
+
+  const escrowLamports = BigInt(escrowRows[0]?.total ?? "0");
+  const escrowSol = Number(escrowLamports) / 1_000_000_000;
+  const hotWalletSol =
+    hotWalletLamports == null ? null : hotWalletLamports / 1_000_000_000;
+
+  return {
+    activeProjects: activeRows[0]?.c ?? 0,
+    frozenAwaitingPayout: frozenRows[0]?.c ?? 0,
+    failedPayouts: failedRows[0]?.c ?? 0,
+    hotWalletSol,
+    pendingEscrowSol: escrowSol,
+  };
+}
+
+export interface HeartbeatRow {
+  key: string;
+  workflow: string;
+  lastBeatAt: Date | null;
+  ageSec: number | null;
+  status: "green" | "yellow" | "red";
+}
+
+const HEARTBEAT_GREEN_SEC = 120;
+const HEARTBEAT_YELLOW_SEC = 600;
+
+export async function getHeartbeats(): Promise<HeartbeatRow[]> {
+  const rows = await dbHttp
+    .select({ key: platformConfig.key, value: platformConfig.value })
+    .from(platformConfig)
+    .where(like(platformConfig.key, "heartbeat.%"));
+
+  const now = Date.now();
+  return rows
+    .map<HeartbeatRow>((row) => {
+      const v = row.value as { lastBeatAt?: string };
+      const lastBeatAt = v.lastBeatAt ? new Date(v.lastBeatAt) : null;
+      const ageSec = lastBeatAt
+        ? Math.max(0, Math.floor((now - lastBeatAt.getTime()) / 1000))
+        : null;
+      let status: HeartbeatRow["status"] = "red";
+      if (ageSec != null) {
+        if (ageSec < HEARTBEAT_GREEN_SEC) status = "green";
+        else if (ageSec < HEARTBEAT_YELLOW_SEC) status = "yellow";
+      }
+      return {
+        key: row.key,
+        workflow: row.key.replace(/^heartbeat\./, ""),
+        lastBeatAt,
+        ageSec,
+        status,
+      };
+    })
+    .sort((a, b) => a.workflow.localeCompare(b.workflow));
+}
+
+export interface AdminFailedPayoutRow {
+  id: string;
+  projectId: string;
+  projectSlug: string;
+  totalLamports: bigint;
+  attemptCount: number;
+  lastError: string | null;
+  scheduledAt: Date;
+}
+
+export async function getRecentFailedPayouts(limit = 10): Promise<AdminFailedPayoutRow[]> {
+  const rows = await dbHttp
+    .select({
+      id: payouts.id,
+      projectId: payouts.projectId,
+      ghOwner: projects.ghOwner,
+      ghRepo: projects.ghRepo,
+      totalAmountLamports: payouts.totalAmountLamports,
+      attemptCount: payouts.attemptCount,
+      lastError: payouts.lastError,
+      scheduledAt: payouts.scheduledAt,
+    })
+    .from(payouts)
+    .leftJoin(projects, eq(payouts.projectId, projects.id))
+    .where(eq(payouts.status, "failed"))
+    .orderBy(desc(payouts.scheduledAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id,
+    projectId: r.projectId,
+    projectSlug: `${r.ghOwner ?? "?"}/${r.ghRepo ?? "?"}`,
+    totalLamports: BigInt(r.totalAmountLamports ?? 0),
+    attemptCount: r.attemptCount,
+    lastError: r.lastError,
+    scheduledAt: r.scheduledAt,
+  }));
+}
+
+export interface AuditRow {
+  id: string;
+  actorUserId: string | null;
+  actorName: string | null;
+  actorAvatar: string | null;
+  action: string;
+  targetType: string;
+  targetId: string;
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+}
+
+export interface AuditFilter {
+  actionPrefix?: string;
+  actorUserId?: string;
+  sinceMs?: number;
+  limit?: number;
+}
+
+export async function getAuditLogs(filter: AuditFilter = {}): Promise<AuditRow[]> {
+  const sinceMs = filter.sinceMs ?? Date.now() - 24 * 60 * 60 * 1000;
+  const since = new Date(sinceMs);
+  const limit = Math.min(filter.limit ?? 100, 500);
+
+  const conds = [gte(auditLogs.createdAt, since)];
+  if (filter.actionPrefix) {
+    conds.push(like(auditLogs.action, `${filter.actionPrefix}%`));
+  }
+  if (filter.actorUserId) {
+    conds.push(eq(auditLogs.actorUserId, filter.actorUserId));
+  }
+
+  const rows = await dbHttp
+    .select({
+      id: auditLogs.id,
+      actorUserId: auditLogs.actorUserId,
+      actorName: users.name,
+      actorAvatar: users.image,
+      action: auditLogs.action,
+      targetType: auditLogs.targetType,
+      targetId: auditLogs.targetId,
+      metadata: auditLogs.metadata,
+      createdAt: auditLogs.createdAt,
+    })
+    .from(auditLogs)
+    .leftJoin(users, eq(auditLogs.actorUserId, users.id))
+    .where(and(...conds))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id,
+    actorUserId: r.actorUserId,
+    actorName: r.actorName,
+    actorAvatar: r.actorAvatar,
+    action: r.action,
+    targetType: r.targetType,
+    targetId: r.targetId,
+    metadata: (r.metadata ?? {}) as Record<string, unknown>,
+    createdAt: r.createdAt,
+  }));
+}
+
+export interface AdminProjectRow {
+  id: string;
+  slug: string;
+  name: string;
+  ownerName: string | null;
+  ownerUsername: string | null;
+  status: "draft" | "live" | "paused" | "killed";
+  contributorsCount: number;
+  imageUrl: string | null;
+  tokenMint: string | null;
+  createdAt: Date;
+}
+
+export async function getAllProjects(filter?: { status?: string }): Promise<AdminProjectRow[]> {
+  const conds = [];
+  if (filter?.status && filter.status !== "all") {
+    conds.push(
+      eq(
+        projects.status,
+        filter.status as "draft" | "live" | "paused" | "killed",
+      ),
+    );
+  }
+
+  const baseQuery = dbHttp
+    .select({
+      id: projects.id,
+      ghOwner: projects.ghOwner,
+      ghRepo: projects.ghRepo,
+      name: projects.name,
+      ownerName: users.name,
+      ownerUsername: users.githubUsername,
+      status: projects.status,
+      imageUrl: projects.imageUrl,
+      tokenMint: projects.tokenMint,
+      createdAt: projects.createdAt,
+      contributorsCount: sql<number>`(SELECT COUNT(*)::int FROM ${contributors} WHERE ${contributors.projectId} = ${projects.id})`,
+    })
+    .from(projects)
+    .leftJoin(users, eq(projects.ownerUserId, users.id));
+
+  const rows = conds.length
+    ? await baseQuery.where(and(...conds)).orderBy(desc(projects.createdAt))
+    : await baseQuery.orderBy(desc(projects.createdAt));
+
+  return rows.map((r) => ({
+    id: r.id,
+    slug: `${r.ghOwner}/${r.ghRepo}`,
+    name: r.name,
+    ownerName: r.ownerName,
+    ownerUsername: r.ownerUsername,
+    status: r.status,
+    contributorsCount: r.contributorsCount,
+    imageUrl: r.imageUrl,
+    tokenMint: r.tokenMint,
+    createdAt: r.createdAt,
+  }));
+}
+
+export async function getProjectAdminDetail(projectId: string): Promise<{
+  project: typeof projects.$inferSelect;
+  ownerName: string | null;
+  ownerUsername: string | null;
+  scoringConfig: ScoringConfig;
+  payoutConfig: PayoutConfig;
+  contributorsCount: number;
+} | null> {
+  const [row] = await dbHttp
+    .select({
+      project: projects,
+      ownerName: users.name,
+      ownerUsername: users.githubUsername,
+    })
+    .from(projects)
+    .leftJoin(users, eq(projects.ownerUserId, users.id))
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!row) return null;
+
+  const [{ c: contributorsCount }] = (
+    await dbHttp
+      .select({ c: count() })
+      .from(contributors)
+      .where(eq(contributors.projectId, projectId))
+  ) as [{ c: number }];
+
+  return {
+    project: row.project,
+    ownerName: row.ownerName,
+    ownerUsername: row.ownerUsername,
+    scoringConfig: row.project.scoringConfig,
+    payoutConfig: row.project.payoutConfig,
+    contributorsCount,
+  };
+}
+
+export interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  githubUsername: string | null;
+  image: string | null;
+  role: "user" | "moderator" | "admin" | "super_admin";
+  mfaEnabled: boolean;
+  createdAt: Date;
+}
+
+export async function getAllUsers(): Promise<AdminUserRow[]> {
+  const rows = await dbHttp
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      githubUsername: users.githubUsername,
+      image: users.image,
+      role: users.role,
+      mfaSecretEnc: users.mfaSecretEnc,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt))
+    .limit(500);
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    githubUsername: r.githubUsername,
+    image: r.image,
+    role: r.role,
+    mfaEnabled: Boolean(r.mfaSecretEnc),
+    createdAt: r.createdAt,
+  }));
+}
+
+export interface AdminPayoutRow {
+  id: string;
+  projectId: string;
+  projectSlug: string;
+  totalLamports: bigint;
+  recipientCount: number;
+  status: "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled";
+  attemptCount: number;
+  lastError: string | null;
+  scheduledAt: Date;
+  snapshotId: string;
+}
+
+export async function getAllPayouts(filter?: { status?: string }): Promise<AdminPayoutRow[]> {
+  const conds = [];
+  if (filter?.status && filter.status !== "all") {
+    conds.push(
+      eq(
+        payouts.status,
+        filter.status as "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled",
+      ),
+    );
+  }
+
+  const baseQuery = dbHttp
+    .select({
+      id: payouts.id,
+      projectId: payouts.projectId,
+      ghOwner: projects.ghOwner,
+      ghRepo: projects.ghRepo,
+      totalAmountLamports: payouts.totalAmountLamports,
+      status: payouts.status,
+      attemptCount: payouts.attemptCount,
+      lastError: payouts.lastError,
+      scheduledAt: payouts.scheduledAt,
+      snapshotId: payouts.snapshotId,
+      recipientCount: sql<number>`(SELECT COUNT(*)::int FROM ${payoutRecipients} WHERE ${payoutRecipients.payoutId} = ${payouts.id})`,
+    })
+    .from(payouts)
+    .leftJoin(projects, eq(payouts.projectId, projects.id));
+
+  const rows = conds.length
+    ? await baseQuery.where(and(...conds)).orderBy(desc(payouts.scheduledAt)).limit(500)
+    : await baseQuery.orderBy(desc(payouts.scheduledAt)).limit(500);
+
+  return rows.map((r) => ({
+    id: r.id,
+    projectId: r.projectId,
+    projectSlug: `${r.ghOwner ?? "?"}/${r.ghRepo ?? "?"}`,
+    totalLamports: BigInt(r.totalAmountLamports ?? 0),
+    recipientCount: r.recipientCount,
+    status: r.status,
+    attemptCount: r.attemptCount,
+    lastError: r.lastError,
+    scheduledAt: r.scheduledAt,
+    snapshotId: r.snapshotId,
+  }));
+}
+
+export interface AdminSnapshotRow {
+  id: string;
+  projectId: string;
+  projectSlug: string;
+  takenAt: Date;
+  status: "pending" | "frozen" | "paid" | "failed";
+  totalFeesLamports: bigint;
+  recipientCount: number;
+  merkleRoot: string;
+  forced: boolean;
+  forcedBy: string | null;
+}
+
+export async function getAllSnapshots(): Promise<AdminSnapshotRow[]> {
+  const rows = await dbHttp
+    .select({
+      id: snapshots.id,
+      projectId: snapshots.projectId,
+      ghOwner: projects.ghOwner,
+      ghRepo: projects.ghRepo,
+      takenAt: snapshots.takenAt,
+      status: snapshots.status,
+      totalFeesLamports: snapshots.totalFeesLamports,
+      merkleRoot: snapshots.merkleRoot,
+      forced: snapshots.forced,
+      forcedBy: snapshots.forcedBy,
+      leaderboard: snapshots.leaderboard,
+    })
+    .from(snapshots)
+    .leftJoin(projects, eq(snapshots.projectId, projects.id))
+    .orderBy(desc(snapshots.takenAt))
+    .limit(200);
+
+  return rows.map((r) => ({
+    id: r.id,
+    projectId: r.projectId,
+    projectSlug: `${r.ghOwner ?? "?"}/${r.ghRepo ?? "?"}`,
+    takenAt: r.takenAt,
+    status: r.status,
+    totalFeesLamports: BigInt(r.totalFeesLamports ?? 0),
+    recipientCount: Array.isArray(r.leaderboard) ? r.leaderboard.length : 0,
+    merkleRoot: r.merkleRoot,
+    forced: r.forced === "true",
+    forcedBy: r.forcedBy,
+  }));
+}
+
+export async function getSnapshotDetail(snapshotId: string) {
+  const [row] = await dbHttp
+    .select({
+      snapshot: snapshots,
+      ghOwner: projects.ghOwner,
+      ghRepo: projects.ghRepo,
+    })
+    .from(snapshots)
+    .leftJoin(projects, eq(snapshots.projectId, projects.id))
+    .where(eq(snapshots.id, snapshotId))
+    .limit(1);
+  if (!row) return null;
+  return {
+    ...row.snapshot,
+    slug: `${row.ghOwner ?? "?"}/${row.ghRepo ?? "?"}`,
+  };
+}
+
+export async function getPlatformConfigValue<T = Record<string, unknown>>(
+  key: string,
+): Promise<T | null> {
+  const [row] = await dbHttp
+    .select({ value: platformConfig.value })
+    .from(platformConfig)
+    .where(eq(platformConfig.key, key))
+    .limit(1);
+  return (row?.value as T | undefined) ?? null;
+}
+
+export async function getTableRowCounts(): Promise<Array<{ table: string; rows: number }>> {
+  const tableNames = [
+    "users",
+    "sessions",
+    "accounts",
+    "verifications",
+    "wallets",
+    "projects",
+    "project_memberships",
+    "contributors",
+    "contributor_claims",
+    "snapshots",
+    "payouts",
+    "payout_recipients",
+    "escrow_holdings",
+    "audit_logs",
+    "webhook_events",
+    "gh_indexer_state",
+    "platform_config",
+  ];
+
+  // Cheap reltuples-based estimate. Falls back to 0 on error.
+  const out: Array<{ table: string; rows: number }> = [];
+  for (const t of tableNames) {
+    try {
+      const result = await dbHttp.execute(
+        sql.raw(
+          `SELECT reltuples::bigint AS rows FROM pg_class WHERE relname = '${t}' AND relkind = 'r' LIMIT 1`,
+        ),
+      );
+      const rows = result as unknown as { rows?: Array<{ rows?: string | number }> };
+      const arr = Array.isArray(rows.rows) ? rows.rows : (rows as unknown as Array<{ rows?: string | number }>);
+      const first = (Array.isArray(arr) ? arr[0] : undefined) as
+        | { rows?: string | number }
+        | undefined;
+      const n = first?.rows;
+      out.push({ table: t, rows: typeof n === "string" ? Number(n) : (n ?? 0) });
+    } catch {
+      out.push({ table: t, rows: 0 });
+    }
+  }
+  return out;
+}
+
+export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {
+  if (ids.length === 0) return [];
+  const rows = await dbHttp
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      githubUsername: users.githubUsername,
+      image: users.image,
+      role: users.role,
+      mfaSecretEnc: users.mfaSecretEnc,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(inArray(users.id, ids));
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    githubUsername: r.githubUsername,
+    image: r.image,
+    role: r.role,
+    mfaEnabled: Boolean(r.mfaSecretEnc),
+    createdAt: r.createdAt,
+  }));
+}

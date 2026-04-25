@@ -168,6 +168,31 @@ rounded:
   2xl: 20px
   full: 9999px
 
+# Multi-layer shadow stack — Liquid Glass / macOS Tahoe depth.
+# NON-NORMATIVE EXTENSION: agents and the CSS pipeline read this to emit
+# theme-aware shadow tokens. Use `shadows-light:` for the mirrored palette.
+shadows:
+  # Heavy depth for the floating sidebar, popovers over glass.
+  # 4 layers: glass border + top inset highlight + key shadow + ambient.
+  floating: "0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 12px 28px -8px rgba(0, 0, 0, 0.55), 0 28px 56px -16px rgba(0, 0, 0, 0.4)"
+  # Lighter depth for raised cards inside the bento grid.
+  card-elevated: "0 0 0 1px rgba(255, 255, 255, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 6px 16px -4px rgba(0, 0, 0, 0.35), 0 14px 32px -10px rgba(0, 0, 0, 0.25)"
+  # Top-edge catch-light for raised buttons + active sidebar items.
+  inset-light: "inset 0 1px 0 0 rgba(255, 255, 255, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.02)"
+  # Inset depression for active/pressed state.
+  press: "inset 0 1px 2px 0 rgba(0, 0, 0, 0.25)"
+  # Popover (Day-1, kept for backwards compat with existing components).
+  popover: "0 8px 24px rgba(0, 0, 0, 0.4)"
+  modal: "0 20px 60px rgba(0, 0, 0, 0.6)"
+
+shadows-light:
+  floating: "0 0 0 1px rgba(15, 15, 20, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.7), 0 8px 24px -4px rgba(15, 15, 20, 0.12), 0 24px 48px -12px rgba(15, 15, 20, 0.10)"
+  card-elevated: "0 0 0 1px rgba(15, 15, 20, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.5), 0 4px 12px -2px rgba(15, 15, 20, 0.08), 0 12px 24px -8px rgba(15, 15, 20, 0.06)"
+  inset-light: "inset 0 1px 0 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.4)"
+  press: "inset 0 1px 2px 0 rgba(15, 15, 20, 0.08)"
+  popover: "0 4px 16px rgba(15, 15, 20, 0.08)"
+  modal: "0 20px 60px rgba(15, 15, 20, 0.15)"
+
 spacing:
   base: 4px
   xs: 4px
@@ -203,10 +228,21 @@ components:
     backgroundColor: "{colors.surface-elevated}"
     borderColor: "{colors.border-strong}"
 
+  # Sidebar — Liquid Glass / macOS Tahoe floating aesthetic.
+  # The sidebar lives in a 12px outer page gutter, never flush to the viewport
+  # edge. All four corners rounded `2xl`. Glass surface (color-mix translucent
+  # over backdrop blur) + multi-layer floating shadow + top-edge catch-light.
+  # Collapsable via SidebarToggle in the header (260px ↔ 68px, 300ms transition).
+  # Internal scroll for nav so the header + footer stay pinned.
   sidebar:
-    backgroundColor: "{colors.bg}"
-    borderColor: "{colors.border}"
-    width: 240px
+    backgroundColor: "color-mix(in oklab, {colors.surface} 70%, transparent)"
+    backdropFilter: "blur(20px) saturate(180%)"
+    borderColor: "{colors.border}/50"
+    rounded: "{rounded.2xl}"
+    shadow: "{shadows.floating}"
+    width: 260px
+    widthCollapsed: 68px
+    margin: 12px
   sidebar-item:
     backgroundColor: "transparent"
     textColor: "{colors.fg-secondary}"
@@ -216,9 +252,48 @@ components:
   sidebar-item-active:
     backgroundColor: "{colors.surface-elevated}"
     textColor: "{colors.fg}"
+    shadow: "{shadows.inset-light}"
   sidebar-item-hover:
-    backgroundColor: "{colors.surface}"
+    backgroundColor: "{colors.surface-elevated}/60"
     textColor: "{colors.fg}"
+  # Sidebar header carries the brand mark + SidebarToggle. No icon-in-box for
+  # the brand — just the text. When collapsed, header shows only the toggle.
+  sidebar-header:
+    height: 56px
+    padding: 0 12px
+    borderBottomColor: "{colors.border}/40"
+  # Sidebar footer is the canonical home for the ThemeToggle + sticky cards
+  # (TokenSparkCard, UserWalletCard, etc.). Hidden when sidebar collapses.
+  sidebar-footer:
+    backgroundColor: "{colors.bg}/30"
+    borderTopColor: "{colors.border}/40"
+    padding: 12px
+
+  # App shell — viewport-locked layout used by every authenticated page.
+  # Outer container is `flex h-screen overflow-hidden` so the document never
+  # scrolls. Internal regions handle their own overflow:
+  #   - sidebar: internal nav scroll
+  #   - <main>: bento grid with overflow-y-auto on the right rail
+  #   - <footer>: pinned to viewport bottom-right
+  # The right column has 16px gutter from the sidebar's right edge (ml-3).
+  app-shell:
+    outerPadding: 12px        # only top/left/bottom — right meets viewport
+    columnGap: 12px           # sidebar ↔ content
+    contentMaxWidth: "{spacing.content-max}"
+
+  # Footer — anchored to viewport bottom-right. Only the top-left corner
+  # is rounded (curves toward the sidebar). Bottom + right edges meet the
+  # viewport. Uses glass + card-elevated shadow.
+  app-footer:
+    backgroundColor: "color-mix(in oklab, {colors.surface} 70%, transparent)"
+    backdropFilter: "blur(20px) saturate(180%)"
+    borderTopColor: "{colors.border}/60"
+    borderLeftColor: "{colors.border}/60"
+    borderTopLeftRadius: "{rounded.2xl}"
+    shadow: "{shadows.card-elevated}"
+    padding: 6px 16px
+    height: 36px
+    marginLeft: 16px          # mirrors the main content's left padding
 
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -323,18 +398,70 @@ components:
     padding: 8px 12px
     typography: "{typography.body-sm}"
 
+  # Avatars are NOT round in GitBags — they're rounded squares matching the
+  # design system's radius family. The radius scales with avatar size so the
+  # visual weight stays proportional to the surrounding cards.
+  #   sidebar (260px wide): rounded-2xl (20px)
+  #   project header avatar (72-112px): rounded-2xl (20px)
+  #   contributor row avatar (32px): rounded-lg (12px)
+  #   smaller meta avatars (24px): rounded-md (8px)
+  # Status dots, pulse indicators, rank medals stay round (they're affordances,
+  # not pictures).
   avatar:
-    rounded: "{rounded.full}"
+    rounded: "{rounded.lg}"
     size: 32px
-  avatar-lg:
-    rounded: "{rounded.full}"
+  avatar-md:
+    rounded: "{rounded.xl}"
     size: 48px
+  avatar-lg:
+    rounded: "{rounded.2xl}"
+    size: 72px
+  avatar-xl:
+    rounded: "{rounded.2xl}"
+    size: 112px
 
   stat-card:
     backgroundColor: "{colors.surface}"
     borderColor: "{colors.border}"
     rounded: "{rounded.lg}"
     padding: 20px
+
+  # QuickStat / TokenStat — floating stat cell used in horizontal grid strips
+  # (header repo info, token-stats row). Soft border + subtle bg so they read
+  # as a strip rather than as boxed modules.
+  quick-stat:
+    backgroundColor: "{colors.surface}/40"
+    borderColor: "{colors.border}/60"
+    rounded: "{rounded.lg}"
+    padding: 8px 12px
+
+  # Dropdown menu — used by TokenActionsMenu (Embed / Copy CA / GitHub) and
+  # any other action menu. Glass surface with the popover shadow stack.
+  dropdown-menu:
+    backgroundColor: "color-mix(in oklab, {colors.surface-overlay} 85%, transparent)"
+    backdropFilter: "blur(24px) saturate(180%)"
+    borderColor: "{colors.border-strong}"
+    rounded: "{rounded.lg}"
+    shadow: "{shadows.popover}"
+    padding: 4px
+  dropdown-menu-item:
+    backgroundColor: "transparent"
+    textColor: "{colors.fg-secondary}"
+    rounded: "{rounded.md}"
+    padding: 6px 10px
+    typography: "{typography.body-sm}"
+  dropdown-menu-item-hover:
+    backgroundColor: "{colors.surface-elevated}"
+    textColor: "{colors.fg}"
+
+  # Embed widget — minimal-chrome widget designed for iframe embedding on
+  # third-party sites. Lives at /embed/r/{org}/{repo}, transparent body,
+  # robots:noindex. Default iframe size: 380×360px.
+  embed-widget:
+    rounded: "{rounded.lg}"
+    minWidth: 320px
+    defaultWidth: 380px
+    defaultHeight: 360px
 
   rank-medal-gold:
     backgroundColor: "{colors.rank-gold}"
@@ -485,62 +612,208 @@ Body text is **400 weight**. Labels, headings, and UI emphasis are **500 or 600*
 
 Letter spacing is tight and negative on display/headline (-0.02 to -0.01em), neutral on body, and positive on small caps labels (0.01-0.02em).
 
-## Layout
+## Layout — App Shell
 
-A **sidebar-plus-content** layout for all authenticated views. Public marketing routes use a top-nav layout instead.
+GitBags uses a **viewport-locked app shell** for every authenticated page (`/r/[org]/[repo]`, `/dashboard/*`, `/admin/*`, `/launch`). The page itself never scrolls — only specific inner regions do. This lets the sidebar, the page footer, and any system-level chrome stay in view at all times while users browse content.
 
-- **Sidebar:** Fixed 240px width, full viewport height, `bg` background, 1px right border. Brand mark at top, primary nav in the middle, user-context card pinned at the bottom.
-- **Content area:** Max 1440px width, centered, with 32px horizontal padding inside.
-- **Top of content:** Header card (96px tall typically) showing the current scope (project, admin section, etc).
-- **Body:** Two-thirds primary content (left) + one-third sidebar of supporting cards (right) on the leaderboard view. Single column on lists, settings, and forms.
-- **Mobile:** Sidebar collapses behind a hamburger. Header and content stack vertically. Tables become card-list views below 768px.
+```
+┌─────────────────────────────────────────┐
+│  ┌──────┐  ┌────────────────────────┐  │  ← 12px top gutter
+│  │      │  │                        │  │
+│  │ side │  │  scrollable content    │  │  ← 12px between
+│  │ bar  │  │  (bento grid)          │  │
+│  │      │  │                        │  │
+│  │ glass│  │                        │  │
+│  │ pane │  │                        │  │
+│  │      │  └────────────────────────┘  │  ← 12px before footer
+│  │      │  ┌────────────────────────┐  │
+│  │      │  │ footer (rounded-tl,    │  │  ← flush to viewport
+│  └──────┘  │ flush right + bottom)  │  │     bottom-right
+│            └────────────────────────┘  │
+└─────────────────────────────────────────┘
+   ↑ 12px left gutter
+```
 
-Spacing rhythm follows a **4px base** with an **8px primary scale**. Component internal padding is 24px (cards), 16px (table rows), 12px (sidebar items), 10px (buttons). Inter-card gutters are 16px tight, 24px default, 32px loose.
+**Outer wrapper**: `flex h-screen overflow-hidden bg-bg text-fg`. The outer `<div>` is the only thing tied to viewport height; everything inside flows from there.
 
-## Elevation & Depth
+**Sidebar column**: `<div class="shrink-0 p-3 pr-0">` — wraps the floating sidebar in a 12px gutter on top/left/bottom. No right padding so the gap between sidebar and content is owned by the right column.
 
-GitBags is **flat by default**. Visual hierarchy comes from:
+**Right column**: `<div class="flex min-w-0 flex-1 flex-col">` containing main + footer.
+- `<main class="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 lg:overflow-hidden">` — at lg+ no scroll (bento fits the viewport); below lg falls back to vertical scroll for small screens.
+- `<footer class="shrink-0 ml-3 rounded-tl-2xl border-t border-l border-border/60 glass shadow-card-elevated surface-highlight">` — anchored bottom-right, only top-left rounded (curves toward sidebar), bottom + right meet viewport. 16px ml mirrors main's px-4 inset so the footer aligns with the content column.
 
-1. **Surface tonality** — three discrete background levels (`bg`, `surface`, `surface-elevated`).
-2. **Borders** — 1px hairline borders define every card and table row.
-3. **Color** — primary purple draws the eye; muted gray fades to background.
+**Content max width**: 1440px (`max-w-content`). Content gets centered inside `<main>` when the viewport is wider.
 
-Box-shadow is used **only** in two places: dropdowns/popovers and modals. Shadows are theme-aware:
+Spacing rhythm follows a **4px base** with an **8px primary scale**. Component internal padding is 24px (cards), 16px (table rows), 12px (sidebar items), 10px (buttons). Inter-card gutters are **12px (tight, right rail) / 16px (default, bento) / 24px (loose, hero sections)**.
 
-- **Dark theme** — popovers: `0 8px 24px rgba(0,0,0,0.4)`; modals: `0 20px 60px rgba(0,0,0,0.6)` plus `bg/60` backdrop with `backdrop-blur-md`.
-- **Light theme** — popovers: `0 4px 16px rgba(15,15,20,0.08)`; modals: `0 20px 60px rgba(15,15,20,0.15)` plus `bg/60` backdrop. Lighter, tighter shadows because high-luminance backgrounds make heavy shadows look smudgy.
+## Liquid Glass / Depth System
 
-No glow effects in either theme. No drop-shadow on cards. No neumorphism. The "neon" in cypherpunk-neon comes from the **purple accent itself** in dark, and from **crisp 1px borders + clean tonal steps** in light, not from blur halos.
+GitBags ships a **macOS Tahoe-flavored Liquid Glass** depth system that complements the flat-by-default cards. Three classes of surface:
+
+1. **Flat** (`bg-surface` + `border border-border`) — most cards, table rows, form fields. No shadow. Hierarchy from tonality and borders alone.
+2. **Raised** (`bg-surface` + `shadow-card-elevated`) — leaderboard card, token-info embed widget, stat tiles. Lifts subtly off the page bg.
+3. **Floating** (`glass` utility + `shadow-floating` + `surface-highlight`) — sidebar, popovers, modals, app footer. Translucent glass over a multi-layer shadow stack with a top-edge catch-light gradient.
+
+### Multi-layer shadow stack
+
+Each "depth" shadow is composed of **4 layers**:
+
+1. **Glass border** — `0 0 0 1px rgba(255,255,255,0.05)` (dark) / `rgba(15,15,20,0.06)` (light). 1px hairline that catches ambient light along the edge.
+2. **Top inset highlight** — `inset 0 1px 0 0 rgba(255,255,255,0.06)` (dark) / `rgba(255,255,255,0.7)` (light). Mimics the top edge of physical glass catching room light.
+3. **Key shadow** — `0 12px 28px -8px rgba(0,0,0,0.55)` (dark, floating). The dominant directional shadow.
+4. **Ambient shadow** — `0 28px 56px -16px rgba(0,0,0,0.4)` (dark, floating). Soft envelope that grounds the surface in space.
+
+Light theme inverts the inset highlight to white (catching light against the white substrate) and dampens the key/ambient layers — high-luminance bgs make heavy shadows look smudgy.
+
+### Glass utility
+
+```css
+@utility glass {
+  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+@utility glass-strong {
+  background-color: color-mix(in oklab, var(--surface-overlay) 85%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+}
+```
+
+`color-mix` lets the underlying page color tint the glass slightly when content scrolls beneath. `saturate(180%)` boosts the residual color so the tint reads as warm/cool rather than gray. Pair with `shadow-floating` for the canonical Liquid Glass look (sidebar, popovers); `glass-strong` for popovers/modals where contrast is critical.
+
+### Surface highlight class
+
+```css
+.surface-highlight::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(180deg,
+    color-mix(in oklab, var(--fg) 5%, transparent) 0%,
+    transparent 28%);
+  pointer-events: none;
+}
+```
+
+A subtle gradient on the top edge of glass surfaces. Reads as catch-light on the curve of the rounded corner. Tailwind v4's `@utility` can't carry pseudo-elements, so this is a plain CSS class.
+
+### Press / inset states
+
+`shadow-press` — `inset 0 1px 2px 0 rgba(0,0,0,0.25)` for active buttons / pressed sidebar items. Mirrors the depression you'd feel on a physical key.
+
+### What stays flat
+
+Cards in the bento grid, table rows, form fields, the project header (which floats directly on `bg`, no card wrapper). The page IS still flat-by-default; the depth system is reserved for chrome (sidebar, footer, popovers, modals) and a few intentional anchor cards (leaderboard, embed widget).
+
+## Bento Grid (Project Page Layout)
+
+The canonical reference layout is `/r/[org]/[repo]`. It uses a **3-row CSS grid** that fills the viewport exactly (no document scroll on lg+). Each cell holds a free-standing region; whitespace between cells does the work that card borders would do in a denser layout.
+
+```
+Row 1 (auto): ProjectHeader   | RepoStatsList   ← header + repo stats list
+Row 2 (auto): TokenStatsRow   | aside (rowspan 2)  ← token strip + right rail starts
+Row 3 (1fr):  LeaderboardTable| ↓ aside continues (countdown / pool / payouts)
+```
+
+```html
+<main class="lg:overflow-hidden">
+  <div class="grid h-full gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_auto_minmax(0,1fr)]">
+    <ProjectHeader />            <!-- row 1 col 1 -->
+    <RepoStatsList />            <!-- row 1 col 2, self-start -->
+    <TokenStatsRow />            <!-- row 2 col 1 only — must NOT span both -->
+    <aside lg:row-start-2 lg:row-span-2>  <!-- col 2, spans rows 2-3 -->
+      <NextPayoutCountdown />
+      <PoolOverviewCard />
+      <RecentPayoutsFeed />
+    </aside>
+    <LeaderboardTable />         <!-- row 3 col 1 -->
+  </div>
+</main>
+```
+
+**Bento principles**:
+- **Header sections float (no card wrapper)**. ProjectHeader is just avatar + name + description + Share menu, sitting directly on `bg`. RepoStatsList is a divide-y list of label/value rows with no enclosing border.
+- **Anchor cards get raised depth**. LeaderboardTable, PoolOverviewCard, TokenInfoCard (embed) — these are visual anchors and use `Card depth="raised"`.
+- **Width discipline**: TokenStatsRow lives in the leaderboard column (col 1 only) — never span cols. The right rail column (col 2) gets the countdown + pool + payouts only.
+- **Internal scroll where needed**: Leaderboard's contributor list uses `flex-1 min-h-0 overflow-y-auto` so it consumes whatever vertical space is left after header + column header + footer.
+- **Mobile (< lg)** falls back to single column + main `overflow-y-auto`. Components with internal scroll cap their max-h so they don't dominate small screens.
+
+## Reusable Primitive Library
+
+Live at `components/ui/*`. Compose pages from these — never reach for raw HTML+Tailwind when a primitive exists. Each is shadcn-style: variant-driven via `class-variance-authority`, polymorphic where helpful via an `asChild` prop.
+
+| Primitive | File | Variants / API |
+|---|---|---|
+| `Button` | `components/ui/button.tsx` | `variant`: primary / secondary / ghost / danger / outline / link · `size`: sm / default / lg / icon / icon-sm · `asChild` for polymorphism |
+| `Card` + `CardHeader/Title/Description/Content/Footer` | `components/ui/card.tsx` | `depth`: flat / raised / floating · `glass`: none / glass · `padding`: none / sm / default / lg |
+| `Badge` | `components/ui/badge.tsx` | `variant`: default / primary / success / warning / danger / info / outline · `size`: sm / default / lg · `dot` prop with optional `dotColor` (renders the canonical pulsing green dot) |
+| `Pill` | `components/ui/pill.tsx` | `variant`: primary / neutral / success / warning / danger · `size`: sm / default · `interactive` for clickable styling |
+| `Sidebar` family | `components/ui/sidebar.tsx` | `SidebarProvider` (context), `Sidebar` (the floating glass shell), `SidebarHeader/Content/Footer/Section/Item/Toggle/Divider`. Internal collapse state with localStorage persistence. |
+
+Every primitive uses design tokens internally — consumers never pass raw hex. Theme switches are automatic via `data-theme` on `<html>`.
+
+**Avatar** is intentionally NOT a primitive — render with `next/image` directly (or `<img>` for small/dynamic avatars) and apply the radius ladder by size:
+- 32px (contributor row): `rounded-lg` (12px)
+- 48px (compact hero): `rounded-xl` (16px)
+- 72-112px (project hero): `rounded-2xl` (20px)
+
+This keeps the visual rhythm proportional — avatars match the radius family of the surrounding cards (sidebar 20px → cards 12px → buttons 8px).
+
+## Embed Widget Pattern
+
+The TokenInfoCard at `app/r/[org]/[repo]/_components/TokenInfoCard.tsx` doubles as the canonical **embed widget**. Anyone can drop it into their own site via:
+
+```html
+<iframe src="https://gitbags.xyz/embed/r/{org}/{repo}"
+        width="380" height="360"
+        style="border:0;border-radius:12px;color-scheme:light dark"
+        loading="lazy"></iframe>
+```
+
+The `/embed/r/[org]/[repo]` route uses a stripped layout (transparent body, no sidebar/footer, `robots: noindex`) so iframes render only the widget. The Share dropdown in the project header has a one-click "Embed" copy that emits the snippet with the current origin substituted.
+
+**Convention for new embeddable surfaces**: route under `/embed/*`, override body bg in a route-group `layout.tsx`, set `robots: noindex`, default iframe size sized to a single card.
 
 ## Shapes
 
-Corner radius is **moderate and consistent**. Never sharp (4px or less) and never overly soft (16px+).
+Corner radius is **moderate and consistent**. Never sharp (4px or less) is the floor; rounded-full is reserved for affordances only (status dots, pulse indicators, rank medals).
 
-- Buttons, inputs, pills: 8px (`md`)
-- Cards: 12px (`lg`)
-- Modals, hero panels: 16px (`xl`)
-- Avatars, status dots, medal icons: full circle (`full`)
+- Buttons, inputs: 8px (`md`)
+- Small avatars (≤32px): 12px (`lg`)
+- Cards, medium avatars: 12-16px (`lg` / `xl`)
+- Modals, large hero avatars, sidebar, floating panels: 20px (`2xl`)
+- Status dots, pulse indicators, rank medals only: full circle (`full`)
 
-Mixing radii across sibling elements is forbidden — see Do's and Don'ts below.
+Mixing radii within a single sibling group is forbidden (e.g., a card with `lg` corners shouldn't house a button with `xl` corners). The avatar radius ladder by size is the only place radii intentionally vary across siblings.
 
 ## Components
 
 ### Buttons
-Three variants: `primary` (purple, the only purple button on a screen), `secondary` (elevated surface with strong border), `ghost` (transparent until hover). `danger` exists for destructive admin actions. All sizes use 10×16 padding by default. Loading states show a 12px purple spinner left-aligned to the label.
+Use the `Button` primitive from `components/ui/button.tsx`. Variants: `primary` (the only purple button on a screen — DESIGN rule), `secondary` (elevated surface + strong border), `ghost` (transparent until hover), `danger` (destructive admin), `outline`, `link`. Sizes: `sm`, `default`, `lg`, `icon`, `icon-sm`. `asChild` lets you wrap a `<Link>` (renders the link with button styling). Active state subtly scales to 0.98 — physical-button feel.
 
 ### Pills and badges
-- **Pill:** Rounded-full, primary-soft background, primary text. Used for "How Scoring Works", "View on Bags.fm", filter tags.
-- **Badge live:** Rounded-full, success-soft background, success text, with a 6px pulsing green dot prefix. Used for cron status, live indicators.
-- **Badge warning/danger:** Same shape, semantic color.
+Use `Pill` (`components/ui/pill.tsx`) for clickable affordances and `Badge` (`components/ui/badge.tsx`) for passive status. Both rounded-full, semantic variants. `Badge` accepts a `dot` prop that renders the canonical 6px pulsing green dot prefix (use `dotColor` to override the dot's semantic color independent of variant). The "How Scoring Works", "View on Bags.fm", filter tags → Pill. The "Live", "Paused", "Killed", "Cron Active" indicators → Badge with `dot`.
 
 ### Cards
-The atomic content container. Always: `surface` background, 1px `border` border, 12px corner radius, 24px internal padding. A `card-interactive` variant brightens to `surface-elevated` on hover and is used for project tiles in `/explore`.
+Use the `Card` primitive from `components/ui/card.tsx` with `depth` + `glass` + `padding` variants. Defaults: `surface` background, 1px `border`, `rounded-lg` (12px), `padding="default"` (24px). Variants:
+- `depth="flat"` (default) — no shadow.
+- `depth="raised"` — `shadow-card-elevated` (the leaderboard, the embed widget).
+- `depth="floating"` — `shadow-floating` (the sidebar internally uses this; rarely needed elsewhere).
+- `glass="glass"` — adds the translucent backdrop-blur surface.
+
+Composable subparts: `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`.
 
 ### Tables
 Header row: 12px vertical padding, `fg-muted` text, label-sm typography, no top border, 1px bottom border. Data rows: 16px vertical padding, 1px bottom border (none on the last row). Numeric cells use mono. Hover brightens the row to `surface-elevated`. Top-3 ranks use a colored circular medal icon (gold/silver/bronze) in the rank column.
 
 ### Sidebar
-Items are 10×12 padded, label-md typography, `fg-secondary` color by default. Active item: `surface-elevated` background, `fg` text, no left border accent (the elevation alone signals state). Hover: `surface` background, `fg` text. Icons are 16px Lucide, left-aligned with 12px gap to label.
+Floating Liquid Glass aside (260px expanded, 68px collapsed, 300ms transition). Lives in a 12px outer page gutter, never flush to viewport edges. All four corners `rounded-2xl`. Built from the `components/ui/sidebar.tsx` primitive set.
+
+Structure:
+- **Header (56px)**: brand text only — no boxed icon — plus a `SidebarToggle` (chevron rotates 180° when open). When collapsed, header shows only the toggle.
+- **Content** (flex-1 with internal scroll): nav items grouped via `SidebarSection` with optional uppercase caption titles.
+- **Footer**: hosts `ThemeToggle` + sticky context cards (`TokenSparkCard`, `UserWalletCard` on project sidebar). Cards hide when collapsed so the icon rail stays clean.
+
+Items are 10×12 padded, `label-md` typography, `fg-secondary` by default. Active: `surface-elevated` background + `fg` text + `shadow-inset-light` (subtle inner highlight, no left-border accent). Hover: `surface-elevated/60`. Icons are 16px Lucide, left-aligned with 12px gap to label. When collapsed, item label becomes `sr-only`, icon centers, full text appears as a `title` tooltip on hover.
+
+State: `SidebarProvider` exposes `collapsed` + `toggle()` via React Context. Persisted to `localStorage["gitbags:sidebar:collapsed"]` after mount (hydration-safe).
 
 ### Inputs
 8px corner radius, `surface` background, `border-strong` border, `body-md` typography, 10×14 padding. Focus state: border becomes `primary`. Error state: border becomes `danger`, helper text in `danger` below.
@@ -549,10 +822,25 @@ Items are 10×12 padded, label-md typography, `fg-secondary` color by default. A
 Large numeric value in `display` or `headline-lg`, label below in `label-sm` `fg-secondary`. Sparkline (when present) sits to the right or below the number, using `chart-1` (primary purple) as stroke. Used in Pool Overview, admin Money Console, project Overview.
 
 ### Avatars
-Always circular. Default 32px in tables, 48px in hero positions. GitHub `avatar_url` is the source of truth. Top-3 ranks get a small colored medal icon overlay in the bottom-right corner.
+**Rounded squares, never circles** (round is reserved for affordances — status dots, pulse indicators, rank medals). Radius scales with size to keep proportional weight relative to surrounding cards:
+
+| Context | Size | Radius |
+|---|---|---|
+| Contributor row | 32px | `rounded-lg` (12px) |
+| Compact hero / inline | 48px | `rounded-xl` (16px) |
+| Project hero (avatar block) | 72-112px (responsive) | `rounded-2xl` (20px) |
+| Sidebar brand mark | n/a | (text only — no boxed icon) |
+
+GitHub `avatar_url` is the source of truth (`https://github.com/{username}.png`). Top-3 leaderboard ranks get a colored circular `RankMedal` (gold/silver/bronze) — that's a separate primitive in the rank column, NOT a medal overlay on the avatar.
 
 ### Modals
-24px-32px internal padding, 16px corner radius, `surface-overlay` background, 1px `border-strong` border, with a backdrop of `bg/60` plus `backdrop-blur-md`. Close button top-right. Confirmation modals (kill switch, force payout, etc.) require typing the project name to confirm.
+24px-32px internal padding, 16px corner radius, `surface-overlay` background, 1px `border-strong` border, with a backdrop of `bg/60` plus `backdrop-blur-md`. Close button top-right. **Destructive confirmation modals** (kill switch, force payout, project delete, fee change) use the `<DestructiveConfirmModal>` from `components/admin/` and enforce: reason string ≥20 chars, typed-name confirmation matching target, MFA reverify within last 5 min. Wrapped server-side by `destructiveAction()` in `lib/auth/destructive-action.ts`.
+
+### Dropdown menus
+Used for the Share menu in the project header (Embed / Copy CA / GitHub) and any other contextual action menu. Hand-rolled (no Radix dep): click-outside + Escape close, glass surface (`glass-strong + shadow-popover`), `z-30` so it floats above bento cards. Items are 6×10 padded with `body-sm fg-secondary`, hover to `surface-elevated fg`. Trigger button uses `ChevronDown` that rotates 180° when open. Reference: `app/r/[org]/[repo]/_components/TokenActionsMenu.tsx`.
+
+### Copy buttons
+Tiny client islands (~20 lines each, `app/r/[org]/[repo]/_components/CopyButton.tsx`). Show a `Copy` icon by default; swap to a green `Check` for 1.5s after a successful `navigator.clipboard.writeText()`. Used for contract addresses, embed snippets, payout signatures, snapshot Merkle roots. Keep host components server-rendered — only this island ships JS.
 
 ### Tooltips
 12-line max wrap, 8×12 padding, `surface-overlay` background, 1px `border-strong` border, 8px corner radius, `body-sm` typography. 200ms delay on hover.
@@ -592,3 +880,17 @@ Recharts. Stroke 2px, no axis labels for sparklines, axis labels only when the d
 - **Don't** assume dark for chart colors. The `chart-1` through `chart-5` tokens shift between palettes; charts that hardcode hex will have broken contrast in light mode.
 - **Do** persist the user's choice (`next-themes` does this automatically via `localStorage`), but default to `system` so first-load matches the OS preference.
 - **Don't** ship a flash-of-wrong-theme. Use the inline-script pattern from `next-themes` and `suppressHydrationWarning` on `<html>` in the App Router root layout.
+
+### Composition rules (added after the project-page build)
+
+- **Do** compose pages from `components/ui/*` primitives (`Button`, `Card`, `Badge`, `Pill`, `Sidebar` family). Reach for raw HTML+Tailwind only when no primitive fits — and add a new primitive if you find yourself rolling the same pattern twice.
+- **Don't** rebuild the sidebar shell, button variants, or card depth styles inline. Those are owned by the primitive library; consumers compose with props (`variant`, `depth`, `glass`, `padding`, `size`, `dot`).
+- **Do** use the bento grid pattern (see "Bento Grid" above) for any new dashboard / admin page that should fit the viewport. Mobile falls back to vertical scroll automatically.
+- **Don't** wrap every section in a Card. Floating components (text + chips directly on `bg`) carry equal weight when the page is built around the bento philosophy. Reserve `Card depth="raised"` for the visual anchor of each region.
+- **Do** put admin actions in the Share-style dropdown menu (`TokenActionsMenu` reference). Hand-rolled menu, no Radix dep, click-outside + Escape close.
+- **Don't** put long status text in the project header. Status signals live in the sidebar nav (badge on the active item) and the app footer (status pill + slug). Header stays focused on identity (avatar, name, repo, ticker).
+- **Do** match the radius of an avatar to its size (32→12px, 48→16px, 72-112→20px). The radius ladder is intentional — it pairs with the surrounding cards so the visual rhythm reads as a family.
+- **Don't** make avatars circular. Round is reserved for affordances (status dots, pulse indicators, rank medals).
+- **Do** use `glass` + `shadow-floating` together for any chrome that should feel detached from the page (sidebar, popovers, modals, app footer). Don't use either alone — the catch-light highlight + multi-layer shadow + translucent surface only read as "glass" in combination.
+- **Don't** use depth on inline content cards (TokenStatsRow, RepoStatsList, ProjectHeader). Those float on `bg` with subtle borders; depth would make them compete with the leaderboard / pool anchors.
+- **Do** keep the embed widget (`/embed/r/[org]/[repo]`) and the inline TokenStatsRow visually distinct. Embed = full Card (with depth, full token info layout). Inline = horizontal stat strip (no card wrapper, fits the project page's bento). They share the data layer (`getTokenStats()`) but render differently for their context.
