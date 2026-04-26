@@ -15,10 +15,7 @@ import { TokenMetadataForm } from "./TokenMetadataForm";
 import { LeaderboardConfigForm } from "./LeaderboardConfigForm";
 import { ReviewAndSign } from "./ReviewAndSign";
 import { createAndLaunchAction } from "../actions";
-import {
-  DEFAULT_SCORING_CONFIG,
-  type CreateProjectBody,
-} from "@repo/shared";
+import { DEFAULT_SCORING_CONFIG, type CreateProjectBody } from "@repo/shared";
 import {
   useLaunchWizardStore,
   type LaunchSuccess,
@@ -83,6 +80,18 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
           ? metadata.description
           : undefined,
       imageUrl: metadata.imageUrl,
+      website:
+        metadata.website && metadata.website.length > 0
+          ? metadata.website
+          : undefined,
+      twitter:
+        metadata.twitter && metadata.twitter.length > 0
+          ? metadata.twitter
+          : undefined,
+      telegram:
+        metadata.telegram && metadata.telegram.length > 0
+          ? metadata.telegram
+          : undefined,
       scoringConfig: {
         ...DEFAULT_SCORING_CONFIG,
         windowDays: leaderboard.windowDays,
@@ -157,10 +166,7 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
         ) : status === "submitting" ? (
           <SubmittingState />
         ) : step === 1 ? (
-          <RepoPicker
-            onSelect={selectRepo}
-            selectedId={repo?.id ?? null}
-          />
+          <RepoPicker onSelect={selectRepo} selectedId={repo?.id ?? null} />
         ) : step === 2 && repo ? (
           <>
             {errorMessage ? (
@@ -285,7 +291,7 @@ function LaunchResult({
             ? "No real Bags.fm token was created. We persisted a test draft so you can preview the project page UX."
             : result.status === "launch_configured"
               ? "Bags token metadata and fee-share config are ready. The project will not enter payout rotation until the final launch transaction is broadcast."
-            : "Your project is live on Bags.fm and now appears on the public leaderboard."}
+              : "Your project is live on Bags.fm and now appears on the public leaderboard."}
         </CardDescription>
       </header>
 
@@ -315,7 +321,7 @@ function LaunchResult({
         ) : !result.stub ? (
           <ResultRow
             k="Launch tx"
-            v="Pending — Day-3 release will broadcast on-chain."
+            v="Pending — final Bags launch transaction was not broadcast."
           />
         ) : null}
         {result.configKey ? (

@@ -35,15 +35,11 @@ interface RouteContext {
  *   1. Authenticate; require `project.update` for the project (the user is
  *      the creator and was inserted as `project_owner` in /api/projects).
  *   2. Read draft row; must be in `draft` status.
- *   3. Resolve the platform-pool fee claimer wallet via Bags.
- *   4. `bags.createTokenInfo` — uploads metadata, returns tokenMint.
- *   5. `bags.createFeeShareConfig` — resolves Bags wallets, registers fee
+ *   3. `bags.createTokenInfo` — uploads metadata, returns tokenMint.
+ *   4. `bags.createFeeShareConfig` — registers the direct pool wallet fee
  *      claimers, signs fee-share config transactions, returns configKey.
- *   6. Build/sign/broadcast of the final launch transaction is still gated
- *      behind launch-wallet and initial-buy configuration.
- *   7. Persist `tokenMint` + `bagsConfigKey` as `launch_configured` until
- *      the final token launch transaction is actually broadcast.
- *   8. Audit `project.launch`.
+ *   5. Create/sign/broadcast the final Bags launch transaction.
+ *   6. Persist live launch state and audit `project.launch`.
  *
  * Wrapped end-to-end in `withIdempotency()`.
  *
@@ -143,6 +139,11 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
               tokenMint: null,
               bagsLaunchId: null,
               bagsConfigKey: null,
+              bagsLaunchSignature: null,
+              bagsLaunchWallet: null,
+              bagsPoolClaimerWallet: null,
+              bagsTokenMetadata: null,
+              bagsInitialBuyLamports: 0,
               status: "draft",
               simulatedAt: null,
               updatedAt: new Date(),
@@ -154,6 +155,74 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
             .where(eq(projects.id, projectId))
             .limit(1);
           if (reloaded) Object.assign(project, reloaded);
+        }
+
+        if (project.status === "launch_configured" && !willStubMode) {
+          const payoutWallet = payoutSignerPublicKey();
+          const launchWallet = project.bagsLaunchWallet ?? payoutWallet;
+          if (
+            !project.tokenMint ||
+            !project.bagsConfigKey ||
+            !project.bagsTokenMetadata ||
+            !launchWallet
+          ) {
+            throw new LaunchError(
+              "launch_config_incomplete",
+              "Stored Bags launch configuration is missing metadata, config key, token mint, or launch wallet.",
+              409,
+            );
+          }
+
+          const launch = await bags.createAndSubmitLaunchTransaction({
+            tokenMint: project.tokenMint,
+            metadataUrl: project.bagsTokenMetadata,
+            configKey: project.bagsConfigKey,
+            launchWallet,
+            initialBuyLamports:
+              project.bagsInitialBuyLamports ??
+              serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+          });
+          const persistNow = new Date();
+          await dbp
+            .update(projects)
+            .set({
+              bagsLaunchId: launch.signature,
+              bagsLaunchSignature: launch.signature,
+              bagsLaunchWallet: launchWallet,
+              status: "live",
+              simulatedAt: null,
+              updatedAt: persistNow,
+            })
+            .where(eq(projects.id, projectId));
+
+          await audit({
+            actorUserId: userId,
+            action: "project.launch_complete",
+            targetType: "project",
+            targetId: projectId,
+            metadata: {
+              tokenMint: project.tokenMint,
+              bagsConfigKey: project.bagsConfigKey,
+              launchSignature: launch.signature,
+              launchWallet,
+              initialBuyLamports:
+                project.bagsInitialBuyLamports ??
+                serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+              cluster: serverEnvCluster(),
+            },
+            ip,
+            userAgent,
+          });
+
+          return LaunchProjectResponseSchema.parse({
+            projectId,
+            tokenMint: project.tokenMint,
+            status: "live",
+            stub: false,
+            configKey: project.bagsConfigKey,
+            txSig: launch.signature,
+            note: "Bags launch transaction broadcast. Token is live.",
+          });
         }
 
         if (project.status !== "draft") {
@@ -182,20 +251,15 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
           );
         }
 
-        // Resolve the platform-pool fee-claimer wallet. In stub mode this
-        // returns a deterministic fake wallet — that's fine, we only need
-        // *some* base58 for the createFeeShareConfig payload.
-        const poolWallet = await bags.resolveWallet(
-          "github",
-          PLATFORM_GH_USERNAME,
-        );
-
         // Step 1: token info (uploads metadata, returns tokenMint).
         const tokenInfo = await bags.createTokenInfo({
           name: project.name,
           symbol: deriveSymbolFromName(project.name),
           description: project.description ?? undefined,
           imageUrl: project.imageUrl ?? "https://gitbags.xyz/og/default.png",
+          website: project.tokenWebsiteUrl ?? undefined,
+          twitter: project.tokenTwitterUrl ?? undefined,
+          telegram: project.tokenTelegramUrl ?? undefined,
         });
         const isStub = Boolean(tokenInfo.__stub);
 
@@ -204,22 +268,32 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
         // missing we fall back to the resolved pool wallet so the SDK
         // payload still validates (in stub mode the value is unused anyway).
         const payoutWallet = payoutSignerPublicKey();
-        if (!isStub && payoutWallet && poolWallet.wallet !== payoutWallet) {
+        if (!isStub && !payoutWallet) {
           throw new LaunchError(
-            "pool_wallet_mismatch",
-            "Resolved Bags pool wallet must match SOLANA_PAYOUT_KEYPAIR before launch configuration.",
+            "launch_wallet_missing",
+            "SOLANA_PAYOUT_KEYPAIR is required before live Bags launch.",
             409,
           );
         }
-        const payer = payoutWallet ?? poolWallet.wallet;
+        const stubPoolWallet = isStub
+          ? (await bags.resolveWallet("github", PLATFORM_GH_USERNAME)).wallet
+          : null;
+        const poolClaimerWallet = payoutWallet ?? stubPoolWallet;
+        if (!poolClaimerWallet) {
+          throw new LaunchError(
+            "pool_wallet_missing",
+            "Unable to derive the Bags pool claimer wallet.",
+            409,
+          );
+        }
+        const payer = poolClaimerWallet;
 
         const feeShareConfig = await bags.createFeeShareConfig({
           payer,
           baseMint: tokenInfo.tokenMint,
           feeClaimers: [
             {
-              provider: "github",
-              username: PLATFORM_GH_USERNAME,
+              wallet: poolClaimerWallet,
               bps: 10_000 - project.platformFeeBps,
             },
           ],
@@ -227,10 +301,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
           shareFee: project.platformFeeBps,
         });
 
-        // Step 3: fee-share config txs are sent by the Bags wrapper when live.
-        // The final launch transaction remains intentionally gated until the
-        // launch-wallet and initial-buy economics are configured.
-        const txSig = feeShareConfig.txSignatures.at(-1) ?? null;
+        // Step 3: create, sign, and submit the final launch transaction.
+        let txSig = feeShareConfig.txSignatures.at(-1) ?? null;
+        let launchSignature: string | null = null;
         let note: string | undefined;
 
         if (isStub) {
@@ -245,12 +318,20 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
               409,
             );
           }
-          note =
-            "Bags fee-share config registered. Final launch transaction is gated until launch-wallet and initial-buy settings are configured.";
+          const launch = await bags.createAndSubmitLaunchTransaction({
+            tokenMint: tokenInfo.tokenMint,
+            metadataUrl: tokenInfo.tokenMetadata,
+            configKey: feeShareConfig.configKey,
+            launchWallet: payer,
+            initialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+          });
+          launchSignature = launch.signature;
+          txSig = launch.signature;
+          note = "Bags launch transaction broadcast. Token is live.";
         }
 
         // Step 4: persist token/config state (atomic with the audit row that
-        // follows). Live is reserved for a completed Bags launch tx.
+        // follows). Real mode only reaches this point after the Bags launch tx.
         // STUB MODE: write `simulated_live` and stamp `simulated_at` so a later
         // real-mode launch can promote this row instead of being blocked.
         const persistNow = new Date();
@@ -258,9 +339,14 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
           .update(projects)
           .set({
             tokenMint: tokenInfo.tokenMint,
-            bagsLaunchId: isStub ? feeShareConfig.configKey : null,
+            bagsLaunchId: isStub ? feeShareConfig.configKey : launchSignature,
             bagsConfigKey: feeShareConfig.configKey,
-            status: isStub ? "simulated_live" : "launch_configured",
+            bagsLaunchSignature: launchSignature,
+            bagsLaunchWallet: isStub ? null : payer,
+            bagsPoolClaimerWallet: poolClaimerWallet,
+            bagsTokenMetadata: tokenInfo.tokenMetadata,
+            bagsInitialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+            status: isStub ? "simulated_live" : "live",
             simulatedAt: isStub ? persistNow : null,
             updatedAt: persistNow,
           })
@@ -286,8 +372,10 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
             stub: isStub,
             platformFeeBps: project.platformFeeBps,
             feeShareConfigSignatures: feeShareConfig.txSignatures,
-            poolFeeClaimerProvider: "github",
-            poolFeeClaimerUsername: PLATFORM_GH_USERNAME,
+            launchSignature,
+            launchWallet: isStub ? null : payer,
+            poolClaimerWallet,
+            initialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
             cluster: serverEnvCluster(),
           },
           ip,
@@ -297,7 +385,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
         return LaunchProjectResponseSchema.parse({
           projectId,
           tokenMint: tokenInfo.tokenMint,
-          status: isStub ? "simulated_live" : "launch_configured",
+          status: isStub ? "simulated_live" : "live",
           stub: isStub,
           configKey: feeShareConfig.configKey,
           txSig,
