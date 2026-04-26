@@ -1,3 +1,4 @@
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Rocket, FolderGit2 } from "lucide-react";
@@ -5,7 +6,6 @@ import { auth } from "@/lib/auth";
 import { hasCredentials } from "@/lib/env";
 import { getMyProjects } from "@/lib/queries/dashboard";
 import { AppShell } from "../_components/AppShell";
-import { AuthSidebar } from "@/components/sidebar/AuthSidebar";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Card,
@@ -26,8 +26,7 @@ export const dynamic = "force-dynamic";
 export default async function ProjectsPage() {
   if (!hasCredentials.db()) {
     return (
-      <AppShell sidebar={<AuthSidebar
-          active="projects" />}>
+      <AppShell sidebar={<AppSidebar surface={{ kind: "public" }} />}>
         <div className="mx-auto w-full max-w-content">
           <EmptyState
             icon={FolderGit2}
@@ -48,17 +47,14 @@ export default async function ProjectsPage() {
   return (
     <AppShell
       sidebar={
-        <AuthSidebar
-          active="projects"
-          user={{
+        <AppSidebar user={{
             name: session.user.name ?? null,
             email: session.user.email ?? null,
             username:
               (session.user as { githubUsername?: string | null }).githubUsername ??
               null,
             imageUrl: session.user.image ?? null,
-          }}
-        />
+          }} surface={{ kind: "public" }} />
       }
       footerLeft={`${session.user.name ?? session.user.email} · devnet · BAGS.fm`}
     >

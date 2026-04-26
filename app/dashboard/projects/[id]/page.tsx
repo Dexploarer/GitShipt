@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import {
   Activity,
   AlertTriangle,
@@ -22,7 +23,6 @@ import {
 import { formatSol, formatRelativeTime } from "@/lib/format";
 import { loadProjectFor } from "../../_components/loadProject";
 import { AppShell } from "../../_components/AppShell";
-import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import { StatTile } from "@/components/shared/StatTile";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
@@ -61,11 +61,13 @@ export default async function ProjectOverviewPage({
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar
-          projectId={id}
-          slug={project.slug}
-          projectName={project.name}
-          
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: id,
+            projectName: project.name,
+            slug: project.slug,
+          }}
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -281,7 +283,14 @@ function humanizeAction(action: string): string {
 
 function StubShell() {
   return (
-    <AppShell sidebar={<OwnerProjectContextSidebar projectId="" slug="—/—" projectName="—" />}>
+    <AppShell sidebar={<AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: "",
+            projectName: "—",
+            slug: "—/—",
+          }}
+        />}>
       <div className="mx-auto w-full max-w-content">
         <EmptyState
           icon={Sparkles}

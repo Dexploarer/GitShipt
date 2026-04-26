@@ -86,7 +86,10 @@ export async function seedDemoProject(): Promise<SeedResult> {
         description:
           "Pump.fm for open source. Daily trading fees redistribute to top contributors.",
         imageUrl: null,
-        status: "live",
+        status: "simulated_live",
+        tokenMint: "GBAGSdemoTokenMint11111111111111111111111111",
+        bagsLaunchId: "bags_launch_demo_gitbags_v0",
+        simulatedAt: new Date(),
         platformFeeBps: 500,
         scoringConfig: DEFAULT_SCORING,
         payoutConfig: DEFAULT_PAYOUT,
@@ -94,6 +97,19 @@ export async function seedDemoProject(): Promise<SeedResult> {
       .returning();
     project = inserted[0]!;
     created = true;
+  } else {
+    const [updated] = await dbHttp
+      .update(projects)
+      .set({
+        tokenMint: "GBAGSdemoTokenMint11111111111111111111111111",
+        bagsLaunchId: "bags_launch_demo_gitbags_v0",
+        status: "simulated_live",
+        simulatedAt: project.simulatedAt ?? new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(projects.id, project.id))
+      .returning();
+    project = updated ?? project;
   }
 
   for (let i = 0; i < DEMO_CONTRIBUTORS.length; i++) {

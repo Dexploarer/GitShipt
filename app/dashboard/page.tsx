@@ -1,3 +1,4 @@
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -20,7 +21,6 @@ import {
 import { formatSol } from "@/lib/format";
 import { AppShell } from "./_components/AppShell";
 import { OnboardingHero } from "./_components/OnboardingHero";
-import { AuthSidebar } from "@/components/sidebar/AuthSidebar";
 import { StatTile } from "@/components/shared/StatTile";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
@@ -57,17 +57,14 @@ export default async function DashboardPage() {
   return (
     <AppShell
       sidebar={
-        <AuthSidebar
-          active="dashboard"
-          user={{
+        <AppSidebar user={{
             name: session.user.name ?? null,
             email: session.user.email ?? null,
             username:
               (session.user as { githubUsername?: string | null }).githubUsername ??
               null,
             imageUrl: session.user.image ?? null,
-          }}
-        />
+          }} surface={{ kind: "public" }} />
       }
       footerLeft={`${session.user.name ?? session.user.email} · devnet · BAGS.fm`}
     >
@@ -228,8 +225,7 @@ export function StatusBadge({
  */
 function DashboardStub() {
   return (
-    <AppShell sidebar={<AuthSidebar
-          active="dashboard" />}>
+    <AppShell sidebar={<AppSidebar surface={{ kind: "public" }} />}>
       <div className="mx-auto w-full max-w-content">
         <EmptyState
           icon={Sparkles}

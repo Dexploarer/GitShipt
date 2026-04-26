@@ -1,5 +1,5 @@
 import { AppShell } from "../../_components/AppShell";
-import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { Card } from "@/components/ui/card";
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 
@@ -14,7 +14,14 @@ export default function DashboardProjectLoading() {
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar projectId="" projectName="—" slug="—/—" />
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: "",
+            projectName: "—",
+            slug: "—/—",
+          }}
+        />
       }
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">

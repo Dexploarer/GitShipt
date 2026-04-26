@@ -18,7 +18,6 @@ import { requirePermission, PermissionError } from "@/lib/auth/permissions";
 import {
   CreateProjectBodySchema,
   type CreateProjectBody,
-  type LaunchProjectResponse,
 } from "@/shared";
 
 /**
@@ -44,7 +43,7 @@ export interface LaunchActionResult {
   ok: true;
   projectId: string;
   tokenMint: string;
-  status: "live";
+  status: "live" | "simulated_live";
   stub: boolean;
   configKey?: string;
   txSig: string | null;
@@ -222,15 +221,18 @@ export async function createAndLaunchAction(
             if (!existing) throw e;
             projectId = existing.id;
 
-            // If already live, short-circuit.
-            if (existing.status === "live" && existing.tokenMint) {
+            // If already launched, short-circuit.
+            if (
+              (existing.status === "live" || existing.status === "simulated_live") &&
+              existing.tokenMint
+            ) {
               isExistingLive = true;
               return {
                 ok: true,
                 projectId,
                 tokenMint: existing.tokenMint,
-                status: "live" as const,
-                stub: false,
+                status: existing.status,
+                stub: existing.status === "simulated_live",
                 configKey: existing.bagsConfigKey ?? undefined,
                 txSig: null,
                 ghOwner: validated.ghOwner,
@@ -282,7 +284,7 @@ export async function createAndLaunchAction(
         });
 
         // Bags step 3: real on-chain launch — Day 3.
-        let txSig: string | null = null;
+        const txSig: string | null = null;
         let note: string | undefined;
         if (isStub) {
           note =
@@ -301,14 +303,16 @@ export async function createAndLaunchAction(
         }
 
         // Persist live state.
+        const persistNow = new Date();
         await dbp
           .update(projects)
           .set({
             tokenMint: tokenInfo.tokenMint,
             bagsLaunchId: feeShareConfig.configKey,
             bagsConfigKey: feeShareConfig.configKey,
-            status: "live",
-            updatedAt: new Date(),
+            status: isStub ? "simulated_live" : "live",
+            simulatedAt: isStub ? persistNow : null,
+            updatedAt: persistNow,
           })
           .where(eq(projects.id, projectId));
 
@@ -339,7 +343,7 @@ export async function createAndLaunchAction(
           ok: true,
           projectId,
           tokenMint: tokenInfo.tokenMint,
-          status: "live" as const,
+          status: isStub ? "simulated_live" : "live",
           stub: isStub,
           configKey: feeShareConfig.configKey,
           txSig,

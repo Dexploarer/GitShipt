@@ -1,11 +1,11 @@
 import Link from "next/link";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { Coins, ExternalLink, Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { getProjectPayoutHistory } from "@/lib/queries/dashboard";
 import { formatSol, formatRelativeTime, formatAddress } from "@/lib/format";
 import { loadProjectFor } from "../../../_components/loadProject";
 import { AppShell } from "../../../_components/AppShell";
-import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import {
   Card,
   CardHeader,
@@ -34,10 +34,13 @@ export default async function PayoutsPage({
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar
-          projectId={id}
-          slug={project.slug}
-          projectName={project.name}
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: id,
+            projectName: project.name,
+            slug: project.slug,
+          }}
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -186,10 +189,13 @@ function Stub() {
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar
-          projectId=""
-          slug="—/—"
-          projectName="—"
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: "",
+            projectName: "—",
+            slug: "—/—",
+          }}
         />
       }
     >

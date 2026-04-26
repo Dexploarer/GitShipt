@@ -5,9 +5,6 @@ import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl, type Cluster } from "@solana/web3.js";
 
-// Required CSS for the wallet modal. Imported once at the provider level.
-import "@solana/wallet-adapter-react-ui/styles.css";
-
 /**
  * Wraps the app in the Solana wallet adapter context.
  *

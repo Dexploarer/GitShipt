@@ -366,9 +366,9 @@ export async function getProjectSnapshots(
       leaderboard: snapshots.leaderboard,
       recipientCount: sql<number>`(
         select count(*)::int
-        from ${payoutRecipients}
-        inner join ${payouts} on ${payouts.id} = ${payoutRecipients.payoutId}
-        where ${payouts.snapshotId} = ${snapshots.id}
+        from "payout_recipients" as "pr"
+        inner join "payouts" as "p" on "p"."id" = "pr"."payout_id"
+        where "p"."snapshot_id" = "snapshots"."id"
       )`,
     })
     .from(snapshots)

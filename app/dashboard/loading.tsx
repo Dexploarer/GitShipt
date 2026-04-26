@@ -1,5 +1,5 @@
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { AppShell } from "./_components/AppShell";
-import { AuthSidebar } from "@/components/sidebar/AuthSidebar";
 import { Card } from "@/components/ui/card";
 import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 
@@ -11,7 +11,7 @@ import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
  */
 export default function DashboardLoading() {
   return (
-    <AppShell sidebar={<AuthSidebar />}>
+    <AppShell sidebar={<AppSidebar surface={{ kind: "public" }} />}>
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Skeleton className="h-8 w-56" />

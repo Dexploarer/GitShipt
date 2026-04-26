@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import {
   CheckCircle2,
   Download,
@@ -12,7 +13,6 @@ import { getIndexerState } from "@/lib/queries/dashboard";
 import { formatRelativeTime } from "@/lib/format";
 import { loadProjectFor } from "../../../_components/loadProject";
 import { AppShell } from "../../../_components/AppShell";
-import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import {
   Card,
   CardHeader,
@@ -47,10 +47,13 @@ export default async function RepositoryPage({
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar
-          projectId={id}
-          slug={project.slug}
-          projectName={project.name}
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: id,
+            projectName: project.name,
+            slug: project.slug,
+          }}
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -215,10 +218,13 @@ function Stub() {
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar
-          projectId=""
-          slug="—/—"
-          projectName="—"
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: "",
+            projectName: "—",
+            slug: "—/—",
+          }}
         />
       }
     >

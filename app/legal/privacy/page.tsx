@@ -18,6 +18,8 @@ const LAST_UPDATED = "2026-04-26";
  * Solana wallet addresses, append-only audit logs, contributor
  * scoring inputs derived from public GitHub data. No analytics.
  */
+export const dynamic = "force-dynamic";
+
 export default async function PrivacyPage() {
   const user = await getSessionUser();
   return (

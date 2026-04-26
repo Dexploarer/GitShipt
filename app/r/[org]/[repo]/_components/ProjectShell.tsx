@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
-import { PublicProjectContextSidebar } from "@/components/sidebar/contexts/PublicProjectContextSidebar";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
 import type { SidebarUserCardProps } from "@/components/sidebar/SidebarUserCard";
@@ -63,12 +63,15 @@ export function ProjectShell({
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-bg text-fg">
         <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
-          <PublicProjectContextSidebar
-            projectId={header.id}
-            projectName={header.name}
-            slug={slug}
-            canAdmin={canAdmin}
+          <AppSidebar
             user={user}
+            surface={{
+              kind: "public-project",
+              projectId: header.id,
+              projectName: header.name,
+              slug,
+              canAdmin,
+            }}
             activeKey={active}
           />
         </div>

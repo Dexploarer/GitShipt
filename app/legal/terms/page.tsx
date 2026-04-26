@@ -17,6 +17,8 @@ const LAST_UPDATED = "2026-04-26";
  * actual operating model: Solana devnet launches, daily contributor
  * payouts via Bags.fm, GitHub OAuth + SIWS auth, no mainnet custody.
  */
+export const dynamic = "force-dynamic";
+
 export default async function TermsPage() {
   const user = await getSessionUser();
   return (

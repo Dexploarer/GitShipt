@@ -31,7 +31,6 @@ const DEMO_CONTRIBUTORS = [
   { gh: "ivan", id: "1010", prs: 2, commits: 19, score: 1980 },
 ];
 
-const ID_RE = /[0-9A-Za-z]{21}/;
 function genId() {
   const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   let id = "";
@@ -73,7 +72,7 @@ if (!project) {
     ) values (
       ${id}, ${owner.id}, 'SYMBaiEX', 'gitbags', 'demo-repo-1', 'GitBags',
       'Pump.fm for open source. Daily trading fees redistribute to top contributors.',
-      'live', 500, ${JSON.stringify(DEFAULT_SCORING)}::jsonb, ${JSON.stringify(DEFAULT_PAYOUT)}::jsonb,
+      'simulated_live', 500, ${JSON.stringify(DEFAULT_SCORING)}::jsonb, ${JSON.stringify(DEFAULT_PAYOUT)}::jsonb,
       ${DEMO_TOKEN_MINT}, ${DEMO_BAGS_LAUNCH_ID}
     )
   `;
@@ -85,7 +84,8 @@ if (!project) {
     update projects
     set token_mint = ${DEMO_TOKEN_MINT},
         bags_launch_id = ${DEMO_BAGS_LAUNCH_ID},
-        status = 'live'
+        status = 'simulated_live',
+        simulated_at = coalesce(simulated_at, now())
     where id = ${project.id}
   `;
   console.log("Reusing demo project:", project.id, "(token_mint refreshed)");

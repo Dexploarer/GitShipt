@@ -33,6 +33,8 @@ const EMBED_SNIPPET = `<iframe
  * v0 — keeps the build deterministic, lets us co-locate the copy with the
  * components that link to it, and ships zero extra client JS.
  */
+export const dynamic = "force-dynamic";
+
 export default async function DocsPage() {
   const user = await getSessionUser();
   return (

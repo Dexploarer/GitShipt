@@ -1,8 +1,8 @@
 import { Sparkles } from "lucide-react";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { hasCredentials } from "@/lib/env";
 import { loadProjectFor } from "../../../_components/loadProject";
 import { AppShell } from "../../../_components/AppShell";
-import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { listApiKeysForProject } from "@/lib/queries/api-keys";
@@ -25,10 +25,13 @@ export default async function ApiKeysPage({
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar
-          projectId={id}
-          slug={project.slug}
-          projectName={project.name}
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: id,
+            projectName: project.name,
+            slug: project.slug,
+          }}
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -66,10 +69,13 @@ function Stub() {
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar
-          projectId=""
-          slug="—/—"
-          projectName="—"
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: "",
+            projectName: "—",
+            slug: "—/—",
+          }}
         />
       }
     >

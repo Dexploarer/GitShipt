@@ -33,9 +33,11 @@ const sharedSecurityHeaders = [
  *  - frame-ancestors 'none' is the modern equivalent of X-Frame-Options DENY;
  *    /embed/* needs frame-ancestors '*' to be embeddable.
  */
+const isDev = process.env.NODE_ENV !== "production";
+
 const cspStrict = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://github.com https://*.githubusercontent.com https://avatars.githubusercontent.com https://*.bags.fm https://*.solana.com https://arweave.net https://*.arweave.net https://ipfs.io https://*.ipfscdn.io https://shdw-drive.genesysgo.net",
   "font-src 'self' data:",

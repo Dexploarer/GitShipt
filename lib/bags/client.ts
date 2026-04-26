@@ -33,6 +33,13 @@ type BagsSdk = unknown; // resolved at runtime via dynamic import
 
 let _sdk: BagsSdk | null = null;
 
+const DEMO_TOKEN_MINT = "GBAGSdemoTokenMint11111111111111111111111111";
+const STUB_TOKEN_SUFFIX = "ags1111111111111111111111111111111111111";
+
+function isPlaceholderTokenMint(tokenMint: string): boolean {
+  return tokenMint === DEMO_TOKEN_MINT || tokenMint.endsWith(STUB_TOKEN_SUFFIX);
+}
+
 async function getSdk(): Promise<BagsSdk> {
   if (_sdk) return _sdk;
   const env = serverEnv();
@@ -162,7 +169,7 @@ export const bags = {
 
   /** Aggregate lifetime fee total for a token. Used on the project page. */
   async getLifetimeFees(tokenMint: string): Promise<LifetimeFees> {
-    if (!hasCredentials.bags()) {
+    if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) {
       return LifetimeFeesSchema.parse(stubBags.lifetimeFees(tokenMint));
     }
     const raw = await bagsRest<unknown>("token-launch/lifetime-fees", {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { Settings, Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import {
@@ -8,7 +9,6 @@ import {
 } from "@/lib/queries/project-page";
 import { loadProjectFor } from "../../../_components/loadProject";
 import { AppShell } from "../../../_components/AppShell";
-import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import { LeaderboardTable } from "@/app/r/[org]/[repo]/_components/LeaderboardTable";
 import { ScoringConfigEditor } from "./_components/ScoringConfigEditor";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -55,10 +55,13 @@ export default async function LeaderboardPage({
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar
-          projectId={id}
-          slug={project.slug}
-          projectName={project.name}
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: id,
+            projectName: project.name,
+            slug: project.slug,
+          }}
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -105,10 +108,13 @@ function Stub() {
   return (
     <AppShell
       sidebar={
-        <OwnerProjectContextSidebar
-          projectId=""
-          slug="—/—"
-          projectName="—"
+        <AppSidebar
+          surface={{
+            kind: "owner-project",
+            projectId: "",
+            projectName: "—",
+            slug: "—/—",
+          }}
         />
       }
     >

@@ -1,41 +1,41 @@
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { UnauthSidebar, type UnauthSidebarActive } from "@/components/sidebar/UnauthSidebar";
-import { AuthSidebar } from "@/components/sidebar/AuthSidebar";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
 
 /**
  * PublicAppShell — viewport-locked app shell for public pages (landing,
  * /explore, /leaderboard, /docs, /legal, /u/[username]).
  *
- * Switches sidebar based on session:
- *   - No user → `<UnauthSidebar>` (visitor nav + Sign-in CTA)
- *   - Signed in → `<AuthSidebar publicChrome>` (account links surface so
- *     the user can hop to /dashboard from anywhere)
+ * Mounts the unified `<AppSidebar>` with public nav for visitors; signed-in
+ * users additionally see the Account group + (when isPlatformAdmin) an
+ * Admin console shortcut.
  *
- * Layout: outer flex h-screen overflow-hidden. Sidebar is inline on lg+
- * (12px outer gutter) and a fixed slide-over drawer below lg. Footer is
- * pinned bottom-right with social icons.
+ * Layout: outer flex h-screen. Sidebar inline on lg+ (12px gutter), fixed
+ * slide-over below lg. Footer pinned bottom-right with social icons.
  */
 
-export type PublicSidebarActive = UnauthSidebarActive;
+// Re-export for legacy callers; pathname matching now covers active state
+// so callers can stop passing `active` if they want to.
+export type PublicSidebarActive = string | undefined;
 
 export interface PublicAppShellUser {
+  id?: string;
   name?: string | null;
   email?: string | null;
   username?: string | null;
   imageUrl?: string | null;
-  /** Whether this user has the platform admin/super_admin role. */
   isPlatformAdmin?: boolean;
 }
 
 export function PublicAppShell({
-  active,
+  active: _active,
   footerLeft = "devnet · BAGS.fm",
   user,
   children,
 }: {
+  /** Deprecated — pathname matching handles active state. Kept for back-compat. */
   active?: PublicSidebarActive;
   footerLeft?: string;
   /** Pass `null` for signed-out, an object when signed in. */
@@ -47,23 +47,12 @@ export function PublicAppShell({
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-app-gradient text-fg">
-        {/* Sidebar — inline on lg+ (12px gutter), fixed slide-over below lg.
-            Wrapper collapses to zero width below lg via `display: contents`. */}
         <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
-          {signedIn && user ? (
-            <AuthSidebar
-              publicChrome
-              user={{
-                name: user.name ?? null,
-                email: user.email ?? null,
-                username: user.username ?? null,
-                imageUrl: user.imageUrl ?? null,
-              }}
-              isPlatformAdmin={user.isPlatformAdmin ?? false}
-            />
-          ) : (
-            <UnauthSidebar active={active} />
-          )}
+          <AppSidebar
+            user={signedIn ? (user as PublicAppShellUser) : null}
+            isPlatformAdmin={Boolean(signedIn && user?.isPlatformAdmin)}
+            surface={{ kind: "public" }}
+          />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
