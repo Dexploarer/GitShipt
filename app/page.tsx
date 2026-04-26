@@ -45,7 +45,7 @@ export default async function LandingPage() {
             {/* mia.png — bottom-right anchored, behind the text. The PNG has
                 a transparent background so the text overlays cleanly. On
                 mobile the image stacks below the text via `relative` flow. */}
-            <div className="pointer-events-none relative mx-auto mt-4 aspect-square w-full max-w-[420px] shrink-0 sm:mt-0 sm:max-w-[460px] lg:absolute lg:right-0 lg:bottom-0 lg:z-0 lg:mx-0 lg:aspect-auto lg:h-[680px] lg:w-[680px] lg:max-w-none">
+            <div className="pointer-events-none relative mx-auto mt-4 aspect-square w-full max-w-[420px] shrink-0 sm:mt-0 sm:max-w-[460px] lg:absolute lg:right-0 lg:bottom-12 lg:z-0 lg:mx-0 lg:aspect-auto lg:h-[680px] lg:w-[680px] lg:max-w-none">
               <Image
                 src="/mia.png"
                 alt=""
@@ -57,7 +57,7 @@ export default async function LandingPage() {
               />
             </div>
 
-            <div className="relative z-10 flex w-full flex-col items-start gap-3 self-start pt-2 lg:gap-4">
+            <div className="relative z-10 flex w-full flex-col items-start gap-3 self-start pt-2 lg:gap-4 lg:pt-20">
               <h1 className="text-[36px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[44px] lg:text-[60px]">
                 Your repo,
                 <br />
