@@ -30,27 +30,29 @@ export default async function LandingPage() {
 
   return (
     <PublicAppShell active="home">
-      <div className="flex flex-col gap-8 py-2">
-        {/* Hero — image left (flipped on X), content right-aligned.
-            Image is height-bounded so the section never blows past the
-            fold. items-end aligns text to image's bottom for a clean
-            ground line; on mobile the image sits above and centers. */}
-        <section className="grid grid-cols-1 items-end gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10">
-          {/* Left: mia.png, horizontally flipped */}
-          <div className="relative mx-auto aspect-square w-full max-w-sm lg:mx-0 lg:max-w-none lg:aspect-auto lg:h-[440px]">
+      <div className="flex flex-col gap-8 py-2 pr-4 lg:pr-8">
+        {/* Hero — image and text live in a single flex row, centered as
+            a unit, so they read as one composition rather than two
+            separated columns. Both sit at the bottom (items-end) so the
+            ground line is shared. Mobile stacks: image above text. */}
+        <section className="flex flex-col items-center gap-8 lg:flex-row lg:items-end lg:justify-center lg:gap-10">
+          {/* mia.png — flipped, fixed-ish size so it doesn't dominate */}
+          <div className="relative aspect-square w-full max-w-xs shrink-0 sm:max-w-sm lg:aspect-auto lg:h-[420px] lg:w-[420px] lg:max-w-none">
             <Image
               src="/mia.png"
               alt=""
               fill
               priority
-              sizes="(max-width: 1024px) 24rem, 40vw"
+              sizes="(max-width: 1024px) 24rem, 420px"
               className="-scale-x-100 object-contain object-bottom"
               unoptimized
             />
           </div>
 
-          {/* Right: hero content, right-aligned */}
-          <div className="flex flex-col items-end gap-4 text-right">
+          {/* Hero content — right-aligned text, fixed max-width so it
+              sits compactly next to the image instead of sprawling to
+              the viewport edge. */}
+          <div className="flex w-full max-w-md flex-col items-end gap-4 text-right">
             <Pill variant="primary" size="default" className="gap-2">
               <span
                 aria-hidden
@@ -58,7 +60,7 @@ export default async function LandingPage() {
               />
               Live on Solana devnet
               <span aria-hidden className="text-fg-muted">·</span>
-              April 28 hackathon submission
+              April 28
             </Pill>
 
             <h1 className="text-[40px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[48px] lg:text-[56px]">
@@ -67,9 +69,9 @@ export default async function LandingPage() {
               <span className="text-fg-muted">for open source.</span>
             </h1>
 
-            <p className="max-w-md text-body-lg text-fg-secondary lg:text-[17px]">
-              Spin up a Bags.fm token for any GitHub repo. Trading fees flow
-              to top contributors automatically — daily, on-chain,
+            <p className="text-body-lg text-fg-secondary lg:text-[17px]">
+              Spin up a Bags.fm token for any GitHub repo. Trading fees
+              flow to top contributors automatically — daily, on-chain,
               transparent.
             </p>
 
