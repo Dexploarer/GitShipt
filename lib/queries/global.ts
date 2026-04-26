@@ -9,6 +9,7 @@ import {
   wallets,
 } from "@/db/schema";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { redis } from "@/lib/redis";
 
 /**
  * Public marketing data layer. Powers the landing hero ticker, the Top
@@ -192,14 +193,21 @@ export async function getLandingData(): Promise<LandingData> {
     0,
   );
 
+  // Prefer the cron-published Redis snapshot when present so the homepage
+  // numbers match what's being broadcast across surfaces. The DB-derived
+  // values above are the graceful fallback when Redis is empty / down.
+  const cached = await getCachedLandingTicker();
+
   return {
     topProjects,
-    ticker: {
-      volume24hUsd,
-      lifetimeFeesLamports,
-      activeProjects,
-      contributorsEarning,
-    },
+    ticker:
+      cached ??
+      {
+        volume24hUsd,
+        lifetimeFeesLamports,
+        activeProjects,
+        contributorsEarning,
+      },
   };
 }
 
@@ -404,4 +412,65 @@ export async function getLiveTickerData(): Promise<LandingTicker> {
     activeProjects: activeRows[0]?.count ?? 0,
     contributorsEarning: earningRows[0]?.count ?? 0,
   };
+}
+
+/**
+ * Redis key + TTL where the `publishKpis` workflow drops its minute-level
+ * snapshot of the landing ticker. Re-declared here (instead of imported
+ * from `workflows/`) so this module stays free of workflow-runtime code
+ * and can be pulled into RSCs without dragging in the workflow client.
+ */
+export const LANDING_TICKER_CACHE_KEY = "gitbags:ticker:landing";
+
+interface CachedLandingTickerPayload {
+  ticker: {
+    volume24hUsd: number;
+    lifetimeFeesLamports: string; // bigint as string
+    activeProjects: number;
+    contributorsEarning: number;
+  };
+  publishedAt: string;
+  stepId?: string;
+}
+
+/**
+ * Read the cron-published landing ticker snapshot from Redis. Returns
+ * null on:
+ *   - Redis not configured (stub mode)
+ *   - cache miss (cold boot, key expired)
+ *   - any parse / network error (logged, never throws — the caller falls
+ *     back to a live DB read)
+ */
+export async function getCachedLandingTicker(): Promise<LandingTicker | null> {
+  const r = redis();
+  if (!r) return null;
+  try {
+    const raw = await r.get(LANDING_TICKER_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedLandingTickerPayload;
+    if (!parsed?.ticker) return null;
+    return {
+      volume24hUsd: Number(parsed.ticker.volume24hUsd) || 0,
+      lifetimeFeesLamports: BigInt(parsed.ticker.lifetimeFeesLamports ?? "0"),
+      activeProjects: parsed.ticker.activeProjects ?? 0,
+      contributorsEarning: parsed.ticker.contributorsEarning ?? 0,
+    };
+  } catch (err) {
+    console.error(
+      "[getCachedLandingTicker] read failed:",
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
+
+/**
+ * Convenience wrapper: prefer the Redis-cached snapshot; on miss, fall
+ * back to a live `getLiveTickerData()` aggregate. Useful for any future
+ * route that wants the ticker numbers without also fetching top projects.
+ */
+export async function getCachedTickerOrFresh(): Promise<LandingTicker> {
+  const cached = await getCachedLandingTicker();
+  if (cached) return cached;
+  return getLiveTickerData();
 }

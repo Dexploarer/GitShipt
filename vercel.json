@@ -5,6 +5,7 @@
     { "path": "/api/cron/snapshot", "schedule": "0 0 * * *" },
     { "path": "/api/cron/payout", "schedule": "30 0 * * *" },
     { "path": "/api/cron/expire-escrow", "schedule": "0 1 * * *" },
-    { "path": "/api/cron/health", "schedule": "* * * * *" }
+    { "path": "/api/cron/health", "schedule": "* * * * *" },
+    { "path": "/api/cron/publish-kpis", "schedule": "* * * * *" }
   ]
 }

@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { Activity, Coins, Sparkles, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatSol, formatUsd } from "@/lib/format";
@@ -9,7 +6,17 @@ import type { LandingTicker } from "@/lib/queries/global";
 /**
  * Floating live-stat cell (no Card wrapper). Same visual vocabulary as
  * TokenStatsRow on the project page — soft border + bg/40 + caption label
- * + mono value. Each cell self-tracks ±0.4% drift on a 10s tick.
+ * + mono value.
+ *
+ * The displayed value comes straight from `initial: LandingTicker`, which
+ * the page hydrates from a cron-published Redis snapshot (`gitbags:ticker:
+ * landing`, refreshed every minute by `workflows/publishKpis.ts`) with a
+ * graceful DB-derived fallback. The previous ±0.4% client-side drift on a
+ * 10s setInterval was removed — that was simulated liveness, not data.
+ *
+ * This component is now a pure server-renderable cell: no `useState`, no
+ * `useEffect`, no `"use client"`. Liveness comes from the page re-rendering
+ * with fresh cache reads, not from local animation.
  */
 
 const CELLS = [
@@ -21,28 +28,16 @@ const CELLS = [
 
 type CellKey = (typeof CELLS)[number]["key"];
 
-function format(key: CellKey, value: number): string {
+function format(key: CellKey, t: LandingTicker): string {
   switch (key) {
     case "volume":
-      return formatUsd(value);
+      return formatUsd(t.volume24hUsd);
     case "fees":
-      return formatSol(BigInt(Math.max(0, Math.round(value * 1_000_000_000))), 2);
+      return formatSol(t.lifetimeFeesLamports, 2);
     case "projects":
+      return Math.max(0, Math.round(t.activeProjects)).toString();
     case "earning":
-      return Math.max(0, Math.round(value)).toString();
-  }
-}
-
-function baseValue(key: CellKey, t: LandingTicker): number {
-  switch (key) {
-    case "volume":
-      return t.volume24hUsd;
-    case "fees":
-      return Number(t.lifetimeFeesLamports) / 1_000_000_000;
-    case "projects":
-      return t.activeProjects;
-    case "earning":
-      return t.contributorsEarning;
+      return Math.max(0, Math.round(t.contributorsEarning)).toString();
   }
 }
 
@@ -55,16 +50,7 @@ export function BentoTickerCell({
   cellKey: CellKey;
   className?: string;
 }) {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 10_000);
-    return () => clearInterval(id);
-  }, []);
-
   const cell = CELLS.find((c) => c.key === cellKey)!;
-  const seed = (tick * 13 + cellKey.length * 7) % 19;
-  const drift = ((seed - 9) / 9) * 0.004;
-  const value = baseValue(cellKey, initial) * (1 + drift);
 
   return (
     <div
@@ -85,7 +71,7 @@ export function BentoTickerCell({
         style={{ fontSize: "20px", letterSpacing: "-0.005em" }}
         aria-live="polite"
       >
-        {format(cellKey, value)}
+        {format(cellKey, initial)}
       </div>
     </div>
   );
