@@ -18,7 +18,6 @@ import {
   History,
   Home,
   KeyRound,
-  LogOut,
   Plug,
   Power,
   Rocket,
@@ -47,7 +46,6 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { SidebarUserCard, type SidebarUserCardProps } from "./SidebarUserCard";
-import { signOutAction } from "./sign-out-action";
 import { resolveOrigin } from "@/lib/nav/origins";
 import { cn } from "@/lib/utils";
 
@@ -422,15 +420,12 @@ export function AppSidebar({
         <FooterLegalRow isActive={isLegalActive} />
         {footerSlot}
         {signedIn && user ? (
-          <>
-            <SidebarUserCard
-              name={user.name ?? null}
-              email={user.email ?? null}
-              username={user.username ?? null}
-              imageUrl={user.imageUrl ?? null}
-            />
-            <SidebarSignOutButton />
-          </>
+          <SidebarUserCard
+            name={user.name ?? null}
+            email={user.email ?? null}
+            username={user.username ?? null}
+            imageUrl={user.imageUrl ?? null}
+          />
         ) : surface.kind === "public" ? (
           <CollapsibleSignInCta />
         ) : null}
@@ -490,32 +485,6 @@ function FooterLegalRow({
         </Link>
       ))}
     </div>
-  );
-}
-
-function SidebarSignOutButton() {
-  const { collapsed, closeMobile } = useSidebar();
-  return (
-    <form action={signOutAction}>
-      <button
-        type="submit"
-        onClick={closeMobile}
-        title={collapsed ? "Sign out" : undefined}
-        className={cn(
-          "group flex h-9 w-full items-center gap-3 rounded-md px-2.5",
-          "text-left text-fg-secondary",
-          "transition-[background-color,color,box-shadow] duration-150",
-          "hover:bg-danger-soft hover:text-danger",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-          collapsed && "lg:justify-center lg:px-0",
-        )}
-      >
-        <LogOut className="size-4 shrink-0" aria-hidden />
-        <span className={cn("truncate text-label-md", collapsed && "lg:sr-only")}>
-          Sign out
-        </span>
-      </button>
-    </form>
   );
 }
 
