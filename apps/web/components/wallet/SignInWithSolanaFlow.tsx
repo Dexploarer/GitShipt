@@ -9,6 +9,11 @@ import { Button } from "@repo/ui";
 import { Card, CardContent } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { WalletConnectButton } from "./WalletConnectButton";
+import {
+  ApiErrorResponseSchema,
+  WalletNonceResponseSchema,
+  WalletVerifyResponseSchema,
+} from "@repo/shared";
 
 type Status =
   | { kind: "idle" }
@@ -16,18 +21,6 @@ type Status =
   | { kind: "verifying" }
   | { kind: "success"; address: string }
   | { kind: "error"; reason: string };
-
-interface NonceResponse {
-  nonce: string;
-  ttlSeconds: number;
-}
-
-interface VerifyResponse {
-  ok?: boolean;
-  address?: string;
-  error?: string;
-  reason?: string;
-}
 
 /**
  * Build the SIWS message object the server expects (see lib/auth/siws.ts).
@@ -107,10 +100,14 @@ export function SignInWithSolanaFlow() {
         body: JSON.stringify({ address }),
       });
       if (!nonceRes.ok) {
-        const body = (await nonceRes.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? `nonce_${nonceRes.status}`);
+        const body = ApiErrorResponseSchema.safeParse(
+          await nonceRes.json().catch(() => null),
+        );
+        throw new Error(
+          (body.success ? body.data.error : null) ?? `nonce_${nonceRes.status}`,
+        );
       }
-      const { nonce } = (await nonceRes.json()) as NonceResponse;
+      const { nonce } = WalletNonceResponseSchema.parse(await nonceRes.json());
 
       // 2. Build the SIWS message that matches the server's buildMessage exactly.
       const cluster = process.env.NEXT_PUBLIC_SOLANA_CLUSTER ?? "devnet";
@@ -140,13 +137,17 @@ export function SignInWithSolanaFlow() {
         body: JSON.stringify({ message, signature }),
       });
 
-      const body = (await verifyRes.json().catch(() => null)) as VerifyResponse | null;
-      if (!verifyRes.ok || !body?.ok) {
-        const reason = body?.reason ?? body?.error ?? `verify_${verifyRes.status}`;
-        throw new Error(reason);
+      const rawBody = await verifyRes.json().catch(() => null);
+      const body = WalletVerifyResponseSchema.safeParse(rawBody);
+      if (!verifyRes.ok || !body.success) {
+        const errorBody = ApiErrorResponseSchema.safeParse(rawBody);
+        const reason = errorBody.success
+          ? (errorBody.data.message ?? errorBody.data.error)
+          : undefined;
+        throw new Error(reason ?? `verify_${verifyRes.status}`);
       }
 
-      setStatus({ kind: "success", address: body.address ?? address });
+      setStatus({ kind: "success", address: body.data.address ?? address });
     } catch (err) {
       const reason = err instanceof Error ? err.message : "unknown_error";
       setStatus({ kind: "error", reason });

@@ -127,6 +127,13 @@ export function ExploreFilters() {
           <button
             type="button"
             onClick={() => setSortOpen((v) => !v)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setSortOpen(true);
+              }
+              if (e.key === "Escape") setSortOpen(false);
+            }}
             onBlur={() => setTimeout(() => setSortOpen(false), 120)}
             aria-expanded={sortOpen}
             aria-haspopup="listbox"
@@ -162,13 +169,26 @@ export function ExploreFilters() {
                     type="button"
                     role="option"
                     aria-selected={on}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
+                    onClick={() => {
                       setSortOpen(false);
                       pushParams((p) => {
                         if (key === "trending") p.delete("sort");
                         else p.set("sort", key);
                       });
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSortOpen(false);
+                        pushParams((p) => {
+                          if (key === "trending") p.delete("sort");
+                          else p.set("sort", key);
+                        });
+                      }
+                      if (e.key === "Escape") setSortOpen(false);
                     }}
                     className={cn(
                       "block w-full rounded-md px-3 py-2 text-left text-body-sm transition-colors",

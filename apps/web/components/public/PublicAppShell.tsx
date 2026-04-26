@@ -8,9 +8,8 @@ import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger"
  * PublicAppShell — viewport-locked app shell for public pages (landing,
  * /explore, /leaderboard, /docs, /legal, /u/[username]).
  *
- * Mounts the unified `<AppSidebar>` with public nav for visitors; signed-in
- * users additionally see the Account group + (when isPlatformAdmin) an
- * Admin console shortcut.
+ * Mounts the unified `<AppSidebar>` with public nav. Signed-in chrome comes
+ * from the root SessionChromeProvider so logout updates every shell at once.
  *
  * Layout: outer flex h-screen. Sidebar inline on lg+ (12px gutter), fixed
  * slide-over below lg. Footer pinned bottom-right with social icons.
@@ -20,26 +19,14 @@ import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger"
 // so callers can stop passing `active` if they want to.
 export type PublicSidebarActive = string | undefined;
 
-export interface PublicAppShellUser {
-  id?: string;
-  name?: string | null;
-  email?: string | null;
-  username?: string | null;
-  imageUrl?: string | null;
-  isPlatformAdmin?: boolean;
-}
-
 export function PublicAppShell({
   footerLeft = "devnet · BAGS.fm",
-  user,
   defaultSidebarCollapsed = false,
   children,
 }: {
   /** Deprecated — pathname matching handles active state. Kept for back-compat. */
   active?: PublicSidebarActive;
   footerLeft?: string;
-  /** Pass `null` for signed-out, an object when signed in. */
-  user?: PublicAppShellUser | null;
   defaultSidebarCollapsed?: boolean;
   children: React.ReactNode;
 }) {
@@ -47,11 +34,7 @@ export function PublicAppShell({
     <SidebarProvider defaultCollapsed={defaultSidebarCollapsed}>
       <div className="flex h-screen overflow-hidden bg-app-gradient text-fg">
         <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
-          <AppSidebar
-            user={user}
-            isPlatformAdmin={user?.isPlatformAdmin}
-            surface={{ kind: "public" }}
-          />
+          <AppSidebar surface={{ kind: "public" }} />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">

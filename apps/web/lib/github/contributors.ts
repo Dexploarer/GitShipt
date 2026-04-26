@@ -1,6 +1,11 @@
 import "server-only";
 import { Octokit } from "@octokit/rest";
 import { redis } from "@/lib/redis";
+import {
+  PublicRepoContributorSchema,
+  PublicRepoContributorsSchema,
+  type PublicRepoContributor,
+} from "@repo/shared";
 
 /**
  * Public-API contributor fetchers — no GitHub App installation required.
@@ -15,14 +20,6 @@ import { redis } from "@/lib/redis";
  * Returns an empty array on 404 / network failure so the caller can fall
  * back to whatever it has.
  */
-
-export interface PublicRepoContributor {
-  ghUserId: string;
-  ghUsername: string;
-  avatarUrl: string;
-  /** Total commits the user authored to the repo's default branch (per GitHub). */
-  contributions: number;
-}
 
 const CACHE_PREFIX = "gh:contribs:";
 const CACHE_TTL_SECONDS = 60 * 30; // 30 min
@@ -52,7 +49,7 @@ export async function fetchPublicRepoContributors(
   if (r) {
     try {
       const cached = await r.get(cacheKey);
-      if (cached) return JSON.parse(cached) as PublicRepoContributor[];
+      if (cached) return PublicRepoContributorsSchema.parse(JSON.parse(cached));
     } catch {
       // fall through to live fetch
     }
@@ -69,12 +66,14 @@ export async function fetchPublicRepoContributors(
     result = data
       .filter((c) => c.type === "User" && c.login)
       .slice(0, limit)
-      .map((c) => ({
-        ghUserId: String(c.id ?? ""),
-        ghUsername: c.login!,
-        avatarUrl: c.avatar_url ?? `https://github.com/${c.login}.png`,
-        contributions: c.contributions ?? 0,
-      }));
+      .map((c) =>
+        PublicRepoContributorSchema.parse({
+          ghUserId: String(c.id ?? ""),
+          ghUsername: c.login!,
+          avatarUrl: c.avatar_url ?? `https://github.com/${c.login}.png`,
+          contributions: c.contributions ?? 0,
+        }),
+      );
   } catch (e) {
     const status = (e as { status?: number })?.status;
     if (status !== 404) {

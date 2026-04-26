@@ -12,7 +12,7 @@ import {
   type GithubRepo,
   type TokenMetadataInput,
 } from "@repo/shared";
-import type { LeaderboardConfig } from "./WizardShell";
+import type { LeaderboardConfig } from "@/lib/state/launch-wizard-store";
 
 export interface ReviewAndSignProps {
   repo: GithubRepo;
@@ -93,12 +93,16 @@ export function ReviewAndSign({
           <Row k="Symbol" v={metadata.symbol} mono />
           <Row k="Image URL" v={metadata.imageUrl} truncate full />
           {metadata.description ? (
-            <Row
-              k="Description"
-              v={metadata.description}
-              truncate
-              full
-            />
+            <Row k="Description" v={metadata.description} truncate full />
+          ) : null}
+          {metadata.website ? (
+            <Row k="Website" v={metadata.website} truncate full />
+          ) : null}
+          {metadata.twitter ? (
+            <Row k="X / Twitter" v={metadata.twitter} truncate full />
+          ) : null}
+          {metadata.telegram ? (
+            <Row k="Telegram" v={metadata.telegram} truncate full />
           ) : null}
         </dl>
       </Card>
@@ -143,12 +147,7 @@ export function ReviewAndSign({
           <ArrowLeft className="size-4" />
           Back
         </Button>
-        <Button
-          type="button"
-          size="lg"
-          onClick={onLaunch}
-          disabled={isPending}
-        >
+        <Button type="button" size="lg" onClick={onLaunch} disabled={isPending}>
           {isPending ? (
             <Spinner size="default" color="inherit" />
           ) : (

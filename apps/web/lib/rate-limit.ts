@@ -1,4 +1,5 @@
 import { redis } from "@/lib/redis";
+import { serverEnv } from "@/lib/env";
 
 type LimiterKind =
   | "auth"
@@ -29,8 +30,8 @@ export interface RateLimitResult {
  *   3. Count remaining in window.
  *   4. Refresh expiry so the key gets cleaned up if the user goes idle.
  *
- * When Redis is absent (local dev without REDIS_URL), returns success=true
- * so the app stays responsive. Production must always have Redis configured.
+ * Local dev without REDIS_URL is allowed to proceed. Production fails closed
+ * so auth, SIWS, and money-moving mutation limits cannot silently disappear.
  */
 export async function check(
   kind: LimiterKind,
@@ -39,6 +40,9 @@ export async function check(
   const r = redis();
   const cfg = SLIDING[kind];
   if (!r) {
+    if (serverEnv().NODE_ENV === "production") {
+      return { success: false, limit: cfg.limit, remaining: 0, reset: 0 };
+    }
     return { success: true, limit: cfg.limit, remaining: cfg.limit, reset: 0 };
   }
 
@@ -56,12 +60,27 @@ export async function check(
 
   const result = await pipe.exec();
   if (!result) {
-    return { success: true, limit: cfg.limit, remaining: cfg.limit, reset: now + windowMs };
+    const failClosed = serverEnv().NODE_ENV === "production";
+    return {
+      success: !failClosed,
+      limit: cfg.limit,
+      remaining: failClosed ? 0 : cfg.limit,
+      reset: now + windowMs,
+    };
   }
 
   // result[2] is the [error, count] tuple from ZCARD
   const zcard = result[2];
-  const count = zcard && !zcard[0] ? Number(zcard[1] ?? 0) : 0;
+  if (!zcard || zcard[0]) {
+    const failClosed = serverEnv().NODE_ENV === "production";
+    return {
+      success: !failClosed,
+      limit: cfg.limit,
+      remaining: failClosed ? 0 : cfg.limit,
+      reset: now + windowMs,
+    };
+  }
+  const count = Number(zcard[1] ?? 0);
 
   return {
     success: count <= cfg.limit,

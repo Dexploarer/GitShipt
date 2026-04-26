@@ -29,7 +29,7 @@ import { computeMerkleRoot } from "@/lib/payouts/merkle";
 export interface LoadedProjectForSnapshot {
   id: string;
   name: string;
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
   tokenMint: string | null;
   scoringConfig: ScoringConfig;
   payoutConfig: PayoutConfig;

@@ -164,7 +164,7 @@ export default async function AdminProjectsPage({
 function StatusBadge({
   status,
 }: {
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
 }) {
   switch (status) {
     case "live":

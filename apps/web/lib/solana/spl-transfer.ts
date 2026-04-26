@@ -9,7 +9,9 @@ import {
 import { solanaConnection } from "./connection";
 import { payoutSigner } from "./signer";
 
-const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+const MEMO_PROGRAM_ID = new PublicKey(
+  "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+);
 
 /**
  * Build a Memo instruction. Optional, but useful for tracing payout transfers
@@ -28,7 +30,7 @@ export interface TransferResult {
 }
 
 /**
- * Atomic native-SOL transfer with a single retry on transient failure.
+ * Native-SOL transfer.
  * Signed by `payoutSigner()`; `commitment: 'confirmed'` for finality before
  * we mark the recipient row sent.
  *
@@ -66,22 +68,10 @@ export async function transferSol(
     return tx;
   };
 
-  let lastErr: unknown = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const tx = buildTx();
-      const signature = await sendAndConfirmTransaction(conn, tx, [signer], {
-        commitment: "confirmed",
-        maxRetries: 3,
-      });
-      return { signature };
-    } catch (err) {
-      lastErr = err;
-      // brief backoff before single retry
-      await new Promise((r) => setTimeout(r, 250));
-    }
-  }
-  throw lastErr instanceof Error
-    ? lastErr
-    : new Error(`transferSol failed: ${String(lastErr)}`);
+  const tx = buildTx();
+  const signature = await sendAndConfirmTransaction(conn, tx, [signer], {
+    commitment: "confirmed",
+    maxRetries: 3,
+  });
+  return { signature };
 }

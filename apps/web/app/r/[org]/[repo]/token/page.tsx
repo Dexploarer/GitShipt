@@ -76,16 +76,18 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
         </p>
       </header>
 
-      {!header.tokenMint || !stats ? (
+      {!header.tokenMint || header.status !== "live" || !stats ? (
         <Card depth="raised" padding="default" className="text-center">
           <Coins className="mx-auto size-10 text-fg-muted" aria-hidden />
           <CardTitle className="mt-3 justify-center">
-            No token launched
+            {header.status === "launch_configured"
+              ? "Launch configured"
+              : "No token launched"}
           </CardTitle>
           <CardDescription className="mt-1 mx-auto max-w-md">
-            {header.ghOwner}/{header.ghRepo} hasn&apos;t been minted on Bags.fm
-            yet. The owner can launch from the dashboard to start the daily fee
-            pool.
+            {header.status === "launch_configured"
+              ? "Bags token metadata and fee sharing are configured, but the final launch transaction has not been broadcast yet."
+              : `${header.ghOwner}/${header.ghRepo} hasn't been minted on Bags.fm yet. The owner can launch from the dashboard to start the daily fee pool.`}
           </CardDescription>
           <Button asChild variant="primary" size="default" className="mt-4">
             <Link href="/launch">Launch a token</Link>
@@ -164,7 +166,7 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
                 <CardTitle>Bags.fm integration</CardTitle>
                 <Button asChild variant="ghost" size="sm">
                   <Link
-                    href={`https://bags.fm/token/${header.tokenMint}`}
+                    href={data.pool.bagsUrl ?? "#"}
                     target="_blank"
                     rel="noreferrer noopener"
                   >

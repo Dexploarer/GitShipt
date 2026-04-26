@@ -9,7 +9,11 @@ import { cn } from "@repo/lib";
 import { Button } from "@repo/ui";
 import { Input } from "@repo/ui";
 import { FormField } from "@/components/shared/FormField";
-import { TokenMetadataSchema, type TokenMetadataInput, type GithubRepo } from "@repo/shared";
+import {
+  TokenMetadataSchema,
+  type TokenMetadataInput,
+  type GithubRepo,
+} from "@repo/shared";
 
 /**
  * Client-side schema layered on top of the shared Zod contract.
@@ -51,13 +55,12 @@ export function TokenMetadataForm({
   } = useForm<TokenMetadataInput>({
     resolver: zodResolver(ClientTokenSchema),
     mode: "onBlur",
-    defaultValues:
-      initial ?? {
-        name: repo.name.slice(0, 32),
-        symbol: deriveSymbol(repo.name),
-        description: repo.description ?? "",
-        imageUrl: repo.ownerAvatarUrl,
-      },
+    defaultValues: initial ?? {
+      name: repo.name.slice(0, 32),
+      symbol: deriveSymbol(repo.name),
+      description: repo.description ?? "",
+      imageUrl: repo.ownerAvatarUrl,
+    },
   });
 
   return (
@@ -131,6 +134,30 @@ export function TokenMetadataForm({
       >
         <Input type="url" autoComplete="off" {...register("imageUrl")} />
       </FormField>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FormField
+          label="Website"
+          hint="Optional."
+          error={errors.website?.message}
+        >
+          <Input type="url" autoComplete="off" {...register("website")} />
+        </FormField>
+        <FormField
+          label="X / Twitter"
+          hint="Optional URL or handle."
+          error={errors.twitter?.message}
+        >
+          <Input type="text" autoComplete="off" {...register("twitter")} />
+        </FormField>
+        <FormField
+          label="Telegram"
+          hint="Optional URL or handle."
+          error={errors.telegram?.message}
+        >
+          <Input type="text" autoComplete="off" {...register("telegram")} />
+        </FormField>
+      </div>
 
       <div className="flex items-center justify-between gap-3 pt-2">
         <Button type="button" variant="secondary" onClick={onBack}>

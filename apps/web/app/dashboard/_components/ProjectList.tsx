@@ -65,10 +65,15 @@ function Avatar({ src, alt }: { src: string | null; alt: string }) {
 export function StatusBadge({
   status,
 }: {
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
 }) {
   const map = {
     live: { variant: "success" as const, label: "Live", dot: true },
+    launch_configured: {
+      variant: "warning" as const,
+      label: "Configured",
+      dot: false,
+    },
     draft: { variant: "default" as const, label: "Draft", dot: false },
     paused: { variant: "warning" as const, label: "Paused", dot: false },
     killed: { variant: "danger" as const, label: "Killed", dot: false },

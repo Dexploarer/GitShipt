@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
-import { requireAuthSession, toSessionUserChrome } from "@/lib/auth/session";
+import { requireAuthSession } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/auth/permissions";
 import { SidebarProvider } from "@repo/ui";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
@@ -41,10 +41,7 @@ export default async function AdminLayout({
     <SidebarProvider defaultCollapsed={defaultSidebarCollapsed}>
       <div className="flex h-screen overflow-hidden bg-bg text-fg">
         <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
-          <AppSidebar
-            user={toSessionUserChrome(session, true)}
-            surface={{ kind: "admin" }}
-          />
+          <AppSidebar surface={{ kind: "admin" }} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3">

@@ -11,6 +11,7 @@ import { hasCredentials } from "@/lib/env";
 import { encryptSecret, generateSecret } from "@/lib/auth/mfa";
 import { check } from "@/lib/rate-limit";
 import { withIdempotency } from "@/lib/idempotency";
+import { MfaEnrollResponseSchema } from "@repo/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,7 @@ export async function POST(): Promise<Response> {
         userAgent: h.get("user-agent"),
       });
 
-      return { qrDataUrl, secretBase32 };
+      return MfaEnrollResponseSchema.parse({ qrDataUrl, secretBase32 });
     },
     { scope: `auth:mfa-enroll:${userId}`, cacheResult: false },
   );

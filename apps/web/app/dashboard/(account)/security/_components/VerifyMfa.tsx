@@ -5,6 +5,10 @@ import { Button } from "@repo/ui";
 import { Input } from "@repo/ui";
 import { FormField } from "@/components/shared/FormField";
 import { FormError } from "@/components/shared/FormError";
+import {
+  ApiErrorResponseSchema,
+  MfaVerifyResponseSchema,
+} from "@repo/shared";
 
 /**
  * Re-confirms MFA freshness for the next 5 minutes. Used immediately
@@ -26,13 +30,15 @@ export function VerifyMfa() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ token }),
       });
-      const body = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        confirmedAt?: string;
-      };
+      const rawBody = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(body.error ?? `verify failed: ${res.status}`);
+        const body = ApiErrorResponseSchema.safeParse(rawBody);
+        throw new Error(
+          (body.success ? body.data.error : null) ??
+            `verify failed: ${res.status}`,
+        );
       }
+      const body = MfaVerifyResponseSchema.parse(rawBody);
       setConfirmedAt(body.confirmedAt ?? new Date().toISOString());
       setToken("");
     } catch (err) {

@@ -3,6 +3,7 @@ import bs58 from "bs58";
 import { z } from "zod";
 import { redis } from "@/lib/redis";
 import { nanoid } from "nanoid";
+import { serverEnv } from "@/lib/env";
 
 /**
  * Sign-In With Solana (SIWS) — minimal in-house verifier.
@@ -48,6 +49,8 @@ export async function issueNonce(address: string): Promise<string> {
   const r = redis();
   if (r) {
     await r.set(NONCE_KEY(address, nonce), "1", "EX", NONCE_TTL_SECONDS);
+  } else if (serverEnv().NODE_ENV === "production") {
+    throw new Error("REDIS_URL is required for SIWS nonce issuance.");
   }
   return nonce;
 }
@@ -126,6 +129,8 @@ export async function verifySiws({
   if (r) {
     const exists = await r.get(NONCE_KEY(m.address, m.nonce));
     if (!exists) return { ok: false, reason: "nonce" };
+  } else if (serverEnv().NODE_ENV === "production") {
+    return { ok: false, reason: "redis" };
   }
 
   let pubkey: Uint8Array;

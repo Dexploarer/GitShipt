@@ -29,12 +29,12 @@ export interface TokenStats {
  * derived stubs scaled off lifetime fees so the demo numbers move with the
  * pool — when Bags exposes a market-data endpoint, swap the derivation.
  *
- * Returns null when the project hasn't launched yet (no tokenMint).
+ * Returns null until the token is actually live on Bags.
  */
 export async function getTokenStats(
   header: ProjectHeader,
 ): Promise<TokenStats | null> {
-  if (!header.tokenMint) return null;
+  if (!header.tokenMint || header.status !== "live") return null;
 
   let lifetimeFees = 0n;
   let isStub = !bags.hasCredentials();

@@ -4,7 +4,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { getProjectRecord } from "@/lib/queries/dashboard";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { AppShell } from "../../_components/AppShell";
-import { requireAuthSession, toSessionUserChrome } from "@/lib/auth/session";
+import { requireAuthSession } from "@/lib/auth/session";
 
 /**
  * Per-project gate. We re-validate the session here AND check
@@ -57,7 +57,6 @@ export default async function ProjectLayout({
     <AppShell
       sidebar={
         <AppSidebar
-          user={toSessionUserChrome(session, false)}
           surface={{
             kind: "owner-project",
             projectId: id,

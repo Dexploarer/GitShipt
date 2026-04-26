@@ -13,6 +13,7 @@
  *   - Components reference utility classes only. They never read --vars directly.
  */
 @import "tailwindcss";
+@source "../../../packages/ui/src";
 
 /* ============================================================
  * Dark palette (canonical default). Mirrors DESIGN.md `colors:`

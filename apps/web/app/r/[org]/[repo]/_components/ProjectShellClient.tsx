@@ -4,7 +4,6 @@ import * as React from "react";
 import { useSelectedLayoutSegment } from "next/navigation";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
-import type { SidebarUserCardProps } from "@/components/sidebar/SidebarUserCard";
 import type { AppSidebarSurface } from "@/components/sidebar/AppSidebar";
 import type { ProjectSidebarActive } from "./ProjectShell";
 
@@ -28,16 +27,14 @@ function useProjectActive(
 }
 
 export function ProjectShellSidebar({
-  user,
   surface,
   active,
 }: {
-  user?: SidebarUserCardProps | null;
   surface: AppSidebarSurface;
   active?: ProjectSidebarActive;
 }) {
   const activeKey = useProjectActive(active);
-  return <AppSidebar user={user} surface={surface} activeKey={activeKey} />;
+  return <AppSidebar surface={surface} activeKey={activeKey} />;
 }
 
 export function ProjectShellMain({

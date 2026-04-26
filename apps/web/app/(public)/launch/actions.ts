@@ -41,7 +41,7 @@ export interface LaunchActionResult {
   ok: true;
   projectId: string;
   tokenMint: string;
-  status: "live" | "simulated_live";
+  status: "launch_configured" | "live" | "simulated_live";
   stub: boolean;
   configKey?: string;
   txSig: string | null;
@@ -168,6 +168,9 @@ export async function createAndLaunchAction(
                 name: validated.name,
                 description: validated.description ?? null,
                 imageUrl: validated.imageUrl,
+                tokenWebsiteUrl: validated.website ?? null,
+                tokenTwitterUrl: validated.twitter ?? null,
+                tokenTelegramUrl: validated.telegram ?? null,
                 status: "draft",
                 platformFeeBps: validated.platformFeeBps,
                 scoringConfig: validated.scoringConfig,
@@ -226,7 +229,8 @@ export async function createAndLaunchAction(
             // If already launched, short-circuit.
             if (
               (existing.status === "live" ||
-                existing.status === "simulated_live") &&
+                existing.status === "simulated_live" ||
+                existing.status === "launch_configured") &&
               existing.tokenMint
             ) {
               isExistingLive = true;
@@ -262,15 +266,32 @@ export async function createAndLaunchAction(
           symbol: validated.symbol,
           description: validated.description ?? undefined,
           imageUrl: validated.imageUrl,
+          website: validated.website,
+          twitter: validated.twitter,
+          telegram: validated.telegram,
         });
         const isStub = Boolean(tokenInfo.__stub);
 
-        // Resolve the platform-pool wallet for the fee-share config.
-        const poolWallet = await bags.resolveWallet(
-          "github",
-          PLATFORM_GH_USERNAME,
-        );
-        const payer = payoutSignerPublicKey() ?? poolWallet.wallet;
+        const payoutWallet = payoutSignerPublicKey();
+        if (!isStub && !payoutWallet) {
+          throw new ActionError(
+            "launch_wallet_missing",
+            "SOLANA_PAYOUT_KEYPAIR is required before live Bags launch.",
+            409,
+          );
+        }
+        const stubPoolWallet = isStub
+          ? (await bags.resolveWallet("github", PLATFORM_GH_USERNAME)).wallet
+          : null;
+        const poolClaimerWallet = payoutWallet ?? stubPoolWallet;
+        if (!poolClaimerWallet) {
+          throw new ActionError(
+            "pool_wallet_missing",
+            "Unable to derive the Bags pool claimer wallet.",
+            409,
+          );
+        }
+        const payer = poolClaimerWallet;
 
         // Bags step 2: fee-share config
         const feeShareConfig = await bags.createFeeShareConfig({
@@ -278,18 +299,17 @@ export async function createAndLaunchAction(
           baseMint: tokenInfo.tokenMint,
           feeClaimers: [
             {
-              provider: "github",
-              username: PLATFORM_GH_USERNAME,
-              bps: 9500,
+              wallet: poolClaimerWallet,
+              bps: 10_000 - validated.platformFeeBps,
             },
           ],
+          platformFeeWallet: payoutWallet ?? undefined,
           shareFee: validated.platformFeeBps,
         });
 
-        // Bags step 3: fee-share config txs are sent by the Bags wrapper when
-        // live. The final launch tx is gated until launch-wallet and
-        // initial-buy settings are configured.
-        const txSig = feeShareConfig.txSignatures.at(-1) ?? null;
+        // Bags step 3: create, sign, and submit the final launch transaction.
+        let txSig = feeShareConfig.txSignatures.at(-1) ?? null;
+        let launchSignature: string | null = null;
         let note: string | undefined;
         if (isStub) {
           note =
@@ -303,18 +323,32 @@ export async function createAndLaunchAction(
               409,
             );
           }
-          note =
-            "Bags fee-share config registered. Final launch transaction is gated until launch-wallet and initial-buy settings are configured.";
+          const launch = await bags.createAndSubmitLaunchTransaction({
+            tokenMint: tokenInfo.tokenMint,
+            metadataUrl: tokenInfo.tokenMetadata,
+            configKey: feeShareConfig.configKey,
+            launchWallet: payer,
+            initialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+          });
+          launchSignature = launch.signature;
+          txSig = launch.signature;
+          note = "Bags launch transaction broadcast. Token is live.";
         }
 
-        // Persist live state.
+        // Persist token/config state. Real mode only reaches this point after
+        // the Bags launch transaction is broadcast.
         const persistNow = new Date();
         await dbp
           .update(projects)
           .set({
             tokenMint: tokenInfo.tokenMint,
-            bagsLaunchId: feeShareConfig.configKey,
+            bagsLaunchId: isStub ? feeShareConfig.configKey : launchSignature,
             bagsConfigKey: feeShareConfig.configKey,
+            bagsLaunchSignature: launchSignature,
+            bagsLaunchWallet: isStub ? null : payer,
+            bagsPoolClaimerWallet: poolClaimerWallet,
+            bagsTokenMetadata: tokenInfo.tokenMetadata,
+            bagsInitialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
             status: isStub ? "simulated_live" : "live",
             simulatedAt: isStub ? persistNow : null,
             updatedAt: persistNow,
@@ -332,6 +366,10 @@ export async function createAndLaunchAction(
             stub: isStub,
             platformFeeBps: validated.platformFeeBps,
             feeShareConfigSignatures: feeShareConfig.txSignatures,
+            launchSignature,
+            launchWallet: isStub ? null : payer,
+            poolClaimerWallet,
+            initialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
             cluster: process.env.NEXT_PUBLIC_SOLANA_CLUSTER ?? "devnet",
           },
         });

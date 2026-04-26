@@ -13,6 +13,11 @@ import { eq, and, desc, sql, asc, isNotNull } from "drizzle-orm";
 import { bags } from "@/lib/bags/client";
 import { redis } from "@/lib/redis";
 import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import {
+  GitHubRepoMetaSchema,
+  type GitHubRepoMeta,
+} from "@repo/shared";
+import { z } from "zod";
 
 export interface ProjectHeader {
   id: string;
@@ -24,7 +29,7 @@ export interface ProjectHeader {
   imageUrl: string | null;
   tokenMint: string | null;
   bagsLaunchId: string | null;
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
   platformFeeBps: number;
   scoringConfig: ScoringConfig;
   payoutConfig: PayoutConfig;
@@ -99,11 +104,11 @@ function nextPayoutDate(now: Date = new Date()): Date {
   return next;
 }
 
-interface GitHubRepoMeta {
-  language: string | null;
-  stars: number;
-  forks: number;
-}
+const GitHubRepoApiMetaSchema = z.object({
+  language: z.string().nullable().optional(),
+  stargazers_count: z.number().int().min(0).optional(),
+  forks_count: z.number().int().min(0).optional(),
+});
 
 /**
  * Fetch lightweight GitHub repo metadata (language, stars, forks) with a
@@ -122,7 +127,7 @@ async function fetchGitHubRepoMeta(
     const cached = await r.get(cacheKey);
     if (cached) {
       try {
-        return JSON.parse(cached) as GitHubRepoMeta;
+        return GitHubRepoMetaSchema.parse(JSON.parse(cached));
       } catch {
         // fall through to refetch
       }
@@ -140,16 +145,12 @@ async function fetchGitHubRepoMeta(
       },
     );
     if (res.ok) {
-      const data = (await res.json()) as {
-        language?: string | null;
-        stargazers_count?: number;
-        forks_count?: number;
-      };
-      meta = {
+      const data = GitHubRepoApiMetaSchema.parse(await res.json());
+      meta = GitHubRepoMetaSchema.parse({
         language: data.language ?? null,
         stars: data.stargazers_count ?? 0,
         forks: data.forks_count ?? 0,
-      };
+      });
     }
   } catch {
     // network/parse failure → return zero defaults
@@ -337,7 +338,7 @@ async function getPoolOverviewUncached(
   let lifetimeUsd: number | null = null;
   let isStub = !bags.hasCredentials();
 
-  if (header.tokenMint) {
+  if (header.tokenMint && header.status === "live") {
     try {
       const lifetime = await bags.getLifetimeFees(header.tokenMint);
       lifetimeLamports = lifetime.totalLifetimeLamports;
@@ -366,9 +367,10 @@ async function getPoolOverviewUncached(
     lifetimeUsd,
     feeShareBps: 10_000 - header.platformFeeBps, // contributor pool BPS
     sparkline,
-    bagsUrl: header.tokenMint
-      ? `https://bags.fm/token/${header.tokenMint}`
-      : null,
+    bagsUrl:
+      header.tokenMint && header.status === "live"
+        ? bags.bagsTokenUrl(header.tokenMint)
+        : null,
     isStub,
   };
 }

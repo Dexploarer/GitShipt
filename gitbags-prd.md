@@ -26,7 +26,7 @@ GitBags is a launchpad-leaderboard hybrid where any GitHub repo can spawn a Bags
 
 This PRD has been verified against current platform docs. Material decisions and their sources:
 
-1. **Bags Token Launch v2 has native fee sharing with GitHub identity**. The `feeClaimers` array accepts `{ provider: "github" | "twitter" | "kick" | "tiktok", username: string, bps: number }`. Bags resolves username to wallet via their identity system, so contributors don't need to link a Solana wallet upfront for fees to be earmarked. Maximum 100 fee earners per token (including creator). Source: Bags API changelog and SDK examples (`@bagsfm/bags-sdk`).
+1. **Bags Token Launch v2 has native fee sharing with direct wallets and social identity lookup**. GitBags uses a direct platform pool wallet claimer for the contributor pool, while Bags can also resolve supported social identities (`github`, `twitter`, `kick`, `tiktok`, and legacy `moltbook`) to wallets when a future flow needs identity-based fee recipients. Maximum 100 fee earners per token (including creator). Source: Bags API changelog, Bags skill, and SDK examples (`@bagsfm/bags-sdk`).
 2. **Fee shares are configured at launch and cannot be edited dynamically post-launch**. This is the single biggest constraint. To support a daily-changing leaderboard, we set the platform claim wallet as the sole pooled `feeClaimer`, then redistribute off-chain via SPL token transfers each day. An optional `share_fee` (5% bps) is set as a separate claimer for platform revenue, kept on-chain.
 3. **Next.js 16.2 is current** (March 18, 2026). Cache Components, React Compiler, and Turbopack are all stable. **Critical**: `middleware.ts` is renamed to `proxy.ts` in Next.js 16. Patch level must be current to mitigate React Server Components RCE (CVE-2025-66478, CVSS 10.0, December 2025) and middleware bypass (CVE-2025-29927).
 4. **Vercel Postgres is deprecated**. Use Neon Postgres via Vercel Marketplace (Vercel-Managed integration). Auto-injects `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct).
@@ -324,7 +324,7 @@ export async function processProjectPayout(projectId: string) {
 - **Bags rate limit**: 1,000 requests/hour per API key. With cron driving most calls, this is plenty. Workflows step retries don't compound (each step is idempotent).
 - **JWT tokens last 365 days, rotate if compromised**. API keys are separate from JWT tokens. We use API keys for backend, never JWTs.
 - **Token launches require fee sharing config**: the old no-share flow is no longer supported.
-- **Fee claimer providers are strict**: must be one of `twitter`, `github`, `kick`, `tiktok`. Plain wallet addresses are not valid claimers - they must be tied to a social identity. For GitBags, we register a platform GitHub account as the pool claimer, and contributors receive payouts via SPL transfer from our hot wallet (not via Bags identity routing).
+- **Fee claimers support direct wallets**: GitBags registers the platform hot wallet as the direct pool claimer, then contributors receive payouts via SPL transfer from that wallet. Social identity lookup remains available for future identity-routed launches, but the MVP pool claimer does not depend on a Bags-linked GitHub account.
 
 ---
 
@@ -921,7 +921,7 @@ gitbags/
 │   ├── ui/                           # @repo/ui shadcn-style primitives
 │   ├── lib/                          # @repo/lib pure utilities
 │   └── shared/                       # @repo/shared schemas, constants, API types
-├── vercel.json                       # Cron schedules + Queues experimentalTriggers
+├── vercel.json                       # Vercel deploy, Fluid Compute, functions, cron
 ├── package.json
 ├── bun.lock
 ├── tsconfig.base.json
@@ -940,12 +940,21 @@ Example `vercel.json`:
 ```json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "bunVersion": "1.3.12",
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "bun run build",
+  "devCommand": "bun run dev -- --port $PORT",
+  "outputDirectory": "apps/web/.next",
+  "fluid": true,
+  "regions": ["iad1"],
   "crons": [
     { "path": "/api/cron/index-github", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/snapshot", "schedule": "0 0 * * *" },
     { "path": "/api/cron/payout", "schedule": "30 0 * * *" },
     { "path": "/api/cron/expire-escrow", "schedule": "0 1 * * *" },
-    { "path": "/api/cron/health", "schedule": "* * * * *" }
+    { "path": "/api/cron/health", "schedule": "* * * * *" },
+    { "path": "/api/cron/publish-kpis", "schedule": "* * * * *" }
   ]
 }
 ```

@@ -11,7 +11,6 @@ import {
   users,
   platformConfig,
   snapshots,
-  type ScoringConfig,
   type PayoutConfig,
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -24,6 +23,7 @@ import {
 } from "@/lib/auth/destructive-action";
 import { serverEnv } from "@/lib/env";
 import { updateProjectCaches } from "@/lib/cache-actions";
+import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
 
 /**
  * Server actions for the super-admin console.
@@ -157,7 +157,7 @@ export async function killProject(input: unknown): Promise<{ ok: true }> {
 
 const UpdateScoringSchema = z.object({
   projectId: z.string().min(1),
-  scoringConfig: z.unknown(),
+  scoringConfig: ScoringConfigSchema,
   idempotencyKey: z.string().min(8).optional(),
 });
 
@@ -177,7 +177,7 @@ export async function overrideScoringConfig(
     async () => {
       await dbHttp
         .update(projects)
-        .set({ scoringConfig: parsed.scoringConfig as ScoringConfig })
+        .set({ scoringConfig: parsed.scoringConfig })
         .where(eq(projects.id, parsed.projectId));
       await audit({
         actorUserId: ctx.userId,
@@ -738,7 +738,7 @@ export async function recomputeLeaderboard(
 
 const UpdatePayoutConfigSchema = z.object({
   projectId: z.string().min(1),
-  payoutConfig: z.unknown(),
+  payoutConfig: PayoutConfigSchema,
 });
 
 export async function updatePayoutConfig(
@@ -752,7 +752,7 @@ export async function updatePayoutConfig(
   });
   await dbHttp
     .update(projects)
-    .set({ payoutConfig: parsed.payoutConfig as PayoutConfig })
+    .set({ payoutConfig: parsed.payoutConfig satisfies PayoutConfig })
     .where(eq(projects.id, parsed.projectId));
   await audit({
     actorUserId: ctx.userId,

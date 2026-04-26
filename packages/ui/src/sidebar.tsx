@@ -4,6 +4,11 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@repo/lib";
+import {
+  createUiStore,
+  useUiStoreValue,
+  type UiStore,
+} from "./ui-store";
 
 /**
  * Sidebar primitive — shadcn-composable, macOS Tahoe / Liquid Glass aesthetic.
@@ -59,67 +64,48 @@ type SidebarContextValue = {
   toggleMobile: () => void;
 };
 
-const SidebarContext = React.createContext<SidebarContextValue | null>(null);
+const SidebarContext = React.createContext<UiStore | null>(null);
 
 export function useSidebar(): SidebarContextValue {
-  const ctx = React.useContext(SidebarContext);
-  if (!ctx) {
+  const store = React.useContext(SidebarContext);
+  if (!store) {
     throw new Error("useSidebar must be used inside <SidebarProvider>");
   }
-  return ctx;
-}
 
-export function SidebarProvider({
-  defaultCollapsed = false,
-  children,
-}: {
-  defaultCollapsed?: boolean;
-  children: React.ReactNode;
-}) {
-  const [collapsed, setCollapsedState] = React.useState(defaultCollapsed);
-  const [mobileOpen, setMobileOpenState] = React.useState(false);
+  const collapsed = useUiStoreValue(store, (state) => state.sidebar.collapsed);
+  const mobileOpen = useUiStoreValue(store, (state) => state.sidebar.mobileOpen);
+  const setSidebarCollapsed = useUiStoreValue(
+    store,
+    (state) => state.setSidebarCollapsed,
+  );
+  const setMobileOpen = useUiStoreValue(
+    store,
+    (state) => state.setSidebarMobileOpen,
+  );
+  const closeMobile = useUiStoreValue(
+    store,
+    (state) => state.closeSidebarMobile,
+  );
+  const toggleMobile = useUiStoreValue(
+    store,
+    (state) => state.toggleSidebarMobile,
+  );
 
-  const setCollapsed = React.useCallback((v: boolean) => {
-    setCollapsedState(v);
-    persistCollapsedPreference(v);
-  }, []);
+  const setCollapsed = React.useCallback(
+    (v: boolean) => {
+      setSidebarCollapsed(v);
+      persistCollapsedPreference(v);
+    },
+    [setSidebarCollapsed],
+  );
 
   const toggle = React.useCallback(() => {
-    setCollapsedState((prev) => {
-      const next = !prev;
-      persistCollapsedPreference(next);
-      return next;
-    });
-  }, []);
+    const next = !store.getState().sidebar.collapsed;
+    setSidebarCollapsed(next);
+    persistCollapsedPreference(next);
+  }, [setSidebarCollapsed, store]);
 
-  const setMobileOpen = React.useCallback((v: boolean) => {
-    setMobileOpenState(v);
-  }, []);
-
-  const closeMobile = React.useCallback(() => {
-    setMobileOpenState(false);
-  }, []);
-
-  const toggleMobile = React.useCallback(() => {
-    setMobileOpenState((v) => !v);
-  }, []);
-
-  // Lock body scroll when the mobile drawer is open + close on Escape.
-  React.useEffect(() => {
-    if (!mobileOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileOpenState(false);
-    };
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [mobileOpen]);
-
-  const value = React.useMemo(
+  return React.useMemo(
     () => ({
       collapsed,
       toggle,
@@ -139,9 +125,43 @@ export function SidebarProvider({
       toggleMobile,
     ],
   );
+}
+
+export function SidebarProvider({
+  defaultCollapsed = false,
+  children,
+}: {
+  defaultCollapsed?: boolean;
+  children: React.ReactNode;
+}) {
+  const storeRef = React.useRef<UiStore | null>(null);
+  if (storeRef.current === null) {
+    storeRef.current = createUiStore({ collapsed: defaultCollapsed });
+  }
+  const store = storeRef.current;
+  const mobileOpen = useUiStoreValue(store, (state) => state.sidebar.mobileOpen);
+  const closeSidebarMobile = useUiStoreValue(
+    store,
+    (state) => state.closeSidebarMobile,
+  );
+
+  // Lock body scroll when the mobile drawer is open + close on Escape.
+  React.useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeSidebarMobile();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [closeSidebarMobile, mobileOpen]);
 
   return (
-    <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>
+    <SidebarContext.Provider value={store}>{children}</SidebarContext.Provider>
   );
 }
 

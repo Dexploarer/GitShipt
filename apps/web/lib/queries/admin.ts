@@ -30,7 +30,9 @@ export interface OpsKpis {
   pendingEscrowSol: number;
 }
 
-export async function getOpsKpis(hotWalletLamports: number | null): Promise<OpsKpis> {
+export async function getOpsKpis(
+  hotWalletLamports: number | null,
+): Promise<OpsKpis> {
   const [activeRows, frozenRows, failedRows, escrowRows] = await Promise.all([
     dbHttp
       .select({ c: count() })
@@ -45,7 +47,9 @@ export async function getOpsKpis(hotWalletLamports: number | null): Promise<OpsK
       .from(payouts)
       .where(eq(payouts.status, "failed")),
     dbHttp
-      .select({ total: sql<string>`COALESCE(SUM(${escrowHoldings.amountLamports}), 0)::text` })
+      .select({
+        total: sql<string>`COALESCE(SUM(${escrowHoldings.amountLamports}), 0)::text`,
+      })
       .from(escrowHoldings)
       .where(sql`${escrowHoldings.drainedAt} IS NULL`),
   ]);
@@ -115,7 +119,9 @@ export interface AdminFailedPayoutRow {
   scheduledAt: Date;
 }
 
-export async function getRecentFailedPayouts(limit = 10): Promise<AdminFailedPayoutRow[]> {
+export async function getRecentFailedPayouts(
+  limit = 10,
+): Promise<AdminFailedPayoutRow[]> {
   const rows = await dbHttp
     .select({
       id: payouts.id,
@@ -163,7 +169,9 @@ export interface AuditFilter {
   limit?: number;
 }
 
-export async function getAuditLogs(filter: AuditFilter = {}): Promise<AuditRow[]> {
+export async function getAuditLogs(
+  filter: AuditFilter = {},
+): Promise<AuditRow[]> {
   const sinceMs = filter.sinceMs ?? Date.now() - 24 * 60 * 60 * 1000;
   const since = new Date(sinceMs);
   const limit = Math.min(filter.limit ?? 100, 500);
@@ -213,20 +221,34 @@ export interface AdminProjectRow {
   name: string;
   ownerName: string | null;
   ownerUsername: string | null;
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status:
+    | "draft"
+    | "launch_configured"
+    | "live"
+    | "paused"
+    | "killed"
+    | "simulated_live";
   contributorsCount: number;
   imageUrl: string | null;
   tokenMint: string | null;
   createdAt: Date;
 }
 
-export async function getAllProjects(filter?: { status?: string }): Promise<AdminProjectRow[]> {
+export async function getAllProjects(filter?: {
+  status?: string;
+}): Promise<AdminProjectRow[]> {
   const conds = [];
   if (filter?.status && filter.status !== "all") {
     conds.push(
       eq(
         projects.status,
-        filter.status as "draft" | "live" | "paused" | "killed" | "simulated_live",
+        filter.status as
+          | "draft"
+          | "launch_configured"
+          | "live"
+          | "paused"
+          | "killed"
+          | "simulated_live",
       ),
     );
   }
@@ -287,12 +309,10 @@ export async function getProjectAdminDetail(projectId: string): Promise<{
 
   if (!row) return null;
 
-  const [{ c: contributorsCount }] = (
-    await dbHttp
-      .select({ c: count() })
-      .from(contributors)
-      .where(eq(contributors.projectId, projectId))
-  ) as [{ c: number }];
+  const [{ c: contributorsCount }] = (await dbHttp
+    .select({ c: count() })
+    .from(contributors)
+    .where(eq(contributors.projectId, projectId))) as [{ c: number }];
 
   return {
     project: row.project,
@@ -349,20 +369,36 @@ export interface AdminPayoutRow {
   projectSlug: string;
   totalLamports: bigint;
   recipientCount: number;
-  status: "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled" | "simulated";
+  status:
+    | "pending"
+    | "claiming"
+    | "distributing"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "simulated";
   attemptCount: number;
   lastError: string | null;
   scheduledAt: Date;
   snapshotId: string;
 }
 
-export async function getAllPayouts(filter?: { status?: string }): Promise<AdminPayoutRow[]> {
+export async function getAllPayouts(filter?: {
+  status?: string;
+}): Promise<AdminPayoutRow[]> {
   const conds = [];
   if (filter?.status && filter.status !== "all") {
     conds.push(
       eq(
         payouts.status,
-        filter.status as "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled" | "simulated",
+        filter.status as
+          | "pending"
+          | "claiming"
+          | "distributing"
+          | "completed"
+          | "failed"
+          | "cancelled"
+          | "simulated",
       ),
     );
   }
@@ -385,7 +421,10 @@ export async function getAllPayouts(filter?: { status?: string }): Promise<Admin
     .leftJoin(projects, eq(payouts.projectId, projects.id));
 
   const rows = conds.length
-    ? await baseQuery.where(and(...conds)).orderBy(desc(payouts.scheduledAt)).limit(500)
+    ? await baseQuery
+        .where(and(...conds))
+        .orderBy(desc(payouts.scheduledAt))
+        .limit(500)
     : await baseQuery.orderBy(desc(payouts.scheduledAt)).limit(500);
 
   return rows.map((r) => ({
@@ -478,7 +517,9 @@ export async function getPlatformConfigValue<T = Record<string, unknown>>(
   return (row?.value as T | undefined) ?? null;
 }
 
-export async function getTableRowCounts(): Promise<Array<{ table: string; rows: number }>> {
+export async function getTableRowCounts(): Promise<
+  Array<{ table: string; rows: number }>
+> {
   const tableNames = [
     "users",
     "sessions",
@@ -508,13 +549,20 @@ export async function getTableRowCounts(): Promise<Array<{ table: string; rows: 
           `SELECT reltuples::bigint AS rows FROM pg_class WHERE relname = '${t}' AND relkind = 'r' LIMIT 1`,
         ),
       );
-      const rows = result as unknown as { rows?: Array<{ rows?: string | number }> };
-      const arr = Array.isArray(rows.rows) ? rows.rows : (rows as unknown as Array<{ rows?: string | number }>);
+      const rows = result as unknown as {
+        rows?: Array<{ rows?: string | number }>;
+      };
+      const arr = Array.isArray(rows.rows)
+        ? rows.rows
+        : (rows as unknown as Array<{ rows?: string | number }>);
       const first = (Array.isArray(arr) ? arr[0] : undefined) as
         | { rows?: string | number }
         | undefined;
       const n = first?.rows;
-      out.push({ table: t, rows: typeof n === "string" ? Number(n) : (n ?? 0) });
+      out.push({
+        table: t,
+        rows: typeof n === "string" ? Number(n) : (n ?? 0),
+      });
     } catch {
       out.push({ table: t, rows: 0 });
     }
@@ -566,6 +614,11 @@ export async function promoteProjectFromStub(projectId: string): Promise<{
         tokenMint: null,
         bagsLaunchId: null,
         bagsConfigKey: null,
+        bagsLaunchSignature: null,
+        bagsLaunchWallet: null,
+        bagsPoolClaimerWallet: null,
+        bagsTokenMetadata: null,
+        bagsInitialBuyLamports: 0,
         status: "draft",
         simulatedAt: null,
         updatedAt: new Date(),
@@ -638,10 +691,14 @@ export async function transferProjectOwnership(
       .where(eq(projects.id, projectId))
       .limit(1);
     if (!proj) {
-      throw new Error(`transferProjectOwnership: project ${projectId} not found`);
+      throw new Error(
+        `transferProjectOwnership: project ${projectId} not found`,
+      );
     }
     if (proj.ownerUserId === newOwnerUserId) {
-      throw new Error("transferProjectOwnership: recipient is already the owner");
+      throw new Error(
+        "transferProjectOwnership: recipient is already the owner",
+      );
     }
 
     const [recipient] = await tx

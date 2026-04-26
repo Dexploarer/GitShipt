@@ -1,5 +1,6 @@
 import { serverEnv, hasCredentials, canLaunchOnBags } from "@/lib/env";
 import { payoutSigner } from "@/lib/solana/signer";
+import bs58 from "bs58";
 import {
   TokenInfoInputSchema,
   TokenInfoResponseSchema,
@@ -8,6 +9,16 @@ import {
   ResolvedWalletSchema,
   ClaimablePositionsResponseSchema,
   LifetimeFeesSchema,
+  LaunchIntentInputSchema,
+  TokenCreatorSchema,
+  TokenClaimEventSchema,
+  IncorporationInputSchema,
+  IncorporationPaymentSchema,
+  IncorporationProjectSchema,
+  StartIncorporationResponseSchema,
+  SubmitTransactionResponseSchema,
+  LaunchTransactionInputSchema,
+  LaunchTransactionResultSchema,
   type TokenInfoInput,
   type TokenInfoResponse,
   type FeeShareConfigInput,
@@ -15,7 +26,16 @@ import {
   type ResolvedWallet,
   type ClaimablePositionsResponse,
   type LifetimeFees,
+  type LaunchIntentInput,
+  type TokenCreator,
+  type TokenClaimEvent,
+  type IncorporationInput,
+  type IncorporationPayment,
+  type IncorporationProject,
+  type StartIncorporationResponse,
   type BagsProvider,
+  type FeeClaimer,
+  type LaunchTransactionResult,
 } from "./types";
 import { stubBags } from "./__stubs";
 
@@ -37,10 +57,20 @@ type BagsSdk = {
       symbol: string;
       description: string;
       imageUrl: string;
+      website?: string;
+      twitter?: string;
+      telegram?: string;
     }) => Promise<{
       tokenMint: string;
       tokenMetadata: string;
     }>;
+    createLaunchTransaction: (input: {
+      metadataUrl: string;
+      tokenMint: unknown;
+      launchWallet: unknown;
+      initialBuyLamports: number;
+      configKey: unknown;
+    }) => Promise<unknown>;
   };
   state: {
     getConnection: () => unknown;
@@ -54,6 +84,11 @@ type BagsSdk = {
         platformData: unknown | null;
       }>
     >;
+    getTokenCreators: (tokenMint: unknown) => Promise<unknown[]>;
+    getTokenClaimEvents: (
+      tokenMint: unknown,
+      options?: { limit?: number; offset?: number },
+    ) => Promise<unknown[]>;
   };
   config: {
     createBagsFeeShareConfig: (input: {
@@ -76,6 +111,34 @@ type BagsSdk = {
       mint: unknown,
     ) => Promise<unknown[]>;
   };
+  incorporation: {
+    startPayment: (input: {
+      payerWallet: unknown;
+      payWithSol?: boolean;
+    }) => Promise<unknown>;
+    incorporate: (input: {
+      orderUUID: string;
+      paymentSignature: string;
+      projectName: string;
+      tokenAddress: unknown;
+      founders: Array<{
+        firstName: string;
+        lastName: string;
+        email: string;
+        nationalityCountry: string;
+        taxResidencyCountry: string;
+        residentialAddress: string;
+        shareBasisPoint: number;
+      }>;
+      incorporationShareBasisPoint: number;
+      preferredCompanyNames: string[];
+      category?: string;
+      twitterHandle?: string;
+    }) => Promise<unknown>;
+    getDetails: (input: { tokenAddress: unknown }) => Promise<unknown>;
+    list: () => Promise<unknown[]>;
+    startIncorporation: (input: { tokenAddress: unknown }) => Promise<unknown>;
+  };
 };
 
 type BagsSdkModule = {
@@ -84,12 +147,6 @@ type BagsSdkModule = {
     connection: unknown,
     commitment: "processed",
   ) => BagsSdk;
-  signAndSendTransaction: (
-    connection: unknown,
-    commitment: "processed",
-    transaction: unknown,
-    keypair: unknown,
-  ) => Promise<string>;
 };
 
 let _sdk: BagsSdk | null = null;
@@ -100,6 +157,10 @@ const STUB_TOKEN_SUFFIX = "ags1111111111111111111111111111111111111";
 
 function isPlaceholderTokenMint(tokenMint: string): boolean {
   return tokenMint === DEMO_TOKEN_MINT || tokenMint.endsWith(STUB_TOKEN_SUFFIX);
+}
+
+function bagsFmUrl(path = ""): string {
+  return new URL(path, "https://bags.fm/").toString();
 }
 
 async function getSdk(): Promise<BagsSdk> {
@@ -121,13 +182,6 @@ async function getSdk(): Promise<BagsSdk> {
   return _sdk;
 }
 
-async function getSdkModule(): Promise<BagsSdkModule> {
-  if (_sdkModule) return _sdkModule;
-  await getSdk();
-  if (!_sdkModule) throw new Error("Bags SDK failed to initialize.");
-  return _sdkModule;
-}
-
 function shouldUseStubLaunch(): boolean {
   return !hasCredentials.bags() || !canLaunchOnBags().ok;
 }
@@ -145,6 +199,21 @@ function publicKeyToString(value: unknown): string {
   return String(value);
 }
 
+function normalizePublicKeyFields(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, field] of Object.entries(value)) {
+    out[key] =
+      field &&
+      typeof field === "object" &&
+      "toBase58" in field &&
+      typeof field.toBase58 === "function"
+        ? field.toBase58()
+        : field;
+  }
+  return out;
+}
+
 function addFeeClaimer(
   claimers: Map<string, number>,
   wallet: string,
@@ -152,6 +221,39 @@ function addFeeClaimer(
 ): void {
   if (bps <= 0) return;
   claimers.set(wallet, (claimers.get(wallet) ?? 0) + bps);
+}
+
+function isSocialClaimer(
+  claimer: FeeClaimer,
+): claimer is Extract<FeeClaimer, { provider: BagsProvider }> {
+  return "provider" in claimer;
+}
+
+function extractSubmittedSignature(raw: unknown): string {
+  const parsed = SubmitTransactionResponseSchema.parse(raw);
+  return typeof parsed === "string" ? parsed : parsed.response;
+}
+
+async function signAndSubmitViaBags(transaction: unknown): Promise<string> {
+  const { Transaction, VersionedTransaction } = await import("@solana/web3.js");
+  const signer = payoutSigner();
+
+  let serialized: Uint8Array | Buffer;
+  if (transaction instanceof VersionedTransaction) {
+    transaction.sign([signer]);
+    serialized = transaction.serialize();
+  } else if (transaction instanceof Transaction) {
+    transaction.sign(signer);
+    serialized = transaction.serialize();
+  } else {
+    throw new Error("Bags returned an unsupported transaction type.");
+  }
+
+  const raw = await bagsRest<unknown>("solana/send-transaction", {
+    method: "POST",
+    body: JSON.stringify({ transaction: bs58.encode(serialized) }),
+  });
+  return extractSubmittedSignature(raw);
 }
 
 async function bagsRest<T>(
@@ -211,18 +313,21 @@ export const bags = {
       return FeeShareConfigResponseSchema.parse(stubBags.feeShareConfig());
     }
     const env = serverEnv();
-    const [{ PublicKey }, sdk, sdkModule] = await Promise.all([
+    const [{ PublicKey }, sdk] = await Promise.all([
       import("@solana/web3.js"),
       getSdk(),
-      getSdkModule(),
     ]);
 
-    const resolved = await sdk.state.getLaunchWalletV2Bulk(
-      validated.feeClaimers.map(({ provider, username }) => ({
-        provider,
-        username,
-      })),
-    );
+    const socialClaimers = validated.feeClaimers.filter(isSocialClaimer);
+    const resolved =
+      socialClaimers.length > 0
+        ? await sdk.state.getLaunchWalletV2Bulk(
+            socialClaimers.map(({ provider, username }) => ({
+              provider,
+              username,
+            })),
+          )
+        : [];
     const resolvedByKey = new Map(
       resolved.map((wallet) => [
         `${wallet.provider}:${wallet.username}`.toLowerCase(),
@@ -232,6 +337,10 @@ export const bags = {
 
     const claimerBpsByWallet = new Map<string, number>();
     for (const claimer of validated.feeClaimers) {
+      if (!isSocialClaimer(claimer)) {
+        addFeeClaimer(claimerBpsByWallet, claimer.wallet, claimer.bps);
+        continue;
+      }
       const resolvedWallet = resolvedByKey.get(
         `${claimer.provider}:${claimer.username}`.toLowerCase(),
       );
@@ -247,7 +356,10 @@ export const bags = {
       );
     }
 
-    const platformFeeWallet = env.SOLANA_TREASURY_ADDRESS ?? validated.payer;
+    const platformFeeWallet =
+      validated.platformFeeWallet ??
+      env.SOLANA_TREASURY_ADDRESS ??
+      validated.payer;
     addFeeClaimer(claimerBpsByWallet, platformFeeWallet, validated.shareFee);
 
     const feeClaimers = Array.from(claimerBpsByWallet, ([wallet, bps]) => ({
@@ -292,25 +404,11 @@ export const bags = {
     const txSignatures: string[] = [];
     for (const bundle of result.bundles ?? []) {
       for (const tx of bundle) {
-        txSignatures.push(
-          await sdkModule.signAndSendTransaction(
-            sdk.state.getConnection(),
-            "processed",
-            tx,
-            signer,
-          ),
-        );
+        txSignatures.push(await signAndSubmitViaBags(tx));
       }
     }
     for (const tx of result.transactions ?? []) {
-      txSignatures.push(
-        await sdkModule.signAndSendTransaction(
-          sdk.state.getConnection(),
-          "processed",
-          tx,
-          signer,
-        ),
-      );
+      txSignatures.push(await signAndSubmitViaBags(tx));
     }
 
     return FeeShareConfigResponseSchema.parse({
@@ -318,6 +416,34 @@ export const bags = {
       txSignatures,
       feeClaimersTotalBps: totalBps,
       partnerConfigKey: validated.partnerConfig ?? env.BAGS_PARTNER_CONFIG_KEY,
+      poolClaimerWallet:
+        validated.feeClaimers.length === 1
+          ? Array.from(claimerBpsByWallet.keys())[0]
+          : undefined,
+    });
+  },
+
+  async createAndSubmitLaunchTransaction(args: {
+    tokenMint: string;
+    metadataUrl: string;
+    configKey: string;
+    launchWallet: string;
+    initialBuyLamports?: number;
+  }): Promise<LaunchTransactionResult> {
+    const validated = LaunchTransactionInputSchema.parse(args);
+    const [{ PublicKey }, sdk] = await Promise.all([
+      import("@solana/web3.js"),
+      getSdk(),
+    ]);
+    const tx = await sdk.tokenLaunch.createLaunchTransaction({
+      metadataUrl: validated.metadataUrl,
+      tokenMint: new PublicKey(validated.tokenMint),
+      configKey: new PublicKey(validated.configKey),
+      launchWallet: new PublicKey(validated.launchWallet),
+      initialBuyLamports: validated.initialBuyLamports,
+    });
+    return LaunchTransactionResultSchema.parse({
+      signature: await signAndSubmitViaBags(tx),
     });
   },
 
@@ -400,6 +526,154 @@ export const bags = {
       new PublicKey(tokenMint),
     );
     return { transactions };
+  },
+
+  async signAndSubmitTransaction(transaction: unknown): Promise<string> {
+    return signAndSubmitViaBags(transaction);
+  },
+
+  /** Build a Bags-hosted launch intent URL for user-signed handoff flows. */
+  createLaunchIntentUrl(input: LaunchIntentInput): string {
+    const validated = LaunchIntentInputSchema.parse(input);
+    const url = new URL("launch", "https://bags.fm/");
+    url.searchParams.set("intent", "true");
+    if (validated.name) url.searchParams.set("name", validated.name);
+    if (validated.symbol) url.searchParams.set("ticker", validated.symbol);
+    if (validated.description) {
+      url.searchParams.set("description", validated.description);
+    }
+    if (validated.imageUrl) url.searchParams.set("image", validated.imageUrl);
+    if (validated.website) url.searchParams.set("website", validated.website);
+    if (validated.twitter) url.searchParams.set("twitter", validated.twitter);
+    if (validated.telegram) {
+      url.searchParams.set("telegram", validated.telegram);
+    }
+    if (validated.feeShareBps !== undefined) {
+      url.searchParams.set("feeShareBps", String(validated.feeShareBps));
+    }
+    if (validated.adminWallet) {
+      url.searchParams.set("adminWallet", validated.adminWallet);
+    }
+    if (validated.partner) url.searchParams.set("partner", validated.partner);
+    if (validated.partnerConfig) {
+      url.searchParams.set("partnerConfig", validated.partnerConfig);
+    }
+    if (validated.tokenizeEquity !== undefined) {
+      url.searchParams.set(
+        "tokenizeEquity",
+        validated.tokenizeEquity ? "true" : "false",
+      );
+    }
+    return url.toString();
+  },
+
+  bagsTokenUrl(tokenMint: string): string {
+    return bagsFmUrl(tokenMint);
+  },
+
+  async getTokenCreators(tokenMint: string): Promise<TokenCreator[]> {
+    if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) return [];
+    const [{ PublicKey }, sdk] = await Promise.all([
+      import("@solana/web3.js"),
+      getSdk(),
+    ]);
+    const creators = await sdk.state.getTokenCreators(new PublicKey(tokenMint));
+    return creators.map((creator) =>
+      TokenCreatorSchema.parse(normalizePublicKeyFields(creator)),
+    );
+  },
+
+  async getTokenClaimEvents(
+    tokenMint: string,
+    options?: { limit?: number; offset?: number },
+  ): Promise<TokenClaimEvent[]> {
+    if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) return [];
+    const [{ PublicKey }, sdk] = await Promise.all([
+      import("@solana/web3.js"),
+      getSdk(),
+    ]);
+    const events = await sdk.state.getTokenClaimEvents(
+      new PublicKey(tokenMint),
+      options,
+    );
+    return events.map((event) =>
+      TokenClaimEventSchema.parse(normalizePublicKeyFields(event)),
+    );
+  },
+
+  async startIncorporationPayment(args: {
+    payerWallet: string;
+    payWithSol?: boolean;
+  }): Promise<IncorporationPayment> {
+    if (!hasCredentials.bags()) {
+      throw new Error("BAGS_API_KEY is required for incorporation payments.");
+    }
+    const [{ PublicKey }, sdk] = await Promise.all([
+      import("@solana/web3.js"),
+      getSdk(),
+    ]);
+    const raw = await sdk.incorporation.startPayment({
+      payerWallet: new PublicKey(args.payerWallet),
+      payWithSol: args.payWithSol,
+    });
+    return IncorporationPaymentSchema.parse(raw);
+  },
+
+  async submitIncorporation(
+    input: IncorporationInput,
+  ): Promise<IncorporationProject> {
+    if (!hasCredentials.bags()) {
+      throw new Error("BAGS_API_KEY is required for incorporation.");
+    }
+    const validated = IncorporationInputSchema.parse(input);
+    const [{ PublicKey }, sdk] = await Promise.all([
+      import("@solana/web3.js"),
+      getSdk(),
+    ]);
+    const raw = await sdk.incorporation.incorporate({
+      ...validated,
+      tokenAddress: new PublicKey(validated.tokenAddress),
+    });
+    return IncorporationProjectSchema.parse(raw);
+  },
+
+  async getIncorporationDetails(
+    tokenAddress: string,
+  ): Promise<IncorporationProject | null> {
+    if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenAddress)) {
+      return null;
+    }
+    const [{ PublicKey }, sdk] = await Promise.all([
+      import("@solana/web3.js"),
+      getSdk(),
+    ]);
+    const raw = await sdk.incorporation.getDetails({
+      tokenAddress: new PublicKey(tokenAddress),
+    });
+    return IncorporationProjectSchema.parse(raw);
+  },
+
+  async listIncorporations(): Promise<IncorporationProject[]> {
+    if (!hasCredentials.bags()) return [];
+    const sdk = await getSdk();
+    const raw = await sdk.incorporation.list();
+    return raw.map((project) => IncorporationProjectSchema.parse(project));
+  },
+
+  async startIncorporation(
+    tokenAddress: string,
+  ): Promise<StartIncorporationResponse> {
+    if (!hasCredentials.bags()) {
+      throw new Error("BAGS_API_KEY is required for incorporation.");
+    }
+    const [{ PublicKey }, sdk] = await Promise.all([
+      import("@solana/web3.js"),
+      getSdk(),
+    ]);
+    const raw = await sdk.incorporation.startIncorporation({
+      tokenAddress: new PublicKey(tokenAddress),
+    });
+    return StartIncorporationResponseSchema.parse(raw);
   },
 };
 

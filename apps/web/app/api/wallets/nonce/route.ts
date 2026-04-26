@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { issueNonce } from "@/lib/auth/siws";
 import { check } from "@/lib/rate-limit";
 import { withIdempotency } from "@/lib/idempotency";
+import {
+  WalletNonceRequestSchema,
+  WalletNonceResponseSchema,
+} from "@repo/shared";
 
 export const dynamic = "force-dynamic";
-
-const BodySchema = z.object({
-  address: z.string().min(32).max(44),
-});
 
 /**
  * Issue a single-use, 5-minute SIWS nonce for the given Solana address.
@@ -29,7 +28,7 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const parsed = BodySchema.safeParse(body);
+  const parsed = WalletNonceRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "invalid_body", issues: parsed.error.flatten() },
@@ -41,7 +40,7 @@ export async function POST(req: Request): Promise<Response> {
     req.headers.get("idempotency-key"),
     async () => {
       const nonce = await issueNonce(parsed.data.address);
-      return { nonce, ttlSeconds: 5 * 60 };
+      return WalletNonceResponseSchema.parse({ nonce, ttlSeconds: 5 * 60 });
     },
     { scope: `wallet:nonce:${parsed.data.address}` },
   );

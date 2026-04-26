@@ -5,6 +5,7 @@ import Image from "next/image";
 import { AlertCircle, GitFork, Loader2, Search, Star } from "lucide-react";
 import { cn } from "@repo/lib";
 import {
+  ApiErrorResponseSchema,
   GithubReposResponseSchema,
   type GithubRepo,
   type GithubReposResponse,
@@ -39,15 +40,19 @@ export function RepoPicker({ selectedId, onSelect }: RepoPickerProps) {
           cache: "no-store",
         });
         if (!res.ok) {
-          const body = (await res.json().catch(() => null)) as {
-            error?: string;
-            message?: string;
-          } | null;
+          const body = ApiErrorResponseSchema.safeParse(
+            await res.json().catch(() => null),
+          );
+          const errorBody = body.success ? body.data : null;
           if (cancelled) return;
           setState({
             status: "error",
             data: null,
-            error: friendlyError(res.status, body?.error, body?.message),
+            error: friendlyError(
+              res.status,
+              errorBody?.error,
+              errorBody?.message,
+            ),
           });
           return;
         }

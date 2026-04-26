@@ -13,6 +13,9 @@ import { createId } from "@repo/lib";
 
 export const projectStatusEnum = pgEnum("project_status", [
   "draft",
+  // Bags metadata + fee-share config exist, but the final token launch
+  // transaction has not been broadcast. Not eligible for payouts.
+  "launch_configured",
   "live",
   "paused",
   "killed",
@@ -52,7 +55,9 @@ export interface PayoutConfig {
 export const projects = pgTable(
   "projects",
   {
-    id: text("id").primaryKey().$defaultFn(() => createId()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
     ownerUserId: text("owner_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -72,6 +77,16 @@ export const projects = pgTable(
     tokenMint: text("token_mint"),
     bagsLaunchId: text("bags_launch_id"),
     bagsConfigKey: text("bags_config_key"),
+    bagsLaunchSignature: text("bags_launch_signature"),
+    bagsLaunchWallet: text("bags_launch_wallet"),
+    bagsPoolClaimerWallet: text("bags_pool_claimer_wallet"),
+    bagsTokenMetadata: text("bags_token_metadata"),
+    bagsInitialBuyLamports: integer("bags_initial_buy_lamports")
+      .notNull()
+      .default(0),
+    tokenWebsiteUrl: text("token_website_url"),
+    tokenTwitterUrl: text("token_twitter_url"),
+    tokenTelegramUrl: text("token_telegram_url"),
 
     // Status + config
     status: projectStatusEnum("status").notNull().default("draft"),
@@ -102,7 +117,9 @@ export const projects = pgTable(
 export const projectMemberships = pgTable(
   "project_memberships",
   {
-    id: text("id").primaryKey().$defaultFn(() => createId()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -115,7 +132,10 @@ export const projectMemberships = pgTable(
       .defaultNow(),
   },
   (t) => ({
-    userProjectUq: uniqueIndex("memberships_user_project_uq").on(t.userId, t.projectId),
+    userProjectUq: uniqueIndex("memberships_user_project_uq").on(
+      t.userId,
+      t.projectId,
+    ),
     projectIdx: index("memberships_project_idx").on(t.projectId),
   }),
 );

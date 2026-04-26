@@ -6,6 +6,8 @@ export type AuditAction =
   | "auth.wallet_link"
   | "project.create"
   | "project.launch"
+  | "project.launch_complete"
+  | "project.incorporation_start"
   | "project.pause"
   | "project.kill"
   | "project.delete"

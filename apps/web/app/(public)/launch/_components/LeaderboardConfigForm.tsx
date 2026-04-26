@@ -7,7 +7,7 @@ import { cn } from "@repo/lib";
 import { Button } from "@repo/ui";
 import { FormField } from "@/components/shared/FormField";
 import { defaultTierWeights, LAMPORTS_PER_SOL_NUMBER } from "@repo/shared";
-import type { LeaderboardConfig } from "./WizardShell";
+import type { LeaderboardConfig } from "@/lib/state/launch-wizard-store";
 
 const TOP_N_MIN = 3; // server-side Zod minimum (PayoutConfigSchema.topN)
 const TOP_N_MAX = 50;
