@@ -32,7 +32,7 @@ export function PublicAppShell({
 }) {
   return (
     <SidebarProvider>
-      <div className="flex h-screen overflow-hidden bg-bg text-fg">
+      <div className="flex h-screen overflow-hidden bg-app-gradient text-fg">
         {/* Sidebar — inline on lg+ (with 12px outer gutter), fixed slide-over
             drawer on < lg (positioned by the Sidebar primitive). The wrapper
             collapses to zero width below lg so content reflows full-width. */}
@@ -41,7 +41,7 @@ export function PublicAppShell({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3">
+          <main className="min-w-0 flex-1 overflow-y-auto bg-app-gradient px-4 pt-4 pb-3 lg:pl-10 lg:pr-4">
             <div className="mx-auto w-full max-w-content">
               <div className="mb-3 lg:hidden">
                 <MobileSidebarTrigger />
