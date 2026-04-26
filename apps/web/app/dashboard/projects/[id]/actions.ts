@@ -14,6 +14,7 @@ import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { check } from "@/lib/rate-limit";
 import { updateProjectCaches } from "@/lib/cache-actions";
+import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
 
 /**
  * Server Actions for the per-project admin console.
@@ -97,36 +98,10 @@ export async function pauseProject(
 // ---------------------------------------------------------------------------
 // updateScoringConfig — edit windowDays / weights / claim threshold
 // ---------------------------------------------------------------------------
-const scoringConfigSchema = z.object({
-  formulaVersion: z.enum(["v0", "v1"]).default("v0"),
-  windowDays: z.number().int().min(7).max(90),
-  weights: z.object({
-    mergedPRs: z.number().min(0),
-    commits: z.number().min(0),
-    reviews: z.number().min(0),
-    issues: z.number().min(0),
-    netLines: z.number().min(0),
-  }),
-  decay: z.enum(["off", "linear", "exponential"]).default("off"),
-  botBlocklist: z.array(z.string()).default([]),
-  botAllowlist: z.array(z.string()).default([]),
-});
-
-const payoutConfigSchema = z
-  .object({
-    topN: z.number().int().min(1).max(100),
-    tierWeights: z.array(z.number().min(0).max(1)).min(1).max(100),
-    claimThresholdLamports: z.number().int().min(0),
-  })
-  .refine(
-    (v) => Math.abs(v.tierWeights.reduce((acc, n) => acc + n, 0) - 1) < 0.001,
-    { message: "tierWeights must sum to 1.0" },
-  );
-
 const updateScoringSchema = z.object({
   projectId: z.string().min(1),
-  scoring: scoringConfigSchema,
-  payout: payoutConfigSchema,
+  scoring: ScoringConfigSchema,
+  payout: PayoutConfigSchema,
   idempotencyKey: z.string().min(8).max(128).optional(),
 });
 

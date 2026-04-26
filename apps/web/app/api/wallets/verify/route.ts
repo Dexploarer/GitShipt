@@ -9,6 +9,7 @@ import { audit } from "@/lib/audit";
 import { hasCredentials, serverEnv, clientEnv } from "@/lib/env";
 import { withIdempotency } from "@/lib/idempotency";
 import { headers } from "next/headers";
+import { WalletVerifyResponseSchema } from "@repo/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -109,7 +110,10 @@ export async function POST(req: Request): Promise<Response> {
         userAgent: req.headers.get("user-agent"),
       });
 
-      return { ok: true as const, address: result.address };
+      return WalletVerifyResponseSchema.parse({
+        ok: true,
+        address: result.address,
+      });
     },
     { scope: `wallet:verify:${session.user.id}` },
   );

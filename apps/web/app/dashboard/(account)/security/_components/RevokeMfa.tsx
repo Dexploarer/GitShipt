@@ -5,6 +5,7 @@ import { Button } from "@repo/ui";
 import { Input } from "@repo/ui";
 import { FormField } from "@/components/shared/FormField";
 import { FormError } from "@/components/shared/FormError";
+import { ApiErrorResponseSchema } from "@repo/shared";
 
 /**
  * Disables MFA. Requires a valid current code so a stolen session cookie
@@ -27,8 +28,13 @@ export function RevokeMfa() {
         body: JSON.stringify({ token }),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `revoke failed: ${res.status}`);
+        const body = ApiErrorResponseSchema.safeParse(
+          await res.json().catch(() => null),
+        );
+        throw new Error(
+          (body.success ? body.data.error : null) ??
+            `revoke failed: ${res.status}`,
+        );
       }
       window.location.reload();
     } catch (err) {

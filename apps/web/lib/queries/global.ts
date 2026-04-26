@@ -10,6 +10,7 @@ import {
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { redis } from "@/lib/redis";
 import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { z } from "zod";
 
 /**
  * Public marketing data layer. Powers the landing hero ticker, the Top
@@ -29,7 +30,7 @@ export interface LandingProject {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
   contributorsCount: number;
   lifetimeFeesLamports: bigint;
   dailyFeeLamports: bigint;
@@ -453,16 +454,16 @@ export function getLiveTickerData(): Promise<LandingTicker> {
  */
 export const LANDING_TICKER_CACHE_KEY = "gitbags:ticker:landing";
 
-interface CachedLandingTickerPayload {
-  ticker: {
-    volume24hUsd: number;
-    lifetimeFeesLamports: string; // bigint as string
-    activeProjects: number;
-    contributorsEarning: number;
-  };
-  publishedAt: string;
-  stepId?: string;
-}
+const CachedLandingTickerPayloadSchema = z.object({
+  ticker: z.object({
+    volume24hUsd: z.number(),
+    lifetimeFeesLamports: z.string(),
+    activeProjects: z.number().int().min(0),
+    contributorsEarning: z.number().int().min(0),
+  }),
+  publishedAt: z.string().min(1),
+  stepId: z.string().optional(),
+});
 
 /**
  * Read the cron-published landing ticker snapshot from Redis. Returns
@@ -478,8 +479,7 @@ export async function getCachedLandingTicker(): Promise<LandingTicker | null> {
   try {
     const raw = await r.get(LANDING_TICKER_CACHE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as CachedLandingTickerPayload;
-    if (!parsed?.ticker) return null;
+    const parsed = CachedLandingTickerPayloadSchema.parse(JSON.parse(raw));
     return {
       volume24hUsd: Number(parsed.ticker.volume24hUsd) || 0,
       lifetimeFeesLamports: BigInt(parsed.ticker.lifetimeFeesLamports ?? "0"),

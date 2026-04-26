@@ -1,7 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { z } from "zod";
 import { eq, and, sql, inArray, isNull } from "drizzle-orm";
 import { start } from "workflow/api";
 import { auth } from "@/lib/auth";
@@ -21,12 +20,9 @@ import {
   revalidateContributorCaches,
   revalidateProjectCaches,
 } from "@/lib/cache";
+import { ClaimEscrowRequestSchema } from "@repo/shared";
 
 export const dynamic = "force-dynamic";
-
-const BodySchema = z.object({
-  projectId: z.string().min(1).optional(),
-});
 
 interface DrainedItem {
   projectSlug: string;
@@ -79,7 +75,7 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const parsed = BodySchema.safeParse(raw);
+  const parsed = ClaimEscrowRequestSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "invalid_body", issues: parsed.error.flatten() },

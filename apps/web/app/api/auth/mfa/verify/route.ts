@@ -11,6 +11,7 @@ import { hasCredentials } from "@/lib/env";
 import { decryptSecret, markMfaConfirmed, verifyTotp } from "@/lib/auth/mfa";
 import { check } from "@/lib/rate-limit";
 import { withIdempotency } from "@/lib/idempotency";
+import { MfaVerifyResponseSchema } from "@repo/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -94,10 +95,10 @@ export async function POST(req: Request): Promise<Response> {
         userAgent: h.get("user-agent"),
       });
 
-      return {
+      return MfaVerifyResponseSchema.parse({
         ok: true,
         confirmedAt: new Date(confirmedAtMs).toISOString(),
-      };
+      });
     },
     { scope: `auth:mfa-verify:${userId}` },
   );

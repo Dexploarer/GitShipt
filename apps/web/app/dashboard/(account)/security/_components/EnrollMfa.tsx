@@ -5,8 +5,11 @@ import { Button } from "@repo/ui";
 import { Input } from "@repo/ui";
 import { FormField } from "@/components/shared/FormField";
 import { FormError } from "@/components/shared/FormError";
-
-type EnrollResponse = { qrDataUrl: string; secretBase32: string };
+import {
+  ApiErrorResponseSchema,
+  MfaEnrollResponseSchema,
+  type MfaEnrollResponse,
+} from "@repo/shared";
 
 /**
  * Enrollment flow:
@@ -16,7 +19,7 @@ type EnrollResponse = { qrDataUrl: string; secretBase32: string };
  *   4. Page reloads to show the enrolled state.
  */
 export function EnrollMfa() {
-  const [data, setData] = React.useState<EnrollResponse | null>(null);
+  const [data, setData] = React.useState<MfaEnrollResponse | null>(null);
   const [token, setToken] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -27,10 +30,15 @@ export function EnrollMfa() {
     try {
       const res = await fetch("/api/auth/mfa/enroll", { method: "POST" });
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `enroll failed: ${res.status}`);
+        const body = ApiErrorResponseSchema.safeParse(
+          await res.json().catch(() => null),
+        );
+        throw new Error(
+          (body.success ? body.data.error : null) ??
+            `enroll failed: ${res.status}`,
+        );
       }
-      setData((await res.json()) as EnrollResponse);
+      setData(MfaEnrollResponseSchema.parse(await res.json()));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -48,8 +56,13 @@ export function EnrollMfa() {
         body: JSON.stringify({ token }),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `verify failed: ${res.status}`);
+        const body = ApiErrorResponseSchema.safeParse(
+          await res.json().catch(() => null),
+        );
+        throw new Error(
+          (body.success ? body.data.error : null) ??
+            `verify failed: ${res.status}`,
+        );
       }
       window.location.reload();
     } catch (e) {

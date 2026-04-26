@@ -1,6 +1,13 @@
 import "server-only";
 import { Octokit } from "@octokit/rest";
 import { redis } from "@/lib/redis";
+import {
+  GitHubUserProfileCacheSchema,
+  GitHubUserProfileSchema,
+  type GitHubUserProfile,
+} from "@repo/shared";
+
+export type { GitHubUserProfile };
 
 /**
  * Public GitHub user profile fetcher with a 30-minute Redis cache.
@@ -15,24 +22,6 @@ import { redis } from "@/lib/redis";
  * occurs — the caller should treat this as "no GitHub data available" and
  * fall back to whatever it has from our DB.
  */
-
-export interface GitHubUserProfile {
-  login: string;
-  id: number;
-  name: string | null;
-  bio: string | null;
-  company: string | null;
-  location: string | null;
-  blog: string | null;
-  email: string | null;
-  twitterUsername: string | null;
-  avatarUrl: string;
-  htmlUrl: string;
-  publicRepos: number;
-  followers: number;
-  following: number;
-  createdAt: string;
-}
 
 const CACHE_PREFIX = "gh:user:";
 const CACHE_TTL_SECONDS = 60 * 30; // 30 minutes
@@ -56,9 +45,7 @@ export async function getGitHubUser(
     try {
       const cached = await r.get(cacheKey);
       if (cached) {
-        const parsed = JSON.parse(cached) as
-          | GitHubUserProfile
-          | { __null: true };
+        const parsed = GitHubUserProfileCacheSchema.parse(JSON.parse(cached));
         if ("__null" in parsed) return null;
         return parsed;
       }
@@ -70,7 +57,7 @@ export async function getGitHubUser(
   let profile: GitHubUserProfile | null = null;
   try {
     const { data } = await publicOctokit().users.getByUsername({ username });
-    profile = {
+    profile = GitHubUserProfileSchema.parse({
       login: data.login,
       id: data.id,
       name: data.name ?? null,
@@ -86,7 +73,7 @@ export async function getGitHubUser(
       followers: data.followers,
       following: data.following,
       createdAt: data.created_at,
-    };
+    });
   } catch (e) {
     const status = (e as { status?: number })?.status;
     if (status !== 404) {

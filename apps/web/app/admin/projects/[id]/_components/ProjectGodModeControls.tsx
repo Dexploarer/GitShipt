@@ -11,8 +11,9 @@ import {
   recomputeLeaderboard,
   overrideScoringConfig,
 } from "@/app/admin/actions";
+import { ScoringConfigSchema } from "@repo/shared";
 
-type Status = "draft" | "live" | "paused" | "killed" | "simulated_live";
+type Status = "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
 
 export function ProjectGodModeControls({
   projectId,
@@ -54,7 +55,7 @@ export function ProjectGodModeControls({
     setScoringErr(null);
     let parsed: unknown;
     try {
-      parsed = JSON.parse(scoring);
+      parsed = ScoringConfigSchema.parse(JSON.parse(scoring));
     } catch (e) {
       setScoringErr(`Invalid JSON: ${(e as Error).message}`);
       return;
