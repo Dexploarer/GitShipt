@@ -59,18 +59,6 @@ export default async function LandingPage() {
                 no committee.
               </p>
 
-              <div className="mt-1 flex flex-wrap items-center gap-2.5">
-                <Button asChild variant="primary" size="lg">
-                  <Link href="/launch">
-                    Launch a token
-                    <ArrowUpRight className="size-4" aria-hidden />
-                  </Link>
-                </Button>
-                <Button asChild variant="secondary" size="lg">
-                  <Link href="/explore">Browse projects</Link>
-                </Button>
-              </div>
-
               <Link
                 href="https://github.com/SYMBaiEX/gitbags"
                 target="_blank"
@@ -91,8 +79,8 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <aside className="relative lg:col-span-7 lg:min-h-0">
-            <div className="pointer-events-none relative mx-auto aspect-square w-full max-w-[480px] sm:max-w-[560px] lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:w-full lg:max-w-none">
+          <aside className="flex flex-col gap-3 lg:col-span-7 lg:min-h-0">
+            <div className="pointer-events-none relative mx-auto aspect-square w-full max-w-[480px] sm:max-w-[560px] lg:aspect-auto lg:h-auto lg:w-full lg:max-w-none lg:flex-1 lg:min-h-0">
               <Image
                 src="/mia.png"
                 alt=""
@@ -102,6 +90,18 @@ export default async function LandingPage() {
                 className="object-contain object-bottom"
                 unoptimized
               />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2.5 lg:shrink-0">
+              <Button asChild variant="primary" size="lg">
+                <Link href="/launch">
+                  Launch a token
+                  <ArrowUpRight className="size-4" aria-hidden />
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="lg">
+                <Link href="/explore">Browse projects</Link>
+              </Button>
             </div>
           </aside>
         </div>
