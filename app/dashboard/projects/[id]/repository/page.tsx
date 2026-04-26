@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import {
   CheckCircle2,
   Download,
@@ -12,7 +11,6 @@ import { hasCredentials } from "@/lib/env";
 import { getIndexerState } from "@/lib/queries/dashboard";
 import { formatRelativeTime } from "@/lib/format";
 import { loadProjectFor } from "../../../_components/loadProject";
-import { AppShell } from "../../../_components/AppShell";
 import {
   Card,
   CardHeader,
@@ -45,157 +43,146 @@ export default async function RepositoryPage({
   const installUrl = `/api/projects/${id}/install-github`;
 
   return (
-    <AppShell
-      sidebar={
-        <AppSidebar
-          surface={{
-            kind: "owner-project",
-            projectId: id,
-            projectName: project.name,
-            slug: project.slug,
-          }}
-        />
-      }
-      footerLeft={`${project.slug} · devnet · BAGS.fm`}
-    >
-      <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-        <Breadcrumbs
-          items={[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Projects", href: "/dashboard/projects" },
-            { label: project.name, href: `/dashboard/projects/${id}` },
-            { label: "Repository" },
-          ]}
-        />
+    <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
+          { label: project.name, href: `/dashboard/projects/${id}` },
+          { label: "Repository" },
+        ]}
+      />
 
-        <header>
-          <h1 className="text-headline-lg leading-tight text-fg">Repository</h1>
-          <p className="text-body-md text-fg-secondary">
-            GitHub install state, indexer cursors, and re-sync controls.
-          </p>
-        </header>
+      <header>
+        <h1 className="text-headline-lg leading-tight text-fg">Repository</h1>
+        <p className="text-body-md text-fg-secondary">
+          GitHub install state, indexer cursors, and re-sync controls.
+        </p>
+      </header>
 
-        {installedParam === "1" ? (
-          <div className="rounded-md border border-success/40 bg-success/10 px-4 py-3 text-body-sm text-fg">
-            <span className="inline-flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-success" />
-              GitHub App installed. The next indexer beat will pick up your
-              activity — or click <strong>Re-index now</strong> below to kick
-              it off immediately.
+      {installedParam === "1" ? (
+        <div className="rounded-md border border-success/40 bg-success/10 px-4 py-3 text-body-sm text-fg">
+          <span className="inline-flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-success" />
+            GitHub App installed. The next indexer beat will pick up your
+            activity — or click <strong>Re-index now</strong> below to kick it
+            off immediately.
+          </span>
+        </div>
+      ) : installedParam === "pending" ? (
+        <div className="rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-body-sm text-fg">
+          Installation requested. An org admin must approve the GitHub App
+          before indexing can begin.
+        </div>
+      ) : null}
+
+      <Card depth="flat" padding="none">
+        <CardHeader className="border-b border-border px-6 py-4">
+          <CardTitle>GitHub link</CardTitle>
+          <CardDescription>
+            The repo whose activity feeds this project&apos;s leaderboard.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 px-6 py-5">
+          <Row label="Slug">
+            <Link
+              href={`https://github.com/${project.slug}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-1 text-mono-md text-primary hover:underline"
+            >
+              <Github className="size-3.5" /> {project.slug}
+              <ExternalLink className="size-3" />
+            </Link>
+          </Row>
+          <Row label="Installation">
+            {isInstalled ? (
+              <Badge variant="success" size="sm" dot>
+                <CheckCircle2 className="size-3" /> Installed (
+                {project.ghInstallationId})
+              </Badge>
+            ) : (
+              <Badge variant="warning" size="sm">
+                <XCircle className="size-3" /> Not installed
+              </Badge>
+            )}
+          </Row>
+          <div className="border-t border-border pt-3">
+            {isInstalled ? (
+              <div className="flex flex-col gap-1">
+                <Button asChild variant="secondary">
+                  <a href={installUrl}>
+                    <Github className="size-4" /> Manage GitHub App installation
+                  </a>
+                </Button>
+                <p className="text-caption text-fg-muted">
+                  Re-running the install flow lets you change which repos the
+                  App can see.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <Button asChild variant="primary">
+                  <a href={installUrl}>
+                    <Download className="size-4" /> Install GitHub App
+                  </a>
+                </Button>
+                <p className="text-caption text-fg-muted">
+                  Required before GitBags can index commits, PRs, and reviews
+                  for this repo.
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card depth="flat" padding="none">
+        <CardHeader className="border-b border-border px-6 py-4">
+          <CardTitle>Indexer state</CardTitle>
+          <CardDescription>
+            GitBags pulls events every 15 minutes via the GitHub App.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 px-6 py-5">
+          <Row label="Last full sync">
+            <span className="text-mono-sm text-fg">
+              {indexer?.lastFullSyncAt
+                ? formatRelativeTime(indexer.lastFullSyncAt)
+                : "never"}
             </span>
-          </div>
-        ) : installedParam === "pending" ? (
-          <div className="rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-body-sm text-fg">
-            Installation requested. An org admin must approve the GitHub App
-            before indexing can begin.
-          </div>
-        ) : null}
-
-        <Card depth="flat" padding="none">
-          <CardHeader className="border-b border-border px-6 py-4">
-            <CardTitle>GitHub link</CardTitle>
-            <CardDescription>
-              The repo whose activity feeds this project&apos;s leaderboard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 px-6 py-5">
-            <Row label="Slug">
-              <Link
-                href={`https://github.com/${project.slug}`}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="inline-flex items-center gap-1 text-mono-md text-primary hover:underline"
-              >
-                <Github className="size-3.5" /> {project.slug}
-                <ExternalLink className="size-3" />
-              </Link>
-            </Row>
-            <Row label="Installation">
-              {isInstalled ? (
-                <Badge variant="success" size="sm" dot>
-                  <CheckCircle2 className="size-3" /> Installed (
-                  {project.ghInstallationId})
-                </Badge>
-              ) : (
-                <Badge variant="warning" size="sm">
-                  <XCircle className="size-3" /> Not installed
-                </Badge>
-              )}
-            </Row>
-            <div className="border-t border-border pt-3">
-              {isInstalled ? (
-                <div className="flex flex-col gap-1">
-                  <Button asChild variant="secondary">
-                    <a href={installUrl}>
-                      <Github className="size-4" /> Manage GitHub App
-                      installation
-                    </a>
-                  </Button>
-                  <p className="text-caption text-fg-muted">
-                    Re-running the install flow lets you change which repos
-                    the App can see.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  <Button asChild variant="primary">
-                    <a href={installUrl}>
-                      <Download className="size-4" /> Install GitHub App
-                    </a>
-                  </Button>
-                  <p className="text-caption text-fg-muted">
-                    Required before GitBags can index commits, PRs, and
-                    reviews for this repo.
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card depth="flat" padding="none">
-          <CardHeader className="border-b border-border px-6 py-4">
-            <CardTitle>Indexer state</CardTitle>
-            <CardDescription>
-              GitBags pulls events every 15 minutes via the GitHub App.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 px-6 py-5">
-            <Row label="Last full sync">
+          </Row>
+          <Row label="Last incremental sync">
+            <div className="flex items-center gap-2">
               <span className="text-mono-sm text-fg">
-                {indexer?.lastFullSyncAt
-                  ? formatRelativeTime(indexer.lastFullSyncAt)
+                {indexer?.lastIncrementalSyncAt
+                  ? formatRelativeTime(indexer.lastIncrementalSyncAt)
                   : "never"}
               </span>
-            </Row>
-            <Row label="Last incremental sync">
-              <div className="flex items-center gap-2">
-                <span className="text-mono-sm text-fg">
-                  {indexer?.lastIncrementalSyncAt
-                    ? formatRelativeTime(indexer.lastIncrementalSyncAt)
-                    : "never"}
-                </span>
-                {indexer?.isStale ? (
-                  <Badge variant="warning" size="sm">stale</Badge>
-                ) : indexer?.lastIncrementalSyncAt ? (
-                  <Badge variant="success" size="sm">fresh</Badge>
-                ) : null}
-              </div>
-            </Row>
-            {indexer?.lastError ? (
-              <Row label="Last error">
-                <span className="text-mono-sm text-danger truncate">
-                  {indexer.lastError}
-                </span>
-              </Row>
-            ) : null}
-            <div className="border-t border-border pt-3">
-              <ReindexButton projectId={id} installed={isInstalled} />
+              {indexer?.isStale ? (
+                <Badge variant="warning" size="sm">
+                  stale
+                </Badge>
+              ) : indexer?.lastIncrementalSyncAt ? (
+                <Badge variant="success" size="sm">
+                  fresh
+                </Badge>
+              ) : null}
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </AppShell>
+          </Row>
+          {indexer?.lastError ? (
+            <Row label="Last error">
+              <span className="text-mono-sm text-danger truncate">
+                {indexer.lastError}
+              </span>
+            </Row>
+          ) : null}
+          <div className="border-t border-border pt-3">
+            <ReindexButton projectId={id} installed={isInstalled} />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -216,25 +203,12 @@ function Row({
 
 function Stub() {
   return (
-    <AppShell
-      sidebar={
-        <AppSidebar
-          surface={{
-            kind: "owner-project",
-            projectId: "",
-            projectName: "—",
-            slug: "—/—",
-          }}
-        />
-      }
-    >
-      <div className="mx-auto w-full max-w-content">
-        <EmptyState
-          icon={Sparkles}
-          title="Stub mode"
-          description="Set DATABASE_URL to view repository state."
-        />
-      </div>
-    </AppShell>
+    <div className="mx-auto w-full max-w-content">
+      <EmptyState
+        icon={Sparkles}
+        title="Stub mode"
+        description="Set DATABASE_URL to view repository state."
+      />
+    </div>
   );
 }

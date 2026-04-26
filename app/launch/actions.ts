@@ -15,6 +15,7 @@ import { hasCredentials, canLaunchOnBags, serverEnv } from "@/lib/env";
 import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
+import { revalidateProjectCaches } from "@/lib/cache";
 import {
   CreateProjectBodySchema,
   type CreateProjectBody,
@@ -356,6 +357,7 @@ export async function createAndLaunchAction(
 
     // Revalidate the now-live public project page.
     revalidatePath(`/r/${result.ghOwner}/${result.ghRepo}`);
+    await revalidateProjectCaches(result.projectId, `${result.ghOwner}/${result.ghRepo}`);
     return result;
   } catch (e) {
     if (e instanceof ActionError) {

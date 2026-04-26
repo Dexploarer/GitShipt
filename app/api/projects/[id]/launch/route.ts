@@ -12,6 +12,7 @@ import { hasCredentials, canLaunchOnBags, serverEnv } from "@/lib/env";
 import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { LaunchProjectResponseSchema } from "@/shared";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -278,6 +279,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       });
     });
 
+    await revalidateProjectCaches(projectId);
     return NextResponse.json(result, { status: 200 });
   } catch (e) {
     if (e instanceof LaunchError) {

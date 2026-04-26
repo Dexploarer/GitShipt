@@ -1,9 +1,8 @@
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Rocket, FolderGit2 } from "lucide-react";
-import { auth } from "@/lib/auth";
 import { hasCredentials } from "@/lib/env";
+import { getAuthSession } from "@/lib/auth/session";
 import { getMyProjects } from "@/lib/queries/dashboard";
 import { AppShell } from "../_components/AppShell";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -39,7 +38,7 @@ export default async function ProjectsPage() {
     );
   }
 
-  const session = await auth().api.getSession({ headers: await headers() });
+  const session = await getAuthSession();
   if (!session?.user) redirect("/auth/signin?next=/dashboard/projects");
 
   const projects = await getMyProjects(session.user.id);

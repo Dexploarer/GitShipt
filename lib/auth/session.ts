@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { headers } from "next/headers";
 import { auth } from "./index";
 import { isPlatformAdmin } from "./admin-check";
@@ -33,7 +34,7 @@ export interface SessionUserChrome {
   isPlatformAdmin: boolean;
 }
 
-export async function getSessionUser(): Promise<SessionUserChrome | null> {
+export const getAuthSession = cache(async () => {
   if (!hasCredentials.db()) return null;
 
   let session: Awaited<ReturnType<ReturnType<typeof auth>["api"]["getSession"]>>;
@@ -43,6 +44,12 @@ export async function getSessionUser(): Promise<SessionUserChrome | null> {
     return null;
   }
 
+  if (!session?.user?.id) return null;
+  return session;
+});
+
+export async function getSessionUser(): Promise<SessionUserChrome | null> {
+  const session = await getAuthSession();
   if (!session?.user?.id) return null;
 
   const isAdmin = await isPlatformAdmin(session.user.id);

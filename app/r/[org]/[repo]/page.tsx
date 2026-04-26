@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 import type { Metadata } from "next";
-import { auth } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/session";
 import { isProjectAdmin } from "@/lib/auth/admin-check";
 import { hasCredentials } from "@/lib/env";
 import { getProjectPageData } from "@/lib/queries/project-page";
@@ -73,7 +72,7 @@ export default async function ProjectPage({
     imageUrl?: string | null;
   } | null = null;
   if (hasCredentials.db()) {
-    const session = await auth().api.getSession({ headers: await headers() });
+    const session = await getAuthSession();
     if (session?.user) {
       user = {
         name: session.user.name ?? null,

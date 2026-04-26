@@ -23,6 +23,7 @@ import {
   DestructiveActionError,
 } from "@/lib/auth/destructive-action";
 import { serverEnv } from "@/lib/env";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 /**
  * Server actions for the super-admin console.
@@ -104,6 +105,7 @@ export async function pauseProject(input: unknown): Promise<{ ok: true }> {
 
   revalidatePath(`/admin/projects/${proj.id}`);
   revalidatePath("/admin/projects");
+  await revalidateProjectCaches(proj.id);
   return { ok: true };
 }
 
@@ -145,6 +147,7 @@ export async function killProject(input: unknown): Promise<{ ok: true }> {
 
   revalidatePath(`/admin/projects/${proj.id}`);
   revalidatePath("/admin/projects");
+  await revalidateProjectCaches(proj.id);
   return { ok: true };
 }
 
@@ -180,6 +183,7 @@ export async function overrideScoringConfig(input: unknown): Promise<{ ok: true 
   });
 
   revalidatePath(`/admin/projects/${parsed.projectId}`);
+  await revalidateProjectCaches(parsed.projectId);
   return { ok: true };
 }
 
@@ -234,6 +238,7 @@ export async function retryPayout(input: unknown): Promise<{ ok: true }> {
   });
 
   revalidatePath("/admin/payouts");
+  await revalidateProjectCaches(row.projectId);
   return { ok: true };
 }
 
@@ -283,6 +288,7 @@ export async function cancelPayout(input: unknown): Promise<{ ok: true }> {
   );
 
   revalidatePath("/admin/payouts");
+  await revalidateProjectCaches(row.projectId);
   return { ok: true };
 }
 
@@ -331,6 +337,7 @@ export async function forceSnapshot(input: unknown): Promise<{ ok: true }> {
   });
 
   revalidatePath(`/admin/projects/${parsed.projectId}`);
+  await revalidateProjectCaches(parsed.projectId);
   return { ok: true };
 }
 
@@ -686,6 +693,7 @@ export async function recomputeLeaderboard(input: unknown): Promise<{ ok: true }
   });
 
   revalidatePath(`/admin/projects/${parsed.projectId}`);
+  await revalidateProjectCaches(parsed.projectId);
   return { ok: true };
 }
 
@@ -715,6 +723,7 @@ export async function updatePayoutConfig(input: unknown): Promise<{ ok: true }> 
     userAgent: ctx.userAgent,
   });
   revalidatePath(`/admin/projects/${parsed.projectId}`);
+  await revalidateProjectCaches(parsed.projectId);
   return { ok: true };
 }
 

@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { auth } from "@/lib/auth";
 import { hasCredentials } from "@/lib/env";
+import { getAuthSession } from "@/lib/auth/session";
 
 /**
  * `/dashboard/**` shell. Wraps every dashboard route in a SidebarProvider
@@ -26,7 +25,7 @@ export default async function DashboardLayout({
     return <SidebarProvider>{children}</SidebarProvider>;
   }
 
-  const session = await auth().api.getSession({ headers: await headers() });
+  const session = await getAuthSession();
   if (!session?.user) {
     redirect("/auth/signin?next=/dashboard");
   }

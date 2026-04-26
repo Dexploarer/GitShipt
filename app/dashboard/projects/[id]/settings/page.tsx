@@ -1,7 +1,5 @@
 import { hasCredentials } from "@/lib/env";
-import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { loadProjectFor } from "../../../_components/loadProject";
-import { AppShell } from "../../../_components/AppShell";
 import {
   Card,
   CardHeader,
@@ -30,123 +28,91 @@ export default async function SettingsPage({
   const { project } = ctx;
 
   return (
-    <AppShell
-      sidebar={
-        <AppSidebar
-          surface={{
-            kind: "owner-project",
-            projectId: id,
-            projectName: project.name,
-            slug: project.slug,
-          }}
-        />
-      }
-      footerLeft={`${project.slug} · devnet · BAGS.fm`}
-    >
-      <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-        <Breadcrumbs
-          items={[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Projects", href: "/dashboard" },
-            { label: project.name, href: `/dashboard/projects/${id}` },
-            { label: "Settings" },
-          ]}
-        />
-        <header>
-          <h1 className="text-headline-lg leading-tight text-fg">Settings</h1>
-          <p className="text-body-md text-fg-secondary">
-            Project metadata, pause controls, ownership transfer, and deletion.
-          </p>
-        </header>
+    <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard" },
+          { label: project.name, href: `/dashboard/projects/${id}` },
+          { label: "Settings" },
+        ]}
+      />
+      <header>
+        <h1 className="text-headline-lg leading-tight text-fg">Settings</h1>
+        <p className="text-body-md text-fg-secondary">
+          Project metadata, pause controls, ownership transfer, and deletion.
+        </p>
+      </header>
 
-        <Card depth="flat" padding="none">
-          <CardHeader className="border-b border-border px-6 py-4">
-            <CardTitle>General</CardTitle>
-            <CardDescription>Display name, description, image.</CardDescription>
-          </CardHeader>
-          <CardContent className="px-6 py-5">
-            <GeneralForm
-              projectId={id}
-              initialName={project.name}
-              initialDescription={project.description}
-              initialImageUrl={project.imageUrl}
-            />
-          </CardContent>
-        </Card>
+      <Card depth="flat" padding="none">
+        <CardHeader className="border-b border-border px-6 py-4">
+          <CardTitle>General</CardTitle>
+          <CardDescription>Display name, description, image.</CardDescription>
+        </CardHeader>
+        <CardContent className="px-6 py-5">
+          <GeneralForm
+            projectId={id}
+            initialName={project.name}
+            initialDescription={project.description}
+            initialImageUrl={project.imageUrl}
+          />
+        </CardContent>
+      </Card>
 
-        <Card depth="flat" padding="none">
-          <CardHeader className="border-b border-border px-6 py-4">
-            <CardTitle>Pause project</CardTitle>
-            <CardDescription>
-              While paused, snapshots and payouts are skipped. Public page shows
-              a paused badge. Toggle anytime.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-6 py-5">
-            <PauseSection
-              projectId={id}
-              status={project.status}
-              pausedReason={project.pausedReason}
-            />
-          </CardContent>
-        </Card>
+      <Card depth="flat" padding="none">
+        <CardHeader className="border-b border-border px-6 py-4">
+          <CardTitle>Pause project</CardTitle>
+          <CardDescription>
+            While paused, snapshots and payouts are skipped. Public page shows a
+            paused badge. Toggle anytime.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-6 py-5">
+          <PauseSection
+            projectId={id}
+            status={project.status}
+            pausedReason={project.pausedReason}
+          />
+        </CardContent>
+      </Card>
 
-        <Card depth="flat" padding="none">
-          <CardHeader className="border-b border-border px-6 py-4">
-            <CardTitle>Transfer ownership</CardTitle>
-            <CardDescription>
-              Hand the project to another GitBags user — by their GitHub
-              username. They must already have signed in at least once.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-6 py-5">
-            <TransferForm projectId={id} slug={project.slug} />
-          </CardContent>
-        </Card>
+      <Card depth="flat" padding="none">
+        <CardHeader className="border-b border-border px-6 py-4">
+          <CardTitle>Transfer ownership</CardTitle>
+          <CardDescription>
+            Hand the project to another GitBags user — by their GitHub username.
+            They must already have signed in at least once.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-6 py-5">
+          <TransferForm projectId={id} slug={project.slug} />
+        </CardContent>
+      </Card>
 
-        <Card
-          depth="flat"
-          padding="none"
-          className="border-danger/40"
-        >
-          <CardHeader className="border-b border-danger/40 px-6 py-4">
-            <CardTitle className="text-danger">Danger zone</CardTitle>
-            <CardDescription>
-              Deleting marks the project killed. Funds in escrow remain
-              claimable. There is a 24-hour cool-down before re-launching the
-              same repo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-6 py-5">
-            <DangerSection projectId={id} slug={project.slug} />
-          </CardContent>
-        </Card>
-      </div>
-    </AppShell>
+      <Card depth="flat" padding="none" className="border-danger/40">
+        <CardHeader className="border-b border-danger/40 px-6 py-4">
+          <CardTitle className="text-danger">Danger zone</CardTitle>
+          <CardDescription>
+            Deleting marks the project killed. Funds in escrow remain claimable.
+            There is a 24-hour cool-down before re-launching the same repo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-6 py-5">
+          <DangerSection projectId={id} slug={project.slug} />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 function Stub() {
   return (
-    <AppShell
-      sidebar={
-        <AppSidebar
-          surface={{
-            kind: "owner-project",
-            projectId: "",
-            projectName: "—",
-            slug: "—/—",
-          }}
-        />
-      }
-    >
-      <div className="mx-auto w-full max-w-content">
-        <EmptyState
-          icon={Sparkles}
-          title="Stub mode"
-          description="Set DATABASE_URL to manage settings."
-        />
-      </div>
-    </AppShell>
+    <div className="mx-auto w-full max-w-content">
+      <EmptyState
+        icon={Sparkles}
+        title="Stub mode"
+        description="Set DATABASE_URL to manage settings."
+      />
+    </div>
   );
 }

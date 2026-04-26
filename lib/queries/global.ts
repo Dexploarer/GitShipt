@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { dbHttp } from "@/db";
 import {
   projects,
@@ -10,6 +11,7 @@ import {
 } from "@/db/schema";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { redis } from "@/lib/redis";
+import { CACHE_SECONDS, cacheTags } from "@/lib/cache";
 
 /**
  * Public marketing data layer. Powers the landing hero ticker, the Top
@@ -120,7 +122,7 @@ function dailyFromLifetime(
  * to the DB for each piece; ticker aggregates run as a few small COUNTs
  * + SUMs and should be sub-100ms even on a cold pool.
  */
-export async function getLandingData(): Promise<LandingData> {
+async function getLandingDataUncached(): Promise<LandingData> {
   // Top 9 live projects, ranked by computed lifetime fees from the payouts
   // table (the canonical on-chain truth). LEFT JOIN so projects with zero
   // payouts still surface (they're the freshest launches).
@@ -211,6 +213,15 @@ export async function getLandingData(): Promise<LandingData> {
   };
 }
 
+export const getLandingData = unstable_cache(
+  getLandingDataUncached,
+  ["gitbags:landing-data:v1"],
+  {
+    tags: [cacheTags.public, cacheTags.landing],
+    revalidate: CACHE_SECONDS.live,
+  },
+);
+
 /**
  * Global cross-project leaderboard. Returns two views computed in parallel
  * so the page can switch tabs without a second round-trip.
@@ -223,7 +234,7 @@ export async function getLandingData(): Promise<LandingData> {
  * `byProject`: each project's lifetime fees + distinct paid contributor
  * count, derived from completed payouts.
  */
-export async function getGlobalLeaderboard(): Promise<{
+async function getGlobalLeaderboardUncached(): Promise<{
   byContributor: GlobalLeaderboardEntry[];
   byProject: GlobalProjectEntry[];
 }> {
@@ -369,6 +380,15 @@ export async function getGlobalLeaderboard(): Promise<{
   return { byContributor, byProject };
 }
 
+export const getGlobalLeaderboard = unstable_cache(
+  getGlobalLeaderboardUncached,
+  ["gitbags:global-leaderboard:v1"],
+  {
+    tags: [cacheTags.public, cacheTags.globalLeaderboard],
+    revalidate: CACHE_SECONDS.browse,
+  },
+);
+
 /**
  * Slim ticker-only fetch for any future client-side polling endpoint. Same
  * shape as `LandingTicker`. Currently unused (the landing's `<LiveTicker>`
@@ -376,7 +396,7 @@ export async function getGlobalLeaderboard(): Promise<{
  * animates them client-side), but exposed so a `/api/ticker` route can wrap
  * this without re-importing the heavier `getLandingData`.
  */
-export async function getLiveTickerData(): Promise<LandingTicker> {
+async function getLiveTickerDataUncached(): Promise<LandingTicker> {
   const [feesRows, activeRows, earningRows, walletRows] = await Promise.all([
     dbHttp
       .select({
@@ -413,6 +433,15 @@ export async function getLiveTickerData(): Promise<LandingTicker> {
     contributorsEarning: earningRows[0]?.count ?? 0,
   };
 }
+
+export const getLiveTickerData = unstable_cache(
+  getLiveTickerDataUncached,
+  ["gitbags:live-ticker:v1"],
+  {
+    tags: [cacheTags.public, cacheTags.liveTicker, cacheTags.landing],
+    revalidate: CACHE_SECONDS.live,
+  },
+);
 
 /**
  * Redis key + TTL where the `publishKpis` workflow drops its minute-level

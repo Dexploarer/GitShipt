@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { dbHttp } from "@/db";
 import {
   projects,
@@ -10,12 +11,13 @@ import {
   type LeaderboardEntry,
 } from "@/db/schema";
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { CACHE_SECONDS, cacheTags } from "@/lib/cache";
 
 /**
  * Discovery queries — back the public browse surfaces (/explore, /u/[username],
- * /r/[org]/[repo]/snapshots). Modeled after `lib/queries/project-page.ts` —
- * single-shot reads via `dbHttp`, plain pure types, no caching layer of its
- * own (Next's RSC dedup + segment caching is enough for browse pages).
+ * /r/[org]/[repo]/snapshots). Modeled after `lib/queries/project-page.ts`:
+ * single-shot reads via `dbHttp`, plain pure types, and tagged Next data-cache
+ * wrappers at the exported boundary.
  *
  * BigInt is preserved across the query/page boundary; consumers pass it
  * through `formatSol()` for display.
@@ -64,7 +66,7 @@ export interface ExploreFilters {
  *
  * Search matches `gh_owner/gh_repo` slug or `name` (case-insensitive).
  */
-export async function getAllPublicProjects(
+async function getAllPublicProjectsUncached(
   filters: ExploreFilters,
 ): Promise<PublicProjectRow[]> {
   const limit = filters.limit ?? 60;
@@ -156,6 +158,32 @@ export async function getAllPublicProjects(
   });
 }
 
+export async function getAllPublicProjects(
+  filters: ExploreFilters,
+): Promise<PublicProjectRow[]> {
+  const normalized: ExploreFilters = {
+    status: filters.status ?? "all",
+    sort: filters.sort ?? "trending",
+    search: filters.search?.trim() || undefined,
+    limit: filters.limit ?? 60,
+  };
+
+  return unstable_cache(
+    () => getAllPublicProjectsUncached(normalized),
+    [
+      "gitbags:public-projects:v1",
+      normalized.status ?? "all",
+      normalized.sort ?? "trending",
+      normalized.search ?? "",
+      String(normalized.limit ?? 60),
+    ],
+    {
+      tags: [cacheTags.public, cacheTags.explore],
+      revalidate: CACHE_SECONDS.browse,
+    },
+  )();
+}
+
 // ---------------------------------------------------------------------------
 // Contributor profile — getContributorProfile
 // ---------------------------------------------------------------------------
@@ -198,7 +226,7 @@ export interface ContributorProfile {
  * Returns `null` when no contributor row exists for the username — the caller
  * should `notFound()` on that.
  */
-export async function getContributorProfile(
+async function getContributorProfileUncached(
   username: string,
 ): Promise<ContributorProfile | null> {
   const contribRows = await dbHttp
@@ -320,6 +348,20 @@ export async function getContributorProfile(
   };
 }
 
+export async function getContributorProfile(
+  username: string,
+): Promise<ContributorProfile | null> {
+  const normalized = username.toLowerCase();
+  return unstable_cache(
+    () => getContributorProfileUncached(username),
+    ["gitbags:contributor-profile:v1", normalized],
+    {
+      tags: [cacheTags.public, cacheTags.contributor(normalized)],
+      revalidate: CACHE_SECONDS.profile,
+    },
+  )();
+}
+
 // ---------------------------------------------------------------------------
 // Snapshots ledger — getProjectSnapshots
 // ---------------------------------------------------------------------------
@@ -350,7 +392,7 @@ export interface SnapshotRow {
  * across the boundary unnecessarily; the snapshot row's expand UI shows
  * just that preview.
  */
-export async function getProjectSnapshots(
+async function getProjectSnapshotsUncached(
   projectId: string,
   limit = 50,
 ): Promise<SnapshotRow[]> {
@@ -387,6 +429,24 @@ export async function getProjectSnapshots(
     forced: r.forced === "true",
     leaderboard: previewLeaderboard(r.leaderboard ?? []),
   }));
+}
+
+export async function getProjectSnapshots(
+  projectId: string,
+  limit = 50,
+): Promise<SnapshotRow[]> {
+  return unstable_cache(
+    () => getProjectSnapshotsUncached(projectId, limit),
+    ["gitbags:project-snapshots:v1", projectId, String(limit)],
+    {
+      tags: [
+        cacheTags.public,
+        cacheTags.project(projectId),
+        cacheTags.projectSnapshots(projectId),
+      ],
+      revalidate: CACHE_SECONDS.browse,
+    },
+  )();
 }
 
 function previewLeaderboard(

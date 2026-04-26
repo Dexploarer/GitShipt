@@ -10,6 +10,7 @@ import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { hasCredentials } from "@/lib/env";
+import { revalidatePublicCaches } from "@/lib/cache";
 import {
   CreateProjectBodySchema,
   CreateProjectResponseSchema,
@@ -161,6 +162,7 @@ export async function POST(req: Request): Promise<Response> {
       });
     });
 
+    revalidatePublicCaches();
     return NextResponse.json(result, { status: 201 });
   } catch (e) {
     // Most likely cause: ghRepoUq violation = repo already launched.

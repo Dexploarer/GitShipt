@@ -1,9 +1,8 @@
-import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
-import { auth } from "@/lib/auth";
 import { hasCredentials } from "@/lib/env";
+import { getAuthSession } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/auth/permissions";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
@@ -29,7 +28,7 @@ export default async function AdminLayout({
     notFound();
   }
 
-  const session = await auth().api.getSession({ headers: await headers() });
+  const session = await getAuthSession();
   if (!session?.user) {
     redirect("/auth/signin?next=/admin");
   }

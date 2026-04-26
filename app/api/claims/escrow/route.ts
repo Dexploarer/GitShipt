@@ -17,6 +17,10 @@ import { processClaim } from "@/workflows/processClaim";
 import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { hasCredentials } from "@/lib/env";
+import {
+  revalidateContributorCaches,
+  revalidateProjectCaches,
+} from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +131,7 @@ export async function POST(req: Request): Promise<Response> {
     const escrowAgg = await dbHttp
       .select({
         contributorId: escrowHoldings.contributorId,
+        ghUsername: contributors.ghUsername,
         projectId: contributors.projectId,
         projectSlug: sql<string>`${projects.ghOwner} || '/' || ${projects.ghRepo}`,
         lamports: sql<string>`coalesce(sum(${escrowHoldings.amountLamports}), 0)::text`,
@@ -143,6 +148,7 @@ export async function POST(req: Request): Promise<Response> {
       )
       .groupBy(
         escrowHoldings.contributorId,
+        contributors.ghUsername,
         contributors.projectId,
         projects.ghOwner,
         projects.ghRepo,
@@ -200,6 +206,19 @@ export async function POST(req: Request): Promise<Response> {
         jobId: run.runId,
       });
     }
+
+    const invalidatedProjects = new Map<string, string>();
+    const invalidatedContributors = new Set<string>();
+    for (const row of eligible) {
+      invalidatedProjects.set(row.projectId, row.projectSlug);
+      invalidatedContributors.add(row.ghUsername);
+    }
+    await Promise.all(
+      Array.from(invalidatedProjects, ([projectId, slug]) =>
+        revalidateProjectCaches(projectId, slug),
+      ),
+    );
+    revalidateContributorCaches(invalidatedContributors);
 
     return { status: 200, body: { ok: true, drained } };
   });

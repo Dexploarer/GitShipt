@@ -1,11 +1,10 @@
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { sql } from "drizzle-orm";
 import { Coins, Sparkles, Wallet } from "lucide-react";
-import { auth } from "@/lib/auth";
 import { hasCredentials } from "@/lib/env";
+import { getAuthSession } from "@/lib/auth/session";
 import { getMyEarnings, getMyLinkedWallets } from "@/lib/queries/dashboard";
 import { dbHttp } from "@/db";
 import { projects } from "@/db/schema";
@@ -41,7 +40,7 @@ export default async function EarningsPage() {
     );
   }
 
-  const session = await auth().api.getSession({ headers: await headers() });
+  const session = await getAuthSession();
   if (!session?.user) redirect("/auth/signin?next=/dashboard/earnings");
 
   const [earnings, linkedWallets] = await Promise.all([

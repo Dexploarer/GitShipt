@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import {
   Activity,
   AlertTriangle,
@@ -22,7 +21,6 @@ import {
 } from "@/lib/queries/dashboard";
 import { formatSol, formatRelativeTime } from "@/lib/format";
 import { loadProjectFor } from "../../_components/loadProject";
-import { AppShell } from "../../_components/AppShell";
 import { StatTile } from "@/components/shared/StatTile";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
@@ -59,91 +57,81 @@ export default async function ProjectOverviewPage({
   ]);
 
   return (
-    <AppShell
-      sidebar={
-        <AppSidebar
-          surface={{
-            kind: "owner-project",
-            projectId: id,
-            projectName: project.name,
-            slug: project.slug,
-          }}
-        />
-      }
-      footerLeft={`${project.slug} · devnet · BAGS.fm`}
-    >
-      <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <Breadcrumbs
-              items={[
-                { label: "Dashboard", href: "/dashboard" },
-                { label: "Projects", href: "/dashboard" },
-                { label: project.name },
-              ]}
-              className="mb-1"
-            />
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-headline-lg leading-tight text-fg">
-                {project.name}
-              </h1>
-              <StatusBadge status={project.status} />
-            </div>
-            <div className="mt-1 flex items-center gap-3 text-mono-sm text-fg-secondary">
-              <Link
-                href={`https://github.com/${project.slug}`}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="inline-flex items-center gap-1 hover:text-fg"
-              >
-                <Github className="size-3.5" /> {project.slug}
-              </Link>
-              <span className="text-fg-muted">·</span>
-              <span>created {formatRelativeTime(project.createdAt)}</span>
-            </div>
+    <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <Breadcrumbs
+            items={[
+              { label: "Dashboard", href: "/dashboard" },
+              { label: "Projects", href: "/dashboard" },
+              { label: project.name },
+            ]}
+            className="mb-1"
+          />
+          <div className="flex items-center gap-2">
+            <h1 className="truncate text-headline-lg leading-tight text-fg">
+              {project.name}
+            </h1>
+            <StatusBadge status={project.status} />
           </div>
-          <Button asChild variant="secondary" size="default">
-            <Link href={`/r/${project.slug}`} target="_blank" rel="noreferrer noopener">
-              View public page <ExternalLink className="size-4" />
+          <div className="mt-1 flex items-center gap-3 text-mono-sm text-fg-secondary">
+            <Link
+              href={`https://github.com/${project.slug}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-1 hover:text-fg"
+            >
+              <Github className="size-3.5" /> {project.slug}
             </Link>
-          </Button>
-        </header>
-
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile
-            label="Contributors Ranked"
-            value={kpis.totalContributorsRanked.toString()}
-            icon={Users}
-          />
-          <StatTile
-            label="Payouts Executed"
-            value={kpis.totalPayoutsExecuted.toString()}
-            icon={Trophy}
-          />
-          <StatTile
-            label="Lifetime Fees"
-            value={formatSol(kpis.lifetimeFeesLamports, 4)}
-            icon={Coins}
-            accent="primary"
-          />
-          <StatTile
-            label="Pending Escrow"
-            value={formatSol(kpis.pendingEscrowLamports, 4)}
-            icon={Sparkles}
-            sub={
-              kpis.lastSnapshotAt
-                ? `last snapshot ${formatRelativeTime(kpis.lastSnapshotAt)}`
-                : "no snapshots yet"
-            }
-          />
-        </section>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <RecentActivityCard rows={audit} />
-          <AlertsCard failed={failed} indexer={indexer} projectId={id} />
+            <span className="text-fg-muted">·</span>
+            <span>created {formatRelativeTime(project.createdAt)}</span>
+          </div>
         </div>
+        <Button asChild variant="secondary" size="default">
+          <Link
+            href={`/r/${project.slug}`}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            View public page <ExternalLink className="size-4" />
+          </Link>
+        </Button>
+      </header>
+
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile
+          label="Contributors Ranked"
+          value={kpis.totalContributorsRanked.toString()}
+          icon={Users}
+        />
+        <StatTile
+          label="Payouts Executed"
+          value={kpis.totalPayoutsExecuted.toString()}
+          icon={Trophy}
+        />
+        <StatTile
+          label="Lifetime Fees"
+          value={formatSol(kpis.lifetimeFeesLamports, 4)}
+          icon={Coins}
+          accent="primary"
+        />
+        <StatTile
+          label="Pending Escrow"
+          value={formatSol(kpis.pendingEscrowLamports, 4)}
+          icon={Sparkles}
+          sub={
+            kpis.lastSnapshotAt
+              ? `last snapshot ${formatRelativeTime(kpis.lastSnapshotAt)}`
+              : "no snapshots yet"
+          }
+        />
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <RecentActivityCard rows={audit} />
+        <AlertsCard failed={failed} indexer={indexer} projectId={id} />
       </div>
-    </AppShell>
+    </div>
   );
 }
 
@@ -251,10 +239,7 @@ function AlertsCard({
             {indexerStale ? (
               <li className="px-6 py-3">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle
-                    className="size-4 text-warning"
-                    aria-hidden
-                  />
+                  <AlertTriangle className="size-4 text-warning" aria-hidden />
                   <span className="text-label-md text-fg">
                     Indexer is stale
                   </span>
@@ -283,21 +268,12 @@ function humanizeAction(action: string): string {
 
 function StubShell() {
   return (
-    <AppShell sidebar={<AppSidebar
-          surface={{
-            kind: "owner-project",
-            projectId: "",
-            projectName: "—",
-            slug: "—/—",
-          }}
-        />}>
-      <div className="mx-auto w-full max-w-content">
-        <EmptyState
-          icon={Sparkles}
-          title="Stub mode"
-          description="DATABASE_URL is not configured. Per-project console comes online when Postgres is provisioned."
-        />
-      </div>
-    </AppShell>
+    <div className="mx-auto w-full max-w-content">
+      <EmptyState
+        icon={Sparkles}
+        title="Stub mode"
+        description="DATABASE_URL is not configured. Per-project console comes online when Postgres is provisioned."
+      />
+    </div>
   );
 }

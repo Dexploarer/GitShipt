@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { Sparkles } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/session";
 import { SignInWithSolanaFlow } from "@/components/wallet/SignInWithSolanaFlow";
 
 export const metadata = { title: "Link wallet" };
@@ -16,7 +15,7 @@ export const dynamic = "force-dynamic";
  * /auth/signin with `next` set so they bounce back here after sign-in.
  */
 export default async function WalletAuthPage() {
-  const session = await auth().api.getSession({ headers: await headers() });
+  const session = await getAuthSession();
   if (!session?.user) {
     redirect("/auth/signin?next=/auth/wallet");
   }

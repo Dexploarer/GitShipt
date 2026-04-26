@@ -13,6 +13,7 @@ import { dbHttp } from "@/db";
 import { projects } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { hasCredentials, serverEnv } from "@/lib/env";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -155,6 +156,7 @@ export async function GET(
     userAgent: req.headers.get("user-agent") ?? null,
   });
 
+  await revalidateProjectCaches(projectId);
   dashboardBack.searchParams.set("installed", "1");
   return NextResponse.redirect(dashboardBack, 302);
 }

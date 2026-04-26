@@ -14,6 +14,7 @@ import {
 import { audit } from "@/lib/audit";
 import { hasCredentials, serverEnv } from "@/lib/env";
 import { refreshProjectContributors } from "@/lib/queries/refresh-contributors";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -131,6 +132,7 @@ export async function POST(req: Request): Promise<Response> {
       },
     });
 
+    await revalidateProjectCaches(projectId, result.slug);
     return NextResponse.json(result, { status: 200 });
   } catch (e) {
     console.error("[admin/refresh-contributors] failed:", e);

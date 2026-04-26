@@ -9,6 +9,10 @@ import { processClaim } from "@/workflows/processClaim";
 import { ClaimLinkRequestSchema } from "@/shared/payout-schemas";
 import { audit } from "@/lib/audit";
 import { hasCredentials } from "@/lib/env";
+import {
+  revalidateContributorCaches,
+  revalidateProjectCaches,
+} from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +79,11 @@ export async function POST(req: Request): Promise<Response> {
 
   // Verify the contributor's gh_user_id matches a github account on this user.
   const [contributorRow] = await dbHttp
-    .select({ ghUserId: contributors.ghUserId })
+    .select({
+      ghUserId: contributors.ghUserId,
+      ghUsername: contributors.ghUsername,
+      projectId: contributors.projectId,
+    })
     .from(contributors)
     .where(eq(contributors.id, parsed.data.contributorId))
     .limit(1);
@@ -125,6 +133,9 @@ export async function POST(req: Request): Promise<Response> {
       walletAddress: parsed.data.walletAddress,
     },
   ]);
+
+  await revalidateProjectCaches(contributorRow.projectId);
+  revalidateContributorCaches([contributorRow.ghUsername]);
 
   return NextResponse.json({ ok: true, runId: run.runId });
 }

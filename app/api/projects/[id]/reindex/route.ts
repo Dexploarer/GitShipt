@@ -12,6 +12,7 @@ import { getProjectRecord } from "@/lib/queries/dashboard";
 import { audit } from "@/lib/audit";
 import { hasCredentials } from "@/lib/env";
 import { indexProjectDeltas } from "@/workflows/indexProjectDeltas";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,8 @@ export async function POST(
     ip: req.headers.get("x-forwarded-for") ?? null,
     userAgent: req.headers.get("user-agent") ?? null,
   });
+
+  await revalidateProjectCaches(projectId);
 
   return NextResponse.json({ ok: true, runId }, { status: 202 });
 }

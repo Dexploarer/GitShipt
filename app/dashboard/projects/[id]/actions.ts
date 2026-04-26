@@ -13,6 +13,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { check } from "@/lib/rate-limit";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 /**
  * Server Actions for the per-project admin console.
@@ -84,6 +85,7 @@ export async function pauseProject(
 
   revalidatePath(`/dashboard/projects/${data.projectId}`);
   revalidatePath(`/dashboard/projects/${data.projectId}/settings`);
+  await revalidateProjectCaches(data.projectId);
   return { ok: true, status: result.status };
 }
 
@@ -166,6 +168,7 @@ export async function updateScoringConfig(
   });
 
   revalidatePath(`/dashboard/projects/${data.projectId}/leaderboard`);
+  await revalidateProjectCaches(data.projectId);
   return { ok: true };
 }
 
@@ -215,6 +218,7 @@ export async function retryPayout(
   });
 
   revalidatePath(`/dashboard/projects/${data.projectId}/payouts`);
+  await revalidateProjectCaches(data.projectId);
   return { ok: true };
 }
 
@@ -274,6 +278,7 @@ export async function transferOwnership(
   });
 
   revalidatePath(`/dashboard/projects/${data.projectId}/settings`);
+  await revalidateProjectCaches(data.projectId);
   return { ok: true, newOwnerUserId: result.newOwnerUserId };
 }
 
@@ -334,6 +339,7 @@ export async function deleteProject(
   });
 
   revalidatePath("/dashboard");
+  await revalidateProjectCaches(data.projectId, slug);
   redirect("/dashboard");
 }
 
@@ -386,6 +392,7 @@ export async function updateMetadata(
   });
 
   revalidatePath(`/dashboard/projects/${data.projectId}/settings`);
+  await revalidateProjectCaches(data.projectId);
   return { ok: true };
 }
 
@@ -443,5 +450,6 @@ export async function forceSnapshot(
 
   revalidatePath(`/dashboard/projects/${data.projectId}`);
   revalidatePath(`/dashboard/projects/${data.projectId}/leaderboard`);
+  await revalidateProjectCaches(data.projectId);
   return { ok: true, runId };
 }

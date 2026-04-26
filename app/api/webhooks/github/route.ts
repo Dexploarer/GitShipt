@@ -6,6 +6,7 @@ import { webhooksInbox, projects } from "@/db/schema";
 import { verifyAndParse } from "@/lib/github/webhook";
 import { audit } from "@/lib/audit";
 import { indexProjectDeltas } from "@/workflows/indexProjectDeltas";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +90,7 @@ export async function POST(req: Request): Promise<Response> {
       resolvedProjectId = proj.id;
       if (proj.status === "live") {
         await start(indexProjectDeltas, [proj.id]);
+        await revalidateProjectCaches(proj.id);
       }
     }
   }

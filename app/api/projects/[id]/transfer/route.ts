@@ -19,6 +19,7 @@ import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { hasCredentials } from "@/lib/env";
 import { transferProjectOwnership } from "@/lib/queries/admin";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -233,6 +234,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       );
     });
 
+    await revalidateProjectCaches(projectId, slug);
     return NextResponse.json(result, { status: 200 });
   } catch (e) {
     if (e instanceof MfaRequiredError) {

@@ -1,7 +1,6 @@
 import "server-only";
-import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth/session";
 import {
   requirePermission,
   PermissionError,
@@ -28,7 +27,7 @@ export async function loadProjectFor(
   projectId: string,
   permission: Permission,
 ): Promise<LoadedProjectContext> {
-  const session = await auth().api.getSession({ headers: await headers() });
+  const session = await getAuthSession();
   if (!session?.user) {
     redirect(`/auth/signin?next=/dashboard/projects/${projectId}`);
   }

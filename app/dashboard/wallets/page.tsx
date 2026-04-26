@@ -1,10 +1,9 @@
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ExternalLink, Plus, Sparkles, Wallet } from "lucide-react";
-import { auth } from "@/lib/auth";
 import { hasCredentials } from "@/lib/env";
+import { getAuthSession } from "@/lib/auth/session";
 import { getMyLinkedWallets } from "@/lib/queries/dashboard";
 import { formatAddress, formatRelativeTime } from "@/lib/format";
 import { AppShell } from "../_components/AppShell";
@@ -37,7 +36,7 @@ export default async function WalletsPage() {
     );
   }
 
-  const session = await auth().api.getSession({ headers: await headers() });
+  const session = await getAuthSession();
   if (!session?.user) redirect("/auth/signin?next=/dashboard/wallets");
   const wallets = await getMyLinkedWallets(session.user.id);
 

@@ -1,12 +1,11 @@
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ShieldCheck } from "lucide-react";
-import { auth } from "@/lib/auth";
 import { dbHttp } from "@/db";
 import { users } from "@/db/schema";
 import { hasCredentials } from "@/lib/env";
+import { getAuthSession } from "@/lib/auth/session";
 import { getMfaConfirmedAt } from "@/lib/auth/mfa";
 import { AppShell } from "../_components/AppShell";
 import {
@@ -41,7 +40,7 @@ export default async function SecurityPage() {
     );
   }
 
-  const session = await auth().api.getSession({ headers: await headers() });
+  const session = await getAuthSession();
   if (!session?.user) redirect("/auth/signin?next=/dashboard/security");
 
   const userId = session.user.id;

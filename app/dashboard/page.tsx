@@ -1,5 +1,4 @@
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -10,8 +9,8 @@ import {
   Sparkles,
   ExternalLink,
 } from "lucide-react";
-import { auth } from "@/lib/auth";
 import { hasCredentials } from "@/lib/env";
+import { getAuthSession } from "@/lib/auth/session";
 import {
   getMyProjects,
   getMyEarnings,
@@ -44,7 +43,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   if (!hasCredentials.db()) return <DashboardStub />;
 
-  const session = await auth().api.getSession({ headers: await headers() });
+  const session = await getAuthSession();
   if (!session?.user) redirect("/auth/signin?next=/dashboard");
 
   const userId = session.user.id;

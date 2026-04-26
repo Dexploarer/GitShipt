@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { dbHttp } from "@/db";
 import {
   projects,
@@ -12,6 +13,7 @@ import {
 import { eq, and, desc, sql, asc, isNotNull } from "drizzle-orm";
 import { bags } from "@/lib/bags/client";
 import { redis } from "@/lib/redis";
+import { CACHE_SECONDS, cacheTags } from "@/lib/cache";
 
 export interface ProjectHeader {
   id: string;
@@ -144,7 +146,7 @@ async function fetchGitHubRepoMeta(
   return meta;
 }
 
-export async function getProjectBySlug(
+async function getProjectBySlugUncached(
   ghOwner: string,
   ghRepo: string,
 ): Promise<ProjectHeader | null> {
@@ -186,7 +188,22 @@ export async function getProjectBySlug(
   };
 }
 
-export async function getProjectLeaderboard(
+export async function getProjectBySlug(
+  ghOwner: string,
+  ghRepo: string,
+): Promise<ProjectHeader | null> {
+  const slug = `${ghOwner}/${ghRepo}`;
+  return unstable_cache(
+    () => getProjectBySlugUncached(ghOwner, ghRepo),
+    ["gitbags:project-by-slug:v1", slug],
+    {
+      tags: [cacheTags.public, cacheTags.projectSlug(slug)],
+      revalidate: CACHE_SECONDS.live,
+    },
+  )();
+}
+
+async function getProjectLeaderboardUncached(
   projectId: string,
   payoutConfig: PayoutConfig,
 ): Promise<LeaderboardRow[]> {
@@ -231,7 +248,21 @@ export async function getProjectLeaderboard(
   });
 }
 
-export async function getRecentPayouts(
+export async function getProjectLeaderboard(
+  projectId: string,
+  payoutConfig: PayoutConfig,
+): Promise<LeaderboardRow[]> {
+  return unstable_cache(
+    () => getProjectLeaderboardUncached(projectId, payoutConfig),
+    ["gitbags:project-leaderboard:v1", projectId, String(payoutConfig.topN)],
+    {
+      tags: [cacheTags.public, cacheTags.project(projectId)],
+      revalidate: CACHE_SECONDS.live,
+    },
+  )();
+}
+
+async function getRecentPayoutsUncached(
   projectId: string,
   limit = 5,
 ): Promise<RecentPayoutRow[]> {
@@ -263,7 +294,25 @@ export async function getRecentPayouts(
     }));
 }
 
-export async function getPoolOverview(header: ProjectHeader): Promise<PoolOverview> {
+export async function getRecentPayouts(
+  projectId: string,
+  limit = 5,
+): Promise<RecentPayoutRow[]> {
+  return unstable_cache(
+    () => getRecentPayoutsUncached(projectId, limit),
+    ["gitbags:recent-payouts:v1", projectId, String(limit)],
+    {
+      tags: [
+        cacheTags.public,
+        cacheTags.project(projectId),
+        cacheTags.projectPayouts(projectId),
+      ],
+      revalidate: CACHE_SECONDS.live,
+    },
+  )();
+}
+
+async function getPoolOverviewUncached(header: ProjectHeader): Promise<PoolOverview> {
   let lifetimeLamports = 0n;
   let lifetimeUsd: number | null = null;
   let isStub = !bags.hasCredentials();
@@ -302,6 +351,28 @@ export async function getPoolOverview(header: ProjectHeader): Promise<PoolOvervi
   };
 }
 
+export async function getPoolOverview(
+  header: ProjectHeader,
+): Promise<PoolOverview> {
+  return unstable_cache(
+    () => getPoolOverviewUncached(header),
+    [
+      "gitbags:pool-overview:v1",
+      header.id,
+      header.tokenMint ?? "no-token",
+      String(header.platformFeeBps),
+    ],
+    {
+      tags: [
+        cacheTags.public,
+        cacheTags.project(header.id),
+        cacheTags.projectPayouts(header.id),
+      ],
+      revalidate: CACHE_SECONDS.live,
+    },
+  )();
+}
+
 function buildStubSparkline(currentLamports: bigint): { date: string; lamports: bigint }[] {
   const out: { date: string; lamports: bigint }[] = [];
   const now = new Date();
@@ -317,7 +388,7 @@ function buildStubSparkline(currentLamports: bigint): { date: string; lamports: 
   return out;
 }
 
-export async function getProjectPageData(
+async function getProjectPageDataUncached(
   ghOwner: string,
   ghRepo: string,
 ): Promise<ProjectPageData | null> {
@@ -337,4 +408,19 @@ export async function getProjectPageData(
     recentPayouts,
     nextPayoutAt: nextPayoutDate(),
   };
+}
+
+export async function getProjectPageData(
+  ghOwner: string,
+  ghRepo: string,
+): Promise<ProjectPageData | null> {
+  const slug = `${ghOwner}/${ghRepo}`;
+  return unstable_cache(
+    () => getProjectPageDataUncached(ghOwner, ghRepo),
+    ["gitbags:project-page-data:v1", slug],
+    {
+      tags: [cacheTags.public, cacheTags.projectSlug(slug)],
+      revalidate: CACHE_SECONDS.live,
+    },
+  )();
 }
