@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SolanaWalletProvider } from "@/components/providers/SolanaWalletProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -55,8 +56,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
-      <body className="min-h-screen bg-bg text-fg antialiased">
-        <ThemeProvider>{children}</ThemeProvider>
+      <body className="min-h-screen bg-app-gradient text-fg antialiased">
+        <ThemeProvider>
+          <SolanaWalletProvider>{children}</SolanaWalletProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
