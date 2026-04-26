@@ -49,8 +49,8 @@ export default async function LandingPage() {
           via `order-*` so the mobile reading flow is: text → mia → CTAs →
           featured-project, instead of text → featured → mia → CTAs.
         */}
-        <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:gap-6">
-          <div className="contents lg:flex lg:flex-col lg:col-span-5 lg:min-h-0 lg:justify-center lg:gap-12">
+        <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,520px)_minmax(0,760px)] lg:justify-center lg:gap-8">
+          <div className="contents lg:flex lg:flex-col lg:min-h-0 lg:justify-center lg:gap-12">
             <section className="order-1 flex flex-col items-start gap-4 lg:order-none lg:gap-5">
               <h1 className="text-[28px] font-semibold leading-[1.02] tracking-[-0.025em] text-fg sm:text-[36px] lg:whitespace-nowrap lg:text-[52px]">
                 Your repo, <span className="text-fg-muted">tokenized.</span>
@@ -82,7 +82,7 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <div className="contents lg:flex lg:flex-col lg:col-span-7 lg:min-h-0 lg:justify-end lg:gap-0 lg:pb-[126px]">
+          <div className="contents lg:flex lg:flex-col lg:min-h-0 lg:justify-end lg:gap-0 lg:pb-[114px]">
             <div className="pointer-events-none relative order-2 mx-auto aspect-square w-full max-w-[360px] sm:max-w-[460px] lg:order-none lg:aspect-auto lg:mx-0 lg:h-[700px] lg:w-full lg:max-w-none lg:shrink-0">
               <Image
                 src="/mia.png"
