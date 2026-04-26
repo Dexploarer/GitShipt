@@ -44,7 +44,7 @@ export async function GET(
     );
   }
 
-  const slug = process.env.GITHUB_APP_SLUG;
+  const slug = env.GITHUB_APP_SLUG;
   if (!slug) {
     return NextResponse.json(
       {

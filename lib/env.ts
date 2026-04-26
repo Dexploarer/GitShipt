@@ -19,6 +19,7 @@ const serverEnvSchema = z.object({
   GITHUB_APP_ID: z.string().min(1).optional(),
   GITHUB_APP_PRIVATE_KEY: z.string().min(1).optional(),
   GITHUB_APP_WEBHOOK_SECRET: z.string().min(1).optional(),
+  GITHUB_APP_SLUG: z.string().min(1).optional(),
 
   // Bags.fm
   BAGS_API_KEY: z.string().min(1).optional(),
