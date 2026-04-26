@@ -52,11 +52,18 @@ export default async function LandingPage() {
         <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:gap-6">
           <div className="contents lg:flex lg:flex-col lg:col-span-5 lg:min-h-0 lg:justify-between lg:gap-8 lg:pt-12 lg:pb-2">
             <section className="order-1 flex flex-col items-start gap-4 lg:order-none lg:gap-5">
-              <span className="text-[44px] font-bold leading-[1] tracking-[-0.02em] text-primary sm:text-[60px] lg:text-[88px]">
+              <span
+                aria-label="GitBags"
+                className="inline-flex items-center gap-3 text-mono-sm uppercase tracking-[0.32em] text-fg-secondary"
+              >
+                <span
+                  aria-hidden
+                  className="block h-px w-8 bg-border-strong"
+                />
                 GitBags
               </span>
 
-              <h1 className="text-[28px] font-semibold leading-[1.05] tracking-[-0.02em] text-fg sm:text-[36px] lg:text-[52px]">
+              <h1 className="text-[40px] font-semibold leading-[1.02] tracking-[-0.025em] text-fg sm:text-[52px] lg:text-[72px]">
                 Your repo,
                 <br />
                 <span className="text-fg-muted">tokenized.</span>
