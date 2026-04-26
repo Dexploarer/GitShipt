@@ -1,11 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { AlertCircle, ArrowLeft, Loader2, Rocket } from "lucide-react";
+import { ArrowLeft, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LAMPORTS_PER_SOL_NUMBER, type GithubRepo, type TokenMetadataInput } from "@/shared";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  LAMPORTS_PER_SOL_NUMBER,
+  type GithubRepo,
+  type TokenMetadataInput,
+} from "@/shared";
 import type { LeaderboardConfig } from "./WizardShell";
-import type { LaunchPhase } from "./LaunchProgress";
 
 export interface ReviewAndSignProps {
   repo: GithubRepo;
@@ -14,9 +21,7 @@ export interface ReviewAndSignProps {
   onBack: () => void;
   onLaunch: () => void;
   isPending: boolean;
-  phase: LaunchPhase;
-  errorMessage: string | null;
-  stubNotice: string | null;
+  isStubMode: boolean;
 }
 
 export function ReviewAndSign({
@@ -26,12 +31,9 @@ export function ReviewAndSign({
   onBack,
   onLaunch,
   isPending,
-  phase,
-  errorMessage,
-  stubNotice,
+  isStubMode,
 }: ReviewAndSignProps) {
-  const cluster =
-    process.env.NEXT_PUBLIC_SOLANA_CLUSTER ?? "devnet";
+  const cluster = process.env.NEXT_PUBLIC_SOLANA_CLUSTER ?? "devnet";
   const isDevnet = cluster !== "mainnet-beta";
 
   const platformFeePct = (leaderboard.platformFeeBps / 100).toFixed(2);
@@ -48,20 +50,17 @@ export function ReviewAndSign({
           Confirm everything below. The platform hot wallet pays the launch tx
           and becomes the single fee claimer for the contributor pool.
         </p>
-        {isDevnet ? (
-          <span className="inline-flex items-center gap-2 rounded-full bg-warning-soft px-3 py-1 text-label-sm text-warning">
-            <span className="size-1.5 animate-pulse-dot rounded-full bg-warning" />
-            Cluster: {cluster}
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-2 rounded-full bg-success-soft px-3 py-1 text-label-sm text-success">
-            <span className="size-1.5 animate-pulse-dot rounded-full bg-success" />
-            Cluster: mainnet-beta
-          </span>
-        )}
+        <Badge
+          variant={isDevnet ? "warning" : "success"}
+          dot
+          dotColor={isDevnet ? "warning" : "success"}
+          size="sm"
+        >
+          Cluster: {cluster}
+        </Badge>
       </header>
 
-      <section className="rounded-lg border border-border bg-surface-elevated p-5">
+      <Card depth="flat" padding="default" className="bg-surface-elevated">
         <h3 className="text-label-sm uppercase tracking-wide text-fg-muted">
           Repository
         </h3>
@@ -83,9 +82,9 @@ export function ReviewAndSign({
             ) : null}
           </div>
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-border bg-surface-elevated p-5">
+      <Card depth="flat" padding="default" className="bg-surface-elevated">
         <h3 className="text-label-sm uppercase tracking-wide text-fg-muted">
           Token
         </h3>
@@ -102,25 +101,17 @@ export function ReviewAndSign({
             />
           ) : null}
         </dl>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-border bg-surface-elevated p-5">
+      <Card depth="flat" padding="default" className="bg-surface-elevated">
         <h3 className="text-label-sm uppercase tracking-wide text-fg-muted">
           Leaderboard
         </h3>
         <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
           <Row k="Window" v={`${leaderboard.windowDays} days`} mono />
           <Row k="Top N paid" v={String(leaderboard.topN)} mono />
-          <Row
-            k="Tier weights sum"
-            v={tierSum.toFixed(3)}
-            mono
-          />
-          <Row
-            k="Min payout"
-            v={`${claimThresholdSol} SOL`}
-            mono
-          />
+          <Row k="Tier weights sum" v={tierSum.toFixed(3)} mono />
+          <Row k="Min payout" v={`${claimThresholdSol} SOL`} mono />
           <Row k="Platform fee" v={`${platformFeePct}%`} mono />
           <Row
             k="Contributor pool"
@@ -128,9 +119,9 @@ export function ReviewAndSign({
             mono
           />
         </dl>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-border bg-surface-elevated p-5">
+      <Card depth="flat" padding="default" className="bg-surface-elevated">
         <h3 className="text-label-sm uppercase tracking-wide text-fg-muted">
           Estimated launch cost
         </h3>
@@ -138,49 +129,33 @@ export function ReviewAndSign({
         <p className="mt-1 text-caption text-fg-muted">
           Approximate Bags launch transaction cost on {cluster}. Paid by the
           GitBags platform wallet.
+          {isStubMode ? " (Skipped in test mode.)" : ""}
         </p>
-      </section>
-
-      {errorMessage ? (
-        <div
-          role="alert"
-          className="flex items-start gap-3 rounded-md border border-danger bg-danger-soft p-3 text-body-sm text-danger"
-        >
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
-      ) : null}
-
-      {stubNotice ? (
-        <div className="flex items-start gap-3 rounded-md border border-warning bg-warning-soft p-3 text-body-sm text-warning">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{stubNotice}</span>
-        </div>
-      ) : null}
+      </Card>
 
       <div className="flex items-center justify-between gap-3 pt-2">
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={onBack}
           disabled={isPending}
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-border-strong bg-surface-elevated px-4 text-label-md text-fg transition-colors hover:bg-surface-overlay disabled:opacity-60"
         >
           <ArrowLeft className="size-4" />
           Back
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          size="lg"
           onClick={onLaunch}
           disabled={isPending}
-          className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-5 text-label-md text-fg transition-colors hover:bg-primary-hover disabled:opacity-60"
         >
-          {isPending && phase !== "done" ? (
-            <Loader2 className="size-4 animate-spin" />
+          {isPending ? (
+            <Spinner size="default" color="inherit" />
           ) : (
             <Rocket className="size-4" />
           )}
-          {phase === "done" ? "Launched" : "Launch"}
-        </button>
+          {isStubMode ? "Run test launch" : "Launch"}
+        </Button>
       </div>
     </div>
   );

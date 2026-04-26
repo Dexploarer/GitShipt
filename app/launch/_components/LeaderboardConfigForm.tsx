@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import * as React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  defaultTierWeights,
-  LAMPORTS_PER_SOL_NUMBER,
-} from "@/shared";
+import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/shared/FormField";
+import { defaultTierWeights, LAMPORTS_PER_SOL_NUMBER } from "@/shared";
 import type { LeaderboardConfig } from "./WizardShell";
+
+const TOP_N_MIN = 3; // server-side Zod minimum (PayoutConfigSchema.topN)
+const TOP_N_MAX = 50;
+const WINDOW_MIN = 7;
+const WINDOW_MAX = 90;
+const FEE_BPS_MAX = 2000;
 
 export interface LeaderboardConfigFormProps {
   initial: LeaderboardConfig;
@@ -36,8 +42,18 @@ export function LeaderboardConfigForm({
     });
   }, [topN]);
 
-  const tierSum = tierWeights.reduce((a, b) => a + b, 0);
-  const tierSumOk = tierSum >= 0.999 && tierSum <= 1.001;
+  const tierSum = useMemo(
+    () => tierWeights.reduce((a, b) => a + b, 0),
+    [tierWeights],
+  );
+
+  // Validation per the wizard polish spec:
+  //  - top-N: 1-50 inclusive (clamped to >=3 to match server schema)
+  //  - tier weights sum: must be <= 1.0
+  // We additionally guard the lower bound at 0.999 because a sum of zero
+  // would silently let Top-1 = 0 through, and downstream payout logic
+  // expects the weights to express the full distribution.
+  const tierSumOk = tierSum > 0 && tierSum <= 1.0001;
 
   const platformFeePercent = (platformFeeBps / 100).toFixed(2);
   const claimThresholdLamports = Math.max(
@@ -45,16 +61,33 @@ export function LeaderboardConfigForm({
     Math.round(thresholdSol * LAMPORTS_PER_SOL_NUMBER),
   );
 
+  const windowError =
+    windowDays < WINDOW_MIN || windowDays > WINDOW_MAX
+      ? `Choose ${WINDOW_MIN}-${WINDOW_MAX} days`
+      : undefined;
+  const topNError =
+    topN < TOP_N_MIN || topN > TOP_N_MAX
+      ? `Choose ${TOP_N_MIN}-${TOP_N_MAX} contributors`
+      : undefined;
+  const tierError = !tierSumOk
+    ? `Tier weights must sum to ≤ 1.0 (currently ${tierSum.toFixed(3)})`
+    : undefined;
+  const thresholdError =
+    !Number.isFinite(thresholdSol) || thresholdSol < 0
+      ? "Threshold must be 0 or greater"
+      : undefined;
+  const feeError =
+    platformFeeBps < 0 || platformFeeBps > FEE_BPS_MAX
+      ? "Platform fee must be 0–20%"
+      : undefined;
+
   const isValid =
-    windowDays >= 7 &&
-    windowDays <= 90 &&
-    topN >= 3 &&
-    topN <= 50 &&
-    tierWeights.length === topN &&
-    tierSumOk &&
-    claimThresholdLamports >= 0 &&
-    platformFeeBps >= 0 &&
-    platformFeeBps <= 2000;
+    !windowError &&
+    !topNError &&
+    !tierError &&
+    !thresholdError &&
+    !feeError &&
+    tierWeights.length === topN;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,84 +111,74 @@ export function LeaderboardConfigForm({
         </p>
       </header>
 
-      <Field
-        id="windowDays"
+      <FormField
         label={`Scoring window: ${windowDays} days`}
-        help="The rolling window we score contributions over. 7-90 days."
+        hint="The rolling window we score contributions over. 7-90 days."
+        error={windowError}
       >
         <input
-          id="windowDays"
           type="range"
-          min={7}
-          max={90}
+          min={WINDOW_MIN}
+          max={WINDOW_MAX}
           step={1}
           value={windowDays}
           onChange={(e) => setWindowDays(Number(e.target.value))}
           className="h-2 w-full cursor-pointer accent-primary"
         />
-        <div className="mt-1 flex items-center justify-between text-caption text-fg-muted">
-          <span>7d</span>
-          <span className="text-mono-sm text-fg-secondary">
-            {windowDays}d
-          </span>
-          <span>90d</span>
-        </div>
-      </Field>
+      </FormField>
+      <div className="-mt-4 flex items-center justify-between text-caption text-fg-muted">
+        <span>{WINDOW_MIN}d</span>
+        <span className="text-mono-sm text-fg-secondary">{windowDays}d</span>
+        <span>{WINDOW_MAX}d</span>
+      </div>
 
-      <Field
-        id="topN"
+      <FormField
         label={`Top contributors paid: ${topN}`}
-        help="How many ranks share the daily pool. Changing this resets tier weights to the defaults."
+        hint="How many ranks share the daily pool. Changing this resets tier weights to the defaults."
+        error={topNError}
       >
         <input
-          id="topN"
           type="number"
-          min={3}
-          max={50}
+          min={TOP_N_MIN}
+          max={TOP_N_MAX}
           step={1}
           value={topN}
           onChange={(e) => {
             const v = Number(e.target.value);
             if (Number.isFinite(v)) {
-              setTopN(Math.max(3, Math.min(50, Math.round(v))));
+              setTopN(Math.max(TOP_N_MIN, Math.min(TOP_N_MAX, Math.round(v))));
             }
           }}
           className={inputClass}
         />
-      </Field>
+      </FormField>
 
-      <Field
-        id="tierWeights"
+      <FormField
         label="Tier weights"
-        help={`Sum: ${tierSum.toFixed(3)} (must be 1.0 ±0.001). Edit any cell to retune.`}
+        hint={`Sum: ${tierSum.toFixed(3)} (must be ≤ 1.0). Edit any cell to retune.`}
+        error={tierError}
       >
         <TierWeightEditor
           tierWeights={tierWeights}
           onChange={setTierWeights}
         />
-        {!tierSumOk ? (
-          <p className="mt-2 rounded-md border border-danger bg-danger-soft px-3 py-2 text-body-sm text-danger">
-            Tier weights must sum to 1.0 (currently {tierSum.toFixed(3)}).
-            Use the &ldquo;Reset to defaults&rdquo; button below if you got
-            stuck.
-          </p>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => setTierWeights(defaultTierWeights(topN))}
-          className="mt-2 inline-flex h-8 items-center rounded-md border border-border-strong bg-surface-elevated px-3 text-label-sm text-fg-secondary hover:bg-surface-overlay"
-        >
-          Reset to defaults
-        </button>
-      </Field>
+      </FormField>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => setTierWeights(defaultTierWeights(topN))}
+        className="-mt-2"
+      >
+        Reset to defaults
+      </Button>
 
-      <Field
-        id="threshold"
+      <FormField
         label={`Min payout: ${thresholdSol.toFixed(4)} SOL`}
-        help="If accrued fees are below this on a given day, we skip the payout and let it accumulate."
+        hint="If accrued fees are below this on a given day, we skip the payout and let it accumulate."
+        error={thresholdError}
       >
         <input
-          id="threshold"
           type="number"
           min={0}
           step="0.001"
@@ -168,49 +191,40 @@ export function LeaderboardConfigForm({
           }}
           className={cn(inputClass, "text-mono-md")}
         />
-      </Field>
+      </FormField>
 
-      <Field
-        id="platformFee"
+      <FormField
         label={`Platform fee: ${platformFeePercent}%`}
-        help="Of every trade, this percentage flows to the GitBags treasury (max 20%). The remainder accrues to the contributor pool."
+        hint="Of every trade, this percentage flows to the GitBags treasury (max 20%). The remainder accrues to the contributor pool."
+        error={feeError}
       >
         <input
-          id="platformFee"
           type="range"
           min={0}
-          max={2000}
+          max={FEE_BPS_MAX}
           step={25}
           value={platformFeeBps}
           onChange={(e) => setPlatformFeeBps(Number(e.target.value))}
           className="h-2 w-full cursor-pointer accent-primary"
         />
-        <div className="mt-1 flex items-center justify-between text-caption text-fg-muted">
-          <span>0%</span>
-          <span className="text-mono-sm text-fg-secondary">
-            {platformFeeBps} bps
-          </span>
-          <span>20%</span>
-        </div>
-      </Field>
+      </FormField>
+      <div className="-mt-4 flex items-center justify-between text-caption text-fg-muted">
+        <span>0%</span>
+        <span className="text-mono-sm text-fg-secondary">
+          {platformFeeBps} bps
+        </span>
+        <span>20%</span>
+      </div>
 
       <div className="flex items-center justify-between gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-border-strong bg-surface-elevated px-4 text-label-md text-fg transition-colors hover:bg-surface-overlay"
-        >
+        <Button type="button" variant="secondary" onClick={onBack}>
           <ArrowLeft className="size-4" />
           Back
-        </button>
-        <button
-          type="submit"
-          disabled={!isValid}
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-label-md text-fg transition-colors hover:bg-primary-hover disabled:opacity-60"
-        >
+        </Button>
+        <Button type="submit" disabled={!isValid}>
           Continue
           <ArrowRight className="size-4" />
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -267,31 +281,6 @@ function TierWeightEditor({
         Tip: you can leave the defaults and contributors will see the published
         Top-1=30%, Top-2=20%, Top-3=15%, then 5% across the rest.
       </p>
-    </div>
-  );
-}
-
-function Field({
-  id,
-  label,
-  help,
-  children,
-}: {
-  id: string;
-  label: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="mb-1.5 block text-label-sm text-fg-secondary"
-      >
-        {label}
-      </label>
-      {children}
-      {help ? <p className="mt-1 text-caption text-fg-muted">{help}</p> : null}
     </div>
   );
 }

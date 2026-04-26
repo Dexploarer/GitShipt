@@ -2,12 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowUpRight, CheckCircle2, FlaskConical, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import { FormError } from "@/components/shared/FormError";
 import { RepoPicker } from "./RepoPicker";
 import { TokenMetadataForm } from "./TokenMetadataForm";
 import { LeaderboardConfigForm } from "./LeaderboardConfigForm";
 import { ReviewAndSign } from "./ReviewAndSign";
-import { LaunchProgress, type LaunchPhase } from "./LaunchProgress";
 import { createAndLaunchAction } from "../actions";
 import {
   DEFAULT_PLATFORM_FEE_BPS,
@@ -39,11 +44,35 @@ const DEFAULT_LEADERBOARD: LeaderboardConfig = {
   platformFeeBps: DEFAULT_PLATFORM_FEE_BPS,
 };
 
-export interface WizardShellProps {
-  signedIn: boolean;
+/**
+ * Two real states the wizard tracks during submit:
+ *   - "idle"        : the form is interactive
+ *   - "submitting"  : the server action is in flight (single round-trip)
+ *
+ * The previous implementation faked a 5-step ladder with setTimeout(250).
+ * That misled the user into believing each Bags step was happening live,
+ * when in reality the action is one round-trip server-side. Removed.
+ */
+type LaunchStatus = "idle" | "submitting";
+
+interface LaunchSuccess {
+  projectId: string;
+  tokenMint: string;
+  txSig: string | null;
+  configKey?: string;
+  stub: boolean;
+  note?: string;
+  ghOwner: string;
+  ghRepo: string;
 }
 
-export function WizardShell({ signedIn }: WizardShellProps) {
+export interface WizardShellProps {
+  signedIn: boolean;
+  /** Server-rendered: true when BAGS_API_KEY is missing (stub mode). */
+  isStubMode: boolean;
+}
+
+export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [repo, setRepo] = useState<GithubRepo | null>(null);
@@ -51,10 +80,10 @@ export function WizardShell({ signedIn }: WizardShellProps) {
   const [leaderboard, setLeaderboard] =
     useState<LeaderboardConfig>(DEFAULT_LEADERBOARD);
 
-  const [isPending, startTransition] = useTransition();
-  const [phase, setPhase] = useState<LaunchPhase>("idle");
+  const [, startTransition] = useTransition();
+  const [status, setStatus] = useState<LaunchStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [stubNotice, setStubNotice] = useState<string | null>(null);
+  const [success, setSuccess] = useState<LaunchSuccess | null>(null);
 
   function goNext(toStep: Step) {
     setErrorMessage(null);
@@ -68,7 +97,6 @@ export function WizardShell({ signedIn }: WizardShellProps) {
 
   function handleRepoSelect(selected: GithubRepo) {
     setRepo(selected);
-    // Pre-fill metadata defaults from the repo if not already touched.
     if (!metadata) {
       setMetadata({
         name: selected.name.slice(0, 32),
@@ -97,7 +125,8 @@ export function WizardShell({ signedIn }: WizardShellProps) {
     }
 
     setErrorMessage(null);
-    setStubNotice(null);
+    setSuccess(null);
+    setStatus("submitting");
 
     const body: CreateProjectBody = {
       ghRepoId: repo.id,
@@ -122,47 +151,56 @@ export function WizardShell({ signedIn }: WizardShellProps) {
       platformFeeBps: leaderboard.platformFeeBps,
     };
 
-    setPhase("creating-draft");
-
     startTransition(async () => {
       try {
-        // Visual ramp through the phases — the action is one round-trip
-        // server-side, but the UI shows discrete progress so the user
-        // perceives every Bags step happening.
-        await delay(250);
-        setPhase("uploading-metadata");
-        await delay(250);
-        setPhase("configuring-fee-share");
-
         const result = await createAndLaunchAction(body);
 
         if (!result.ok) {
-          setPhase("idle");
+          setStatus("idle");
           setErrorMessage(formatActionError(result.error, result.message));
           return;
         }
 
-        setPhase("submitting-tx");
-        await delay(200);
-        setPhase("persisting");
-        await delay(200);
-        setPhase("done");
-
-        if (result.stub) {
-          setStubNotice(
-            result.note ??
-              "Stub mode — token mint is fake. Configure BAGS_API_KEY for real launches.",
-          );
-        }
-
-        // Brief pause so the success state is perceived, then redirect.
-        await delay(800);
-        router.push(`/r/${result.ghOwner}/${result.ghRepo}`);
+        setSuccess({
+          projectId: result.projectId,
+          tokenMint: result.tokenMint,
+          txSig: result.txSig,
+          configKey: result.configKey,
+          stub: result.stub,
+          note: result.note,
+          ghOwner: result.ghOwner,
+          ghRepo: result.ghRepo,
+        });
+        setStatus("idle");
       } catch (e) {
-        setPhase("idle");
+        setStatus("idle");
         setErrorMessage(e instanceof Error ? e.message : "Launch failed.");
       }
     });
+  }
+
+  function handleRetry() {
+    setErrorMessage(null);
+  }
+
+  function handleViewProject() {
+    if (!success) return;
+    router.push(`/r/${success.ghOwner}/${success.ghRepo}`);
+  }
+
+  // ============================================================
+  // Render
+  // ============================================================
+
+  if (success) {
+    return (
+      <div className="mx-auto w-full max-w-2xl py-12">
+        <LaunchResult
+          result={success}
+          onViewProject={handleViewProject}
+        />
+      </div>
+    );
   }
 
   return (
@@ -177,49 +215,270 @@ export function WizardShell({ signedIn }: WizardShellProps) {
       >
         {!signedIn ? (
           <SignedOutPrompt />
+        ) : status === "submitting" ? (
+          <SubmittingState />
         ) : step === 1 ? (
           <RepoPicker
             onSelect={handleRepoSelect}
             selectedId={repo?.id ?? null}
           />
         ) : step === 2 && repo ? (
-          <TokenMetadataForm
-            repo={repo}
-            initial={metadata}
-            onBack={() => goBack(1)}
-            onSubmit={handleMetadataSubmit}
-          />
+          <>
+            {errorMessage ? (
+              <FormError
+                message={errorMessage}
+                onDismiss={handleRetry}
+                className="mb-4"
+              />
+            ) : null}
+            <TokenMetadataForm
+              repo={repo}
+              initial={metadata}
+              onBack={() => goBack(1)}
+              onSubmit={handleMetadataSubmit}
+            />
+          </>
         ) : step === 3 ? (
-          <LeaderboardConfigForm
-            initial={leaderboard}
-            onBack={() => goBack(2)}
-            onSubmit={handleLeaderboardSubmit}
-          />
+          <>
+            {errorMessage ? (
+              <FormError
+                message={errorMessage}
+                onDismiss={handleRetry}
+                className="mb-4"
+              />
+            ) : null}
+            <LeaderboardConfigForm
+              initial={leaderboard}
+              onBack={() => goBack(2)}
+              onSubmit={handleLeaderboardSubmit}
+            />
+          </>
         ) : step === 4 && repo && metadata ? (
-          <ReviewAndSign
-            repo={repo}
-            metadata={metadata}
-            leaderboard={leaderboard}
-            onBack={() => goBack(3)}
-            onLaunch={handleLaunch}
-            isPending={isPending || phase !== "idle"}
-            phase={phase}
-            errorMessage={errorMessage}
-            stubNotice={stubNotice}
-          />
+          <>
+            {isStubMode ? <TestModeBanner className="mb-5" /> : null}
+            {errorMessage ? (
+              <FormError
+                message={errorMessage}
+                onDismiss={handleRetry}
+                className="mb-4"
+              />
+            ) : null}
+            <ReviewAndSign
+              repo={repo}
+              metadata={metadata}
+              leaderboard={leaderboard}
+              onBack={() => goBack(3)}
+              onLaunch={handleLaunch}
+              isPending={false}
+              isStubMode={isStubMode}
+            />
+          </>
         ) : (
           <p className="text-body-md text-fg-muted">
             Pick a repo first to continue.
           </p>
         )}
       </section>
-
-      {phase !== "idle" && phase !== "done" ? (
-        <LaunchProgress phase={phase} />
-      ) : null}
     </div>
   );
 }
+
+// ============================================================
+// Submitting state — single honest spinner, no fake ladder
+// ============================================================
+
+function SubmittingState() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      className="flex flex-col items-center justify-center gap-4 py-12 text-center"
+    >
+      <Spinner size="lg" color="primary" label="Creating project" />
+      <div className="space-y-1">
+        <p className="text-headline-sm">Creating project…</p>
+        <p className="text-body-sm text-fg-secondary">
+          Talking to Bags and persisting your launch. This usually takes a few
+          seconds — keep this tab open.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Success result
+// ============================================================
+
+function LaunchResult({
+  result,
+  onViewProject,
+}: {
+  result: LaunchSuccess;
+  onViewProject: () => void;
+}) {
+  const cluster = process.env.NEXT_PUBLIC_SOLANA_CLUSTER ?? "devnet";
+  const solscanUrl = solscanTxUrl(result.txSig, cluster);
+  const mintExplorerUrl = solscanAddressUrl(result.tokenMint, cluster);
+
+  return (
+    <Card depth="raised" padding="lg" className="space-y-6">
+      <header className="flex flex-col items-center gap-3 text-center">
+        {result.stub ? (
+          <span className="grid size-12 place-items-center rounded-full bg-warning-soft text-warning">
+            <FlaskConical className="size-6" aria-hidden />
+          </span>
+        ) : (
+          <span className="grid size-12 place-items-center rounded-full bg-success-soft text-success">
+            <CheckCircle2 className="size-6" aria-hidden />
+          </span>
+        )}
+        <CardTitle>
+          {result.stub ? "Test launch recorded" : "Token launched"}
+        </CardTitle>
+        <CardDescription>
+          {result.stub
+            ? "No real Bags.fm token was created. We persisted a test draft so you can preview the project page UX."
+            : "Your project is live on Bags.fm and now appears on the public leaderboard."}
+        </CardDescription>
+      </header>
+
+      {result.stub ? (
+        <Card depth="flat" padding="default" className="bg-warning-soft/40">
+          <div className="flex items-start gap-3">
+            <Badge variant="warning" dot dotColor="warning">
+              Test mode
+            </Badge>
+            <p className="flex-1 text-body-sm text-fg-secondary">
+              {result.note ??
+                "BAGS_API_KEY is not set, so the token mint above is a stub. Configure the key to enable real launches."}
+            </p>
+          </div>
+        </Card>
+      ) : null}
+
+      <dl className="grid grid-cols-1 gap-3">
+        <ResultRow
+          k="Token mint"
+          v={result.tokenMint}
+          href={mintExplorerUrl}
+          mono
+        />
+        {result.txSig ? (
+          <ResultRow
+            k="Launch tx"
+            v={result.txSig}
+            href={solscanUrl}
+            mono
+          />
+        ) : !result.stub ? (
+          <ResultRow
+            k="Launch tx"
+            v="Pending — Day-3 release will broadcast on-chain."
+          />
+        ) : null}
+        {result.configKey ? (
+          <ResultRow k="Bags config key" v={result.configKey} mono />
+        ) : null}
+      </dl>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        {!result.stub && solscanUrl ? (
+          <Button asChild variant="secondary">
+            <a href={solscanUrl} target="_blank" rel="noreferrer noopener">
+              View on Solscan
+              <ArrowUpRight className="size-4" />
+            </a>
+          </Button>
+        ) : null}
+        <Button onClick={onViewProject} variant="primary">
+          <Rocket className="size-4" />
+          Open project page
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function ResultRow({
+  k,
+  v,
+  href,
+  mono,
+}: {
+  k: string;
+  v: string;
+  href?: string | null;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-border pb-3 last:border-b-0 last:pb-0">
+      <dt className="text-body-sm text-fg-muted">{k}</dt>
+      <dd
+        className={cn(
+          "min-w-0 flex-1 truncate text-right text-body-sm text-fg",
+          mono && "text-mono-sm",
+        )}
+        title={v}
+      >
+        {href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-primary hover:underline"
+          >
+            {v}
+          </a>
+        ) : (
+          v
+        )}
+      </dd>
+    </div>
+  );
+}
+
+// ============================================================
+// Test-mode banner (Review step)
+// ============================================================
+
+export function TestModeBanner({ className }: { className?: string }) {
+  return (
+    <Card
+      depth="flat"
+      padding="default"
+      className={cn(
+        "flex items-start gap-3 border-warning/40 bg-warning-soft/40",
+        className,
+      )}
+    >
+      <FlaskConical
+        className="mt-0.5 size-4 shrink-0 text-warning"
+        aria-hidden
+      />
+      <div className="flex-1 space-y-1">
+        <div className="flex items-center gap-2">
+          <Badge variant="warning" size="sm">
+            Test mode
+          </Badge>
+          <span className="text-label-sm text-fg">
+            No real Bags.fm token will be created
+          </span>
+        </div>
+        <p className="text-body-sm text-fg-secondary">
+          BAGS_API_KEY is not configured on this deployment. Submitting will
+          persist a project draft with a fake mint so you can walk the rest of
+          the flow end-to-end.
+        </p>
+      </div>
+    </Card>
+  );
+}
+
+// ============================================================
+// Step indicator
+// ============================================================
 
 function StepIndicator({ current }: { current: Step }) {
   const steps = [1, 2, 3, 4] as const;
@@ -230,7 +489,10 @@ function StepIndicator({ current }: { current: Step }) {
     4: "Launch",
   };
   return (
-    <ol className="flex items-center justify-between gap-3" aria-label="Wizard steps">
+    <ol
+      className="flex items-center justify-between gap-3"
+      aria-label="Wizard steps"
+    >
       {steps.map((s) => {
         const state =
           s < current ? "done" : s === current ? "current" : "future";
@@ -239,8 +501,7 @@ function StepIndicator({ current }: { current: Step }) {
             <span
               className={cn(
                 "grid size-7 place-items-center rounded-full text-mono-sm font-medium",
-                state === "current" &&
-                  "bg-primary text-fg",
+                state === "current" && "bg-primary text-fg",
                 state === "done" &&
                   "bg-success-soft text-success border border-success",
                 state === "future" &&
@@ -283,12 +544,9 @@ function SignedOutPrompt() {
       <p className="text-body-md text-fg-secondary">
         You need to be signed in with GitHub before you can launch a token.
       </p>
-      <a
-        href="/auth/signin?next=/launch"
-        className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-label-md text-fg transition-colors hover:bg-primary-hover"
-      >
-        Sign in with GitHub
-      </a>
+      <Button asChild>
+        <a href="/auth/signin?next=/launch">Sign in with GitHub</a>
+      </Button>
     </div>
   );
 }
@@ -296,10 +554,6 @@ function SignedOutPrompt() {
 // ============================================================
 // Helpers
 // ============================================================
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function deriveSymbolFromRepo(repoName: string): string {
   const cleaned = repoName.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -321,4 +575,15 @@ function formatActionError(code: string, message: string): string {
     default:
       return message || "Launch failed.";
   }
+}
+
+function solscanTxUrl(sig: string | null, cluster: string): string | null {
+  if (!sig) return null;
+  const param = cluster === "mainnet-beta" ? "" : `?cluster=${cluster}`;
+  return `https://solscan.io/tx/${sig}${param}`;
+}
+
+function solscanAddressUrl(addr: string, cluster: string): string {
+  const param = cluster === "mainnet-beta" ? "" : `?cluster=${cluster}`;
+  return `https://solscan.io/address/${addr}${param}`;
 }

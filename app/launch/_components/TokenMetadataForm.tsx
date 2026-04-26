@@ -1,14 +1,35 @@
 "use client";
 
+import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { z } from "zod";
 import { cn } from "@/lib/utils";
-import {
-  TokenMetadataSchema,
-  type TokenMetadataInput,
-  type GithubRepo,
-} from "@/shared";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/shared/FormField";
+import { TokenMetadataSchema, type TokenMetadataInput, type GithubRepo } from "@/shared";
+
+/**
+ * Client-side schema layered on top of the shared Zod contract.
+ *
+ *   - Mirrors `TokenMetadataSchema` for `name`, `description`, `imageUrl`.
+ *   - Tightens `symbol` to a 2-10 uppercase-and-digit constraint per the
+ *     wizard polish spec (the server still accepts 1-10 from the canonical
+ *     schema; this is a stricter UX hint, not a security boundary).
+ *
+ * Important: the form's submit shape is unchanged — the same TokenMetadataInput
+ * is posted to the server action.
+ */
+const ClientTokenSchema = TokenMetadataSchema.extend({
+  symbol: z
+    .string()
+    .trim()
+    .min(2, "Symbol must be at least 2 characters")
+    .max(10, "Max 10 characters")
+    .regex(/^[A-Z0-9]+$/, "Uppercase letters and numbers only"),
+});
 
 export interface TokenMetadataFormProps {
   repo: GithubRepo;
@@ -28,7 +49,7 @@ export function TokenMetadataForm({
     handleSubmit,
     formState: { errors, isValid },
   } = useForm<TokenMetadataInput>({
-    resolver: zodResolver(TokenMetadataSchema),
+    resolver: zodResolver(ClientTokenSchema),
     mode: "onBlur",
     defaultValues:
       initial ?? {
@@ -52,130 +73,78 @@ export function TokenMetadataForm({
         </p>
       </header>
 
-      <Field
-        id="name"
+      <FormField
         label="Name"
-        help="Up to 32 characters."
+        hint="Up to 32 characters."
         error={errors.name?.message}
+        required
       >
-        <input
-          id="name"
+        <Input
           type="text"
           maxLength={32}
+          autoComplete="off"
           {...register("name")}
-          className={inputClass}
-          aria-invalid={Boolean(errors.name)}
         />
-      </Field>
+      </FormField>
 
-      <Field
-        id="symbol"
+      <FormField
         label="Symbol"
-        help="A-Z, 0-9 only. Up to 10 characters."
+        hint="A-Z, 0-9 only. 2-10 characters."
         error={errors.symbol?.message}
+        required
       >
-        <input
-          id="symbol"
+        <Input
           type="text"
           maxLength={10}
+          autoComplete="off"
+          className="text-mono-md uppercase tracking-wide"
           {...register("symbol", {
             setValueAs: (v: string) => (v ?? "").toUpperCase(),
           })}
-          className={cn(inputClass, "text-mono-md uppercase tracking-wide")}
-          aria-invalid={Boolean(errors.symbol)}
         />
-      </Field>
+      </FormField>
 
-      <Field
-        id="description"
+      <FormField
         label="Description"
-        help="Optional. Up to 2000 characters. Shows on Bags.fm and your project page."
+        hint="Optional. Up to 2000 characters. Shows on Bags.fm and your project page."
         error={errors.description?.message}
       >
         <textarea
-          id="description"
           rows={4}
           maxLength={2000}
           {...register("description")}
-          className={cn(inputClass, "h-auto resize-y py-2 leading-snug")}
-          aria-invalid={Boolean(errors.description)}
+          className={cn(
+            "w-full rounded-md border border-border-strong bg-surface px-3 py-2",
+            "text-body-md text-fg outline-none placeholder:text-fg-muted",
+            "transition-[border-color,box-shadow] duration-150",
+            "focus-visible:outline-none focus-visible:border-primary focus-visible:shadow-inset-light",
+            "aria-[invalid=true]:border-danger",
+          )}
         />
-      </Field>
+      </FormField>
 
-      <Field
-        id="imageUrl"
+      <FormField
         label="Image URL"
-        help="Square image works best. Defaults to your GitHub avatar."
+        hint="Square image works best. Defaults to your GitHub avatar."
         error={errors.imageUrl?.message}
+        required
       >
-        <input
-          id="imageUrl"
-          type="url"
-          {...register("imageUrl")}
-          className={inputClass}
-          aria-invalid={Boolean(errors.imageUrl)}
-        />
-      </Field>
+        <Input type="url" autoComplete="off" {...register("imageUrl")} />
+      </FormField>
 
       <div className="flex items-center justify-between gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex h-10 items-center gap-2 rounded-md border border-border-strong bg-surface-elevated px-4 text-label-md text-fg transition-colors hover:bg-surface-overlay"
-        >
+        <Button type="button" variant="secondary" onClick={onBack}>
           <ArrowLeft className="size-4" />
           Back
-        </button>
-        <button
-          type="submit"
-          disabled={!isValid}
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-label-md text-fg transition-colors hover:bg-primary-hover disabled:opacity-60"
-        >
+        </Button>
+        <Button type="submit" disabled={!isValid}>
           Continue
           <ArrowRight className="size-4" />
-        </button>
+        </Button>
       </div>
     </form>
   );
 }
-
-function Field({
-  id,
-  label,
-  help,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  help?: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="mb-1.5 block text-label-sm text-fg-secondary"
-      >
-        {label}
-      </label>
-      {children}
-      {error ? (
-        <p className="mt-1 text-caption text-danger">{error}</p>
-      ) : help ? (
-        <p className="mt-1 text-caption text-fg-muted">{help}</p>
-      ) : null}
-    </div>
-  );
-}
-
-const inputClass = cn(
-  "h-10 w-full rounded-md border border-border-strong bg-surface px-3",
-  "text-body-md text-fg outline-none placeholder:text-fg-muted",
-  "focus:border-primary",
-  "aria-[invalid=true]:border-danger",
-);
 
 function deriveSymbol(repoName: string): string {
   const cleaned = repoName.toUpperCase().replace(/[^A-Z0-9]/g, "");

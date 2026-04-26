@@ -6,6 +6,16 @@ import { hasCredentials } from "@/lib/env";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WizardShell } from "./_components/WizardShell";
 
+function isStubMode(): boolean {
+  // Stub mode = no Bags API key configured. Surface a "test mode" banner in
+  // the wizard so users know the launch will be a fake mint.
+  try {
+    return !hasCredentials.bags();
+  } catch {
+    return true;
+  }
+}
+
 export const metadata = {
   title: "Launch a token",
   description:
@@ -47,7 +57,7 @@ export default async function LaunchPage() {
       </header>
 
       <main className="px-margin">
-        <WizardShell signedIn={signedIn} />
+        <WizardShell signedIn={signedIn} isStubMode={isStubMode()} />
       </main>
     </div>
   );
