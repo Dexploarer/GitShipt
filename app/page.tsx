@@ -43,9 +43,23 @@ export default async function LandingPage() {
               Left  (cols 1-7): hero text on top, featured project below
               Right (cols 8-12): mia.png, full row height
         */}
-        <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-12">
-          <div className="flex flex-col gap-4 lg:col-span-5 lg:min-h-0 lg:gap-10 lg:pt-16">
-            <section className="flex flex-col items-start gap-4 lg:gap-5">
+        {/*
+          Two-column layout uses `lg:contents` on each column wrapper so
+          children flow as direct grid items below lg. That lets us reorder
+          via `order-*` so the mobile reading flow is: text → mia → CTAs →
+          featured-project, instead of text → featured → mia → CTAs.
+        */}
+        <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:gap-6">
+          <div className="contents lg:flex lg:flex-col lg:col-span-5 lg:min-h-0 lg:justify-between lg:gap-8 lg:pt-12 lg:pb-2">
+            <section className="order-1 flex flex-col items-start gap-4 lg:order-none lg:gap-5">
+              <span className="inline-flex items-center gap-2 text-caption uppercase tracking-[0.18em] text-fg-muted">
+                <span
+                  aria-hidden
+                  className="inline-block size-1 rounded-full bg-primary"
+                />
+                Open-source token launchpad
+              </span>
+
               <h1 className="text-[40px] font-semibold leading-[1.02] tracking-[-0.025em] text-fg sm:text-[52px] lg:text-[76px]">
                 Your repo,
                 <br />
@@ -53,10 +67,9 @@ export default async function LandingPage() {
               </h1>
 
               <p className="max-w-xl text-body-md text-fg-secondary lg:text-body-lg">
-                GitBags turns any GitHub repository into a tradeable
-                Bags.fm token. Swap fees fund a daily on-chain SOL
-                payout to your top contributors — automatic, transparent,
-                no committee.
+                GitBags mints a Bags.fm token for any GitHub repo and
+                streams the trading fees back to its contributors —
+                ranked daily, paid on-chain in SOL.
               </p>
 
               <Link
@@ -71,7 +84,7 @@ export default async function LandingPage() {
               </Link>
             </section>
 
-            <div className="w-full lg:max-h-[300px] lg:min-h-0 lg:w-[420px] lg:flex-1">
+            <div className="order-4 w-full lg:order-none lg:max-h-[320px] lg:min-h-0 lg:w-[440px]">
               <FeaturedProjectCard
                 header={featuredHeader}
                 contributors={featuredContribs}
@@ -79,20 +92,20 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <aside className="flex flex-col gap-3 lg:col-span-7 lg:min-h-0 lg:justify-center">
-            <div className="pointer-events-none relative mx-auto aspect-square w-full max-w-[480px] sm:max-w-[560px] lg:aspect-auto lg:h-[600px] lg:w-full lg:max-w-none lg:shrink-0">
+          <div className="contents lg:flex lg:flex-col lg:col-span-7 lg:min-h-0 lg:justify-center lg:gap-4">
+            <div className="pointer-events-none relative order-2 mx-auto aspect-square w-full max-w-[360px] sm:max-w-[460px] lg:order-none lg:aspect-auto lg:mx-0 lg:h-[700px] lg:w-full lg:max-w-none lg:shrink-0">
               <Image
                 src="/mia.png"
                 alt=""
                 fill
                 priority
-                sizes="(max-width: 1024px) 560px, 800px"
+                sizes="(max-width: 640px) 360px, (max-width: 1024px) 460px, 700px"
                 className="object-contain object-center"
                 unoptimized
               />
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-2.5 lg:shrink-0">
+            <div className="order-3 flex flex-wrap items-center justify-center gap-2.5 lg:order-none lg:shrink-0">
               <Button asChild variant="primary" size="lg">
                 <Link href="/launch">
                   Launch a token
@@ -103,7 +116,7 @@ export default async function LandingPage() {
                 <Link href="/explore">Browse projects</Link>
               </Button>
             </div>
-          </aside>
+          </div>
         </div>
 
         {/* ── Row 2: live KPI strip (4 cells) ──────────────────────── */}
