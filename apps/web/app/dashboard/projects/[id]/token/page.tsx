@@ -21,6 +21,7 @@ import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { CopyButton } from "@/components/shared";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { StartIncorporationButton } from "./_components/StartIncorporationButton";
 
 export const dynamic = "force-dynamic";
 
@@ -40,15 +41,6 @@ export default async function TokenPage({
     project.tokenMint && hasCredentials.bags()
       ? await bags.getIncorporationDetails(project.tokenMint).catch(() => null)
       : null;
-  const launchIntentUrl = bags.createLaunchIntentUrl({
-    name: project.name,
-    description: project.description ?? undefined,
-    imageUrl: project.imageUrl ?? undefined,
-    feeShareBps: contributorBps,
-    partner: process.env.BAGS_PARTNER_WALLET,
-    partnerConfig: process.env.BAGS_PARTNER_CONFIG_KEY,
-    tokenizeEquity: true,
-  });
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
@@ -169,16 +161,13 @@ export default async function TokenPage({
                 tax residency data. Use the Bags-hosted flow so sensitive
                 incorporation details stay with Bags.
               </p>
-              <Button asChild variant="secondary">
-                <Link
-                  href={launchIntentUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                >
-                  Open Bags incorporation intent
-                  <ExternalLink className="size-3.5" />
-                </Link>
-              </Button>
+              <StartIncorporationButton
+                projectId={id}
+                disabled={
+                  project.status !== "live" ||
+                  incorporation?.incorporationStarted === true
+                }
+              />
             </>
           ) : (
             <p className="text-body-md text-fg-secondary">
