@@ -42,7 +42,7 @@ export default async function LandingPage() {
         {/* ── Row 1: hero + featured project ─────────────────────────── */}
         <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-12">
           <section className="flex items-stretch lg:col-span-8 lg:min-h-0">
-            <div className="grid h-full w-full grid-cols-1 items-end gap-6 sm:grid-cols-[1fr_auto] sm:gap-8 lg:gap-10">
+            <div className="grid h-full w-full grid-cols-1 items-end gap-4 sm:grid-cols-[1fr_auto] sm:gap-3 lg:gap-2">
               <div className="flex flex-col items-start gap-3 self-start pt-2 lg:gap-4">
                 <h1 className="text-[36px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[44px] lg:text-[52px]">
                   Your repo,
