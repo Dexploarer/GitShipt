@@ -16,6 +16,11 @@ export const projectStatusEnum = pgEnum("project_status", [
   "live",
   "paused",
   "killed",
+  // Project was "launched" in stub mode (no Bags credentials or no Solana
+  // signer) — tokenMint / bagsLaunchId / bagsConfigKey are placeholders. A
+  // real launch promotes this row by clearing those columns and setting
+  // status back to 'draft' (see app/api/admin/promote-from-stub).
+  "simulated_live",
 ]);
 
 export const projectMemberRoleEnum = pgEnum("project_member_role", [
@@ -77,6 +82,8 @@ export const projects = pgTable(
     pausedAt: timestamp("paused_at", { withTimezone: true }),
     pausedReason: text("paused_reason"),
     killedAt: timestamp("killed_at", { withTimezone: true }),
+    /** Set when the project was launched in stub mode; null after a real launch. */
+    simulatedAt: timestamp("simulated_at", { withTimezone: true }),
 
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

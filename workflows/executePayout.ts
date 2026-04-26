@@ -56,7 +56,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
   payoutId: string;
   recipientCount: number;
   stub: boolean;
-  status: "completed" | "failed" | "pending" | "skipped";
+  status: "completed" | "failed" | "pending" | "simulated" | "skipped";
 }> {
   const ctx = await loadCtxStep(snapshotId);
   if (!ctx) {
@@ -273,7 +273,7 @@ async function dispatchStep(args: {
 }
 
 async function finalizeStep(payoutId: string): Promise<{
-  status: "completed" | "failed" | "pending";
+  status: "completed" | "failed" | "pending" | "simulated";
   totals: { sent: number; escrow: number; failed: number; pending: number };
 }> {
   "use step";

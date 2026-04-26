@@ -84,7 +84,31 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
     throw e;
   }
 
-  const idempotencyKey = req.headers.get("idempotency-key");
+  const rawIdempotencyKey = req.headers.get("idempotency-key");
+
+  // Peek at project state BEFORE entering withIdempotency so we can namespace
+  // the cache key per-mode. Otherwise a stub-mode response is cached and any
+  // later real-launch attempt returns the cached fake mint forever.
+  const dbpForPeek = dbPool();
+  const [peek] = await dbpForPeek
+    .select({
+      status: projects.status,
+      simulatedAt: projects.simulatedAt,
+    })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  // Real-mode and each simulated cycle land in separate idempotency spaces.
+  // Promoting a simulated_live project to a real launch never returns a
+  // cached stub response.
+  const willStubMode = !canLaunchOnBags().ok || !hasCredentials.bags();
+  const namespace = willStubMode
+    ? `sim:${peek?.simulatedAt?.toISOString() ?? "first"}`
+    : "real";
+  const idempotencyKey = rawIdempotencyKey
+    ? `${projectId}:${namespace}:${rawIdempotencyKey}`
+    : null;
 
   try {
     const result = await withIdempotency(idempotencyKey, async () => {
@@ -100,6 +124,33 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
         throw new LaunchError("not_found", "Project not found.", 404);
       }
 
+      // Promote-from-stub: when a simulated_live project hits this route in
+      // real mode, clear the stub artifacts and re-run the launch. The
+      // tokenMint on a simulated_live row is a placeholder, not real
+      // on-chain state — overwriting it is intentional.
+      const isPromotingFromStub =
+        project.status === "simulated_live" && !willStubMode;
+
+      if (isPromotingFromStub) {
+        await dbp
+          .update(projects)
+          .set({
+            tokenMint: null,
+            bagsLaunchId: null,
+            bagsConfigKey: null,
+            status: "draft",
+            simulatedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(projects.id, projectId));
+        const [reloaded] = await dbp
+          .select()
+          .from(projects)
+          .where(eq(projects.id, projectId))
+          .limit(1);
+        if (reloaded) Object.assign(project, reloaded);
+      }
+
       if (project.status !== "draft") {
         // Already launched (or paused/killed) — return the existing token mint
         // so the wizard can navigate to /r/{org}/{repo} idempotently.
@@ -108,7 +159,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
             projectId,
             tokenMint: project.tokenMint,
             status: "live" as const,
-            stub: false,
+            stub: project.status === "simulated_live",
             configKey: project.bagsConfigKey ?? undefined,
             txSig: null,
             note: `Project status is ${project.status}; returning persisted token mint.`,
@@ -178,14 +229,18 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       }
 
       // Step 4: persist live state (atomic with the audit row that follows).
+      // STUB MODE: write `simulated_live` and stamp `simulated_at` so a later
+      // real-mode launch can promote this row instead of being blocked.
+      const persistNow = new Date();
       const [updated] = await dbp
         .update(projects)
         .set({
           tokenMint: tokenInfo.tokenMint,
           bagsLaunchId: feeShareConfig.configKey,
           bagsConfigKey: feeShareConfig.configKey,
-          status: "live",
-          updatedAt: new Date(),
+          status: isStub ? "simulated_live" : "live",
+          simulatedAt: isStub ? persistNow : null,
+          updatedAt: persistNow,
         })
         .where(eq(projects.id, projectId))
         .returning({ id: projects.id, tokenMint: projects.tokenMint });

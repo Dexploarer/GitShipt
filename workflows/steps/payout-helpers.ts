@@ -187,8 +187,11 @@ export async function checkClaimableLamports(args: {
   tokenMint: string | null;
 }): Promise<{ lamports: string; positionCount: number }> {
   if (isStubMode()) {
-    // In stub mode we synthesize a deterministic fake amount so the planning
-    // pipeline can demonstrate end-to-end. Use 1 SOL as the demo total.
+    // STUB-MODE SYNTHESIS — no on-chain claim is performed. We return a
+    // deterministic fake amount (1 SOL) so the planning pipeline can run
+    // end-to-end for the demo. Downstream `finalizePayout` writes the row
+    // with status='simulated' (NOT 'completed') and `simulated_at = now()`
+    // so this fake amount never appears in real ledger / discovery sums.
     return { lamports: "1000000000", positionCount: 1 };
   }
   if (!args.walletAddress || !args.tokenMint) {
@@ -481,9 +484,14 @@ export async function dispatchRecipient(args: {
 
 /**
  * Mark the payout completed (or partial-failed) based on per-recipient state.
+ *
+ * STUB MODE: when `isStubMode()` is true, no on-chain transactions ever ran
+ * (dispatchStep was skipped) so the payout terminates with status='simulated'
+ * and `simulated_at = now()`. This is a non-real terminal state — every
+ * aggregation that filters on status='completed' will correctly skip it.
  */
 export async function finalizePayout(payoutId: string): Promise<{
-  status: "completed" | "failed" | "pending";
+  status: "completed" | "failed" | "pending" | "simulated";
   totals: {
     sent: number;
     escrow: number;
@@ -491,6 +499,7 @@ export async function finalizePayout(payoutId: string): Promise<{
     pending: number;
   };
 }> {
+  const stub = isStubMode();
   const rows = await dbHttp
     .select({ status: payoutRecipients.status })
     .from(payoutRecipients)
@@ -504,8 +513,13 @@ export async function finalizePayout(payoutId: string): Promise<{
     else totals.pending++;
   }
 
-  let status: "completed" | "failed" | "pending";
-  if (totals.failed > 0 && totals.sent + totals.escrow === 0) {
+  let status: "completed" | "failed" | "pending" | "simulated";
+  if (stub) {
+    // dispatchStep was skipped — recipients stay 'pending'. The payout
+    // terminates as 'simulated', NOT 'completed', so it never lies to the
+    // public ledger.
+    status = "simulated";
+  } else if (totals.failed > 0 && totals.sent + totals.escrow === 0) {
     status = "failed";
   } else if (totals.pending === 0) {
     status = "completed";
@@ -513,15 +527,17 @@ export async function finalizePayout(payoutId: string): Promise<{
     status = "pending";
   }
 
+  const now = new Date();
   await dbHttp
     .update(payouts)
     .set({
       status,
-      executedAt: new Date(),
+      executedAt: now,
+      ...(status === "simulated" ? { simulatedAt: now } : {}),
     })
     .where(eq(payouts.id, payoutId));
 
-  // Mark snapshot 'paid' on success.
+  // Mark snapshot 'paid' on real success only — never on simulated.
   if (status === "completed") {
     await dbHttp.execute(sql`
       update snapshots set status = 'paid'

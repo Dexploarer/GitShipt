@@ -8,6 +8,13 @@
       "when": 1777144908760,
       "tag": "0000_ordinary_nocturne",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777179137201,
+      "tag": "0001_slippery_king_cobra",
+      "breakpoints": true
     }
   ]
 }

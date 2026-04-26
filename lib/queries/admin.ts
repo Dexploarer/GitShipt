@@ -212,7 +212,7 @@ export interface AdminProjectRow {
   name: string;
   ownerName: string | null;
   ownerUsername: string | null;
-  status: "draft" | "live" | "paused" | "killed";
+  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
   contributorsCount: number;
   imageUrl: string | null;
   tokenMint: string | null;
@@ -225,7 +225,7 @@ export async function getAllProjects(filter?: { status?: string }): Promise<Admi
     conds.push(
       eq(
         projects.status,
-        filter.status as "draft" | "live" | "paused" | "killed",
+        filter.status as "draft" | "live" | "paused" | "killed" | "simulated_live",
       ),
     );
   }
@@ -348,7 +348,7 @@ export interface AdminPayoutRow {
   projectSlug: string;
   totalLamports: bigint;
   recipientCount: number;
-  status: "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled";
+  status: "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled" | "simulated";
   attemptCount: number;
   lastError: string | null;
   scheduledAt: Date;
@@ -361,7 +361,7 @@ export async function getAllPayouts(filter?: { status?: string }): Promise<Admin
     conds.push(
       eq(
         payouts.status,
-        filter.status as "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled",
+        filter.status as "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled" | "simulated",
       ),
     );
   }
@@ -519,6 +519,65 @@ export async function getTableRowCounts(): Promise<Array<{ table: string; rows: 
     }
   }
   return out;
+}
+
+/**
+ * Promote a `simulated_live` project to a clean `draft` state ready for a
+ * real on-chain launch. Drops every payouts row in `simulated` status for
+ * the project (the cascade FK on payout_recipients drops their rows too).
+ *
+ * Caller MUST gate with `requirePermission('admin.access')`.
+ */
+export async function promoteProjectFromStub(projectId: string): Promise<{
+  projectId: string;
+  slug: string;
+  simulatedPayoutsDeleted: number;
+  ready: true;
+}> {
+  const dbp = (await import("@/db")).dbPool();
+  return await dbp.transaction(async (tx) => {
+    const [proj] = await tx
+      .select({
+        id: projects.id,
+        ghOwner: projects.ghOwner,
+        ghRepo: projects.ghRepo,
+        status: projects.status,
+      })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+    if (!proj) {
+      throw new Error(`promoteProjectFromStub: project ${projectId} not found`);
+    }
+
+    // Delete simulated payouts; cascade FK clears payout_recipients.
+    const deleted = await tx
+      .delete(payouts)
+      .where(
+        and(eq(payouts.projectId, projectId), eq(payouts.status, "simulated")),
+      )
+      .returning({ id: payouts.id });
+
+    // Reset project to draft + clear stub artifacts.
+    await tx
+      .update(projects)
+      .set({
+        tokenMint: null,
+        bagsLaunchId: null,
+        bagsConfigKey: null,
+        status: "draft",
+        simulatedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(projects.id, projectId));
+
+    return {
+      projectId,
+      slug: `${proj.ghOwner}/${proj.ghRepo}`,
+      simulatedPayoutsDeleted: deleted.length,
+      ready: true as const,
+    };
+  });
 }
 
 export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {

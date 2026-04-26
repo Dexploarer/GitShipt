@@ -21,6 +21,10 @@ export const payoutStatusEnum = pgEnum("payout_status", [
   "completed",
   "failed",
   "cancelled",
+  // Stub-mode terminal status. Plan was computed and persisted, but no
+  // on-chain claim or transfer ever happened. NEVER counts as a real
+  // completed payout for ledger / accounting / discovery aggregations.
+  "simulated",
 ]);
 
 export const recipientStatusEnum = pgEnum("recipient_status", [
@@ -56,6 +60,8 @@ export const payouts = pgTable(
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
     startedAt: timestamp("started_at", { withTimezone: true }),
     executedAt: timestamp("executed_at", { withTimezone: true }),
+    /** Set when payout finished in stub mode (no on-chain side effects). */
+    simulatedAt: timestamp("simulated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
