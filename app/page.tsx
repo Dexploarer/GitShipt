@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
+import { getSessionUser } from "@/lib/auth/session";
 import { getLandingData } from "@/lib/queries/global";
 import {
   getProjectBySlug,
@@ -26,17 +27,20 @@ const FEATURED_REPO = "gitbags";
  * The featured project is the GitBags repo itself — debuts the project on
  * its own landing and shows the contributors who actually built it.
  */
+export const dynamic = "force-dynamic";
+
 export default async function LandingPage() {
-  const [{ ticker }, featuredHeader] = await Promise.all([
+  const [{ ticker }, featuredHeader, user] = await Promise.all([
     getLandingData(),
     getProjectBySlug(FEATURED_OWNER, FEATURED_REPO),
+    getSessionUser(),
   ]);
   const featuredContribs: LeaderboardRow[] = featuredHeader
     ? await getProjectLeaderboard(featuredHeader.id, featuredHeader.payoutConfig)
     : [];
 
   return (
-    <PublicAppShell active="home">
+    <PublicAppShell active="home" user={user}>
       <div className="flex flex-col gap-3 lg:h-[calc(100vh-4.5rem)] lg:gap-3 lg:overflow-hidden">
         {/* ── Row 1: two columns ─────────────────────────────────────
               Left  (cols 1-7): hero text on top, featured project below

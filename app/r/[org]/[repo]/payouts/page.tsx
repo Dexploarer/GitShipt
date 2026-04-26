@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectShell } from "../_components/ProjectShell";
+import { getProjectShellChrome } from "@/lib/auth/project-chrome";
 import { formatSol, formatRelativeTime, formatAddress } from "@/lib/format";
 
 type Params = Promise<{ org: string; repo: string }>;
@@ -41,6 +42,7 @@ export default async function ProjectPayoutsPage({
   if (!data) notFound();
 
   const { header, pool } = data;
+  const { user, canAdmin } = await getProjectShellChrome(header.id);
   const page = Math.max(1, Number(sp.page ?? 1));
   const allPayouts = await getProjectPayoutHistory(header.id, page * PAGE_SIZE);
   const start = (page - 1) * PAGE_SIZE;
@@ -57,7 +59,7 @@ export default async function ProjectPayoutsPage({
   );
 
   return (
-    <ProjectShell header={header} pool={pool} active="payouts">
+    <ProjectShell header={header} pool={pool} active="payouts" canAdmin={canAdmin} user={user}>
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-2">
           <Breadcrumbs

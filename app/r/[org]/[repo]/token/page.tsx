@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectShell } from "../_components/ProjectShell";
+import { getProjectShellChrome } from "@/lib/auth/project-chrome";
 import { TokenInfoCard } from "../_components/TokenInfoCard";
 import { CopyButton } from "../_components/CopyButton";
 import { formatSol, formatAddress } from "@/lib/format";
@@ -44,6 +45,7 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
   if (!data) notFound();
 
   const { header, pool } = data;
+  const { user, canAdmin } = await getProjectShellChrome(header.id);
   const stats = await getTokenStats(header);
   const platformFeePct = (header.platformFeeBps / 100).toFixed(1);
   const contributorPoolPct = (
@@ -52,7 +54,7 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
   ).toFixed(1);
 
   return (
-    <ProjectShell header={header} pool={pool} active="token">
+    <ProjectShell header={header} pool={pool} active="token" canAdmin={canAdmin} user={user}>
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-2">
           <Breadcrumbs

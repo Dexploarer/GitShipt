@@ -94,20 +94,14 @@ export function UnauthSidebar({ active }: UnauthSidebarProps) {
           <SidebarItem icon={Rocket} label="Launch a token" href="/launch" />
         </SidebarSection>
 
-        <SidebarSection title="Legal">
-          {LEGAL_NAV.map(({ key, label, icon, href }) => (
-            <SidebarItem
-              key={key}
-              icon={icon}
-              label={label}
-              href={href}
-              active={isActive(href, key as UnauthSidebarActive)}
-            />
-          ))}
-        </SidebarSection>
       </SidebarContent>
 
       <SidebarFooter>
+        <FooterLegalRow
+          isActive={(href: string) =>
+            isActive(href, href === "/legal/terms" ? "terms" : "privacy")
+          }
+        />
         <CollapsibleSignInCta />
         <div className="flex items-center justify-between gap-2">
           <CollapsiblePoweredBy />
@@ -115,6 +109,31 @@ export function UnauthSidebar({ active }: UnauthSidebarProps) {
         </div>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function FooterLegalRow({
+  isActive,
+}: {
+  isActive: (href: string) => boolean;
+}) {
+  const { collapsed } = useSidebar();
+  if (collapsed) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 px-1 pb-1 text-caption text-fg-muted">
+      {LEGAL_NAV.map(({ label, href }) => (
+        <Link
+          key={href}
+          href={href}
+          className={cn(
+            "transition-colors hover:text-fg",
+            isActive(href) && "text-fg",
+          )}
+        >
+          {label}
+        </Link>
+      ))}
+    </div>
   );
 }
 

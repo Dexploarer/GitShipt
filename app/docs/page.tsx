@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
+import { getSessionUser } from "@/lib/auth/session";
 import { CopyButton } from "@/app/r/[org]/[repo]/_components/CopyButton";
 import { DocSection } from "./_components/DocSection";
 
@@ -32,9 +33,10 @@ const EMBED_SNIPPET = `<iframe
  * v0 — keeps the build deterministic, lets us co-locate the copy with the
  * components that link to it, and ships zero extra client JS.
  */
-export default function DocsPage() {
+export default async function DocsPage() {
+  const user = await getSessionUser();
   return (
-    <PublicAppShell active="docs">
+    <PublicAppShell active="docs" user={user}>
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-[200px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <nav aria-label="Docs sections" className="flex flex-col gap-1">

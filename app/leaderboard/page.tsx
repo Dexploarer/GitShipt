@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
+import { getSessionUser } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 import { getGlobalLeaderboard } from "@/lib/queries/global";
 import { GlobalLeaderboardTable } from "./_components/GlobalLeaderboardTable";
@@ -24,17 +25,20 @@ function parseMode(value: string | string[] | undefined): Mode {
  * — no client JS needed for navigation, and the active state survives
  * sharing/bookmarking the URL.
  */
+export const dynamic = "force-dynamic";
+
 export default async function LeaderboardPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const user = await getSessionUser();
   const params = await searchParams;
   const mode = parseMode(params.mode);
   const data = await getGlobalLeaderboard();
 
   return (
-    <PublicAppShell active="leaderboard">
+    <PublicAppShell active="leaderboard" user={user}>
       <div className="flex flex-col gap-6 lg:gap-8">
         <ModeToggle mode={mode} />
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
+import { getSessionUser } from "@/lib/auth/session";
 import { LegalSection } from "@/app/legal/_components/LegalSection";
 
 export const metadata: Metadata = {
@@ -17,9 +18,10 @@ const LAST_UPDATED = "2026-04-26";
  * Solana wallet addresses, append-only audit logs, contributor
  * scoring inputs derived from public GitHub data. No analytics.
  */
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const user = await getSessionUser();
   return (
-    <PublicAppShell active="privacy">
+    <PublicAppShell active="privacy" user={user}>
       <article className="mx-auto flex max-w-prose flex-col gap-10 pb-16">
         <header className="flex flex-col gap-3">
           <span className="text-label-sm uppercase tracking-wide text-fg-muted">Legal</span>

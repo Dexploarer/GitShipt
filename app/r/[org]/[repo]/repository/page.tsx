@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectShell } from "../_components/ProjectShell";
+import { getProjectShellChrome } from "@/lib/auth/project-chrome";
 import { formatRelativeTime, formatAddress } from "@/lib/format";
 
 type Params = Promise<{ org: string; repo: string }>;
@@ -47,6 +48,7 @@ export default async function ProjectRepositoryPage({
   if (!data) notFound();
 
   const { header, pool } = data;
+  const { user, canAdmin } = await getProjectShellChrome(header.id);
 
   const [indexerRow] = await dbHttp
     .select()
@@ -58,7 +60,7 @@ export default async function ProjectRepositoryPage({
   const installed = Boolean(header.tokenMint); // proxy: launched projects are App-installed
 
   return (
-    <ProjectShell header={header} pool={pool} active="repository">
+    <ProjectShell header={header} pool={pool} active="repository" canAdmin={canAdmin} user={user}>
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-2">
           <Breadcrumbs

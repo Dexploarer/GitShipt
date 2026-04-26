@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
+import { getSessionUser } from "@/lib/auth/session";
 import { Badge } from "@/components/ui/badge";
 import { getContributorProfile } from "@/lib/queries/discovery";
 import { getGitHubUser, type GitHubUserProfile } from "@/lib/github/users";
@@ -44,11 +45,14 @@ export async function generateMetadata({
   };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function ContributorProfilePage({
   params,
 }: {
   params: Params;
 }) {
+  const user = await getSessionUser();
   const { username } = await params;
   const [profile, gh] = await Promise.all([
     getContributorProfile(username),
@@ -64,7 +68,7 @@ export default async function ContributorProfilePage({
   const avatar = gh?.avatarUrl ?? profile?.avatarUrl ?? `https://github.com/${username}.png`;
 
   return (
-    <PublicAppShell>
+    <PublicAppShell user={user}>
       <div className="flex flex-col gap-8 lg:gap-10">
         <header className="flex flex-col gap-6">
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-start">

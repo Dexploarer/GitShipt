@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Compass } from "lucide-react";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
+import { getSessionUser } from "@/lib/auth/session";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -42,18 +43,21 @@ function parseFilters(raw: Awaited<SearchParams>): ExploreFilters {
   };
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function ExplorePage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
+  const user = await getSessionUser();
   const params = await searchParams;
   const filters = parseFilters(params);
   const projects = await getAllPublicProjects(filters);
   const hasFilters = Boolean(params.q || params.status || params.sort);
 
   return (
-    <PublicAppShell active="explore">
+    <PublicAppShell active="explore" user={user}>
       <div className="flex flex-col gap-6 lg:gap-8">
         <FiltersBar />
 

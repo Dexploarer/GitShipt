@@ -126,22 +126,6 @@ export function AuthSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        {!publicChrome ? (
-          <SidebarSection title="Personal">
-            {PERSONAL_NAV.map(({ key, label, icon, href }) => (
-              <SidebarItem
-                key={key}
-                icon={icon}
-                label={label}
-                href={href}
-                active={isActive(href, key as AuthSidebarActive)}
-              />
-            ))}
-          </SidebarSection>
-        ) : null}
-
-        {!publicChrome ? <SidebarDivider /> : null}
-
         <SidebarSection title="Public">
           {PUBLIC_NAV.map(({ label, icon, href }) => (
             <SidebarItem
@@ -154,17 +138,22 @@ export function AuthSidebar({
           ))}
         </SidebarSection>
 
-        <SidebarSection title="Legal">
-          {LEGAL_NAV.map(({ label, icon, href }) => (
-            <SidebarItem
-              key={href}
-              icon={icon}
-              label={label}
-              href={href}
-              active={isPathActive(href)}
-            />
-          ))}
-        </SidebarSection>
+        {!publicChrome ? (
+          <>
+            <SidebarDivider />
+            <SidebarSection title="Account">
+              {PERSONAL_NAV.map(({ key, label, icon, href }) => (
+                <SidebarItem
+                  key={key}
+                  icon={icon}
+                  label={label}
+                  href={href}
+                  active={isActive(href, key as AuthSidebarActive)}
+                />
+              ))}
+            </SidebarSection>
+          </>
+        ) : null}
 
         {isPlatformAdmin ? (
           <>
@@ -181,6 +170,7 @@ export function AuthSidebar({
       </SidebarContent>
 
       <SidebarFooter>
+        <FooterLegalRow active={isPathActive} />
         {user ? (
           <>
             <SidebarUserCard
@@ -198,6 +188,31 @@ export function AuthSidebar({
         </div>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function FooterLegalRow({
+  active,
+}: {
+  active: (href: string) => boolean;
+}) {
+  const { collapsed } = useSidebar();
+  if (collapsed) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 px-1 pb-1 text-caption text-fg-muted">
+      {LEGAL_NAV.map(({ label, href }) => (
+        <Link
+          key={href}
+          href={href}
+          className={cn(
+            "transition-colors hover:text-fg",
+            active(href) && "text-fg",
+          )}
+        >
+          {label}
+        </Link>
+      ))}
+    </div>
   );
 }
 

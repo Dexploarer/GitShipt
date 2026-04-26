@@ -4,6 +4,7 @@ import Link from "next/link";
 import { History } from "lucide-react";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectShell } from "../_components/ProjectShell";
+import { getProjectShellChrome } from "@/lib/auth/project-chrome";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { getProjectSnapshots } from "@/lib/queries/discovery";
 import { SnapshotRow } from "./_components/SnapshotRow";
@@ -38,6 +39,7 @@ export default async function ProjectSnapshotsPage({
   if (!data) notFound();
 
   const { header, pool } = data;
+  const { user, canAdmin } = await getProjectShellChrome(header.id);
   const slug = `${header.ghOwner}/${header.ghRepo}`;
   const page = Math.max(1, Number(sp.page ?? 1) || 1);
 
@@ -49,7 +51,7 @@ export default async function ProjectSnapshotsPage({
   const hasNextPage = allSnapshots.length === page * PAGE_SIZE;
 
   return (
-    <ProjectShell header={header} pool={pool} active="snapshots">
+    <ProjectShell header={header} pool={pool} active="snapshots" canAdmin={canAdmin} user={user}>
       <div className="flex flex-col gap-4">
         <Breadcrumbs
           items={[

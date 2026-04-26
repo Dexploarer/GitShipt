@@ -6,6 +6,7 @@ import { getProjectPageData } from "@/lib/queries/project-page";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectShell } from "../_components/ProjectShell";
+import { getProjectShellChrome } from "@/lib/auth/project-chrome";
 import { formatSol } from "@/lib/format";
 
 type Params = Promise<{ org: string; repo: string }>;
@@ -30,6 +31,7 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
   if (!data) notFound();
 
   const { header, pool } = data;
+  const { user, canAdmin } = await getProjectShellChrome(header.id);
   const repoUrl = `https://github.com/${header.ghOwner}/${header.ghRepo}`;
   const platformFeePct = (header.platformFeeBps / 100).toFixed(1);
   const contributorPoolPct = (
@@ -38,7 +40,7 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
   ).toFixed(1);
 
   return (
-    <ProjectShell header={header} pool={pool} active="docs">
+    <ProjectShell header={header} pool={pool} active="docs" canAdmin={canAdmin} user={user}>
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-2">
           <Breadcrumbs
