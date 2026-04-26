@@ -23,8 +23,8 @@ import { formatSol, formatRelativeTime } from "@/lib/format";
 import { loadProjectFor } from "../../_components/loadProject";
 import { AppShell } from "../../_components/AppShell";
 import { OwnedProjectSidebar } from "@/components/sidebar/OwnedProjectSidebar";
-import { StatTile } from "@/components/dashboard/StatTile";
-import { EmptyState } from "@/components/dashboard/EmptyState";
+import { StatTile } from "@/components/shared/StatTile";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Card,
   CardHeader,
@@ -76,7 +76,7 @@ export default async function ProjectOverviewPage({
             <Breadcrumbs
               items={[
                 { label: "Dashboard", href: "/dashboard" },
-                { label: "Projects", href: "/dashboard/projects" },
+                { label: "Projects", href: "/dashboard" },
                 { label: project.name },
               ]}
               className="mb-1"

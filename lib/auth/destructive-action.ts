@@ -1,6 +1,7 @@
 import "server-only";
 import { audit, type AuditAction, type AuditEntry } from "@/lib/audit";
 import { requirePermission, type Permission } from "./permissions";
+import { getMfaConfirmedAt } from "./mfa";
 
 /**
  * Critical action gate.
@@ -38,14 +39,27 @@ export interface AuditPayload {
 export type DestructiveErrorCode =
   | "reason_too_short"
   | "confirmation_mismatch"
-  | "mfa_expired";
+  | "mfa_expired"
+  | "mfa_required";
 
 export class DestructiveActionError extends Error {
-  override readonly name = "DestructiveActionError";
   readonly code: DestructiveErrorCode;
   constructor(code: DestructiveErrorCode, message?: string) {
     super(message ?? code);
+    this.name = "DestructiveActionError";
     this.code = code;
+  }
+}
+
+/**
+ * Thrown when a destructive action is attempted without a fresh MFA
+ * confirmation. Caller (typically a Server Action or API route) should
+ * surface a re-verification prompt.
+ */
+export class MfaRequiredError extends DestructiveActionError {
+  constructor(message = "Re-confirm MFA to continue") {
+    super("mfa_required", message);
+    this.name = "MfaRequiredError";
   }
 }
 
@@ -84,19 +98,26 @@ export async function destructiveAction<T>(
   }
 
   // 4. MFA freshness check.
-  // v0: skip if mfaConfirmedAtMs is undefined to avoid blocking when MFA
-  // isn't configured yet on the user's account. v1.1 enforces.
-  // TODO(v1.1): require ctx.mfaConfirmedAtMs (and a fresh TOTP code on the
-  // request) for every destructive call.
-  if (ctx.mfaConfirmedAtMs !== undefined) {
-    const age = Date.now() - ctx.mfaConfirmedAtMs;
-    if (age >= MFA_WINDOW_MS) {
-      throw new DestructiveActionError(
-        "mfa_expired",
-        "MFA confirmation has expired. Please reverify.",
-      );
-    }
+  // Hard-enforced: every destructive call must have a Redis-backed MFA
+  // confirmation no older than MFA_WINDOW_MS. The optional
+  // `ctx.mfaConfirmedAtMs` field on this struct is kept for telemetry only —
+  // the source of truth lives in Redis (`mfa:confirmed:${userId}`), written
+  // by POST /api/auth/mfa/verify after a fresh TOTP code is presented.
+  // See lib/auth/mfa.ts for the helpers that maintain that key.
+  const confirmedAtMs = await getMfaConfirmedAt(ctx.actorUserId);
+  if (confirmedAtMs == null) {
+    throw new MfaRequiredError();
   }
+  const age = Date.now() - confirmedAtMs;
+  if (age >= MFA_WINDOW_MS) {
+    throw new DestructiveActionError(
+      "mfa_expired",
+      "MFA confirmation has expired. Please reverify.",
+    );
+  }
+  // Surface the resolved value so audit metadata records the actual
+  // confirmation that was used (not whatever the client claimed).
+  ctx.mfaConfirmedAtMs = confirmedAtMs;
 
   // 5. Append-only audit BEFORE the action runs.
   const baseEntry: AuditEntry = {

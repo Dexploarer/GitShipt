@@ -6,7 +6,7 @@ import { hasCredentials } from "@/lib/env";
 import { getMyProjects } from "@/lib/queries/dashboard";
 import { AppShell } from "../_components/AppShell";
 import { DashboardSidebar } from "@/components/sidebar/DashboardSidebar";
-import { EmptyState } from "@/components/dashboard/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Card,
   CardHeader,

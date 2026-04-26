@@ -15,7 +15,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Pill } from "@/components/ui/pill";
-import { StatTile } from "@/components/admin/StatTile";
+import { StatTile } from "@/components/shared/StatTile";
 import {
   getOpsKpis,
   getHeartbeats,

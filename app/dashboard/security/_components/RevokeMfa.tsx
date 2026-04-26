@@ -1,0 +1,102 @@
+"use client";
+
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+/**
+ * Disables MFA. Requires a valid current code so a stolen session cookie
+ * alone cannot strip the second factor.
+ */
+export function RevokeMfa() {
+  const [token, setToken] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [arming, setArming] = React.useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/mfa/revoke", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `revoke failed: ${res.status}`);
+      }
+      window.location.reload();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!arming) {
+    return (
+      <div className="flex flex-col gap-2">
+        <h3 className="text-label-md text-fg">Disable MFA</h3>
+        <p className="text-body-sm text-fg-secondary">
+          Removes the authenticator from your account. You'll need to
+          re-enroll before any destructive admin action will be allowed.
+        </p>
+        <div>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={() => setArming(true)}
+          >
+            Disable MFA…
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form className="flex flex-col gap-3" onSubmit={submit}>
+      <h3 className="text-label-md text-fg">Disable MFA</h3>
+      <label className="flex flex-col gap-1">
+        <span className="text-label-sm text-fg-secondary">
+          Confirm with your current 6-digit code
+        </span>
+        <Input
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          value={token}
+          onChange={(e) => setToken(e.target.value.replace(/\D/g, ""))}
+          placeholder="000000"
+          className="text-mono-md"
+        />
+      </label>
+      <div className="flex gap-2">
+        <Button
+          type="submit"
+          variant="danger"
+          disabled={busy || token.length !== 6}
+        >
+          {busy ? "Disabling…" : "Confirm disable"}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            setArming(false);
+            setToken("");
+            setError(null);
+          }}
+          disabled={busy}
+        >
+          Cancel
+        </Button>
+      </div>
+      {error ? <p className="text-body-sm text-danger">{error}</p> : null}
+    </form>
+  );
+}

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/dashboard/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { CopyButton } from "@/app/r/[org]/[repo]/_components/CopyButton";
 
 export const dynamic = "force-dynamic";

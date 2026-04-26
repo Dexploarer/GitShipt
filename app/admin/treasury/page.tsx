@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { StatTile } from "@/components/admin/StatTile";
+import { StatTile } from "@/components/shared/StatTile";
 import { hasCredentials, serverEnv, clientEnv } from "@/lib/env";
 import { hasSolanaConnection, solanaConnection } from "@/lib/solana/connection";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
