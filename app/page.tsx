@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
-import { formatSol } from "@/lib/format";
 import { getLandingData } from "@/lib/queries/global";
 import {
   getProjectBySlug,
@@ -246,7 +245,7 @@ function FeaturedProjectCard({
                   </span>
                 </span>
                 <span className="text-mono-sm text-fg-secondary tabular-nums">
-                  {formatSol(BigInt(Math.round(c.weight * 1e9)), 2)}
+                  {Math.round(c.weightPercent)}% share
                 </span>
               </Link>
             </li>

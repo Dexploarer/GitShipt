@@ -238,6 +238,16 @@ export async function getGlobalLeaderboard(): Promise<{
         payoutRecipients,
         eq(payoutRecipients.contributorId, contributors.id),
       )
+      // Only include contributors currently ranked on a project's leaderboard
+      // (rank IS NOT NULL), and never the bot-excluded ones. Demoted
+      // contributors keep their lifetime payout history but stop appearing
+      // on the public global view.
+      .where(
+        and(
+          isNotNull(contributors.rank),
+          eq(contributors.excluded, "false"),
+        ),
+      )
       .groupBy(
         contributors.ghUsername,
         contributors.ghUserId,

@@ -11,6 +11,7 @@ export type AuditAction =
   | "project.delete"
   | "project.transfer"
   | "scoring.update"
+  | "project.contributors_refresh"
   | "payout.trigger"
   | "payout.cancel"
   | "payout.retry"
