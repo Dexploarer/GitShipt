@@ -33,6 +33,7 @@ const serverEnvSchema = z.object({
   BAGS_PARTNER_WALLET: z.string().min(32).optional(),
   BAGS_PARTNER_CONFIG_KEY: z.string().min(32).optional(),
   BAGS_CONFIG_TYPE: z.string().min(1).optional(),
+  BAGS_INITIAL_BUY_LAMPORTS: z.coerce.number().int().min(0).default(0),
   // Safety guard: refuse real launch txns when devnet cluster + prod key
   // unless explicitly opted in. Read-only Bags calls always work.
   BAGS_ALLOW_PROD_LAUNCH: z.coerce.boolean().default(false),

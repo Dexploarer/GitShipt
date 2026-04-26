@@ -29,6 +29,7 @@ export const payoutStatusEnum = pgEnum("payout_status", [
 
 export const recipientStatusEnum = pgEnum("recipient_status", [
   "pending",
+  "sending",
   "sent",
   "confirmed",
   "failed",
@@ -43,7 +44,9 @@ export const recipientStatusEnum = pgEnum("recipient_status", [
 export const payouts = pgTable(
   "payouts",
   {
-    id: text("id").primaryKey().$defaultFn(() => createId()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
     snapshotId: text("snapshot_id")
       .notNull()
       .references(() => snapshots.id, { onDelete: "restrict" }),
@@ -83,7 +86,9 @@ export const payouts = pgTable(
 export const payoutRecipients = pgTable(
   "payout_recipients",
   {
-    id: text("id").primaryKey().$defaultFn(() => createId()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
     payoutId: text("payout_id")
       .notNull()
       .references(() => payouts.id, { onDelete: "cascade" }),
@@ -97,7 +102,9 @@ export const payoutRecipients = pgTable(
     status: recipientStatusEnum("status").notNull().default("pending"),
     txSignature: text("tx_signature"),
     idempotencyKey: text("idempotency_key").notNull(),
+    sendAttemptId: text("send_attempt_id"),
     error: text("error"),
+    sendingAt: timestamp("sending_at", { withTimezone: true }),
     sentAt: timestamp("sent_at", { withTimezone: true }),
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -105,7 +112,9 @@ export const payoutRecipients = pgTable(
       .defaultNow(),
   },
   (t) => ({
-    idempotencyUq: uniqueIndex("recipients_idempotency_uq").on(t.idempotencyKey),
+    idempotencyUq: uniqueIndex("recipients_idempotency_uq").on(
+      t.idempotencyKey,
+    ),
     payoutIdx: index("recipients_payout_idx").on(t.payoutId),
     contributorIdx: index("recipients_contributor_idx").on(t.contributorId),
     statusIdx: index("recipients_status_idx").on(t.status),

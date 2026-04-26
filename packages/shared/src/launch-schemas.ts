@@ -11,7 +11,11 @@ import { z } from "zod";
 // ============================================================
 
 export const TokenMetadataSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(32, "Max 32 characters"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(32, "Max 32 characters"),
   symbol: z
     .string()
     .trim()
@@ -24,6 +28,19 @@ export const TokenMetadataSchema = z.object({
     .optional()
     .or(z.literal("")),
   imageUrl: z.string().url("Must be a valid URL"),
+  website: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  twitter: z
+    .string()
+    .trim()
+    .max(100, "Max 100 characters")
+    .optional()
+    .or(z.literal("")),
+  telegram: z
+    .string()
+    .trim()
+    .max(100, "Max 100 characters")
+    .optional()
+    .or(z.literal("")),
 });
 export type TokenMetadataInput = z.infer<typeof TokenMetadataSchema>;
 
@@ -53,13 +70,10 @@ export const PayoutConfigSchema = z
     tierWeights: z.array(z.number().min(0).max(1)).min(3).max(50),
     claimThresholdLamports: z.number().int().min(0),
   })
-  .refine(
-    (v) => v.tierWeights.length === v.topN,
-    {
-      message: "tierWeights length must equal topN",
-      path: ["tierWeights"],
-    },
-  )
+  .refine((v) => v.tierWeights.length === v.topN, {
+    message: "tierWeights length must equal topN",
+    path: ["tierWeights"],
+  })
   .refine(
     (v) => {
       const sum = v.tierWeights.reduce((a, b) => a + b, 0);
@@ -104,6 +118,9 @@ export const CreateProjectBodySchema = z.object({
     .regex(/^[A-Z0-9]+$/),
   description: z.string().max(2000).optional(),
   imageUrl: z.string().url(),
+  website: z.string().url().optional(),
+  twitter: z.string().trim().max(100).optional(),
+  telegram: z.string().trim().max(100).optional(),
   scoringConfig: ScoringConfigSchema,
   payoutConfig: PayoutConfigSchema,
   platformFeeBps: z.number().int().min(0).max(2000),
@@ -188,7 +205,10 @@ export function defaultTierWeights(topN: number): number[] {
     return head.map((w) => w / headSum);
   }
   const remainingTotal = 1 - head.reduce((a, b) => a + b, 0); // 0.35
-  const tail = Array.from({ length: remainingSlots }, () => remainingTotal / remainingSlots);
+  const tail = Array.from(
+    { length: remainingSlots },
+    () => remainingTotal / remainingSlots,
+  );
   return [...head, ...tail];
 }
 

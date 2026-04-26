@@ -1,7 +1,8 @@
 import { z } from "zod";
 
-/** Bags fee-claimer provider. Plain wallet addresses are NOT valid. */
+/** Bags fee-claimer social providers for identity-based wallet resolution. */
 export const BagsProviderSchema = z.enum([
+  "moltbook",
   "github",
   "twitter",
   "kick",
@@ -9,11 +10,23 @@ export const BagsProviderSchema = z.enum([
 ]);
 export type BagsProvider = z.infer<typeof BagsProviderSchema>;
 
-export const FeeClaimerSchema = z.object({
+export const SolanaAddressSchema = z.string().min(32).max(64);
+
+export const SocialFeeClaimerSchema = z.object({
   provider: BagsProviderSchema,
   username: z.string().min(1),
   bps: z.number().int().min(0).max(10_000),
 });
+
+export const WalletFeeClaimerSchema = z.object({
+  wallet: SolanaAddressSchema,
+  bps: z.number().int().min(0).max(10_000),
+});
+
+export const FeeClaimerSchema = z.union([
+  SocialFeeClaimerSchema,
+  WalletFeeClaimerSchema,
+]);
 export type FeeClaimer = z.infer<typeof FeeClaimerSchema>;
 
 export const TokenInfoInputSchema = z.object({
@@ -21,6 +34,9 @@ export const TokenInfoInputSchema = z.object({
   symbol: z.string().min(1).max(10),
   description: z.string().max(2000).optional(),
   imageUrl: z.string().url(),
+  website: z.string().url().optional(),
+  twitter: z.string().min(1).max(100).optional(),
+  telegram: z.string().min(1).max(100).optional(),
 });
 export type TokenInfoInput = z.infer<typeof TokenInfoInputSchema>;
 
@@ -36,10 +52,10 @@ export const FeeShareConfigInputSchema = z.object({
   baseMint: z.string().min(32),
   feeClaimers: z.array(FeeClaimerSchema).min(1).max(100),
   /**
-   * GitBags platform fee taken from the creator/fee-claimer rail. The wrapper
-   * appends this to SOLANA_TREASURY_ADDRESS (or payer as a local fallback)
-   * before creating the Bags config. Bags partner revenue is configured
-   * separately with BAGS_PARTNER_WALLET + BAGS_PARTNER_CONFIG_KEY.
+   * GitBags platform fee taken from the fee-claimer rail. The wrapper appends
+   * this to SOLANA_TREASURY_ADDRESS (or payer as a local fallback) before
+   * creating the Bags config. Bags partner revenue is configured separately
+   * with BAGS_PARTNER_WALLET + BAGS_PARTNER_CONFIG_KEY.
    */
   shareFee: z.number().int().min(0).max(2000),
   platformFeeWallet: z.string().min(32).optional(),
@@ -54,6 +70,7 @@ export const FeeShareConfigResponseSchema = z.object({
   txSignatures: z.array(z.string()).default([]),
   feeClaimersTotalBps: z.number().int().min(0).max(10_000).optional(),
   partnerConfigKey: z.string().min(32).optional(),
+  poolClaimerWallet: SolanaAddressSchema.optional(),
   __stub: z.boolean().optional(),
 });
 export type FeeShareConfigResponse = z.infer<
@@ -175,8 +192,11 @@ export const IncorporationInputSchema = z
     tokenAddress: z.string().min(32),
     founders: z.array(IncorporationFounderInputSchema).min(1).max(10),
     incorporationShareBasisPoint: z.number().int().min(2000).max(3000),
-    preferredCompanyNames: z
-      .tuple([z.string().min(1).max(200), z.string().min(1).max(200), z.string().min(1).max(200)]),
+    preferredCompanyNames: z.tuple([
+      z.string().min(1).max(200),
+      z.string().min(1).max(200),
+      z.string().min(1).max(200),
+    ]),
     category: IncorporationCategorySchema.optional(),
     twitterHandle: z
       .string()
@@ -185,7 +205,10 @@ export const IncorporationInputSchema = z
   })
   .refine(
     (value) =>
-      value.founders.reduce((sum, founder) => sum + founder.shareBasisPoint, 0) +
+      value.founders.reduce(
+        (sum, founder) => sum + founder.shareBasisPoint,
+        0,
+      ) +
         value.incorporationShareBasisPoint ===
       10_000,
     "Founder shares plus incorporation share must total 10000 bps.",
@@ -239,4 +262,27 @@ export const StartIncorporationResponseSchema = z.object({
 });
 export type StartIncorporationResponse = z.infer<
   typeof StartIncorporationResponseSchema
+>;
+
+export const SubmitTransactionResponseSchema = z.union([
+  z.string().min(32),
+  z.object({
+    success: z.boolean().optional(),
+    response: z.string().min(32),
+  }),
+]);
+
+export const LaunchTransactionInputSchema = z.object({
+  tokenMint: SolanaAddressSchema,
+  metadataUrl: z.string().min(1),
+  configKey: SolanaAddressSchema,
+  launchWallet: SolanaAddressSchema,
+  initialBuyLamports: z.number().int().min(0).default(0),
+});
+
+export const LaunchTransactionResultSchema = z.object({
+  signature: z.string().min(32),
+});
+export type LaunchTransactionResult = z.infer<
+  typeof LaunchTransactionResultSchema
 >;
