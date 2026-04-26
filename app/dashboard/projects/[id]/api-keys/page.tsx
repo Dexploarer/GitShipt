@@ -1,18 +1,13 @@
-import { Key, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { loadProjectFor } from "../../../_components/loadProject";
 import { AppShell } from "../../../_components/AppShell";
 import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { listApiKeysForProject } from "@/lib/queries/api-keys";
+import { CreateApiKeyForm } from "./_components/CreateApiKeyForm";
+import { ApiKeyTable } from "./_components/ApiKeyTable";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +20,7 @@ export default async function ApiKeysPage({
   const { id } = await params;
   const ctx = await loadProjectFor(id, "project.update");
   const { project } = ctx;
+  const keys = await listApiKeysForProject(id);
 
   return (
     <AppShell
@@ -46,37 +42,21 @@ export default async function ApiKeysPage({
             { label: "API keys" },
           ]}
         />
-        <header>
-          <h1 className="text-headline-lg leading-tight text-fg">API keys</h1>
-          <p className="text-body-md text-fg-secondary">
-            Programmatic access to project data. v0 ships read-only — issuing &amp;
-            rotation lands in v1.1.
-          </p>
+        <header className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-headline-lg leading-tight text-fg">API keys</h1>
+            <p className="text-body-md text-fg-secondary">
+              Programmatic, revocable tokens scoped to this project. Raw keys
+              are shown once at creation — store them somewhere safe.
+            </p>
+          </div>
+          <CreateApiKeyForm projectId={id} />
         </header>
 
-        <Card depth="flat" padding="none">
-          <CardHeader className="border-b border-border px-6 py-4">
-            <CardTitle>0 active keys</CardTitle>
-            <CardDescription>
-              No API keys have been issued for this project.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-6 py-8">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <Key className="size-10 text-fg-muted" aria-hidden />
-              <p className="text-body-md text-fg-secondary max-w-md">
-                Issue scoped, rotate-able tokens to query leaderboard / payout
-                data from your own backend or CI. Coming in v1.1.
-              </p>
-              <Button variant="primary" disabled title="Coming v1.1">
-                Generate API key
-              </Button>
-              <span className="text-caption text-fg-muted">
-                v1.1 — disabled in this build.
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <section aria-label="Active API keys">
+          <h2 className="sr-only">Active keys</h2>
+          <ApiKeyTable projectId={id} keys={keys} />
+        </section>
       </div>
     </AppShell>
   );
