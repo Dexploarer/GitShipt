@@ -19,6 +19,7 @@ import {
 } from "@/lib/queries/dashboard";
 import { formatSol } from "@/lib/format";
 import { AppShell } from "./_components/AppShell";
+import { OnboardingHero } from "./_components/OnboardingHero";
 import { DashboardSidebar } from "@/components/sidebar/DashboardSidebar";
 import { StatTile } from "@/components/shared/StatTile";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -120,15 +121,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className="p-0">
               {projects.length === 0 ? (
-                <div className="p-6">
-                  <EmptyState
-                    icon={Rocket}
-                    title="Launch your first token"
-                    description="Connect a GitHub repo, mint a Bags.fm token, and start rewarding contributors with on-chain SOL — daily."
-                    cta={{ label: "Launch a token", href: "/launch" }}
-                    secondary={{ label: "Browse projects", href: "/" }}
-                  />
-                </div>
+                <OnboardingHero />
               ) : (
                 <ProjectList rows={projects.slice(0, 8)} />
               )}

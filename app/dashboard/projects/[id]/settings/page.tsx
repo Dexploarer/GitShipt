@@ -10,6 +10,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { Sparkles } from "lucide-react";
 import { GeneralForm } from "./_components/GeneralForm";
 import { PauseSection } from "./_components/PauseSection";
@@ -41,6 +42,14 @@ export default async function SettingsPage({
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Projects", href: "/dashboard" },
+            { label: project.name, href: `/dashboard/projects/${id}` },
+            { label: "Settings" },
+          ]}
+        />
         <header>
           <h1 className="text-headline-lg leading-tight text-fg">Settings</h1>
           <p className="text-body-md text-fg-secondary">

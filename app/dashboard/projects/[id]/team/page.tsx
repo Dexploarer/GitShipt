@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,14 @@ export default async function TeamPage({
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Projects", href: "/dashboard" },
+            { label: project.name, href: `/dashboard/projects/${id}` },
+            { label: "Team" },
+          ]}
+        />
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-headline-lg leading-tight text-fg">Team</h1>

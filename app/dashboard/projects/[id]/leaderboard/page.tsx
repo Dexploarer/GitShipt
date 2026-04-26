@@ -12,6 +12,7 @@ import { OwnedProjectSidebar } from "@/components/sidebar/OwnedProjectSidebar";
 import { LeaderboardTable } from "@/app/r/[org]/[repo]/_components/LeaderboardTable";
 import { ScoringConfigEditor } from "./_components/ScoringConfigEditor";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,14 @@ export default async function LeaderboardPage({
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Projects", href: "/dashboard" },
+            { label: project.name, href: `/dashboard/projects/${id}` },
+            { label: "Leaderboard" },
+          ]}
+        />
         <header>
           <h1 className="text-headline-lg leading-tight text-fg">
             Leaderboard

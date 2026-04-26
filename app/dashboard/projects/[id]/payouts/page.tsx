@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { RetryPayoutButton } from "./_components/RetryPayoutButton";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,14 @@ export default async function PayoutsPage({
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Projects", href: "/dashboard" },
+            { label: project.name, href: `/dashboard/projects/${id}` },
+            { label: "Payouts" },
+          ]}
+        />
         <header>
           <h1 className="text-headline-lg leading-tight text-fg">Payouts</h1>
           <p className="text-body-md text-fg-secondary">

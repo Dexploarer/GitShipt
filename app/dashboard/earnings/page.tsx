@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ClaimEscrowButton } from "./_components/ClaimEscrowButton";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,12 @@ export default async function EarningsPage() {
       footerLeft={`${session.user.name ?? session.user.email} · devnet · BAGS.fm`}
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Earnings" },
+          ]}
+        />
         <header>
           <h1 className="text-headline-lg leading-tight text-fg">Earnings</h1>
           <p className="text-body-md text-fg-secondary">

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,14 @@ export default async function ApiKeysPage({
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Projects", href: "/dashboard" },
+            { label: project.name, href: `/dashboard/projects/${id}` },
+            { label: "API keys" },
+          ]}
+        />
         <header>
           <h1 className="text-headline-lg leading-tight text-fg">API keys</h1>
           <p className="text-body-md text-fg-secondary">
