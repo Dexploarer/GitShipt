@@ -20,6 +20,8 @@ export type AuditAction =
   | "auth.mfa_enroll"
   | "auth.mfa_verify"
   | "auth.mfa_revoke"
+  | "project.api_key_create"
+  | "project.api_key_revoke"
   | "payout.trigger"
   | "payout.cancel"
   | "payout.retry"
