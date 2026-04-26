@@ -10,6 +10,7 @@ import {
   auditLogs,
   platformConfig,
   payoutRecipients,
+  projectMemberships,
   type ScoringConfig,
   type PayoutConfig,
 } from "@/db/schema";
@@ -605,4 +606,117 @@ export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {
     mfaEnabled: Boolean(r.mfaSecretEnc),
     createdAt: r.createdAt,
   }));
+}
+
+/**
+ * Hand a project's ownership to another GitBags user.
+ *
+ *  - Updates `projects.ownerUserId` to `newOwnerUserId`.
+ *  - Upserts the new owner into `project_memberships` with role
+ *    `project_owner`.
+ *  - Demotes the prior owner (the row in `project_memberships`, if any) to
+ *    `project_moderator` so they keep delegated access without elevated
+ *    rights.
+ *
+ * Runs inside a `dbPool` transaction. Caller MUST re-validate the session
+ * and `requirePermission('project.transfer', ...)` BEFORE invoking — and
+ * should wrap with `destructiveAction()` for full reason+confirm+MFA gating.
+ */
+export async function transferProjectOwnership(
+  projectId: string,
+  newOwnerUserId: string,
+  requestingUserId: string,
+): Promise<{
+  newOwner: { id: string; name: string; email: string };
+  previousOwnerUserId: string;
+}> {
+  const dbp = (await import("@/db")).dbPool();
+  return await dbp.transaction(async (tx) => {
+    const [proj] = await tx
+      .select({ id: projects.id, ownerUserId: projects.ownerUserId })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+    if (!proj) {
+      throw new Error(`transferProjectOwnership: project ${projectId} not found`);
+    }
+    if (proj.ownerUserId === newOwnerUserId) {
+      throw new Error("transferProjectOwnership: recipient is already the owner");
+    }
+
+    const [recipient] = await tx
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.id, newOwnerUserId))
+      .limit(1);
+    if (!recipient) {
+      throw new Error(
+        `transferProjectOwnership: recipient user ${newOwnerUserId} not found`,
+      );
+    }
+
+    const previousOwnerUserId = proj.ownerUserId;
+
+    await tx
+      .update(projects)
+      .set({ ownerUserId: newOwnerUserId, updatedAt: new Date() })
+      .where(eq(projects.id, projectId));
+
+    const [existingNew] = await tx
+      .select({ id: projectMemberships.id })
+      .from(projectMemberships)
+      .where(
+        and(
+          eq(projectMemberships.userId, newOwnerUserId),
+          eq(projectMemberships.projectId, projectId),
+        ),
+      )
+      .limit(1);
+    if (existingNew) {
+      await tx
+        .update(projectMemberships)
+        .set({ role: "project_owner" })
+        .where(eq(projectMemberships.id, existingNew.id));
+    } else {
+      await tx.insert(projectMemberships).values({
+        userId: newOwnerUserId,
+        projectId,
+        role: "project_owner",
+      });
+    }
+
+    const [existingPrev] = await tx
+      .select({ id: projectMemberships.id })
+      .from(projectMemberships)
+      .where(
+        and(
+          eq(projectMemberships.userId, previousOwnerUserId),
+          eq(projectMemberships.projectId, projectId),
+        ),
+      )
+      .limit(1);
+    if (existingPrev) {
+      await tx
+        .update(projectMemberships)
+        .set({ role: "project_moderator" })
+        .where(eq(projectMemberships.id, existingPrev.id));
+    } else {
+      await tx.insert(projectMemberships).values({
+        userId: previousOwnerUserId,
+        projectId,
+        role: "project_moderator",
+      });
+    }
+
+    void requestingUserId;
+
+    return {
+      newOwner: {
+        id: recipient.id,
+        name: recipient.name,
+        email: recipient.email,
+      },
+      previousOwnerUserId,
+    };
+  });
 }

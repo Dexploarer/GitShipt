@@ -97,7 +97,7 @@ export default async function SettingsPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="px-6 py-5">
-            <TransferForm projectId={id} />
+            <TransferForm projectId={id} slug={project.slug} />
           </CardContent>
         </Card>
 
