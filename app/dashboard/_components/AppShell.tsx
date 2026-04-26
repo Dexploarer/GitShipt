@@ -26,7 +26,7 @@ export function AppShell({
 }) {
   return (
     <div className="flex h-screen overflow-hidden bg-bg text-fg">
-      <div className="shrink-0 lg:p-3 lg:pr-0">{sidebar}</div>
+      <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">{sidebar}</div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 lg:overflow-y-auto">

@@ -62,7 +62,7 @@ export function ProjectShell({
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-bg text-fg">
-        <div className="shrink-0 lg:p-3 lg:pr-0">
+        <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
           <ProjectSidebar
             slug={slug}
             projectId={header.id}

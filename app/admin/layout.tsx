@@ -51,7 +51,7 @@ export default async function AdminLayout({
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-bg text-fg">
-        <div className="shrink-0 lg:p-3 lg:pr-0">
+        <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
           <AdminSidebar user={adminUser} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">

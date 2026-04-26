@@ -36,7 +36,7 @@ export function PublicAppShell({
         {/* Sidebar — inline on lg+ (with 12px outer gutter), fixed slide-over
             drawer on < lg (positioned by the Sidebar primitive). The wrapper
             collapses to zero width below lg so content reflows full-width. */}
-        <div className="shrink-0 lg:p-3 lg:pr-0">
+        <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
           <PublicSidebar active={active} user={user} />
         </div>
 
