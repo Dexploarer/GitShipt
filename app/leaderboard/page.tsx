@@ -36,17 +36,6 @@ export default async function LeaderboardPage({
   return (
     <PublicAppShell active="leaderboard">
       <div className="flex flex-col gap-6 lg:gap-8">
-        <header className="flex flex-col items-start gap-3">
-          <h1 className="text-[40px] font-semibold leading-[1.02] tracking-[-0.025em] text-fg sm:text-[52px] lg:text-[60px]">
-            Global <span className="text-fg-muted">leaderboard.</span>
-          </h1>
-          <p className="max-w-2xl text-body-lg text-fg-secondary">
-            Top contributors across every GitBags repo, ranked by lifetime
-            SOL earned. Toggle to the project view to see which repos are
-            distributing the most fees.
-          </p>
-        </header>
-
         <ModeToggle mode={mode} />
 
         {mode === "contributor" ? (

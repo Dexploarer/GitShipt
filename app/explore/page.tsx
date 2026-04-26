@@ -55,17 +55,6 @@ export default async function ExplorePage({
   return (
     <PublicAppShell active="explore">
       <div className="flex flex-col gap-6 lg:gap-8">
-        <header className="flex flex-col items-start gap-3">
-          <h1 className="text-[40px] font-semibold leading-[1.02] tracking-[-0.025em] text-fg sm:text-[52px] lg:text-[60px]">
-            Explore <span className="text-fg-muted">projects.</span>
-          </h1>
-          <p className="max-w-2xl text-body-lg text-fg-secondary">
-            Every live GitBags repo, ranked by trading-fee flow. Filter by
-            status, sort by what matters to you, and click into any project
-            to see its leaderboard, payouts, and token.
-          </p>
-        </header>
-
         <FiltersBar />
 
         <div className="flex items-center justify-between">
