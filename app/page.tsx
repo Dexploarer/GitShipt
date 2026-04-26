@@ -50,7 +50,7 @@ export default async function LandingPage() {
           featured-project, instead of text → featured → mia → CTAs.
         */}
         <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:gap-6">
-          <div className="contents lg:flex lg:flex-col lg:col-span-5 lg:min-h-0 lg:justify-start lg:gap-6 lg:pt-12">
+          <div className="contents lg:flex lg:flex-col lg:col-span-5 lg:min-h-0 lg:justify-start lg:gap-12 lg:pt-12">
             <section className="order-1 flex flex-col items-start gap-4 lg:order-none lg:gap-5">
               <h1 className="text-[28px] font-semibold leading-[1.02] tracking-[-0.025em] text-fg sm:text-[36px] lg:whitespace-nowrap lg:text-[52px]">
                 Your repo, <span className="text-fg-muted">tokenized.</span>
