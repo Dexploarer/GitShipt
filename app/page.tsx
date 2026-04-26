@@ -39,36 +39,24 @@ export default async function LandingPage() {
   return (
     <PublicAppShell active="home">
       <div className="flex flex-col gap-3 lg:h-[calc(100vh-4.5rem)] lg:gap-3 lg:overflow-hidden">
-        {/* ── Row 1: hero + featured project ─────────────────────────── */}
+        {/* ── Row 1: two columns ─────────────────────────────────────
+              Left  (cols 1-7): hero text on top, featured project below
+              Right (cols 8-12): mia.png, full row height
+        */}
         <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-12">
-          <section className="relative flex items-stretch lg:col-span-8 lg:min-h-0">
-            {/* mia.png — bottom-right anchored, behind the text. The PNG has
-                a transparent background so the text overlays cleanly. On
-                mobile the image stacks below the text via `relative` flow. */}
-            <div className="pointer-events-none relative mx-auto mt-4 aspect-square w-full max-w-[420px] shrink-0 sm:mt-0 sm:max-w-[460px] lg:absolute lg:right-0 lg:bottom-0 lg:z-0 lg:mx-0 lg:aspect-auto lg:h-[820px] lg:w-[820px] lg:max-w-none">
-              <Image
-                src="/mia.png"
-                alt=""
-                fill
-                priority
-                sizes="(max-width: 1024px) 460px, 820px"
-                className="object-contain object-bottom"
-                unoptimized
-              />
-            </div>
-
-            <div className="relative z-10 flex w-full flex-col items-start gap-3 self-start pt-2 lg:gap-4 lg:pt-20">
-              <h1 className="text-[36px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[44px] lg:text-[60px]">
+          <div className="flex flex-col gap-3 lg:col-span-7 lg:min-h-0">
+            <section className="flex flex-col items-start gap-3 lg:gap-4">
+              <h1 className="text-[36px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[44px] lg:text-[56px]">
                 Your repo,
                 <br />
                 <span className="text-fg-muted">tokenized.</span>
               </h1>
 
-              <p className="max-w-md text-body-md text-fg-secondary lg:text-body-lg">
+              <p className="max-w-xl text-body-md text-fg-secondary lg:text-body-lg">
                 GitBags turns any GitHub repository into a tradeable
                 Bags.fm token. Swap fees fund a daily on-chain SOL
-                payout to your top contributors — automatic,
-                transparent, no committee.
+                payout to your top contributors — automatic, transparent,
+                no committee.
               </p>
 
               <div className="mt-1 flex flex-wrap items-center gap-2.5">
@@ -93,14 +81,28 @@ export default async function LandingPage() {
                 SYMBaiEX/gitbags
                 <ArrowUpRight className="size-3" />
               </Link>
-            </div>
-          </section>
+            </section>
 
-          <aside className="lg:col-span-4 lg:min-h-0">
-            <FeaturedProjectCard
-              header={featuredHeader}
-              contributors={featuredContribs}
-            />
+            <div className="lg:min-h-0 lg:flex-1">
+              <FeaturedProjectCard
+                header={featuredHeader}
+                contributors={featuredContribs}
+              />
+            </div>
+          </div>
+
+          <aside className="relative lg:col-span-5 lg:min-h-0">
+            <div className="pointer-events-none relative mx-auto aspect-square w-full max-w-[460px] sm:max-w-[520px] lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:w-full lg:max-w-none">
+              <Image
+                src="/mia.png"
+                alt=""
+                fill
+                priority
+                sizes="(max-width: 1024px) 520px, 600px"
+                className="object-contain object-bottom"
+                unoptimized
+              />
+            </div>
           </aside>
         </div>
 
