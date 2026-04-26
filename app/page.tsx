@@ -30,11 +30,12 @@ export default async function LandingPage() {
 
   return (
     <PublicAppShell active="home">
-      <div className="flex flex-col gap-8 py-2 px-4 lg:px-8">
-        {/* Hero — content left, image right. Both sit at the bottom
-            (items-end) so they share a ground line. Mobile stacks: image
-            above text (visual hook first), then the CTAs. */}
-        <section className="flex flex-col-reverse items-center gap-8 lg:flex-row lg:items-end lg:justify-center lg:gap-10">
+      <div className="flex flex-col gap-8 px-4 lg:px-8">
+        {/* Hero — content left, image right. items-center vertically
+            balances the short text block against the tall image so we
+            don't get empty space above the text on lg+. Mobile stacks
+            (flex-col-reverse): image above text. */}
+        <section className="flex flex-col-reverse items-center gap-8 lg:flex-row lg:items-center lg:justify-center lg:gap-12">
           {/* Hero content — left-aligned, fixed max-width so it sits
               compactly next to the image instead of sprawling. */}
           <div className="flex w-full max-w-md flex-col items-start gap-4 text-left">
@@ -85,14 +86,14 @@ export default async function LandingPage() {
           </div>
 
           {/* mia.png — right side of the hero, unflipped (normal orientation) */}
-          <div className="relative aspect-square w-full max-w-sm shrink-0 sm:max-w-md lg:aspect-auto lg:h-[600px] lg:w-[600px] lg:max-w-none">
+          <div className="relative aspect-square w-full max-w-sm shrink-0 sm:max-w-md lg:aspect-auto lg:h-[520px] lg:w-[520px] lg:max-w-none">
             <Image
               src="/mia.png"
               alt=""
               fill
               priority
-              sizes="(max-width: 1024px) 28rem, 600px"
-              className="object-contain object-bottom"
+              sizes="(max-width: 1024px) 28rem, 520px"
+              className="object-contain object-center"
               unoptimized
             />
           </div>
