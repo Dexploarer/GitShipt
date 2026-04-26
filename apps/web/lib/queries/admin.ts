@@ -213,7 +213,7 @@ export interface AdminProjectRow {
   name: string;
   ownerName: string | null;
   ownerUsername: string | null;
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
   contributorsCount: number;
   imageUrl: string | null;
   tokenMint: string | null;
@@ -226,7 +226,7 @@ export async function getAllProjects(filter?: { status?: string }): Promise<Admi
     conds.push(
       eq(
         projects.status,
-        filter.status as "draft" | "live" | "paused" | "killed" | "simulated_live",
+        filter.status as "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live",
       ),
     );
   }

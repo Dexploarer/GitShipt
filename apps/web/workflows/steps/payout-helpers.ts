@@ -222,7 +222,7 @@ export async function claimBagsFees(args: {
     return { signature: null, txCount: 0 };
   }
 
-  const { VersionedTransaction } = await import("@solana/web3.js");
+  const { Transaction, VersionedTransaction } = await import("@solana/web3.js");
   const { solanaConnection } = await import("@/lib/solana/connection");
   const { payoutSigner } = await import("@/lib/solana/signer");
   const conn = solanaConnection("confirmed");
@@ -230,14 +230,25 @@ export async function claimBagsFees(args: {
 
   const sigs: string[] = [];
   for (const txUnknown of transactions) {
-    // Bags SDK returns VersionedTransaction instances directly. Defensive
-    // guard: if it doesn't quack, skip.
-    if (!(txUnknown instanceof VersionedTransaction)) continue;
-    const tx = txUnknown;
-    tx.sign([signer]);
-    const sig = await conn.sendTransaction(tx, { maxRetries: 3 });
-    await conn.confirmTransaction(sig, "confirmed");
-    sigs.push(sig);
+    if (txUnknown instanceof VersionedTransaction) {
+      txUnknown.sign([signer]);
+      const sig = await conn.sendTransaction(txUnknown, { maxRetries: 3 });
+      await conn.confirmTransaction(sig, "confirmed");
+      sigs.push(sig);
+      continue;
+    }
+
+    if (txUnknown instanceof Transaction) {
+      txUnknown.sign(signer);
+      const sig = await conn.sendRawTransaction(txUnknown.serialize(), {
+        maxRetries: 3,
+      });
+      await conn.confirmTransaction(sig, "confirmed");
+      sigs.push(sig);
+      continue;
+    }
+
+    throw new Error("Bags returned an unsupported claim transaction type.");
   }
   return {
     signature: sigs.length > 0 ? sigs.join(",") : null,

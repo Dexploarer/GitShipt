@@ -31,7 +31,7 @@ export interface MyProjectRow {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
   tokenMint: string | null;
   contributorsCount: number;
   lifetimeFeesLamports: bigint;
@@ -383,7 +383,7 @@ export interface ProjectRecord {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
   tokenMint: string | null;
   bagsLaunchId: string | null;
   ghInstallationId: string | null;

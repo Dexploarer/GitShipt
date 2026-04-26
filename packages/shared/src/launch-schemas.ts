@@ -123,7 +123,7 @@ export type CreateProjectResponse = z.infer<typeof CreateProjectResponseSchema>;
 export const LaunchProjectResponseSchema = z.object({
   projectId: z.string(),
   tokenMint: z.string(),
-  status: z.literal("live"),
+  status: z.enum(["launch_configured", "live", "simulated_live"]),
   stub: z.boolean().default(false),
   configKey: z.string().optional(),
   txSig: z.string().nullable().optional(),

@@ -41,7 +41,7 @@ export interface LaunchActionResult {
   ok: true;
   projectId: string;
   tokenMint: string;
-  status: "live" | "simulated_live";
+  status: "launch_configured" | "live" | "simulated_live";
   stub: boolean;
   configKey?: string;
   txSig: string | null;
@@ -226,7 +226,8 @@ export async function createAndLaunchAction(
             // If already launched, short-circuit.
             if (
               (existing.status === "live" ||
-                existing.status === "simulated_live") &&
+                existing.status === "simulated_live" ||
+                existing.status === "launch_configured") &&
               existing.tokenMint
             ) {
               isExistingLive = true;
@@ -270,7 +271,15 @@ export async function createAndLaunchAction(
           "github",
           PLATFORM_GH_USERNAME,
         );
-        const payer = payoutSignerPublicKey() ?? poolWallet.wallet;
+        const payoutWallet = payoutSignerPublicKey();
+        if (!isStub && payoutWallet && poolWallet.wallet !== payoutWallet) {
+          throw new ActionError(
+            "pool_wallet_mismatch",
+            "Resolved Bags pool wallet must match SOLANA_PAYOUT_KEYPAIR before launch configuration.",
+            409,
+          );
+        }
+        const payer = payoutWallet ?? poolWallet.wallet;
 
         // Bags step 2: fee-share config
         const feeShareConfig = await bags.createFeeShareConfig({
@@ -280,9 +289,10 @@ export async function createAndLaunchAction(
             {
               provider: "github",
               username: PLATFORM_GH_USERNAME,
-              bps: 9500,
+              bps: 10_000 - validated.platformFeeBps,
             },
           ],
+          platformFeeWallet: payoutWallet ?? undefined,
           shareFee: validated.platformFeeBps,
         });
 
@@ -307,15 +317,16 @@ export async function createAndLaunchAction(
             "Bags fee-share config registered. Final launch transaction is gated until launch-wallet and initial-buy settings are configured.";
         }
 
-        // Persist live state.
+        // Persist token/config state. Live is reserved for a completed Bags
+        // launch transaction; fee-share-only setup is launch_configured.
         const persistNow = new Date();
         await dbp
           .update(projects)
           .set({
             tokenMint: tokenInfo.tokenMint,
-            bagsLaunchId: feeShareConfig.configKey,
+            bagsLaunchId: isStub ? feeShareConfig.configKey : null,
             bagsConfigKey: feeShareConfig.configKey,
-            status: isStub ? "simulated_live" : "live",
+            status: isStub ? "simulated_live" : "launch_configured",
             simulatedAt: isStub ? persistNow : null,
             updatedAt: persistNow,
           })
@@ -349,7 +360,7 @@ export async function createAndLaunchAction(
           ok: true,
           projectId,
           tokenMint: tokenInfo.tokenMint,
-          status: isStub ? "simulated_live" : "live",
+          status: isStub ? "simulated_live" : "launch_configured",
           stub: isStub,
           configKey: feeShareConfig.configKey,
           txSig,

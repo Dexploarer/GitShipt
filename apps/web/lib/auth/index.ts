@@ -25,6 +25,9 @@ let _authCache: any = null;
 
 function buildOptions(): BetterAuthOptions {
   const env = serverEnv();
+  if (env.NODE_ENV === "production" && !env.BETTER_AUTH_SECRET) {
+    throw new Error("BETTER_AUTH_SECRET is required in production.");
+  }
   return {
     database: drizzleAdapter(dbPool(), {
       provider: "pg",

@@ -13,6 +13,9 @@ import { createId } from "@repo/lib";
 
 export const projectStatusEnum = pgEnum("project_status", [
   "draft",
+  // Bags metadata + fee-share config exist, but the final token launch
+  // transaction has not been broadcast. Not eligible for payouts.
+  "launch_configured",
   "live",
   "paused",
   "killed",

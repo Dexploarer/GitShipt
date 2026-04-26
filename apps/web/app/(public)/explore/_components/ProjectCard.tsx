@@ -141,6 +141,13 @@ function StatusBadge({ status }: { status: PublicProjectRow["status"] }) {
       </Badge>
     );
   }
+  if (status === "launch_configured") {
+    return (
+      <Badge variant="warning" size="sm">
+        Configured
+      </Badge>
+    );
+  }
   return (
     <Badge variant="default" size="sm">
       Draft

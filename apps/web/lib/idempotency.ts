@@ -1,4 +1,5 @@
 import { redis } from "@/lib/redis";
+import { serverEnv } from "@/lib/env";
 
 const TTL_SECONDS = 60 * 60 * 24; // 24 hours
 const RUNNING_VALUE = "running";
@@ -43,7 +44,14 @@ export async function withIdempotency<T>(
 ): Promise<T> {
   if (!key) return fn();
   const r = redis();
-  if (!r) return fn();
+  if (!r) {
+    if (serverEnv().NODE_ENV === "production") {
+      throw new IdempotencyReplayError(
+        "Redis is required for production idempotency",
+      );
+    }
+    return fn();
+  }
 
   const ttlSeconds = options.ttlSeconds ?? TTL_SECONDS;
   const cacheKey = `gitbags:idem:${options.scope ?? "global"}:${key}`;
@@ -64,15 +72,12 @@ export async function withIdempotency<T>(
     }
   }
 
+  const claimed = await r.set(cacheKey, RUNNING_VALUE, "EX", ttlSeconds, "NX");
+  if (!claimed) {
+    throw new IdempotencyReplayError("Idempotent operation is already running");
+  }
+
   if (options.cacheResult === false) {
-    const claimed = await r.set(
-      cacheKey,
-      RUNNING_VALUE,
-      "EX",
-      ttlSeconds,
-      "NX",
-    );
-    if (!claimed) throw new IdempotencyReplayError();
     try {
       const result = await fn();
       await r.set(cacheKey, NO_REPLAY_VALUE, "EX", ttlSeconds);
@@ -83,9 +88,14 @@ export async function withIdempotency<T>(
     }
   }
 
-  const result = await fn();
-  await r.set(cacheKey, JSON.stringify(result), "EX", ttlSeconds);
-  return result;
+  try {
+    const result = await fn();
+    await r.set(cacheKey, JSON.stringify(result), "EX", ttlSeconds);
+    return result;
+  } catch (error) {
+    await r.del(cacheKey);
+    throw error;
+  }
 }
 
 /**

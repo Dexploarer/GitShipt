@@ -15,7 +15,7 @@ export function PauseSection({
   pausedReason,
 }: {
   projectId: string;
-  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
   pausedReason: string | null;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);

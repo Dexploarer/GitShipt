@@ -276,7 +276,12 @@ async function dispatchStep(args: {
   escrowDays: number;
 }): Promise<{ status: string; sig?: string }> {
   "use step";
-  return await dispatchRecipient(args);
+  const { stepId } = getStepMetadata();
+  return await withIdempotency(
+    `${stepId}:${args.recipient.idempotencyKey}`,
+    () => dispatchRecipient(args),
+    { scope: "workflow:payout:dispatch" },
+  );
 }
 
 async function finalizeStep(payoutId: string): Promise<{
