@@ -18,11 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: {
-    default: "GitBags — Pump.fm for open source",
+    default: "GitBags — tokenize your repo, pay your contributors",
     template: "%s · GitBags",
   },
   description:
-    "Launch a Bags.fm token for any GitHub repo. Daily fees redistribute to the top contributors.",
+    "GitBags turns any GitHub repo into a tradeable Bags.fm token. Swap fees fund a daily on-chain SOL payout to the top contributors — automatic, transparent, no committee.",
   applicationName: "GitBags",
   authors: [{ name: "SYMBiEX" }],
   keywords: [
@@ -37,9 +37,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "GitBags",
-    title: "GitBags — Pump.fm for open source",
+    title: "GitBags — tokenize your repo, pay your contributors",
     description:
-      "Launch a Bags.fm token for any GitHub repo. Daily fees redistribute to the top contributors.",
+      "GitBags turns any GitHub repo into a tradeable Bags.fm token. Swap fees fund a daily on-chain SOL payout to the top contributors — automatic, transparent, no committee.",
   },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },

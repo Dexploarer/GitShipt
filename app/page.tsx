@@ -44,21 +44,20 @@ export default async function LandingPage() {
                 aria-hidden
                 className="size-1.5 animate-pulse-dot rounded-full bg-success"
               />
-              Live on Solana devnet
-              <span aria-hidden className="text-fg-muted">·</span>
-              April 28
+              GitBags · Live on Solana devnet
             </Pill>
 
             <h1 className="text-[40px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[48px] lg:text-[56px]">
-              Pump.fm
+              Your repo,
               <br />
-              <span className="text-fg-muted">for open source.</span>
+              <span className="text-fg-muted">tokenized.</span>
             </h1>
 
             <p className="text-body-lg text-fg-secondary lg:text-[17px]">
-              Spin up a Bags.fm token for any GitHub repo. Trading fees
-              flow to top contributors automatically — daily, on-chain,
-              transparent.
+              GitBags turns any GitHub repository into a tradeable
+              Bags.fm token. Swap fees fund a daily on-chain SOL payout
+              to your top contributors — automatic, transparent, no
+              committee.
             </p>
 
             <div className="mt-1 flex flex-wrap items-center gap-3">

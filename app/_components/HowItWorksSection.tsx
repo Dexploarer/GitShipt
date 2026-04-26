@@ -9,21 +9,21 @@ import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/c
 const STEPS = [
   {
     n: 1,
-    title: "Connect your repo",
+    title: "Connect a repo",
     Icon: Github,
-    body: "Sign in with GitHub, pick a repo, configure your leaderboard.",
+    body: "Sign in with GitHub, pick the repo you want to fund, set your leaderboard formula.",
   },
   {
     n: 2,
-    title: "Launch the token",
+    title: "Launch a Bags token",
     Icon: Sparkles,
-    body: "We mint a Bags.fm token tied to your repo. Trading begins immediately.",
+    body: "GitBags mints a Bags.fm token bound to the repo. It's live and tradeable on devnet immediately.",
   },
   {
     n: 3,
-    title: "Daily payouts",
+    title: "Contributors get paid",
     Icon: Coins,
-    body: "Top 10 contributors get tier-weighted SOL transfers, every day at 00:30 UTC.",
+    body: "Every day at 00:30 UTC, swap fees claim, distribute, and land in your top contributors' wallets.",
   },
 ] as const;
 
@@ -32,10 +32,10 @@ export function HowItWorksSection() {
     <section className="flex flex-col gap-4">
       <div>
         <h2 className="text-headline-md tracking-tight text-fg">
-          How it works
+          How GitBags works
         </h2>
         <p className="text-body-md text-fg-secondary">
-          Three steps from a public repo to on-chain payouts.
+          Three steps from a public repo to recurring on-chain payouts for the people who built it.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

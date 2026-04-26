@@ -21,10 +21,10 @@ export function TopProjectsGrid({ projects }: { projects: LandingProject[] }) {
       <div className="flex items-end justify-between gap-3">
         <div>
           <h2 className="text-headline-md tracking-tight text-fg">
-            Top projects
+            Top projects on GitBags
           </h2>
           <p className="text-body-md text-fg-secondary">
-            The repos with the most fees flowing to contributors right now.
+            Live repos with the most swap fees flowing to contributors right now.
           </p>
         </div>
         <Link
