@@ -256,16 +256,29 @@ Theme scripts:
 
 ## Deployment
 
-The root [`vercel.json`](./vercel.json) pins Bun install/build commands and
-points output at `apps/web/.next`. Vercel should be linked from the repository
-root so workspace packages are available during install and build.
+The root [`vercel.json`](./vercel.json) is the Vercel source of truth. Link the
+Vercel project from the repository root, not `apps/web`, so the Bun workspace
+graph, shared packages, root lockfile, and cron configuration are all visible to
+Vercel.
 
 Important deployment settings:
 
+- Framework preset: `nextjs`
+- Root directory: repository root (`.`)
 - Install command: `bun install --frozen-lockfile`
 - Build command: `bun run build`
+- Development command: `bun run dev -- --port $PORT`
 - Output directory: `apps/web/.next`
+- Bun version: `1.3.12`
+- Function region: `iad1`, colocated with the current US East Neon/Redis setup.
+- Fluid Compute: enabled for workflow and cron-heavy routes.
 - Cron paths stay unchanged because the Next app still owns `/api/cron/*`.
+
+The Vercel project must have the Marketplace Neon/Postgres and Redis variables,
+GitHub OAuth/App variables, Bags variables, Solana variables, and `CRON_SECRET`
+configured in every environment that runs the app. Mark every `*_KEY`,
+`*_SECRET`, token, and keypair value as Sensitive in Vercel. Do not set
+`NODE_ENV` manually in Vercel; Next/Vercel own it.
 
 ## Verification
 
@@ -277,6 +290,7 @@ bun run typecheck
 bun run lint
 bun run theme:lint
 bun run test
+bun run e2e
 bun run build
 ```
 

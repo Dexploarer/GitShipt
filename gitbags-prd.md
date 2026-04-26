@@ -921,7 +921,7 @@ gitbags/
 │   ├── ui/                           # @repo/ui shadcn-style primitives
 │   ├── lib/                          # @repo/lib pure utilities
 │   └── shared/                       # @repo/shared schemas, constants, API types
-├── vercel.json                       # Cron schedules + Queues experimentalTriggers
+├── vercel.json                       # Vercel deploy, Fluid Compute, functions, cron
 ├── package.json
 ├── bun.lock
 ├── tsconfig.base.json
@@ -940,12 +940,21 @@ Example `vercel.json`:
 ```json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "bunVersion": "1.3.12",
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "bun run build",
+  "devCommand": "bun run dev -- --port $PORT",
+  "outputDirectory": "apps/web/.next",
+  "fluid": true,
+  "regions": ["iad1"],
   "crons": [
     { "path": "/api/cron/index-github", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/snapshot", "schedule": "0 0 * * *" },
     { "path": "/api/cron/payout", "schedule": "30 0 * * *" },
     { "path": "/api/cron/expire-escrow", "schedule": "0 1 * * *" },
-    { "path": "/api/cron/health", "schedule": "* * * * *" }
+    { "path": "/api/cron/health", "schedule": "* * * * *" },
+    { "path": "/api/cron/publish-kpis", "schedule": "* * * * *" }
   ]
 }
 ```
