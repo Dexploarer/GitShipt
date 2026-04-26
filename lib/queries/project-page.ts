@@ -23,7 +23,7 @@ export interface ProjectHeader {
   imageUrl: string | null;
   tokenMint: string | null;
   bagsLaunchId: string | null;
-  status: "draft" | "live" | "paused" | "killed";
+  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
   platformFeeBps: number;
   scoringConfig: ScoringConfig;
   payoutConfig: PayoutConfig;
@@ -53,7 +53,7 @@ export interface RecentPayoutRow {
   executedAt: Date;
   totalLamports: bigint;
   recipientCount: number;
-  status: "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled";
+  status: "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled" | "simulated";
   claimSignature: string | null;
 }
 

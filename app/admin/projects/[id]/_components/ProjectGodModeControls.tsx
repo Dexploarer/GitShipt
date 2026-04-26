@@ -12,7 +12,7 @@ import {
   overrideScoringConfig,
 } from "@/app/admin/actions";
 
-type Status = "draft" | "live" | "paused" | "killed";
+type Status = "draft" | "live" | "paused" | "killed" | "simulated_live";
 
 export function ProjectGodModeControls({
   projectId,

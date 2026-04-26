@@ -33,7 +33,7 @@ export interface PublicProjectRow {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "live" | "paused" | "killed";
+  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
   contributorsCount: number;
   /** Lifetime SOL paid out across all completed payouts. */
   lifetimeFeesLamports: bigint;

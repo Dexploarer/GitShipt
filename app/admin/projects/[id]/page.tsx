@@ -152,7 +152,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatusBadge({ status }: { status: "draft" | "live" | "paused" | "killed" }) {
+function StatusBadge({ status }: { status: "draft" | "live" | "paused" | "killed" | "simulated_live" }) {
   switch (status) {
     case "live":
       return <Badge variant="success" dot>Live</Badge>;

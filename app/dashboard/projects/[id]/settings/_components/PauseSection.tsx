@@ -12,7 +12,7 @@ export function PauseSection({
   pausedReason,
 }: {
   projectId: string;
-  status: "draft" | "live" | "paused" | "killed";
+  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
   pausedReason: string | null;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);

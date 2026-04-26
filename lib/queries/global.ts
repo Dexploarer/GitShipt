@@ -28,7 +28,7 @@ export interface LandingProject {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "live" | "paused" | "killed";
+  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
   contributorsCount: number;
   lifetimeFeesLamports: bigint;
   dailyFeeLamports: bigint;

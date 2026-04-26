@@ -31,7 +31,7 @@ export interface MyProjectRow {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "live" | "paused" | "killed";
+  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
   tokenMint: string | null;
   contributorsCount: number;
   lifetimeFeesLamports: bigint;
@@ -192,7 +192,7 @@ export async function getProjectKPIs(projectId: string): Promise<ProjectKPIs> {
 export interface PayoutHistoryRow {
   id: string;
   executedAt: Date | null;
-  status: "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled";
+  status: "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled" | "simulated";
   totalLamports: bigint;
   recipientCount: number;
   claimSignature: string | null;
@@ -383,7 +383,7 @@ export interface ProjectRecord {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "live" | "paused" | "killed";
+  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
   tokenMint: string | null;
   bagsLaunchId: string | null;
   ghInstallationId: string | null;

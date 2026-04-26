@@ -163,7 +163,8 @@ function PayoutStatusBadge({
     | "distributing"
     | "completed"
     | "failed"
-    | "cancelled";
+    | "cancelled"
+    | "simulated";
 }) {
   const map = {
     pending: { variant: "default" as const, label: "Pending" },
@@ -172,6 +173,7 @@ function PayoutStatusBadge({
     completed: { variant: "success" as const, label: "Completed" },
     failed: { variant: "danger" as const, label: "Failed" },
     cancelled: { variant: "warning" as const, label: "Cancelled" },
+    simulated: { variant: "default" as const, label: "Simulated" },
   } as const;
   const v = map[status];
   return (

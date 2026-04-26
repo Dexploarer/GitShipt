@@ -193,13 +193,14 @@ function Avatar({ src, alt }: { src: string | null; alt: string }) {
 export function StatusBadge({
   status,
 }: {
-  status: "draft" | "live" | "paused" | "killed";
+  status: "draft" | "live" | "paused" | "killed" | "simulated_live";
 }) {
   const map = {
     live: { variant: "success" as const, label: "Live", dot: true },
     draft: { variant: "default" as const, label: "Draft", dot: false },
     paused: { variant: "warning" as const, label: "Paused", dot: false },
     killed: { variant: "danger" as const, label: "Killed", dot: false },
+    simulated_live: { variant: "default" as const, label: "Simulated", dot: false },
   } as const;
   const v = map[status];
   return (
