@@ -83,7 +83,7 @@ export default async function LandingPage() {
               </Link>
             </section>
 
-            <div className="lg:max-h-[300px] lg:min-h-0 lg:flex-1">
+            <div className="w-full lg:max-h-[300px] lg:min-h-0 lg:w-[420px] lg:flex-1">
               <FeaturedProjectCard
                 header={featuredHeader}
                 contributors={featuredContribs}
