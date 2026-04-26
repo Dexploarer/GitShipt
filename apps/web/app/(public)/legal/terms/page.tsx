@@ -1,0 +1,265 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { LegalSection } from "@/app/legal/_components/LegalSection";
+
+export const metadata: Metadata = {
+  title: "Terms of Service · GitBags",
+  description:
+    "Terms governing use of GitBags — a hackathon-stage Solana devnet token launchpad that pays trading fees back to GitHub repository contributors.",
+};
+
+const LAST_UPDATED = "2026-04-26";
+
+/**
+ * Terms of Service — long-form, demo-grade copy specific to GitBags'
+ * actual operating model: Solana devnet launches, daily contributor
+ * payouts via Bags.fm, GitHub OAuth + SIWS auth, no mainnet custody.
+ */
+export const dynamic = "force-dynamic";
+
+export default async function TermsPage() {
+  return (
+    <article className="mx-auto flex max-w-prose flex-col gap-10 pb-16">
+      <header className="flex flex-col gap-3">
+        <span className="text-label-sm uppercase tracking-wide text-fg-muted">
+          Legal
+        </span>
+        <h1 className="text-headline-lg tracking-tight text-fg">
+          Terms of Service
+        </h1>
+        <p className="text-mono-sm text-fg-muted">
+          Last updated {LAST_UPDATED}
+        </p>
+        <p className="text-body-md text-fg-secondary">
+          These terms govern your use of GitBags, a hackathon-stage launchpad
+          that mints Solana devnet tokens for open-source repositories and
+          routes a share of trading fees to the repository&apos;s top
+          contributors. Read carefully before launching a project or linking a
+          wallet.
+        </p>
+      </header>
+
+      <div className="flex flex-col gap-10">
+        <LegalSection index={1} title="Acceptance and scope">
+          <p>
+            By signing in, linking a GitHub repository, linking a Solana wallet,
+            or trading a token launched on GitBags, you accept these Terms. If
+            you do not agree, do not use the service.
+          </p>
+          <p>
+            GitBags is provided strictly on an &ldquo;as is&rdquo; and &ldquo;as
+            available&rdquo; basis with no warranty of any kind. These Terms
+            apply to the website at gitbags.fm, all subdomains, and any
+            associated APIs or webhooks operated by the GitBags team.
+          </p>
+        </LegalSection>
+
+        <LegalSection index={2} title="What GitBags does">
+          <p>
+            GitBags lets a GitHub repository owner mint a token whose metadata,
+            branding, and royalty splits are bound to that repository. Tokens
+            are launched through the Bags.fm SDK on the Solana network.
+          </p>
+          <p>
+            When the token trades, a configured share of the swap fees is
+            claimed by GitBags on behalf of the project and redistributed to the
+            repository&apos;s top contributors, ranked by an automated scoring
+            workflow that runs on a daily cadence. Payouts settle directly to
+            each contributor&apos;s linked Solana wallet.
+          </p>
+        </LegalSection>
+
+        <LegalSection index={3} title="Eligibility">
+          <p>
+            You must be at least the age of legal majority in your jurisdiction
+            and have a valid GitHub account in good standing to use GitBags. You
+            must not be located in, a resident of, or accessing the service from
+            any country or region subject to comprehensive U.S. sanctions, and
+            you must not be a person designated on any U.S. or applicable
+            international sanctions list.
+          </p>
+          <p>
+            You are responsible for compliance with all laws that apply to you,
+            including local regulations on token issuance, trading, and tax
+            reporting.
+          </p>
+        </LegalSection>
+
+        <LegalSection index={4} title="Token launches">
+          <p>
+            By initiating a launch you authorize GitBags to mint a Bags.fm token
+            bound to the GitHub repository you select and to register the
+            resulting royalty split with the repository&apos;s top contributors
+            as recipients. You retain full ownership of your repository, its
+            source code, and its license. GitBags takes no equity in your
+            project and acquires no rights to your code.
+          </p>
+          <p>
+            You represent that you have the authority to launch a token
+            representing the repository in question and that the
+            repository&apos;s contents do not violate any third party&apos;s
+            rights. You are solely responsible for the repository, its branding,
+            and any communications you make about the token.
+          </p>
+        </LegalSection>
+
+        <LegalSection index={5} title="Trading fees and payouts">
+          <p>
+            GitBags does not custody user funds. Trades occur on-chain through
+            Bags.fm liquidity. Fee claims are executed by an automated workflow
+            that pulls accrued fees into a short-lived hot escrow wallet and
+            immediately distributes them to contributor wallets in the same
+            workflow run.
+          </p>
+          <p>
+            The escrow window is the only period during which GitBags
+            technically holds funds, and it exists solely to batch a single
+            on-chain transaction. We do not promise any specific payout amount,
+            frequency beyond &ldquo;daily best effort,&rdquo; or transaction
+            inclusion latency. On-chain failures, congestion, or RPC outages may
+            delay distributions.
+          </p>
+        </LegalSection>
+
+        <LegalSection index={6} title="Permissible use">
+          <p>You agree not to:</p>
+          <ul className="ml-5 list-disc space-y-1.5">
+            <li>
+              launch tokens for repositories you do not own or have permission
+              to represent;
+            </li>
+            <li>
+              impersonate another project, person, or organization, including by
+              reusing names, logos, or branding;
+            </li>
+            <li>
+              manipulate trading volume, wash trade, or otherwise inflate fee
+              accrual to redirect payouts;
+            </li>
+            <li>spam the platform with low-effort or duplicate launches;</li>
+            <li>
+              use the service to facilitate illegal activity, fraud, or evasion
+              of sanctions; or
+            </li>
+            <li>
+              attempt to bypass authentication, rate limiting, the kill switch,
+              or any other security control.
+            </li>
+          </ul>
+        </LegalSection>
+
+        <LegalSection index={7} title="Pause and kill rights">
+          <p>
+            GitBags reserves the right, at its sole discretion, to pause or
+            permanently kill any project, suspend any account, freeze pending
+            payouts, or activate the platform-wide kill switch — including in
+            response to suspected abuse, security incidents, legal demands, or
+            violation of these Terms.
+          </p>
+          <p>
+            A kill action is not a refund. Tokens already minted on Solana
+            remain on-chain and are not unwound. Pending fees that have not yet
+            been distributed at the time of a kill action may be returned to the
+            project treasury, redirected to remaining eligible contributors, or
+            held pending resolution, in our reasonable discretion.
+          </p>
+        </LegalSection>
+
+        <LegalSection
+          index={8}
+          title="No financial advice, no securities, no guarantees"
+        >
+          <p>
+            Nothing in GitBags constitutes financial, investment, tax, or legal
+            advice. Tokens launched on GitBags are not offered as securities,
+            and no statement on the platform should be read as a solicitation to
+            invest. We make no representation about the value, liquidity, or
+            future performance of any token.
+          </p>
+          <p>
+            Contributor scores, leaderboards, projected payouts, and historical
+            statistics are informational only. Past payouts do not predict
+            future payouts.
+          </p>
+        </LegalSection>
+
+        <LegalSection index={9} title="Devnet disclaimer">
+          <p>
+            GitBags currently operates exclusively on Solana devnet. Devnet SOL
+            has no monetary value, and devnet tokens are not tradeable on
+            mainnet venues. Any &ldquo;USD&rdquo; figure shown in the UI is a
+            synthetic display value derived from devnet activity and does not
+            represent real currency.
+          </p>
+          <p>
+            Because GitBags is hackathon-stage software, the database, the
+            indexer, and the on-chain state may be reset, migrated, or wiped at
+            any time without notice. Mainnet activation, if and when it occurs,
+            will be announced explicitly and is not implied by anything you see
+            in the current product.
+          </p>
+        </LegalSection>
+
+        <LegalSection
+          index={10}
+          title="Indemnity, limitation of liability, governing law"
+        >
+          <p>
+            You agree to indemnify and hold harmless the GitBags team and
+            contributors from any claim, loss, or expense arising from your use
+            of the service, your launches, your repository&apos;s contents, or
+            your violation of these Terms.
+          </p>
+          <p>
+            To the maximum extent permitted by law, GitBags and its contributors
+            are not liable for any indirect, incidental, consequential, or
+            punitive damages, or for any loss of tokens, missed payouts, RPC
+            failures, or third-party outages (including GitHub, Bags.fm, Helius,
+            Vercel, and Neon). Aggregate liability for any direct claim is
+            capped at one hundred U.S. dollars (USD 100).
+          </p>
+          <p>
+            These Terms are governed by the laws of the State of Delaware, USA,
+            without regard to conflict-of-laws principles. Any dispute that
+            cannot be resolved informally shall be settled by binding individual
+            arbitration seated in Delaware. You waive any right to participate
+            in a class action.
+          </p>
+        </LegalSection>
+
+        <LegalSection index={11} title="Modifications">
+          <p>
+            We may update these Terms at any time. The &ldquo;last
+            updated&rdquo; date at the top of this page reflects the most recent
+            revision. Material changes will be announced in the product or via
+            the project repository. Your continued use of GitBags after a change
+            constitutes acceptance of the updated Terms.
+          </p>
+        </LegalSection>
+
+        <LegalSection index={12} title="Contact">
+          <p>
+            Questions, security reports, and abuse complaints:{" "}
+            <a
+              href="mailto:legal@gitbags.fm"
+              className="text-fg underline-offset-4 hover:underline"
+            >
+              legal@gitbags.fm
+            </a>
+            . Bugs, feature requests, and source-level discussion happen in the
+            public repository at{" "}
+            <Link
+              href="https://github.com/SYMBaiEX/gitbags"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-fg underline-offset-4 hover:underline"
+            >
+              github.com/SYMBaiEX/gitbags
+            </Link>
+            .
+          </p>
+        </LegalSection>
+      </div>
+    </article>
+  );
+}

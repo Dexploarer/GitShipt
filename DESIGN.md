@@ -538,7 +538,7 @@ WCAG: All foreground/surface combinations exceed 4.5:1 contrast in both palettes
 @import "tailwindcss";
 
 :root {
-  /* Dark palette is the default — exported by `npx @google/design.md export` */
+  /* Dark palette is the default, exported by `bunx @google/design.md export` */
   --bg: #08080C;
   --surface: #101015;
   --surface-elevated: #16161E;

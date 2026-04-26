@@ -39,25 +39,25 @@ This PRD has been verified against current platform docs. Material decisions and
 
 ## Assumptions to confirm with team
 
-| # | Assumption | Confirm by |
-|---|---|---|
-| 1 | Platform-as-sole-claimer model is acceptable to Bags (vs native multi-wallet at launch) | Sync with Teddy |
-| 2 | Fee claim cadence: daily 00:30 UTC OK, or per-project? | Default daily, ship configurable post-MVP |
-| 3 | Hot wallet sits inside Vercel env (`Sensitive`-flagged) for v0; treasury is hardware-wallet-only | Confirm with security review |
-| 4 | Top 10 default tier weights `[0.30, 0.20, 0.15, 0.05 × 7]` | Default; configurable per-project post-MVP |
-| 5 | Scoring v0 = commits + merged PRs only, 30d window | Locked for hackathon |
-| 6 | 5% platform fee is taken on-chain via Bags `share_fee`, not redistribution math | Cleaner accounting; lock |
+| #   | Assumption                                                                                       | Confirm by                                 |
+| --- | ------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| 1   | Platform-as-sole-claimer model is acceptable to Bags (vs native multi-wallet at launch)          | Sync with Teddy                            |
+| 2   | Fee claim cadence: daily 00:30 UTC OK, or per-project?                                           | Default daily, ship configurable post-MVP  |
+| 3   | Hot wallet sits inside Vercel env (`Sensitive`-flagged) for v0; treasury is hardware-wallet-only | Confirm with security review               |
+| 4   | Top 10 default tier weights `[0.30, 0.20, 0.15, 0.05 × 7]`                                       | Default; configurable per-project post-MVP |
+| 5   | Scoring v0 = commits + merged PRs only, 30d window                                               | Locked for hackathon                       |
+| 6   | 5% platform fee is taken on-chain via Bags `share_fee`, not redistribution math                  | Cleaner accounting; lock                   |
 
 ---
 
 ## Personas
 
-| Persona | Goal | Friction tolerance |
-|---|---|---|
-| Repo Owner | Reward maintainers, capture upside, get noticed | Medium - will tolerate setup wizard |
-| Contributor | Passive payouts for past/ongoing work | Very low - one click + wallet link |
-| Trader | Bet on quality OSS via tokens | Low - wants instant Bags-style trading UX |
-| Platform Admin | Total control, kill switch, audit, fee config | High - tools first, polish later |
+| Persona        | Goal                                            | Friction tolerance                        |
+| -------------- | ----------------------------------------------- | ----------------------------------------- |
+| Repo Owner     | Reward maintainers, capture upside, get noticed | Medium - will tolerate setup wizard       |
+| Contributor    | Passive payouts for past/ongoing work           | Very low - one click + wallet link        |
+| Trader         | Bet on quality OSS via tokens                   | Low - wants instant Bags-style trading UX |
+| Platform Admin | Total control, kill switch, audit, fee config   | High - tools first, polish later          |
 
 ---
 
@@ -135,69 +135,69 @@ External:
 
 ### Public
 
-| Path | Purpose |
-|---|---|
-| `/` | Landing: hero, live ticker (24h volume + payouts), top 10 projects |
-| `/explore` | All projects, filters: 24h fees, contributors, age, status |
-| `/r/[org]/[repo]` | Project page: token chart, leaderboard, contributor cards, repo links |
-| `/r/[org]/[repo]/snapshots` | Historical snapshot ledger |
-| `/u/[username]` | Contributor profile: lifetime earnings, projects, repos |
-| `/launch` | Launch wizard (gated to authed repo owners) |
-| `/docs` | Markdown docs |
-| `/legal/terms`, `/legal/privacy` | Legal |
-| `/auth/signin` | GitHub OAuth |
-| `/auth/wallet` | SIWS flow |
+| Path                             | Purpose                                                               |
+| -------------------------------- | --------------------------------------------------------------------- |
+| `/`                              | Landing: hero, live ticker (24h volume + payouts), top 10 projects    |
+| `/explore`                       | All projects, filters: 24h fees, contributors, age, status            |
+| `/r/[org]/[repo]`                | Project page: token chart, leaderboard, contributor cards, repo links |
+| `/r/[org]/[repo]/snapshots`      | Historical snapshot ledger                                            |
+| `/u/[username]`                  | Contributor profile: lifetime earnings, projects, repos               |
+| `/launch`                        | Launch wizard (gated to authed repo owners)                           |
+| `/docs`                          | Markdown docs                                                         |
+| `/legal/terms`, `/legal/privacy` | Legal                                                                 |
+| `/auth/signin`                   | GitHub OAuth                                                          |
+| `/auth/wallet`                   | SIWS flow                                                             |
 
 ### Authenticated `/dashboard/*`
 
-| Path | Purpose |
-|---|---|
-| `/dashboard` | Overview: my projects, my earnings, alerts |
-| `/dashboard/projects` | Owned projects |
-| `/dashboard/projects/[id]` | Project console: leaderboard, fees, payouts |
-| `/dashboard/projects/[id]/scoring` | Weights, window, exclusions |
-| `/dashboard/projects/[id]/payouts` | Payout history |
+| Path                                | Purpose                                     |
+| ----------------------------------- | ------------------------------------------- |
+| `/dashboard`                        | Overview: my projects, my earnings, alerts  |
+| `/dashboard/projects`               | Owned projects                              |
+| `/dashboard/projects/[id]`          | Project console: leaderboard, fees, payouts |
+| `/dashboard/projects/[id]/scoring`  | Weights, window, exclusions                 |
+| `/dashboard/projects/[id]/payouts`  | Payout history                              |
 | `/dashboard/projects/[id]/settings` | Token meta, kill switch, ownership transfer |
-| `/dashboard/wallets` | Linked wallets |
-| `/dashboard/earnings` | Earnings + escrow claim |
-| `/dashboard/api-keys` | Personal API keys (scoped) |
+| `/dashboard/wallets`                | Linked wallets                              |
+| `/dashboard/earnings`               | Earnings + escrow claim                     |
+| `/dashboard/api-keys`               | Personal API keys (scoped)                  |
 
 ### Admin `/admin/*` (MFA + role gate)
 
-| Path | Purpose |
-|---|---|
-| `/admin` | Ops dashboard: queues, errors, KPIs, treasury |
-| `/admin/projects` | All projects, filters, bulk actions |
-| `/admin/projects/[id]` | Force pause, override scoring, blacklist users |
-| `/admin/users` | Users, role management, sybil flags |
-| `/admin/payouts` | Payout queue, retry, force-cancel, manual trigger |
-| `/admin/snapshots` | Snapshot history, hash verification |
-| `/admin/fees` | Platform fee bps, treasury wallet config |
-| `/admin/workflows` | Workflow runs, step traces, retries, dead letters |
-| `/admin/integrations` | Bags API health, GitHub App installs |
-| `/admin/audit` | Audit log (immutable, append-only) |
-| `/admin/abuse` | Reports, sybil flags, plagiarism review |
-| `/admin/settings` | Global flags, maintenance mode, kill switch |
+| Path                   | Purpose                                           |
+| ---------------------- | ------------------------------------------------- |
+| `/admin`               | Ops dashboard: queues, errors, KPIs, treasury     |
+| `/admin/projects`      | All projects, filters, bulk actions               |
+| `/admin/projects/[id]` | Force pause, override scoring, blacklist users    |
+| `/admin/users`         | Users, role management, sybil flags               |
+| `/admin/payouts`       | Payout queue, retry, force-cancel, manual trigger |
+| `/admin/snapshots`     | Snapshot history, hash verification               |
+| `/admin/fees`          | Platform fee bps, treasury wallet config          |
+| `/admin/workflows`     | Workflow runs, step traces, retries, dead letters |
+| `/admin/integrations`  | Bags API health, GitHub App installs              |
+| `/admin/audit`         | Audit log (immutable, append-only)                |
+| `/admin/abuse`         | Reports, sybil flags, plagiarism review           |
+| `/admin/settings`      | Global flags, maintenance mode, kill switch       |
 
 ---
 
 ## Data model (Drizzle, Postgres)
 
-| Table | Key columns | Notes |
-|---|---|---|
-| `users` | `id`, `github_id` UNIQUE, `github_username`, `email`, `role`, `mfa_secret_enc`, `created_at` | `role`: `user \| moderator \| admin \| super_admin` |
-| `wallets` | `id`, `user_id` FK, `address`, `chain`, `verified_at`, UNIQUE(`user_id`,`address`) | `chain` default `solana` |
-| `projects` | `id`, `owner_user_id` FK, `gh_owner`, `gh_repo`, `gh_repo_id`, `gh_installation_id`, `token_mint`, `bags_launch_id`, `status`, `platform_fee_bps`, `scoring_config` JSONB, `payout_config` JSONB, `created_at` | `status`: `draft \| live \| paused \| killed` |
-| `contributors` | `id`, `project_id` FK, `gh_user_id`, `gh_username`, `score`, `rank`, `last_indexed_at` | INDEX(`project_id`,`rank`) |
-| `contributor_claims` | `contributor_id` FK, `user_id` FK NULL, `wallet_address`, `claimed_at` | Null user until claim |
-| `snapshots` | `id`, `project_id` FK, `taken_at`, `leaderboard` JSONB, `merkle_root`, `total_fees_lamports`, `formula_version`, `status` | Frozen ledger |
-| `payouts` | `id`, `snapshot_id` FK, `project_id` FK, `total_amount`, `status`, `attempt_count`, `last_error`, `scheduled_at`, `executed_at` | INDEX(`status`,`scheduled_at`) |
-| `payout_recipients` | `id`, `payout_id` FK, `contributor_id` FK, `wallet_address`, `amount`, `status`, `tx_signature`, `idempotency_key` UNIQUE | Per-recipient row |
-| `escrow_holdings` | `contributor_id`, `token_mint`, `amount`, `created_at`, `expires_at` | Sweep job daily |
-| `platform_config` | `key` PK, `value` JSONB, `updated_by`, `updated_at` | All global tunables |
-| `audit_logs` | `id`, `actor_user_id`, `action`, `target_type`, `target_id`, `metadata` JSONB, `ip`, `user_agent`, `created_at` | Append-only DB role |
-| `webhooks_inbox` | `id`, `source`, `event_id` UNIQUE, `signature`, `payload`, `processed_at` | Idempotency on `event_id` |
-| `gh_indexer_state` | `project_id` PK, `last_event_cursor`, `last_full_sync_at` | Resume tokens |
+| Table                | Key columns                                                                                                                                                                                                    | Notes                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `users`              | `id`, `github_id` UNIQUE, `github_username`, `email`, `role`, `mfa_secret_enc`, `created_at`                                                                                                                   | `role`: `user \| moderator \| admin \| super_admin` |
+| `wallets`            | `id`, `user_id` FK, `address`, `chain`, `verified_at`, UNIQUE(`user_id`,`address`)                                                                                                                             | `chain` default `solana`                            |
+| `projects`           | `id`, `owner_user_id` FK, `gh_owner`, `gh_repo`, `gh_repo_id`, `gh_installation_id`, `token_mint`, `bags_launch_id`, `status`, `platform_fee_bps`, `scoring_config` JSONB, `payout_config` JSONB, `created_at` | `status`: `draft \| live \| paused \| killed`       |
+| `contributors`       | `id`, `project_id` FK, `gh_user_id`, `gh_username`, `score`, `rank`, `last_indexed_at`                                                                                                                         | INDEX(`project_id`,`rank`)                          |
+| `contributor_claims` | `contributor_id` FK, `user_id` FK NULL, `wallet_address`, `claimed_at`                                                                                                                                         | Null user until claim                               |
+| `snapshots`          | `id`, `project_id` FK, `taken_at`, `leaderboard` JSONB, `merkle_root`, `total_fees_lamports`, `formula_version`, `status`                                                                                      | Frozen ledger                                       |
+| `payouts`            | `id`, `snapshot_id` FK, `project_id` FK, `total_amount`, `status`, `attempt_count`, `last_error`, `scheduled_at`, `executed_at`                                                                                | INDEX(`status`,`scheduled_at`)                      |
+| `payout_recipients`  | `id`, `payout_id` FK, `contributor_id` FK, `wallet_address`, `amount`, `status`, `tx_signature`, `idempotency_key` UNIQUE                                                                                      | Per-recipient row                                   |
+| `escrow_holdings`    | `contributor_id`, `token_mint`, `amount`, `created_at`, `expires_at`                                                                                                                                           | Sweep job daily                                     |
+| `platform_config`    | `key` PK, `value` JSONB, `updated_by`, `updated_at`                                                                                                                                                            | All global tunables                                 |
+| `audit_logs`         | `id`, `actor_user_id`, `action`, `target_type`, `target_id`, `metadata` JSONB, `ip`, `user_agent`, `created_at`                                                                                                | Append-only DB role                                 |
+| `webhooks_inbox`     | `id`, `source`, `event_id` UNIQUE, `signature`, `payload`, `processed_at`                                                                                                                                      | Idempotency on `event_id`                           |
+| `gh_indexer_state`   | `project_id` PK, `last_event_cursor`, `last_full_sync_at`                                                                                                                                                      | Resume tokens                                       |
 
 ---
 
@@ -215,6 +215,7 @@ score =
 ```
 
 **Modifiers**:
+
 - Bot accounts (login matches `/^(.*-bot|dependabot|.*-ci|renovate)$/` or in admin allowlist) excluded.
 - Self-merge (PR author == merger) weighted 0.5x.
 - Linear time decay: `(W - daysAgo) / W`.
@@ -230,22 +231,23 @@ score =
 ### Token launch flow
 
 ```ts
-import { BagsSDK } from '@bagsfm/bags-sdk'
-import { Connection, Keypair } from '@solana/web3.js'
+import { BagsSDK } from "@bagsfm/bags-sdk";
+import { Connection, Keypair } from "@solana/web3.js";
 
 const sdk = new BagsSDK(
   process.env.BAGS_API_KEY!,
   new Connection(process.env.HELIUS_RPC_URL!),
-  'processed'
-)
+  "processed",
+);
 
 // Step 1: create token info (uploads metadata, returns tokenMint + metadataUrl)
 const tokenInfo = await sdk.tokenLaunch.createTokenInfo({
-  name: 'GitBags',
-  symbol: 'GBAGS',
-  description: 'Token for the gitbags repo. Fees redistribute to top contributors daily.',
-  imageUrl: 'https://gitbags.xyz/og/gbags.png',
-})
+  name: "GitBags",
+  symbol: "GBAGS",
+  description:
+    "Token for the gitbags repo. Fees redistribute to top contributors daily.",
+  imageUrl: "https://gitbags.xyz/og/gbags.png",
+});
 
 // Step 2: create fee share config
 // MVP model: platform claims 100% pooled, redistributes off-chain
@@ -254,10 +256,10 @@ const { configKey } = await sdk.tokenLaunch.feeShare.createConfig({
   payer: launchWallet.publicKey,
   baseMint: tokenInfo.tokenMint,
   feeClaimers: [
-    { provider: 'github', username: GITBAGS_PLATFORM_GH_USERNAME, bps: 9500 }, // pool
+    { provider: "github", username: GITBAGS_PLATFORM_GH_USERNAME, bps: 9500 }, // pool
   ],
   share_fee: 500, // 5% on-chain platform fee
-})
+});
 
 // Step 3: create launch transaction
 const launchTx = await sdk.tokenLaunch.createLaunchTransaction({
@@ -266,10 +268,15 @@ const launchTx = await sdk.tokenLaunch.createLaunchTransaction({
   launchWallet: launchWallet.publicKey,
   initialBuyLamports: 0n,
   configKey,
-})
+});
 
 // Step 4: sign and broadcast
-const signature = await signAndSendTransaction(connection, 'processed', launchTx, launchWallet)
+const signature = await signAndSendTransaction(
+  connection,
+  "processed",
+  launchTx,
+  launchWallet,
+);
 ```
 
 ### Daily fee claim and redistribute
@@ -278,38 +285,38 @@ The `executeDailyPayout` workflow (Vercel Workflow, triggered at 00:30 UTC):
 
 ```ts
 // workflows/executeDailyPayout.ts
-'use workflow'
+"use workflow";
 
 export async function executeDailyPayout() {
-  const projects = await fetchActiveProjects()  // 'use step'
-  await Promise.all(projects.map(p => processProjectPayout(p.id)))
+  const projects = await fetchActiveProjects(); // 'use step'
+  await Promise.all(projects.map((p) => processProjectPayout(p.id)));
 }
 
 export async function processProjectPayout(projectId: string) {
-  'use workflow'
-  const project = await loadProject(projectId)             // step
-  const claimable = await checkClaimablePositions(project) // step (Bags API)
-  if (claimable.lamports < CLAIM_THRESHOLD_LAMPORTS) return
+  "use workflow";
+  const project = await loadProject(projectId); // step
+  const claimable = await checkClaimablePositions(project); // step (Bags API)
+  if (claimable.lamports < CLAIM_THRESHOLD_LAMPORTS) return;
 
-  const claimSig = await claimBagsFees(project)            // step (sends Solana tx)
-  const snapshot = await loadLatestSnapshot(projectId)     // step
-  const plan     = computeDistributionPlan(snapshot, claimable.lamports) // pure
-  await distributeToContributors(project, plan)            // step (fan out per recipient)
-  await recordPayout(projectId, snapshot.id, plan, claimSig) // step
+  const claimSig = await claimBagsFees(project); // step (sends Solana tx)
+  const snapshot = await loadLatestSnapshot(projectId); // step
+  const plan = computeDistributionPlan(snapshot, claimable.lamports); // pure
+  await distributeToContributors(project, plan); // step (fan out per recipient)
+  await recordPayout(projectId, snapshot.id, plan, claimSig); // step
 }
 ```
 
 ### Bags API endpoints we use
 
-| Purpose | Endpoint | When |
-|---|---|---|
-| Resolve GitHub username to Bags wallet | `GET /api/v1/token-launch/fee-share/wallet/v2?provider=github&username={u}` | Launch + onboarding |
-| Create fee share config | `POST /api/v1/fee-share/config` | Launch |
-| Create launch tx | `POST /api/v1/token-launch/create-launch-transaction` | Launch |
-| List claimable positions | `GET /api/v1/token-launch/claimable-positions?wallet={addr}` | Daily payout cron |
-| Claim fees (SDK) | `sdk.feeClaim.*` | Daily payout cron |
-| Lifetime fees (analytics) | `GET /api/v1/token-launch/lifetime-fees?tokenMint={m}` | Project page |
-| Token holders (top N) | SDK `analytics.getTokenHolders` | Optional dividend mode |
+| Purpose                                | Endpoint                                                                    | When                   |
+| -------------------------------------- | --------------------------------------------------------------------------- | ---------------------- |
+| Resolve GitHub username to Bags wallet | `GET /api/v1/token-launch/fee-share/wallet/v2?provider=github&username={u}` | Launch + onboarding    |
+| Create fee share config                | `POST /api/v1/fee-share/config`                                             | Launch                 |
+| Create launch tx                       | `POST /api/v1/token-launch/create-launch-transaction`                       | Launch                 |
+| List claimable positions               | `GET /api/v1/token-launch/claimable-positions?wallet={addr}`                | Daily payout cron      |
+| Claim fees (SDK)                       | `sdk.feeClaim.*`                                                            | Daily payout cron      |
+| Lifetime fees (analytics)              | `GET /api/v1/token-launch/lifetime-fees?tokenMint={m}`                      | Project page           |
+| Token holders (top N)                  | SDK `analytics.getTokenHolders`                                             | Optional dividend mode |
 
 ### Constraints to design around
 
@@ -345,31 +352,31 @@ If a contributor has no linked wallet at payout time, allocation lands in `escro
 
 ### Internal (Server Actions + Route Handlers)
 
-| Method | Path | Purpose |
-|---|---|---|
-| POST | `/api/projects` | Create project (auth + repo verify) |
-| POST | `/api/projects/[id]/launch` | Fire Bags launch |
-| GET | `/api/projects/[id]/leaderboard` | Cached leaderboard (5min) |
-| POST | `/api/wallets/verify` | SIWS verify |
-| POST | `/api/claims/link` | Link contributor to user/wallet |
-| POST | `/api/admin/projects/[id]/pause` | Admin pause |
-| POST | `/api/admin/payouts/[id]/retry` | Admin retry |
-| POST | `/api/webhooks/github` | GitHub webhook receiver (HMAC) |
-| POST | `/api/webhooks/bags` | Bags webhook receiver (HMAC) |
+| Method | Path                             | Purpose                             |
+| ------ | -------------------------------- | ----------------------------------- |
+| POST   | `/api/projects`                  | Create project (auth + repo verify) |
+| POST   | `/api/projects/[id]/launch`      | Fire Bags launch                    |
+| GET    | `/api/projects/[id]/leaderboard` | Cached leaderboard (5min)           |
+| POST   | `/api/wallets/verify`            | SIWS verify                         |
+| POST   | `/api/claims/link`               | Link contributor to user/wallet     |
+| POST   | `/api/admin/projects/[id]/pause` | Admin pause                         |
+| POST   | `/api/admin/payouts/[id]/retry`  | Admin retry                         |
+| POST   | `/api/webhooks/github`           | GitHub webhook receiver (HMAC)      |
+| POST   | `/api/webhooks/bags`             | Bags webhook receiver (HMAC)        |
 
 ### Cron / Workflows
 
 All background work runs as **Vercel Workflows** triggered by **Vercel Cron Jobs** or webhooks. Each workflow is a `"use workflow"` function with `"use step"` units that are individually retried, persisted, and resumable across deploys.
 
-| Workflow | Trigger | Cadence | Pattern |
-|---|---|---|---|
-| `indexGithubDeltas` | Vercel Cron + GitHub webhook | every 15m | Root workflow fans out one child per active project |
-| `computeLeaderboard` | Internal (post-index) or cron | hourly | Per-project, idempotent |
-| `takeSnapshot` | Vercel Cron | daily 00:00 UTC | Freezes leaderboard, persists Merkle root |
-| `executePayout` | Internal (post-snapshot) | daily 00:30 UTC | Per-snapshot, fans out per-recipient batch |
-| `expireEscrow` | Vercel Cron | daily 01:00 UTC | Sweep |
-| `processClaim` | Server Action (post wallet-link) | on-demand | Drains escrow to newly-linked wallet |
-| `healthPulse` | Vercel Cron | every 1m | Heartbeat to admin dashboard |
+| Workflow             | Trigger                          | Cadence         | Pattern                                             |
+| -------------------- | -------------------------------- | --------------- | --------------------------------------------------- |
+| `indexGithubDeltas`  | Vercel Cron + GitHub webhook     | every 15m       | Root workflow fans out one child per active project |
+| `computeLeaderboard` | Internal (post-index) or cron    | hourly          | Per-project, idempotent                             |
+| `takeSnapshot`       | Vercel Cron                      | daily 00:00 UTC | Freezes leaderboard, persists Merkle root           |
+| `executePayout`      | Internal (post-snapshot)         | daily 00:30 UTC | Per-snapshot, fans out per-recipient batch          |
+| `expireEscrow`       | Vercel Cron                      | daily 01:00 UTC | Sweep                                               |
+| `processClaim`       | Server Action (post wallet-link) | on-demand       | Drains escrow to newly-linked wallet                |
+| `healthPulse`        | Vercel Cron                      | every 1m        | Heartbeat to admin dashboard                        |
 
 **Pro plan required**: Hobby cron is daily-only with ±60min imprecision. Pro unlocks per-minute schedules and tight timing (needed for 00:00 UTC snapshots).
 
@@ -412,6 +419,7 @@ All background work runs as **Vercel Workflows** triggered by **Vercel Cron Jobs
 ## MVP scope (hackathon cut, April 28)
 
 **In**:
+
 - GitHub OAuth + Solana wallet linking via SIWS
 - Single-repo launch flow → Bags token created
 - GitHub indexer (commits + merged PRs only)
@@ -424,6 +432,7 @@ All background work runs as **Vercel Workflows** triggered by **Vercel Cron Jobs
 - "Eat our own dog food" - GitBags repo launches first token at demo
 
 **Out (v1.1+)**:
+
 - Reviews + issues in scoring
 - Multi-repo / monorepo
 - Custom tier weights UI
@@ -437,24 +446,24 @@ All background work runs as **Vercel Workflows** triggered by **Vercel Cron Jobs
 
 ## Stack and infra
 
-| Layer | Choice | Reason |
-|---|---|---|
-| Web | Next.js 16.2 (App Router, RSC, Server Actions, Turbopack) on **Vercel Fluid Compute** | Stack constraint, latest features, up to 14min execution. Patched against CVE-2025-66478 and CVE-2025-29927. |
-| Lang | TypeScript strict | Non-negotiable |
-| UI | Tailwind v4 (`@theme` directive, no `tailwind.config.js`) + shadcn/ui + Tremor (admin charts) + Lucide | Standard 2026 stack |
-| Design system | **DESIGN.md** at project root (Google Labs spec, Apache 2.0) | Persistent design context for all coding agents (Claude Code, Cursor, Copilot). See companion `DESIGN.md` file. |
-| DB | **Neon Postgres** via Vercel Marketplace (Vercel-Managed integration) | Auto-injects `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED`. Per-PR preview branches included. |
-| ORM | Drizzle (`drizzle-orm/neon-http` for serverless steps, `neon-serverless` for transactional flows) + drizzle-kit | Type-safe, fast, no overhead, native Neon HTTP driver |
-| Background | **Vercel Workflows + Vercel Queues** (`'use workflow'` / `'use step'`, `experimentalTriggers` config) | Durable steps, automatic retries, survives deploys, no separate worker service. Workflow SDK is open-source so portable if we ever leave. |
-| Cache / nonces | **Upstash Redis (via Vercel Marketplace)** | One-click integration. Used only for cache, SIWS nonces, rate limit, idempotency keys. |
-| Cron | **Vercel Cron Jobs** (Pro plan required for sub-daily) | Native, secured via `CRON_SECRET` |
-| Auth | **better-auth** with GitHub OAuth + custom SIWS plugin (`@phantom/sign-in-with-solana`) | Modern, declarative, extensible. Auth.js v5 fallback if SIWS plugin model proves friction. |
-| Solana | `@solana/web3.js@^1.98.x` (v1 line, locked post-Dec-2024 supply chain incident), `@solana/spl-token`, Helius RPC, `@bagsfm/bags-sdk` | Bags SDK uses v1-style imports. Don't move to v2/`@solana/kit` until Bags ports. |
-| Observability | Vercel Workflows dashboard, Vercel Observability, Sentry | Built-in for workflows, Sentry for app errors |
-| CI/CD | GitHub Actions, preview envs on Vercel | Per-PR preview |
-| Testing | Vitest (unit), Playwright (e2e launch flow) | Realistic coverage |
-| Local dev | Bun for scripts/build tooling, Workflow Local World for offline workflow testing | Fast, runs same workflow code locally |
-| Secrets | Vercel env vars, **all flagged Sensitive** | Single source of truth post-April-2026 incident. Cold treasury key never enters Vercel. |
+| Layer          | Choice                                                                                                                               | Reason                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Web            | Next.js 16.2 (App Router, RSC, Server Actions, Turbopack) on **Vercel Fluid Compute**                                                | Stack constraint, latest features, up to 14min execution. Patched against CVE-2025-66478 and CVE-2025-29927.                              |
+| Lang           | TypeScript strict                                                                                                                    | Non-negotiable                                                                                                                            |
+| UI             | Tailwind v4 (`@theme` directive, no `tailwind.config.js`) + shadcn/ui + Tremor (admin charts) + Lucide                               | Standard 2026 stack                                                                                                                       |
+| Design system  | **DESIGN.md** at project root (Google Labs spec, Apache 2.0)                                                                         | Persistent design context for all coding agents (Claude Code, Cursor, Copilot). See companion `DESIGN.md` file.                           |
+| DB             | **Neon Postgres** via Vercel Marketplace (Vercel-Managed integration)                                                                | Auto-injects `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED`. Per-PR preview branches included.                                       |
+| ORM            | Drizzle (`drizzle-orm/neon-http` for serverless steps, `neon-serverless` for transactional flows) + drizzle-kit                      | Type-safe, fast, no overhead, native Neon HTTP driver                                                                                     |
+| Background     | **Vercel Workflows + Vercel Queues** (`'use workflow'` / `'use step'`, `experimentalTriggers` config)                                | Durable steps, automatic retries, survives deploys, no separate worker service. Workflow SDK is open-source so portable if we ever leave. |
+| Cache / nonces | **Upstash Redis (via Vercel Marketplace)**                                                                                           | One-click integration. Used only for cache, SIWS nonces, rate limit, idempotency keys.                                                    |
+| Cron           | **Vercel Cron Jobs** (Pro plan required for sub-daily)                                                                               | Native, secured via `CRON_SECRET`                                                                                                         |
+| Auth           | **better-auth** with GitHub OAuth + custom SIWS plugin (`@phantom/sign-in-with-solana`)                                              | Modern, declarative, extensible. Auth.js v5 fallback if SIWS plugin model proves friction.                                                |
+| Solana         | `@solana/web3.js@^1.98.x` (v1 line, locked post-Dec-2024 supply chain incident), `@solana/spl-token`, Helius RPC, `@bagsfm/bags-sdk` | Bags SDK uses v1-style imports. Don't move to v2/`@solana/kit` until Bags ports.                                                          |
+| Observability  | Vercel Workflows dashboard, Vercel Observability, Sentry                                                                             | Built-in for workflows, Sentry for app errors                                                                                             |
+| CI/CD          | GitHub Actions, preview envs on Vercel                                                                                               | Per-PR preview                                                                                                                            |
+| Testing        | Vitest (unit), Playwright (e2e launch flow)                                                                                          | Realistic coverage                                                                                                                        |
+| Local dev      | Bun for scripts/build tooling, Workflow Local World for offline workflow testing                                                     | Fast, runs same workflow code locally                                                                                                     |
+| Secrets        | Vercel env vars, **all flagged Sensitive**                                                                                           | Single source of truth post-April-2026 incident. Cold treasury key never enters Vercel.                                                   |
 
 ---
 
@@ -463,9 +472,11 @@ All background work runs as **Vercel Workflows** triggered by **Vercel Cron Jobs
 GitBags ships a `DESIGN.md` file at the repo root, conforming to **Google Labs' DESIGN.md spec** (open-sourced April 21, 2026, Apache 2.0). DESIGN.md gives every coding agent (Claude Code, Cursor, Copilot, Stitch) a persistent, structured understanding of the visual identity. Drop a request like "build the Payouts page" into any agent and the output is on-brand without per-prompt design briefing.
 
 ### Why this matters for hackathon velocity
-Every component generated during the 3-day sprint pulls from the same token table. No "the agent picked Tailwind blue again" loops. The same file feeds into the production Tailwind theme via `npx @google/design.md export --format tailwind DESIGN.md > tailwind.theme.json` and gets linted in CI for token integrity and WCAG AA contrast.
+
+Every component generated during the 3-day sprint pulls from the same token table. No "the agent picked Tailwind blue again" loops. The same file feeds into the production Tailwind theme via `bunx @google/design.md export --format tailwind DESIGN.md > .theme/tokens.json` and gets linted in CI for token integrity and WCAG AA contrast.
 
 ### Aesthetic direction
+
 **Cypherpunk dark-purple.** Near-black surfaces (`#08080C`), single signature Bags-purple accent (`#A855F7`), Geist + Geist Mono typography, flat depth model (no glow halos, no gradients, no neumorphism), monospace numerics for every economically-meaningful figure. Trader's terminal density meets engineer-respecting legibility. See `DESIGN.md` for full token table and rationale.
 
 ### Token highlights (excerpt — see file for complete schema)
@@ -476,11 +487,11 @@ colors:
   surface: "#101015"
   surface-elevated: "#16161E"
   border: "#23232E"
-  primary: "#A855F7"          # Bags purple, one per viewport
+  primary: "#A855F7" # Bags purple, one per viewport
   fg: "#F5F5F7"
   fg-secondary: "#9494A0"
   fg-muted: "#5A5A66"
-  success: "#22C55E"          # live indicators, gains
+  success: "#22C55E" # live indicators, gains
   rank-gold: "#FBBF24"
   rank-silver: "#CBD5E1"
   rank-bronze: "#D97706"
@@ -504,19 +515,19 @@ typography:
 
 ```bash
 # Validate the file in CI
-npx @google/design.md lint DESIGN.md
+bunx @google/design.md lint DESIGN.md
 
 # Check for WCAG AA contrast violations
-npx @google/design.md lint --format json DESIGN.md | jq '.findings[] | select(.severity == "error")'
+bunx @google/design.md lint --format json DESIGN.md | jq '.findings[] | select(.severity == "error")'
 
-# Compile to Tailwind v4 theme (committed as tailwind.theme.json)
-npx @google/design.md export --format tailwind DESIGN.md > tailwind.theme.json
+# Compile to Tailwind v4 theme (committed as .theme/tokens.json)
+bunx @google/design.md export --format tailwind DESIGN.md > .theme/tokens.json
 
 # Diff between versions on every PR (regression gate)
-npx @google/design.md diff DESIGN.md.main DESIGN.md
+bunx @google/design.md diff DESIGN.md.main DESIGN.md
 ```
 
-The full spec context can be injected into agent prompts via `npx @google/design.md spec`. We add this to `AGENTS.md` so any agent picking up the repo gets the design system on first read.
+The full spec context can be injected into agent prompts via `bunx @google/design.md spec`. We add this to `AGENTS.md` so any agent picking up the repo gets the design system on first read.
 
 ### Theming (dark default, light mirror)
 
@@ -526,24 +537,24 @@ GitBags ships **two themes**: dark (canonical, default) and light (mirrored). Bo
 
 **Implementation pieces** (4 files):
 
-1. **`app/globals.css`** — both palettes as CSS custom properties under `:root` (dark) and `[data-theme="light"]`. Tailwind v4's `@theme inline` routes utility classes through the variables so theme switches are runtime-only with no rebuild. Pattern:
+1. **`apps/web/app/globals.css`** — both palettes as CSS custom properties under `:root` (dark) and `[data-theme="light"]`. Tailwind v4's `@theme inline` routes utility classes through the variables so theme switches are runtime-only with no rebuild. Pattern:
 
 ```css
 @import "tailwindcss";
 
 :root {
-  --bg: #08080C;
+  --bg: #08080c;
   --surface: #101015;
-  --primary: #A855F7;
-  --fg: #F5F5F7;
+  --primary: #a855f7;
+  --fg: #f5f5f7;
   /* ...rest of dark palette */
 }
 
 [data-theme="light"] {
-  --bg: #FAFAFC;
-  --surface: #FFFFFF;
-  --primary: #9333EA;
-  --fg: #0F0F14;
+  --bg: #fafafc;
+  --surface: #ffffff;
+  --primary: #9333ea;
+  --fg: #0f0f14;
   /* ...rest of light palette */
 }
 
@@ -556,14 +567,16 @@ GitBags ships **two themes**: dark (canonical, default) and light (mirrored). Bo
 }
 ```
 
-2. **`components/theme-provider.tsx`** — thin wrapper around `next-themes` `ThemeProvider`:
+2. **`apps/web/components/theme-provider.tsx`** — thin wrapper around `next-themes` `ThemeProvider`:
 
 ```tsx
-'use client'
-import { ThemeProvider as NextThemesProvider } from 'next-themes'
-import type { ComponentProps } from 'react'
+"use client";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import type { ComponentProps } from "react";
 
-export function ThemeProvider(props: ComponentProps<typeof NextThemesProvider>) {
+export function ThemeProvider(
+  props: ComponentProps<typeof NextThemesProvider>,
+) {
   return (
     <NextThemesProvider
       attribute="data-theme"
@@ -572,47 +585,56 @@ export function ThemeProvider(props: ComponentProps<typeof NextThemesProvider>) 
       disableTransitionOnChange
       {...props}
     />
-  )
+  );
 }
 ```
 
-3. **`app/layout.tsx`** — wrap the app, with `suppressHydrationWarning` on `<html>` to prevent flash:
+3. **`apps/web/app/layout.tsx`** — wrap the app, with `suppressHydrationWarning` on `<html>` to prevent flash:
 
 ```tsx
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from "@/components/theme-provider";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
 ```
 
 4. **`components/theme-toggle.tsx`** — sun/moon Lucide icon button placed in the lower sidebar (next to the user wallet card). Three-state: light, dark, system. Default visible icon reflects the resolved theme (system → whatever the OS is). Cycle order: system → light → dark → system.
 
 ```tsx
-'use client'
-import { useTheme } from 'next-themes'
-import { Monitor, Moon, Sun } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+"use client";
+import { useTheme } from "next-themes";
+import { Monitor, Moon, Sun } from "lucide-react";
+import { Button } from "@repo/ui";
 
-const ORDER = ['system', 'light', 'dark'] as const
-const ICON = { system: Monitor, light: Sun, dark: Moon }
+const ORDER = ["system", "light", "dark"] as const;
+const ICON = { system: Monitor, light: Sun, dark: Moon };
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
-  const current = (theme ?? 'system') as typeof ORDER[number]
-  const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length]
-  const Icon = ICON[current]
+  const { theme, setTheme } = useTheme();
+  const current = (theme ?? "system") as (typeof ORDER)[number];
+  const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
+  const Icon = ICON[current];
   return (
-    <Button variant="ghost" size="icon" onClick={() => setTheme(next)} aria-label={`Theme: ${current}, click to switch to ${next}`}>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(next)}
+      aria-label={`Theme: ${current}, click to switch to ${next}`}
+    >
       <Icon className="size-4" />
     </Button>
-  )
+  );
 }
 ```
 
@@ -632,7 +654,7 @@ The project page (`/r/[org]/[repo]`) is the canonical surface for both public vi
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ SIDEBAR (240px)        │  CONTENT AREA (max 1440px, 32px padding)           │
 │                        │  ┌──────────────────────────┬──────────────────┐  │
-│ GitBags by BAGS.fm     │  │  Project header card     │  Next Payout     │  │
+│ GitBags by SYMBiEX & dEXploarer     │  │  Project header card     │  Next Payout     │  │
 │                        │  │  (avatar, name, repo↗,   │  countdown card  │  │
 │ ▸ Overview             │  │   description, stat      │  (12h 34m 56s)   │  │
 │ ● Leaderboard          │  │   chips: language,       │  + Cron Active   │  │
@@ -679,17 +701,17 @@ The project page (`/r/[org]/[repo]`) is the canonical surface for both public vi
 
 ### Components and data sources
 
-| Region | Component | Data source | Refresh |
-|---|---|---|---|
-| Sidebar nav | `<ProjectSidebar>` with active state | Static + project status | On nav |
-| Token info card (lower sidebar) | `<TokenSparkCard>` | Bags `lifetime-fees` + DEX price feed (Helius) | 60s |
-| Wallet card (lower sidebar) | `<UserWalletCard>` | Linked wallet from session, balance via Helius | On focus |
-| Header card | `<ProjectHeader>` | `projects` + GitHub repo fields (cached 5min) | 5min |
-| Next Payout card | `<NextPayoutCountdown>` | Cron schedule from `platform_config` | 1s tick |
-| Leaderboard card | `<LeaderboardTable>` | `contributors` + latest `snapshots` | 5min cache |
-| Pool Overview | `<PoolOverviewCard>` with sparkline | Bags `claimable-positions` + 30-day fee history | 5min |
-| Recent Payouts | `<RecentPayoutsFeed>` | `payouts` joined with `payout_recipients` count | 1min |
-| System Status | `<SystemStatusCard>` | Workflow run status from `/api/admin/workflows/health` | 30s |
+| Region                          | Component                            | Data source                                            | Refresh    |
+| ------------------------------- | ------------------------------------ | ------------------------------------------------------ | ---------- |
+| Sidebar nav                     | `<ProjectSidebar>` with active state | Static + project status                                | On nav     |
+| Token info card (lower sidebar) | `<TokenSparkCard>`                   | Bags `lifetime-fees` + DEX price feed (Helius)         | 60s        |
+| Wallet card (lower sidebar)     | `<UserWalletCard>`                   | Linked wallet from session, balance via Helius         | On focus   |
+| Header card                     | `<ProjectHeader>`                    | `projects` + GitHub repo fields (cached 5min)          | 5min       |
+| Next Payout card                | `<NextPayoutCountdown>`              | Cron schedule from `platform_config`                   | 1s tick    |
+| Leaderboard card                | `<LeaderboardTable>`                 | `contributors` + latest `snapshots`                    | 5min cache |
+| Pool Overview                   | `<PoolOverviewCard>` with sparkline  | Bags `claimable-positions` + 30-day fee history        | 5min       |
+| Recent Payouts                  | `<RecentPayoutsFeed>`                | `payouts` joined with `payout_recipients` count        | 1min       |
+| System Status                   | `<SystemStatusCard>`                 | Workflow run status from `/api/admin/workflows/health` | 30s        |
 
 ### Interaction details
 
@@ -725,14 +747,14 @@ GitBags has a multi-tier admin system. The two most important things to internal
 
 ### Role hierarchy
 
-| Role | Scope | Granted by | MFA required |
-|---|---|---|---|
-| `super_admin` | Global, all projects, all platform config | Bootstrapped, granted by another super_admin only | Yes (TOTP minimum, WebAuthn preferred) |
-| `admin` | Global moderation, no treasury or fee config | Granted by super_admin | Yes |
-| `moderator` | Read + flag + comment on abuse reports | Granted by admin or super_admin | Optional |
-| `project_owner` | Own projects only (read+write own resources) | Implicit from launching a project; transferable | Yes for destructive actions |
-| `project_moderator` | Own projects only (read+write specific resources scoped by `project_owner`) | Granted per-project by `project_owner` | Optional |
-| `user` | Public + own profile + claim earnings | Default on signup | No |
+| Role                | Scope                                                                       | Granted by                                        | MFA required                           |
+| ------------------- | --------------------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------- |
+| `super_admin`       | Global, all projects, all platform config                                   | Bootstrapped, granted by another super_admin only | Yes (TOTP minimum, WebAuthn preferred) |
+| `admin`             | Global moderation, no treasury or fee config                                | Granted by super_admin                            | Yes                                    |
+| `moderator`         | Read + flag + comment on abuse reports                                      | Granted by admin or super_admin                   | Optional                               |
+| `project_owner`     | Own projects only (read+write own resources)                                | Implicit from launching a project; transferable   | Yes for destructive actions            |
+| `project_moderator` | Own projects only (read+write specific resources scoped by `project_owner`) | Granted per-project by `project_owner`            | Optional                               |
+| `user`              | Public + own profile + claim earnings                                       | Default on signup                                 | No                                     |
 
 Roles are stored on `users.role` (global) and `project_memberships(user_id, project_id, role)` (per-project). Enforced in `proxy.ts` for redirects (perf) AND revalidated inside every protected route/server action (security; CVE-2025-29927).
 
@@ -740,19 +762,20 @@ Roles are stored on `users.role` (global) and `project_memberships(user_id, proj
 
 Routes live under `/dashboard/projects/[id]/*`. The sidebar shown in the project page mockup is the project admin sidebar.
 
-| Path | Purpose | Critical actions |
-|---|---|---|
-| `/dashboard/projects/[id]` | Overview: KPIs, recent activity, alerts | None (read-only) |
-| `/dashboard/projects/[id]/leaderboard` | Live leaderboard + scoring config | Edit scoring weights, exclude users (bots, spam) |
-| `/dashboard/projects/[id]/payouts` | Payout history + per-payout drill-down | Trigger manual payout (gated), retry failed payout |
-| `/dashboard/projects/[id]/repository` | GitHub App install status, branches indexed, sync state | Force re-index, change tracked branches |
-| `/dashboard/projects/[id]/token` | Token info, fee config (read-only post-launch), claim history | View claim history, link Bags.fm dashboard |
-| `/dashboard/projects/[id]/settings` | Project metadata, payout config, project-level admin permissions | Pause project, transfer ownership, delete project |
-| `/dashboard/projects/[id]/api-keys` | Project-scoped API keys for webhooks, integrations | Generate, rotate, revoke |
-| `/dashboard/projects/[id]/team` | Add/remove project moderators, scope grants | Invite, revoke, change role |
-| `/dashboard/projects/[id]/docs` | Per-project public docs (markdown, optional) | Edit, publish |
+| Path                                   | Purpose                                                          | Critical actions                                   |
+| -------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| `/dashboard/projects/[id]`             | Overview: KPIs, recent activity, alerts                          | None (read-only)                                   |
+| `/dashboard/projects/[id]/leaderboard` | Live leaderboard + scoring config                                | Edit scoring weights, exclude users (bots, spam)   |
+| `/dashboard/projects/[id]/payouts`     | Payout history + per-payout drill-down                           | Trigger manual payout (gated), retry failed payout |
+| `/dashboard/projects/[id]/repository`  | GitHub App install status, branches indexed, sync state          | Force re-index, change tracked branches            |
+| `/dashboard/projects/[id]/token`       | Token info, fee config (read-only post-launch), claim history    | View claim history, link Bags.fm dashboard         |
+| `/dashboard/projects/[id]/settings`    | Project metadata, payout config, project-level admin permissions | Pause project, transfer ownership, delete project  |
+| `/dashboard/projects/[id]/api-keys`    | Project-scoped API keys for webhooks, integrations               | Generate, rotate, revoke                           |
+| `/dashboard/projects/[id]/team`        | Add/remove project moderators, scope grants                      | Invite, revoke, change role                        |
+| `/dashboard/projects/[id]/docs`        | Per-project public docs (markdown, optional)                     | Edit, publish                                      |
 
 #### What project admins can do
+
 - Edit project metadata (name, description, social links).
 - Edit scoring config: window (7-90 days), weights for commits/PRs/reviews/issues/lines, time decay (off/linear/exponential), bot allowlist/blocklist (GitHub usernames).
 - Edit payout config: top-N (3-50), tier weights (must sum to 1.0), claim threshold (lamports above which a daily payout fires).
@@ -767,6 +790,7 @@ Routes live under `/dashboard/projects/[id]/*`. The sidebar shown in the project
 - Review abuse reports filed against contributors of their project (escalate to platform admin).
 
 #### What project admins **cannot** do
+
 - Change the platform fee BPS (set globally by super-admin within bounds).
 - Withdraw funds from the platform pool (Bags routes fees, GitBags redistributes; project admins never touch the wallet).
 - Re-launch the token or change the on-chain fee share config (immutable post-launch).
@@ -777,26 +801,27 @@ Routes live under `/dashboard/projects/[id]/*`. The sidebar shown in the project
 
 Routes live under `/admin/*`. Distinct session realm from `/dashboard/*` (separate cookie scope) to enforce the boundary even if a session is hijacked.
 
-| Path | Purpose |
-|---|---|
-| `/admin` | Ops overview: all queues, all errors, treasury, KPIs, incident feed |
-| `/admin/projects` | Every project on the platform, filterable, bulk actions |
-| `/admin/projects/[id]` | Per-project god-mode view: same as `/dashboard/projects/[id]/*` PLUS overrides |
+| Path                     | Purpose                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `/admin`                 | Ops overview: all queues, all errors, treasury, KPIs, incident feed                                          |
+| `/admin/projects`        | Every project on the platform, filterable, bulk actions                                                      |
+| `/admin/projects/[id]`   | Per-project god-mode view: same as `/dashboard/projects/[id]/*` PLUS overrides                               |
 | `/admin/projects/launch` | Launch a token directly without going through the public wizard (e.g., for partner repos, internal launches) |
-| `/admin/users` | All users, role grants, sybil flags, ban, MFA reset |
-| `/admin/payouts` | Global payout queue, force-cancel, manual trigger, partial payout, override recipients |
-| `/admin/snapshots` | Snapshot history across all projects, hash verification, replay |
-| `/admin/treasury` | Hot wallet balance, top-up from cold treasury (signed admin action), withdrawal flow |
-| `/admin/fees` | Platform fee BPS bounds, treasury wallet config, per-project fee overrides |
-| `/admin/workflows` | All workflow runs, step traces, retries, dead letters |
-| `/admin/integrations` | Bags API health, GitHub App installs, Helius RPC quota, env vars audit |
-| `/admin/abuse` | Reports, sybil flags, plagiarism review, project blacklist |
-| `/admin/audit` | Append-only audit log, search, export, immutable |
-| `/admin/feature-flags` | Per-feature gates (per-user, per-project, per-cohort) |
-| `/admin/maintenance` | Global kill switch, read-only mode, banner messaging |
-| `/admin/db` | Read-only SQL sandbox (logged, scoped to non-PII tables) |
+| `/admin/users`           | All users, role grants, sybil flags, ban, MFA reset                                                          |
+| `/admin/payouts`         | Global payout queue, force-cancel, manual trigger, partial payout, override recipients                       |
+| `/admin/snapshots`       | Snapshot history across all projects, hash verification, replay                                              |
+| `/admin/treasury`        | Hot wallet balance, top-up from cold treasury (signed admin action), withdrawal flow                         |
+| `/admin/fees`            | Platform fee BPS bounds, treasury wallet config, per-project fee overrides                                   |
+| `/admin/workflows`       | All workflow runs, step traces, retries, dead letters                                                        |
+| `/admin/integrations`    | Bags API health, GitHub App installs, Helius RPC quota, env vars audit                                       |
+| `/admin/abuse`           | Reports, sybil flags, plagiarism review, project blacklist                                                   |
+| `/admin/audit`           | Append-only audit log, search, export, immutable                                                             |
+| `/admin/feature-flags`   | Per-feature gates (per-user, per-project, per-cohort)                                                        |
+| `/admin/maintenance`     | Global kill switch, read-only mode, banner messaging                                                         |
+| `/admin/db`              | Read-only SQL sandbox (logged, scoped to non-PII tables)                                                     |
 
 #### Super-admin can also
+
 - Launch new tokens directly (skip the public wizard, set custom fee shares, partner configurations).
 - Override any project setting (fee BPS, scoring config, payout config, status).
 - Force-pause or force-kill any project globally.
@@ -831,25 +856,42 @@ The admin console **uses the same DESIGN.md tokens and component library** as th
 ```ts
 // Sample permissions, full set in code
 const PERMISSIONS = {
-  'project.read':           ['user', 'project_moderator', 'project_owner', 'admin', 'super_admin'],
-  'project.update':         ['project_owner', 'admin', 'super_admin'],
-  'project.delete':         ['project_owner', 'super_admin'],          // admin cannot delete
-  'project.transfer':       ['project_owner', 'super_admin'],
-  'project.pause':          ['project_owner', 'admin', 'super_admin'],
-  'project.kill':           ['super_admin'],                            // platform-level only
-  'scoring.read':           ['user', 'project_moderator', 'project_owner', 'admin', 'super_admin'],
-  'scoring.update':         ['project_owner', 'super_admin'],
-  'payouts.read':           ['project_owner', 'project_moderator', 'admin', 'super_admin'],
-  'payouts.trigger':        ['project_owner', 'super_admin'],
-  'payouts.cancel':         ['super_admin'],
-  'team.invite':            ['project_owner', 'super_admin'],
-  'team.revoke':            ['project_owner', 'super_admin'],
-  'platform.fees.update':   ['super_admin'],
-  'platform.treasury.topup':['super_admin'],
-  'platform.kill_switch':   ['super_admin'],
-  'admin.users.role.grant': ['super_admin'],
-  'admin.audit.read':       ['admin', 'super_admin'],
-}
+  "project.read": [
+    "user",
+    "project_moderator",
+    "project_owner",
+    "admin",
+    "super_admin",
+  ],
+  "project.update": ["project_owner", "admin", "super_admin"],
+  "project.delete": ["project_owner", "super_admin"], // admin cannot delete
+  "project.transfer": ["project_owner", "super_admin"],
+  "project.pause": ["project_owner", "admin", "super_admin"],
+  "project.kill": ["super_admin"], // platform-level only
+  "scoring.read": [
+    "user",
+    "project_moderator",
+    "project_owner",
+    "admin",
+    "super_admin",
+  ],
+  "scoring.update": ["project_owner", "super_admin"],
+  "payouts.read": [
+    "project_owner",
+    "project_moderator",
+    "admin",
+    "super_admin",
+  ],
+  "payouts.trigger": ["project_owner", "super_admin"],
+  "payouts.cancel": ["super_admin"],
+  "team.invite": ["project_owner", "super_admin"],
+  "team.revoke": ["project_owner", "super_admin"],
+  "platform.fees.update": ["super_admin"],
+  "platform.treasury.topup": ["super_admin"],
+  "platform.kill_switch": ["super_admin"],
+  "admin.users.role.grant": ["super_admin"],
+  "admin.audit.read": ["admin", "super_admin"],
+};
 ```
 
 Enforced via a `requirePermission(permission, { projectId? })` helper in every server action and route handler. Project-scoped permissions check both the global role AND the `project_memberships` row.
@@ -862,137 +904,36 @@ Enforced via a `requirePermission(permission, { projectId? })` helper in every s
 gitbags/
 ├── DESIGN.md                         # Google Labs DESIGN.md spec, source of truth for visual identity
 ├── AGENTS.md                         # Agent context: links to DESIGN.md spec + project conventions
-├── tailwind.theme.json               # Generated from DESIGN.md via @google/design.md export
-├── app/                              # Next.js 16.2 App Router
-│   ├── (public)/
-│   │   ├── page.tsx                  # Landing
-│   │   ├── explore/
-│   │   ├── r/[org]/[repo]/           # Public project page (leaderboard view)
-│   │   │   ├── page.tsx
-│   │   │   ├── snapshots/
-│   │   │   └── _components/          # ProjectHeader, LeaderboardTable, PoolOverviewCard, etc.
-│   │   ├── u/[username]/             # Public contributor profile
-│   │   ├── launch/
-│   │   ├── docs/
-│   │   └── legal/
-│   ├── (auth)/
-│   │   ├── signin/
-│   │   └── wallet/
-│   ├── dashboard/                    # Project owner / project moderator console
-│   │   ├── projects/
-│   │   │   └── [id]/
-│   │   │       ├── page.tsx          # Overview
-│   │   │       ├── leaderboard/
-│   │   │       ├── payouts/
-│   │   │       ├── repository/
-│   │   │       ├── token/
-│   │   │       ├── settings/
-│   │   │       ├── api-keys/
-│   │   │       ├── team/
-│   │   │       └── docs/
-│   │   ├── wallets/
-│   │   ├── earnings/
-│   │   └── api-keys/
-│   ├── admin/                        # Super-admin console (separate session realm)
-│   │   ├── page.tsx                  # Ops overview
-│   │   ├── projects/
-│   │   │   ├── page.tsx              # All projects
-│   │   │   ├── launch/               # Direct token launch (bypass wizard)
-│   │   │   └── [id]/                 # Per-project god-mode override view
-│   │   ├── users/
-│   │   ├── payouts/
-│   │   ├── snapshots/
-│   │   ├── treasury/
-│   │   ├── fees/
-│   │   ├── workflows/                # Workflow run inspector
-│   │   ├── integrations/
-│   │   ├── abuse/
-│   │   ├── audit/
-│   │   ├── feature-flags/
-│   │   ├── maintenance/
-│   │   └── db/                       # Read-only SQL sandbox
-│   └── api/
-│       ├── projects/
-│       ├── wallets/
-│       ├── claims/
-│       ├── admin/
-│       ├── cron/                     # Vercel Cron entrypoints
-│       │   ├── index-github/route.ts
-│       │   ├── snapshot/route.ts
-│       │   ├── payout/route.ts
-│       │   ├── expire-escrow/route.ts
-│       │   └── health/route.ts
-│       └── webhooks/
-│           ├── github/route.ts
-│           └── bags/route.ts
-├── workflows/                        # Vercel Workflows
-│   ├── indexGithubDeltas.ts          # 'use workflow'
-│   ├── computeLeaderboard.ts
-│   ├── takeSnapshot.ts
-│   ├── executePayout.ts
-│   ├── expireEscrow.ts
-│   ├── processClaim.ts
-│   └── steps/                        # shared 'use step' helpers
-│       ├── github.ts
-│       ├── bags.ts
-│       ├── solana.ts
-│       └── scoring.ts
-├── components/
-│   ├── ui/                           # shadcn primitives (themed via DESIGN.md tokens)
-│   ├── leaderboard/
-│   │   ├── LeaderboardTable.tsx
-│   │   ├── RankMedal.tsx
-│   │   └── ContributorRow.tsx
-│   ├── project-page/
-│   │   ├── ProjectHeader.tsx
-│   │   ├── NextPayoutCountdown.tsx
-│   │   ├── PoolOverviewCard.tsx
-│   │   ├── RecentPayoutsFeed.tsx
-│   │   └── SystemStatusCard.tsx
-│   ├── sidebar/
-│   │   ├── ProjectSidebar.tsx
-│   │   ├── DashboardSidebar.tsx
-│   │   ├── AdminSidebar.tsx
-│   │   ├── TokenSparkCard.tsx
-│   │   └── UserWalletCard.tsx
-│   ├── theme-provider.tsx            # next-themes wrapper, attribute="data-theme"
-│   ├── theme-toggle.tsx              # sun/moon/monitor Lucide icon, cycles system→light→dark
-│   ├── launch-wizard/
-│   ├── admin/
-│   │   ├── DestructiveConfirmModal.tsx
-│   │   ├── AuditLogViewer.tsx
-│   │   └── PermissionGate.tsx
-│   └── charts/
-├── lib/
-│   ├── auth/                         # better-auth + SIWS adapter + permissions
-│   │   ├── index.ts
-│   │   ├── siws.ts
-│   │   └── permissions.ts            # requirePermission helper, role matrix
-│   ├── bags/                         # Bags.fm typed client
-│   ├── github/                       # Octokit + GitHub App auth
-│   ├── solana/
-│   ├── scoring/
-│   ├── design-tokens.ts              # Re-exports of generated tokens for runtime use
-│   ├── rate-limit.ts
-│   ├── audit.ts
-│   └── idempotency.ts
-├── db/                               # Drizzle
-│   ├── schema/
-│   ├── migrations/
-│   └── index.ts
-├── shared/                           # Zod schemas, types, constants
-├── proxy.ts                          # Next.js 16 (renamed from middleware.ts) — redirects only, NEVER sole auth gate
-├── next.config.ts
+├── .theme/tokens.json                # Generated from apps/web/app/globals.css
+├── apps/
+│   └── web/                          # Deployable Next.js 16.2 app
+│       ├── app/                      # App Router routes and route handlers
+│       ├── components/               # App-owned chrome/features
+│       ├── lib/                      # auth, Bags, GitHub, Solana, scoring, cache, audit
+│       ├── db/                       # Drizzle schema, migrations, clients
+│       ├── workflows/                # Vercel Workflows and step helpers
+│       ├── public/
+│       ├── proxy.ts                  # Redirects only, NEVER sole auth gate
+│       ├── next.config.ts
+│       ├── drizzle.config.ts
+│       └── package.json              # @repo/web
+├── packages/
+│   ├── ui/                           # @repo/ui shadcn-style primitives
+│   ├── lib/                          # @repo/lib pure utilities
+│   └── shared/                       # @repo/shared schemas, constants, API types
 ├── vercel.json                       # Cron schedules + Queues experimentalTriggers
 ├── package.json
+├── bun.lock
+├── tsconfig.base.json
 └── tsconfig.json
 ```
 
 **Notes**:
-- `DESIGN.md` is the **single source of truth** for the visual system. `tailwind.theme.json` is generated from it in CI; never edited by hand.
+
+- `DESIGN.md` is the **single source of truth** for the visual system. `.theme/tokens.json` is generated from it in CI; never edited by hand.
 - `AGENTS.md` is the agent-context companion: it tells Claude Code, Cursor, and Copilot to read DESIGN.md first, lists project conventions, and references key files.
-- `proxy.ts` (formerly `middleware.ts` in Next.js 15-) handles redirects and edge optimizations only. **Auth is revalidated inside every protected route handler and Server Component** to mitigate CVE-2025-29927.
-- Single Next.js project, single deploy target. No monorepo, no separate worker app. Workflows live alongside the app and ship in the same deploy.
+- `apps/web/proxy.ts` (formerly `middleware.ts` in Next.js 15-) handles redirects and edge optimizations only. **Auth is revalidated inside every protected route handler and Server Component** to mitigate CVE-2025-29927.
+- Bun workspaces keep one deployable Next.js app plus small shared packages. There is still a single deploy target; no separate worker app. Workflows live alongside the web app and ship in the same deploy.
 
 Example `vercel.json`:
 
@@ -1001,10 +942,10 @@ Example `vercel.json`:
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     { "path": "/api/cron/index-github", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/snapshot",     "schedule": "0 0 * * *" },
-    { "path": "/api/cron/payout",       "schedule": "30 0 * * *" },
-    { "path": "/api/cron/expire-escrow","schedule": "0 1 * * *" },
-    { "path": "/api/cron/health",       "schedule": "* * * * *" }
+    { "path": "/api/cron/snapshot", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/payout", "schedule": "30 0 * * *" },
+    { "path": "/api/cron/expire-escrow", "schedule": "0 1 * * *" },
+    { "path": "/api/cron/health", "schedule": "* * * * *" }
   ]
 }
 ```
@@ -1018,14 +959,17 @@ Each cron route is a thin handler that verifies `CRON_SECRET` and triggers the c
 **Single Vercel project. No external compute.**
 
 ### Marketplace integrations (one-click from Vercel dashboard)
+
 - Vercel Postgres (Neon)
 - Upstash Redis
 - Sentry (optional, error tracking)
 
 ### Plan requirement
+
 - **Vercel Pro** minimum. Hobby cron is daily-only with ±60min imprecision. Pro unlocks `*/15 * * * *` schedules and tight timing required for the 00:00 UTC snapshot/payout pipeline. Pro also gets 14-min Fluid Compute duration.
 
 ### Environment variables
+
 Configured in Vercel dashboard, scoped per environment (Production / Preview / Development). All marked `Sensitive` where applicable.
 
 ```
@@ -1066,28 +1010,33 @@ ADMIN_EMAIL_ALLOWLIST
 ```
 
 ### Cron security pattern
+
 Every `/api/cron/*` handler validates `Authorization: Bearer ${CRON_SECRET}` before triggering its workflow. Vercel auto-injects this header on cron-triggered requests.
 
 ```ts
 // app/api/cron/payout/route.ts
-import { triggerPayoutWorkflow } from '@/workflows/executePayout'
+import { triggerPayoutWorkflow } from "@/workflows/executePayout";
 
 export async function GET(req: Request) {
-  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 })
+  if (
+    req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
+    return new Response("Unauthorized", { status: 401 });
   }
-  await triggerPayoutWorkflow()
-  return Response.json({ ok: true })
+  await triggerPayoutWorkflow();
+  return Response.json({ ok: true });
 }
 ```
 
 ### Observability
+
 - **Workflows dashboard** (Vercel) for run-by-run inspection, step traces, retries
 - **Vercel Observability** for request logs, function metrics, errors
 - **Sentry** for unhandled exceptions in user-facing routes
 - Custom `/admin/workflows` page in app for product-level metrics on top of Vercel's data
 
 ### Local dev
+
 - `vercel dev` for the app
 - Workflow Local World runs the same workflow code offline against a local SQLite event log
 - `vercel env pull` syncs production env to `.env.local`
@@ -1097,8 +1046,9 @@ export async function GET(req: Request) {
 ## Build plan (3-day sprint)
 
 ### Day 1 (April 25)
-- Single Next.js 16.2 project scaffolded, deployed to Vercel (Pro plan, Fluid Compute on)
-- **DESIGN.md authored** at repo root with both `colors:` (dark) and `colors-light:` (light) palettes, validated with `@google/design.md lint`, exported to `tailwind.theme.json`
+
+- Bun workspace monorepo scaffolded with one Next.js 16.2 deployable app, deployed to Vercel (Pro plan, Fluid Compute on)
+- **DESIGN.md authored** at repo root with both `colors:` (dark) and `colors-light:` (light) palettes, validated with `@google/design.md lint`, exported to `.theme/tokens.json`
 - shadcn/ui CLI run with the generated theme
 - `next-themes` wired: `theme-provider.tsx`, `theme-toggle.tsx`, `globals.css` with `@theme inline` dual-palette pattern, `suppressHydrationWarning` on root layout
 - Neon Postgres provisioned via Vercel Marketplace, Drizzle schema + first migration applied
@@ -1112,6 +1062,7 @@ export async function GET(req: Request) {
 - `proxy.ts` set up for redirects only; auth revalidation pattern in route handlers established
 
 ### Day 2 (April 26)
+
 - Launch wizard: form → Bags API → token live
 - GitHub App installed on test org, `indexGithubDeltas` workflow pulling commits + merged PRs
 - `computeLeaderboard` workflow + **public project page UI matching the supplied mockup**
@@ -1120,6 +1071,7 @@ export async function GET(req: Request) {
 - Claim flow MVP
 
 ### Day 3 (April 27)
+
 - `takeSnapshot` + `executePayout` workflows end-to-end on devnet
 - `expireEscrow` + `processClaim` workflows
 - **Super-admin console**: Ops dashboard, kill switch, fee config, audit log, payout retry, treasury (read-only), workflow run inspector
@@ -1129,6 +1081,7 @@ export async function GET(req: Request) {
 - Smoke test full payout pipeline against devnet
 
 ### April 28 morning
+
 - Launch GitBags' own token live
 - Push final commits, redistribute first payout on stage
 - Demo recording + submission
@@ -1137,18 +1090,18 @@ export async function GET(req: Request) {
 
 ## Risks and mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Bags API undocumented surface | Day 1 sync with Teddy; stub-and-mock wrapper to unblock work |
-| GitHub rate limits | Use GitHub App (15k req/hr), aggressive caching, webhook-first |
-| Sybil farming on small repos | Min repo age (30d) + min star count (10) at launch, configurable |
-| Payout key compromise | Hot wallet daily balance cap, cold treasury, MFA on top-ups |
-| Legal exposure | Pre-mainnet counsel review on US fee distribution to anonymous wallets |
-| Snapshot drift / non-determinism | Lock formula_version per snapshot, store full inputs, replayable |
-| Demo failure on stage | Pre-record fallback video, run demo on devnet with mainnet UI |
-| Vercel function 14min cap | Fan-out pattern: chunk payouts to many recipients across child workflows |
-| Vercel cron timing imprecision | Pro plan required for sub-daily and precise timing |
-| Vendor lock to Vercel Workflows | Workflow SDK is open-source and portable; Postgres-backed self-host adapter exists if migration ever needed |
+| Risk                             | Mitigation                                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Bags API undocumented surface    | Day 1 sync with Teddy; stub-and-mock wrapper to unblock work                                                |
+| GitHub rate limits               | Use GitHub App (15k req/hr), aggressive caching, webhook-first                                              |
+| Sybil farming on small repos     | Min repo age (30d) + min star count (10) at launch, configurable                                            |
+| Payout key compromise            | Hot wallet daily balance cap, cold treasury, MFA on top-ups                                                 |
+| Legal exposure                   | Pre-mainnet counsel review on US fee distribution to anonymous wallets                                      |
+| Snapshot drift / non-determinism | Lock formula_version per snapshot, store full inputs, replayable                                            |
+| Demo failure on stage            | Pre-record fallback video, run demo on devnet with mainnet UI                                               |
+| Vercel function 14min cap        | Fan-out pattern: chunk payouts to many recipients across child workflows                                    |
+| Vercel cron timing imprecision   | Pro plan required for sub-daily and precise timing                                                          |
+| Vendor lock to Vercel Workflows  | Workflow SDK is open-source and portable; Postgres-backed self-host adapter exists if migration ever needed |
 
 ---
 

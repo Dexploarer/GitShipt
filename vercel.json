@@ -1,5 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "bun run build",
+  "devCommand": "cd apps/web && bun --env-file=../../.env.local run dev -- --port $PORT",
+  "outputDirectory": "apps/web/.next",
   "crons": [
     { "path": "/api/cron/index-github", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/snapshot", "schedule": "0 0 * * *" },
