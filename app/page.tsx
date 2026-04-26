@@ -52,11 +52,7 @@ export default async function LandingPage() {
         <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-12 lg:gap-6">
           <div className="contents lg:flex lg:flex-col lg:col-span-5 lg:min-h-0 lg:justify-between lg:gap-8 lg:pt-12 lg:pb-2">
             <section className="order-1 flex flex-col items-start gap-4 lg:order-none lg:gap-5">
-              <span className="inline-flex items-center gap-2 text-label-md font-semibold uppercase tracking-[0.18em] text-primary">
-                <span
-                  aria-hidden
-                  className="inline-block size-1.5 rounded-full bg-primary"
-                />
+              <span className="text-[28px] font-bold tracking-tight text-primary sm:text-[32px] lg:text-[40px]">
                 GitBags
               </span>
 
