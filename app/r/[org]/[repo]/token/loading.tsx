@@ -1,16 +1,42 @@
+import { Card } from "@/components/ui/card";
+import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
+
+/**
+ * Streaming skeleton for /r/[org]/[repo]/token. Mirrors the page shape:
+ *   - Breadcrumb + header
+ *   - 2-col mint card / pool card row
+ *   - Wide chart / metadata card below
+ */
 export default function ProjectTokenLoading() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <div className="h-4 w-48 animate-pulse rounded-md bg-surface-elevated/40" />
-        <div className="h-9 w-40 animate-pulse rounded-md bg-surface-elevated/40" />
-        <div className="h-4 w-96 max-w-full animate-pulse rounded-md bg-surface-elevated/40" />
+        <Skeleton className="h-3 w-48" />
+        <Skeleton className="h-8 w-40" />
+        <SkeletonText lines={1} className="max-w-xl" />
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
-        <div className="h-64 animate-pulse rounded-lg border border-border bg-surface-elevated/40" />
-        <div className="h-64 animate-pulse rounded-lg border border-border bg-surface-elevated/40" />
+        <Card depth="flat" padding="default">
+          <Skeleton className="mb-3 h-5 w-1/3" />
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-2">
+                <Skeleton className="h-3 w-1/4" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card depth="flat" padding="default">
+          <Skeleton className="mb-3 h-5 w-1/3" />
+          <Skeleton className="mb-2 h-8 w-2/3" />
+          <Skeleton className="h-32 w-full rounded-md" />
+        </Card>
       </div>
-      <div className="h-48 animate-pulse rounded-lg border border-border bg-surface-elevated/40" />
+      <Card depth="flat" padding="default">
+        <Skeleton className="mb-3 h-5 w-1/4" />
+        <SkeletonText lines={4} />
+      </Card>
     </div>
   );
 }

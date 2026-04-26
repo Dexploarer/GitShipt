@@ -1,17 +1,25 @@
+import { Card } from "@/components/ui/card";
+import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
+
+/**
+ * Streaming skeleton for /r/[org]/[repo]/docs. Mirrors the page shape:
+ *   - Breadcrumb + header
+ *   - Stack of doc-section cards (heading + paragraph)
+ */
 export default function ProjectDocsLoading() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <div className="h-4 w-48 animate-pulse rounded-md bg-surface-elevated/40" />
-        <div className="h-9 w-72 animate-pulse rounded-md bg-surface-elevated/40" />
-        <div className="h-4 w-96 max-w-full animate-pulse rounded-md bg-surface-elevated/40" />
+        <Skeleton className="h-3 w-48" />
+        <Skeleton className="h-8 w-72" />
+        <SkeletonText lines={1} className="max-w-xl" />
       </div>
       <div className="flex flex-col gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-32 animate-pulse rounded-lg border border-border bg-surface-elevated/40"
-          />
+          <Card key={i} depth="flat" padding="default">
+            <Skeleton className="mb-3 h-5 w-1/2" />
+            <SkeletonText lines={3} />
+          </Card>
         ))}
       </div>
     </div>
