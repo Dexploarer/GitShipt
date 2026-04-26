@@ -335,6 +335,29 @@
  * Use as: <div class="glass shadow-floating rounded-2xl">…</div>
  * Pair with `glass-strong` for popovers/modals where contrast is critical.
  * ============================================================ */
+/* ============================================================
+ * Smooth scrolling — applied globally for anchor jumps + programmatic
+ * scrollTo / scrollIntoView. Respects prefers-reduced-motion. Internal
+ * scroll containers (sidebar nav, project page right rail, leaderboard
+ * list) inherit the smooth behavior because we apply it to every
+ * scrollable region via the broad selector below.
+ * ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  /* Apply to internal scroll containers too. Tailwind generates classes
+     containing 'overflow-y-auto' / 'overflow-y-scroll' / 'overflow-auto' /
+     'overflow-scroll' — we match them all with attribute substring selectors
+     so any consumer of those utilities gets smooth scroll for free. */
+  [class*="overflow-y-auto"],
+  [class*="overflow-y-scroll"],
+  [class*="overflow-auto"],
+  [class*="overflow-scroll"] {
+    scroll-behavior: smooth;
+  }
+}
+
 @utility glass {
   background-color: color-mix(in oklab, var(--surface) 70%, transparent);
   backdrop-filter: blur(20px) saturate(180%);

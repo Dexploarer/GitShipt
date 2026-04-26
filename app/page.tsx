@@ -30,24 +30,27 @@ export default async function LandingPage() {
 
   return (
     <PublicAppShell active="home">
-      <div className="flex flex-col gap-12 py-4">
-        {/* Hero — image on the left (flipped on X), content right-aligned */}
-        <section className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
-          {/* Left: mia.png, horizontally flipped (-scale-x-100) */}
-          <div className="relative mx-auto aspect-square w-full max-w-md lg:mx-0 lg:max-w-none">
+      <div className="flex flex-col gap-8 py-2">
+        {/* Hero — image left (flipped on X), content right-aligned.
+            Image is height-bounded so the section never blows past the
+            fold. items-end aligns text to image's bottom for a clean
+            ground line; on mobile the image sits above and centers. */}
+        <section className="grid grid-cols-1 items-end gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10">
+          {/* Left: mia.png, horizontally flipped */}
+          <div className="relative mx-auto aspect-square w-full max-w-sm lg:mx-0 lg:max-w-none lg:aspect-auto lg:h-[440px]">
             <Image
               src="/mia.png"
               alt=""
               fill
               priority
-              sizes="(max-width: 1024px) 28rem, 50vw"
-              className="-scale-x-100 object-contain object-center"
+              sizes="(max-width: 1024px) 24rem, 40vw"
+              className="-scale-x-100 object-contain object-bottom"
               unoptimized
             />
           </div>
 
           {/* Right: hero content, right-aligned */}
-          <div className="flex flex-col items-end gap-5 text-right">
+          <div className="flex flex-col items-end gap-4 text-right">
             <Pill variant="primary" size="default" className="gap-2">
               <span
                 aria-hidden
@@ -58,18 +61,19 @@ export default async function LandingPage() {
               April 28 hackathon submission
             </Pill>
 
-            <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-0.02em] text-fg sm:text-[56px] lg:text-[64px]">
-              Pump.fm{" "}
+            <h1 className="text-[40px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[48px] lg:text-[56px]">
+              Pump.fm
+              <br />
               <span className="text-fg-muted">for open source.</span>
             </h1>
 
-            <p className="max-w-xl text-body-lg text-fg-secondary lg:text-[18px]">
+            <p className="max-w-md text-body-lg text-fg-secondary lg:text-[17px]">
               Spin up a Bags.fm token for any GitHub repo. Trading fees flow
-              to the top contributors automatically — daily, on-chain,
+              to top contributors automatically — daily, on-chain,
               transparent.
             </p>
 
-            <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="mt-1 flex flex-wrap items-center justify-end gap-3">
               <Button asChild variant="secondary" size="lg">
                 <Link href="/explore">Browse projects</Link>
               </Button>
@@ -85,14 +89,17 @@ export default async function LandingPage() {
               href="https://github.com/SYMBaiEX/gitbags"
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center gap-1.5 text-label-md text-fg-secondary transition-colors hover:text-fg"
+              className="inline-flex items-center gap-1.5 text-caption text-fg-muted transition-colors hover:text-fg"
             >
-              <Github className="size-4" aria-hidden />
+              <Github className="size-3.5" aria-hidden />
               SYMBaiEX/gitbags
-              <ArrowUpRight className="size-3.5" />
+              <ArrowUpRight className="size-3" />
             </Link>
           </div>
         </section>
+
+        {/* Subtle separator that ties hero into the KPI strip */}
+        <div aria-hidden className="h-px w-full bg-border/40" />
 
         {/* Live KPI strip — 4 floating cells, no Card wrapper */}
         <section
