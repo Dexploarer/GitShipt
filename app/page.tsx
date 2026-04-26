@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,44 +31,61 @@ export default async function LandingPage() {
   return (
     <PublicAppShell active="home">
       <div className="flex flex-col gap-12 py-4">
-        {/* Hero — pure floating content, no wrapper card */}
-        <section className="flex max-w-3xl flex-col items-start gap-5">
-          <Pill variant="primary" size="default" className="gap-2">
-            <span
-              aria-hidden
-              className="size-1.5 animate-pulse-dot rounded-full bg-success"
+        {/* Hero — image on the left (flipped on X), content right-aligned */}
+        <section className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
+          {/* Left: mia.png, horizontally flipped (-scale-x-100) */}
+          <div className="relative mx-auto aspect-square w-full max-w-md lg:mx-0 lg:max-w-none">
+            <Image
+              src="/mia.png"
+              alt=""
+              fill
+              priority
+              sizes="(max-width: 1024px) 28rem, 50vw"
+              className="-scale-x-100 object-contain object-center"
+              unoptimized
             />
-            Live on Solana devnet
-            <span aria-hidden className="text-fg-muted">·</span>
-            April 28 hackathon submission
-          </Pill>
+          </div>
 
-          <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-0.02em] text-fg sm:text-[56px] lg:text-[64px]">
-            Pump.fm{" "}
-            <span className="text-fg-muted">for open source.</span>
-          </h1>
+          {/* Right: hero content, right-aligned */}
+          <div className="flex flex-col items-end gap-5 text-right">
+            <Pill variant="primary" size="default" className="gap-2">
+              <span
+                aria-hidden
+                className="size-1.5 animate-pulse-dot rounded-full bg-success"
+              />
+              Live on Solana devnet
+              <span aria-hidden className="text-fg-muted">·</span>
+              April 28 hackathon submission
+            </Pill>
 
-          <p className="max-w-xl text-body-lg text-fg-secondary lg:text-[18px]">
-            Spin up a Bags.fm token for any GitHub repo. Trading fees flow
-            to the top contributors automatically — daily, on-chain,
-            transparent.
-          </p>
+            <h1 className="text-[44px] font-semibold leading-[1.05] tracking-[-0.02em] text-fg sm:text-[56px] lg:text-[64px]">
+              Pump.fm{" "}
+              <span className="text-fg-muted">for open source.</span>
+            </h1>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button asChild variant="primary" size="lg">
-              <Link href="/launch">
-                Launch a token
-                <ArrowUpRight className="size-4" aria-hidden />
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" size="lg">
-              <Link href="/explore">Browse projects</Link>
-            </Button>
+            <p className="max-w-xl text-body-lg text-fg-secondary lg:text-[18px]">
+              Spin up a Bags.fm token for any GitHub repo. Trading fees flow
+              to the top contributors automatically — daily, on-chain,
+              transparent.
+            </p>
+
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <Button asChild variant="secondary" size="lg">
+                <Link href="/explore">Browse projects</Link>
+              </Button>
+              <Button asChild variant="primary" size="lg">
+                <Link href="/launch">
+                  Launch a token
+                  <ArrowUpRight className="size-4" aria-hidden />
+                </Link>
+              </Button>
+            </div>
+
             <Link
               href="https://github.com/SYMBaiEX/gitbags"
               target="_blank"
               rel="noreferrer noopener"
-              className="ml-2 inline-flex items-center gap-1.5 text-label-md text-fg-secondary transition-colors hover:text-fg"
+              className="inline-flex items-center gap-1.5 text-label-md text-fg-secondary transition-colors hover:text-fg"
             >
               <Github className="size-4" aria-hidden />
               SYMBaiEX/gitbags
