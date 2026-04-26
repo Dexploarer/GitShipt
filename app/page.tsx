@@ -37,13 +37,13 @@ export default async function LandingPage() {
             ground line is shared. Mobile stacks: image above text. */}
         <section className="flex flex-col items-center gap-8 lg:flex-row lg:items-end lg:justify-center lg:gap-10">
           {/* mia.png — flipped, fixed-ish size so it doesn't dominate */}
-          <div className="relative aspect-square w-full max-w-xs shrink-0 sm:max-w-sm lg:aspect-auto lg:h-[420px] lg:w-[420px] lg:max-w-none">
+          <div className="relative aspect-square w-full max-w-sm shrink-0 sm:max-w-md lg:aspect-auto lg:h-[600px] lg:w-[600px] lg:max-w-none">
             <Image
               src="/mia.png"
               alt=""
               fill
               priority
-              sizes="(max-width: 1024px) 24rem, 420px"
+              sizes="(max-width: 1024px) 28rem, 600px"
               className="-scale-x-100 object-contain object-bottom"
               unoptimized
             />
