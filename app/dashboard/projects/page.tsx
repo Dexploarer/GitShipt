@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { hasCredentials } from "@/lib/env";
 import { getMyProjects } from "@/lib/queries/dashboard";
 import { AppShell } from "../_components/AppShell";
-import { DashboardSidebar } from "@/components/sidebar/DashboardSidebar";
+import { AuthSidebar } from "@/components/sidebar/AuthSidebar";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Card,
@@ -26,7 +26,8 @@ export const dynamic = "force-dynamic";
 export default async function ProjectsPage() {
   if (!hasCredentials.db()) {
     return (
-      <AppShell sidebar={<DashboardSidebar active="projects" />}>
+      <AppShell sidebar={<AuthSidebar
+          active="projects" />}>
         <div className="mx-auto w-full max-w-content">
           <EmptyState
             icon={FolderGit2}
@@ -46,7 +47,19 @@ export default async function ProjectsPage() {
 
   return (
     <AppShell
-      sidebar={<DashboardSidebar active="projects" />}
+      sidebar={
+        <AuthSidebar
+          active="projects"
+          user={{
+            name: session.user.name ?? null,
+            email: session.user.email ?? null,
+            username:
+              (session.user as { githubUsername?: string | null }).githubUsername ??
+              null,
+            imageUrl: session.user.image ?? null,
+          }}
+        />
+      }
       footerLeft={`${session.user.name ?? session.user.email} · devnet · BAGS.fm`}
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">

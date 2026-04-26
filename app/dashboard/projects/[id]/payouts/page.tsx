@@ -5,7 +5,7 @@ import { getProjectPayoutHistory } from "@/lib/queries/dashboard";
 import { formatSol, formatRelativeTime, formatAddress } from "@/lib/format";
 import { loadProjectFor } from "../../../_components/loadProject";
 import { AppShell } from "../../../_components/AppShell";
-import { OwnedProjectSidebar } from "@/components/sidebar/OwnedProjectSidebar";
+import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import {
   Card,
   CardHeader,
@@ -34,11 +34,10 @@ export default async function PayoutsPage({
   return (
     <AppShell
       sidebar={
-        <OwnedProjectSidebar
+        <OwnerProjectContextSidebar
           projectId={id}
           slug={project.slug}
           projectName={project.name}
-          active="payouts"
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -187,11 +186,10 @@ function Stub() {
   return (
     <AppShell
       sidebar={
-        <OwnedProjectSidebar
+        <OwnerProjectContextSidebar
           projectId=""
           slug="—/—"
           projectName="—"
-          active="payouts"
         />
       }
     >

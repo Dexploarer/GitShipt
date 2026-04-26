@@ -5,7 +5,7 @@ import { getProjectPayoutHistory } from "@/lib/queries/dashboard";
 import { formatAddress, formatPercent, formatRelativeTime, formatSol } from "@/lib/format";
 import { loadProjectFor } from "../../../_components/loadProject";
 import { AppShell } from "../../../_components/AppShell";
-import { OwnedProjectSidebar } from "@/components/sidebar/OwnedProjectSidebar";
+import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import {
   Card,
   CardHeader,
@@ -37,11 +37,10 @@ export default async function TokenPage({
   return (
     <AppShell
       sidebar={
-        <OwnedProjectSidebar
+        <OwnerProjectContextSidebar
           projectId={id}
           slug={project.slug}
           projectName={project.name}
-          active="token"
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -190,11 +189,10 @@ function Stub() {
   return (
     <AppShell
       sidebar={
-        <OwnedProjectSidebar
+        <OwnerProjectContextSidebar
           projectId=""
           slug="—/—"
           projectName="—"
-          active="token"
         />
       }
     >

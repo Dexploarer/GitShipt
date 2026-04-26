@@ -61,7 +61,7 @@ function TopProjectCard({ project }: { project: LandingProject }) {
   const avatar =
     project.imageUrl ?? `https://github.com/${project.ghOwner}.png`;
   return (
-    <Link href={`/r/${project.slug}`} className="group block">
+    <Link href={`/r/${project.slug}?from=home`} className="group block">
       <Card
         depth="raised"
         padding="sm"

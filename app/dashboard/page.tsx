@@ -20,7 +20,7 @@ import {
 import { formatSol } from "@/lib/format";
 import { AppShell } from "./_components/AppShell";
 import { OnboardingHero } from "./_components/OnboardingHero";
-import { DashboardSidebar } from "@/components/sidebar/DashboardSidebar";
+import { AuthSidebar } from "@/components/sidebar/AuthSidebar";
 import { StatTile } from "@/components/shared/StatTile";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
@@ -56,7 +56,19 @@ export default async function DashboardPage() {
 
   return (
     <AppShell
-      sidebar={<DashboardSidebar active="overview" />}
+      sidebar={
+        <AuthSidebar
+          active="dashboard"
+          user={{
+            name: session.user.name ?? null,
+            email: session.user.email ?? null,
+            username:
+              (session.user as { githubUsername?: string | null }).githubUsername ??
+              null,
+            imageUrl: session.user.image ?? null,
+          }}
+        />
+      }
       footerLeft={`${session.user.name ?? session.user.email} · devnet · BAGS.fm`}
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">
@@ -216,7 +228,8 @@ export function StatusBadge({
  */
 function DashboardStub() {
   return (
-    <AppShell sidebar={<DashboardSidebar active="overview" />}>
+    <AppShell sidebar={<AuthSidebar
+          active="dashboard" />}>
       <div className="mx-auto w-full max-w-content">
         <EmptyState
           icon={Sparkles}

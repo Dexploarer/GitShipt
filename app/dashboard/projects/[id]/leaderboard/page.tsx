@@ -8,7 +8,7 @@ import {
 } from "@/lib/queries/project-page";
 import { loadProjectFor } from "../../../_components/loadProject";
 import { AppShell } from "../../../_components/AppShell";
-import { OwnedProjectSidebar } from "@/components/sidebar/OwnedProjectSidebar";
+import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import { LeaderboardTable } from "@/app/r/[org]/[repo]/_components/LeaderboardTable";
 import { ScoringConfigEditor } from "./_components/ScoringConfigEditor";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -55,11 +55,10 @@ export default async function LeaderboardPage({
   return (
     <AppShell
       sidebar={
-        <OwnedProjectSidebar
+        <OwnerProjectContextSidebar
           projectId={id}
           slug={project.slug}
           projectName={project.name}
-          active="leaderboard"
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -106,11 +105,10 @@ function Stub() {
   return (
     <AppShell
       sidebar={
-        <OwnedProjectSidebar
+        <OwnerProjectContextSidebar
           projectId=""
           slug="—/—"
           projectName="—"
-          active="leaderboard"
         />
       }
     >

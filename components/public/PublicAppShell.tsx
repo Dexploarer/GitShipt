@@ -1,23 +1,35 @@
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import {
-  PublicSidebar,
-  type PublicSidebarActive,
-  type PublicSidebarUser,
-} from "@/components/sidebar/PublicSidebar";
+import { UnauthSidebar, type UnauthSidebarActive } from "@/components/sidebar/UnauthSidebar";
+import { AuthSidebar } from "@/components/sidebar/AuthSidebar";
 import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
 
 /**
- * PublicAppShell — viewport-locked app shell for public pages, mirroring
- * `ProjectShell` but using `PublicSidebar` instead of the project-scoped
- * one. Use this on landing / explore / leaderboard / docs / legal / etc.
+ * PublicAppShell — viewport-locked app shell for public pages (landing,
+ * /explore, /leaderboard, /docs, /legal, /u/[username]).
  *
- *   - Outer flex h-screen overflow-hidden (page never scrolls; only main does)
- *   - Sidebar: inline column on lg+ (12px outer gutter), slide-over drawer
- *     below lg. The hamburger lives at the top of <main>.
- *   - Footer pinned bottom-right with rounded-tl, social icons.
+ * Switches sidebar based on session:
+ *   - No user → `<UnauthSidebar>` (visitor nav + Sign-in CTA)
+ *   - Signed in → `<AuthSidebar publicChrome>` (account links surface so
+ *     the user can hop to /dashboard from anywhere)
+ *
+ * Layout: outer flex h-screen overflow-hidden. Sidebar is inline on lg+
+ * (12px outer gutter) and a fixed slide-over drawer below lg. Footer is
+ * pinned bottom-right with social icons.
  */
+
+export type PublicSidebarActive = UnauthSidebarActive;
+
+export interface PublicAppShellUser {
+  name?: string | null;
+  email?: string | null;
+  username?: string | null;
+  imageUrl?: string | null;
+  /** Whether this user has the platform admin/super_admin role. */
+  isPlatformAdmin?: boolean;
+}
+
 export function PublicAppShell({
   active,
   footerLeft = "devnet · BAGS.fm",
@@ -27,17 +39,31 @@ export function PublicAppShell({
   active?: PublicSidebarActive;
   footerLeft?: string;
   /** Pass `null` for signed-out, an object when signed in. */
-  user?: PublicSidebarUser | null;
+  user?: PublicAppShellUser | null;
   children: React.ReactNode;
 }) {
+  const signedIn = Boolean(user && (user.name || user.email));
+
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-app-gradient text-fg">
-        {/* Sidebar — inline on lg+ (with 12px outer gutter), fixed slide-over
-            drawer on < lg (positioned by the Sidebar primitive). The wrapper
-            collapses to zero width below lg so content reflows full-width. */}
+        {/* Sidebar — inline on lg+ (12px gutter), fixed slide-over below lg.
+            Wrapper collapses to zero width below lg via `display: contents`. */}
         <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
-          <PublicSidebar active={active} user={user} />
+          {signedIn && user ? (
+            <AuthSidebar
+              publicChrome
+              user={{
+                name: user.name ?? null,
+                email: user.email ?? null,
+                username: user.username ?? null,
+                imageUrl: user.imageUrl ?? null,
+              }}
+              isPlatformAdmin={user.isPlatformAdmin ?? false}
+            />
+          ) : (
+            <UnauthSidebar active={active} />
+          )}
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">

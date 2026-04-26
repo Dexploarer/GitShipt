@@ -22,7 +22,7 @@ import {
 import { formatSol, formatRelativeTime } from "@/lib/format";
 import { loadProjectFor } from "../../_components/loadProject";
 import { AppShell } from "../../_components/AppShell";
-import { OwnedProjectSidebar } from "@/components/sidebar/OwnedProjectSidebar";
+import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import { StatTile } from "@/components/shared/StatTile";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
@@ -61,11 +61,11 @@ export default async function ProjectOverviewPage({
   return (
     <AppShell
       sidebar={
-        <OwnedProjectSidebar
+        <OwnerProjectContextSidebar
           projectId={id}
           slug={project.slug}
           projectName={project.name}
-          active="overview"
+          
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -281,7 +281,7 @@ function humanizeAction(action: string): string {
 
 function StubShell() {
   return (
-    <AppShell sidebar={<OwnedProjectSidebar projectId="" slug="—/—" projectName="—" />}>
+    <AppShell sidebar={<OwnerProjectContextSidebar projectId="" slug="—/—" projectName="—" />}>
       <div className="mx-auto w-full max-w-content">
         <EmptyState
           icon={Sparkles}

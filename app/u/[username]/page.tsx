@@ -139,7 +139,7 @@ export default async function ContributorProfilePage({
         </header>
 
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ProjectsContributedTo rows={profile?.byProject ?? []} />
+          <ProjectsContributedTo rows={profile?.byProject ?? []} username={username} />
           <EarningsHistory rows={profile?.recentPayouts ?? []} />
         </section>
       </div>

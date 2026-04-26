@@ -18,8 +18,10 @@ import type { ContributorProfileProjectRow } from "@/lib/queries/discovery";
  */
 export function ProjectsContributedTo({
   rows,
+  username,
 }: {
   rows: ContributorProfileProjectRow[];
+  username: string;
 }) {
   return (
     <Card depth="raised" padding="default">
@@ -34,7 +36,7 @@ export function ProjectsContributedTo({
             {rows.map((row) => (
               <li key={row.projectId}>
                 <Link
-                  href={`/r/${row.slug}`}
+                  href={`/r/${row.slug}?from=u/${username}`}
                   className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-3 transition-colors hover:bg-surface-elevated"
                 >
                   <div className="min-w-0">

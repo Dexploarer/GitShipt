@@ -10,7 +10,7 @@ import { dbHttp } from "@/db";
 import { projects } from "@/db/schema";
 import { formatSol } from "@/lib/format";
 import { AppShell } from "../_components/AppShell";
-import { DashboardSidebar } from "@/components/sidebar/DashboardSidebar";
+import { AuthSidebar } from "@/components/sidebar/AuthSidebar";
 import { StatTile } from "@/components/shared/StatTile";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
@@ -29,7 +29,8 @@ export const dynamic = "force-dynamic";
 export default async function EarningsPage() {
   if (!hasCredentials.db()) {
     return (
-      <AppShell sidebar={<DashboardSidebar active="earnings" />}>
+      <AppShell sidebar={<AuthSidebar
+          active="earnings" />}>
         <div className="mx-auto w-full max-w-content">
           <EmptyState
             icon={Sparkles}
@@ -71,7 +72,19 @@ export default async function EarningsPage() {
 
   return (
     <AppShell
-      sidebar={<DashboardSidebar active="earnings" />}
+      sidebar={
+        <AuthSidebar
+          active="earnings"
+          user={{
+            name: session.user.name ?? null,
+            email: session.user.email ?? null,
+            username:
+              (session.user as { githubUsername?: string | null }).githubUsername ??
+              null,
+            imageUrl: session.user.image ?? null,
+          }}
+        />
+      }
       footerLeft={`${session.user.name ?? session.user.email} · devnet · BAGS.fm`}
     >
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">

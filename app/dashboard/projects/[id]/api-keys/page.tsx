@@ -2,7 +2,7 @@ import { Key, Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { loadProjectFor } from "../../../_components/loadProject";
 import { AppShell } from "../../../_components/AppShell";
-import { OwnedProjectSidebar } from "@/components/sidebar/OwnedProjectSidebar";
+import { OwnerProjectContextSidebar } from "@/components/sidebar/contexts/OwnerProjectContextSidebar";
 import {
   Card,
   CardHeader,
@@ -29,11 +29,10 @@ export default async function ApiKeysPage({
   return (
     <AppShell
       sidebar={
-        <OwnedProjectSidebar
+        <OwnerProjectContextSidebar
           projectId={id}
           slug={project.slug}
           projectName={project.name}
-          active="api-keys"
         />
       }
       footerLeft={`${project.slug} · devnet · BAGS.fm`}
@@ -87,11 +86,10 @@ function Stub() {
   return (
     <AppShell
       sidebar={
-        <OwnedProjectSidebar
+        <OwnerProjectContextSidebar
           projectId=""
           slug="—/—"
           projectName="—"
-          active="api-keys"
         />
       }
     >

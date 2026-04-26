@@ -111,7 +111,7 @@ function ContributorList({ rows }: { rows: GlobalLeaderboardEntry[] }) {
             <div className="min-w-0">
               {row.topProjectSlug ? (
                 <Link
-                  href={`/r/${row.topProjectSlug}`}
+                  href={`/r/${row.topProjectSlug}?from=leaderboard`}
                   className="block truncate text-body-sm text-fg-secondary transition-colors hover:text-fg"
                 >
                   {row.topProjectSlug}
@@ -148,7 +148,7 @@ function ProjectList({ rows }: { rows: GlobalProjectEntry[] }) {
           return (
             <Link
               key={row.id}
-              href={`/r/${row.slug}`}
+              href={`/r/${row.slug}?from=leaderboard`}
               className="grid grid-cols-[56px_minmax(0,1fr)_140px_120px_120px] items-center gap-3 border-b border-border px-5 py-3 last:border-b-0 transition-colors hover:bg-surface-elevated lg:px-6"
             >
               <div className="flex items-center">

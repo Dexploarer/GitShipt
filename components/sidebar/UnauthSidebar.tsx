@@ -6,10 +6,8 @@ import {
   FileText,
   Github,
   Home,
-  LayoutDashboard,
   Rocket,
   Shield,
-  ShieldAlert,
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
@@ -26,20 +24,14 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { SidebarUserCard } from "./SidebarUserCard";
 import { cn } from "@/lib/utils";
 
 /**
- * Public-facing sidebar — used on landing, /explore, /leaderboard, /docs,
- * /legal/*, /u/[username]. Pure navigation: Home / Explore / Leaderboard /
- * Docs at the top, Legal at the bottom. Sign-in CTA + ThemeToggle in the
- * footer when not signed in; SidebarUserCard when signed in.
+ * Sidebar for visitors that aren't signed in.
  *
- * Composed from the same `Sidebar` primitive used everywhere else, so the
- * collapse + glass + macOS Tahoe depth all match the rest of the app.
- *
- * Active state derived from `usePathname()` — pass `active` only to
- * override (e.g., to highlight Home on a page that isn't /).
+ * Mounted by `<PublicAppShell user={null} />` on every public page when
+ * the session lookup yields nothing. Pure navigation + Sign-in CTA;
+ * intentionally short — there's no "Account" surface to expose.
  */
 
 const NAV = [
@@ -54,7 +46,7 @@ const LEGAL_NAV = [
   { key: "privacy", label: "Privacy", icon: Shield, href: "/legal/privacy" },
 ] as const;
 
-export type PublicSidebarActive =
+export type UnauthSidebarActive =
   | "home"
   | "explore"
   | "leaderboard"
@@ -63,30 +55,17 @@ export type PublicSidebarActive =
   | "privacy"
   | undefined;
 
-export interface PublicSidebarUser {
-  name?: string | null;
-  email?: string | null;
-  username?: string | null;
-  imageUrl?: string | null;
-  /** Whether this user has admin/super_admin platform role. Reveals an Admin entry. */
-  isPlatformAdmin?: boolean;
+export interface UnauthSidebarProps {
+  active?: UnauthSidebarActive;
 }
 
-export interface PublicSidebarProps {
-  active?: PublicSidebarActive;
-  /** Pass `null` (or omit) when no session is present; an object when signed in. */
-  user?: PublicSidebarUser | null;
-}
-
-export function PublicSidebar({ active, user }: PublicSidebarProps) {
+export function UnauthSidebar({ active }: UnauthSidebarProps) {
   const pathname = usePathname() ?? "/";
-  const isActive = (href: string, key: PublicSidebarActive) => {
+  const isActive = (href: string, key: UnauthSidebarActive) => {
     if (active !== undefined) return active === key;
     if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(`${href}/`);
   };
-
-  const signedIn = Boolean(user && (user.name || user.email));
 
   return (
     <Sidebar>
@@ -105,46 +84,14 @@ export function PublicSidebar({ active, user }: PublicSidebarProps) {
               icon={icon}
               label={label}
               href={href}
-              active={isActive(href, key as PublicSidebarActive)}
+              active={isActive(href, key as UnauthSidebarActive)}
             />
           ))}
         </SidebarSection>
 
-        <SidebarSection title="Account">
-          {signedIn ? (
-            <>
-              <SidebarItem
-                icon={LayoutDashboard}
-                label="Dashboard"
-                href="/dashboard"
-              />
-              <SidebarItem
-                icon={Rocket}
-                label="Launch a token"
-                href="/launch"
-              />
-              {user?.isPlatformAdmin ? (
-                <SidebarItem
-                  icon={ShieldAlert}
-                  label="Admin console"
-                  href="/admin"
-                />
-              ) : null}
-            </>
-          ) : (
-            <>
-              <SidebarItem
-                icon={Github}
-                label="Sign in"
-                href="/auth/signin"
-              />
-              <SidebarItem
-                icon={Rocket}
-                label="Launch a token"
-                href="/launch"
-              />
-            </>
-          )}
+        <SidebarSection title="Get started">
+          <SidebarItem icon={Github} label="Sign in" href="/auth/signin" />
+          <SidebarItem icon={Rocket} label="Launch a token" href="/launch" />
         </SidebarSection>
 
         <SidebarSection title="Legal">
@@ -154,23 +101,14 @@ export function PublicSidebar({ active, user }: PublicSidebarProps) {
               icon={icon}
               label={label}
               href={href}
-              active={isActive(href, key as PublicSidebarActive)}
+              active={isActive(href, key as UnauthSidebarActive)}
             />
           ))}
         </SidebarSection>
       </SidebarContent>
 
       <SidebarFooter>
-        {signedIn ? (
-          <SidebarUserCard
-            name={user?.name ?? null}
-            email={user?.email ?? null}
-            username={user?.username ?? null}
-            imageUrl={user?.imageUrl ?? null}
-          />
-        ) : (
-          <CollapsibleSignInCta />
-        )}
+        <CollapsibleSignInCta />
         <div className="flex items-center justify-between gap-2">
           <CollapsiblePoweredBy />
           <ThemeToggle />
