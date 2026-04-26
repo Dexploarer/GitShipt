@@ -44,9 +44,9 @@ export default async function LandingPage() {
               Right (cols 8-12): mia.png, full row height
         */}
         <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-12">
-          <div className="flex flex-col gap-3 lg:col-span-7 lg:min-h-0">
-            <section className="flex flex-col items-start gap-3 lg:gap-4">
-              <h1 className="text-[36px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[44px] lg:text-[56px]">
+          <div className="flex flex-col gap-4 lg:col-span-5 lg:min-h-0">
+            <section className="flex flex-col items-start gap-4 lg:gap-5">
+              <h1 className="text-[40px] font-semibold leading-[1.02] tracking-[-0.025em] text-fg sm:text-[52px] lg:text-[76px]">
                 Your repo,
                 <br />
                 <span className="text-fg-muted">tokenized.</span>
@@ -83,7 +83,7 @@ export default async function LandingPage() {
               </Link>
             </section>
 
-            <div className="lg:min-h-0 lg:flex-1">
+            <div className="lg:max-h-[300px] lg:min-h-0 lg:flex-1">
               <FeaturedProjectCard
                 header={featuredHeader}
                 contributors={featuredContribs}
@@ -91,14 +91,14 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <aside className="relative lg:col-span-5 lg:min-h-0">
-            <div className="pointer-events-none relative mx-auto aspect-square w-full max-w-[460px] sm:max-w-[520px] lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:w-full lg:max-w-none">
+          <aside className="relative lg:col-span-7 lg:min-h-0">
+            <div className="pointer-events-none relative mx-auto aspect-square w-full max-w-[480px] sm:max-w-[560px] lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:w-full lg:max-w-none">
               <Image
                 src="/mia.png"
                 alt=""
                 fill
                 priority
-                sizes="(max-width: 1024px) 520px, 600px"
+                sizes="(max-width: 1024px) 560px, 800px"
                 className="object-contain object-bottom"
                 unoptimized
               />
@@ -146,7 +146,7 @@ function FeaturedProjectCard({
 
   const avatar =
     header.imageUrl ?? `https://github.com/${header.ghOwner}.png`;
-  const top = contributors.slice(0, 6);
+  const top = contributors.slice(0, 25);
   const projectHref = `/r/${header.slug}`;
 
   return (
