@@ -45,13 +45,13 @@ export default async function LandingPage() {
             {/* mia.png — bottom-right anchored, behind the text. The PNG has
                 a transparent background so the text overlays cleanly. On
                 mobile the image stacks below the text via `relative` flow. */}
-            <div className="pointer-events-none relative mx-auto mt-4 aspect-square w-full max-w-[420px] shrink-0 sm:mt-0 sm:max-w-[460px] lg:absolute lg:right-0 lg:bottom-12 lg:z-0 lg:mx-0 lg:aspect-auto lg:h-[680px] lg:w-[680px] lg:max-w-none">
+            <div className="pointer-events-none relative mx-auto mt-4 aspect-square w-full max-w-[420px] shrink-0 sm:mt-0 sm:max-w-[460px] lg:absolute lg:right-0 lg:bottom-0 lg:z-0 lg:mx-0 lg:aspect-auto lg:h-[820px] lg:w-[820px] lg:max-w-none">
               <Image
                 src="/mia.png"
                 alt=""
                 fill
                 priority
-                sizes="(max-width: 1024px) 460px, 680px"
+                sizes="(max-width: 1024px) 460px, 820px"
                 className="object-contain object-bottom"
                 unoptimized
               />
