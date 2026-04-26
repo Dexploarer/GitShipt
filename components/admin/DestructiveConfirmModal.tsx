@@ -62,6 +62,9 @@ export function DestructiveConfirmModal({
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
+  const dialogRef = React.useRef<HTMLDivElement | null>(null);
+  const previouslyFocusedRef = React.useRef<HTMLElement | null>(null);
+
   React.useEffect(() => {
     if (!open) {
       setReason("");
@@ -71,6 +74,72 @@ export function DestructiveConfirmModal({
       setBusy(false);
     }
   }, [open]);
+
+  // Focus management: trap Tab inside the dialog, close on Escape, restore
+  // focus to whatever was focused before the dialog opened.
+  React.useEffect(() => {
+    if (!open) return;
+
+    // Stash the element that owned focus when we opened, so we can restore.
+    previouslyFocusedRef.current =
+      typeof document !== "undefined"
+        ? (document.activeElement as HTMLElement | null)
+        : null;
+
+    // Move focus into the dialog on next paint (after the node mounts).
+    const focusFirst = () => {
+      const node = dialogRef.current;
+      if (!node) return;
+      const focusables = getFocusableElements(node);
+      const target = focusables[0] ?? node;
+      target.focus();
+    };
+    // rAF so the dialog is painted before we attempt to focus its contents.
+    const raf = requestAnimationFrame(focusFirst);
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onOpenChange(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const node = dialogRef.current;
+      if (!node) return;
+      const focusables = getFocusableElements(node);
+      if (focusables.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusables[0]!;
+      const last = focusables[focusables.length - 1]!;
+      const active = document.activeElement as HTMLElement | null;
+
+      // Shift+Tab from first → wrap to last; Tab from last → wrap to first.
+      if (e.shiftKey) {
+        if (active === first || !node.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (active === last || !node.contains(active)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", handleKeyDown);
+      // Restore focus to the previously-focused element on close/unmount.
+      const prev = previouslyFocusedRef.current;
+      if (prev && typeof prev.focus === "function") {
+        prev.focus();
+      }
+    };
+  }, [open, onOpenChange]);
 
   if (!open) return null;
 
@@ -99,15 +168,22 @@ export function DestructiveConfirmModal({
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-bg/60 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="destructive-confirm-title"
+      onMouseDown={(e) => {
+        // Backdrop click closes; clicks inside the Card don't reach here
+        // because the inner content stops propagation via its own DOM nesting.
+        if (e.target === e.currentTarget) onOpenChange(false);
+      }}
     >
       <Card
+        ref={dialogRef}
         depth="floating"
         glass="glass"
         padding="default"
         className="w-full max-w-md"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="destructive-confirm-title"
+        tabIndex={-1}
       >
         <header className="mb-3 flex items-start justify-between gap-3">
           <div className="flex items-start gap-2">
@@ -228,6 +304,22 @@ export function DestructiveConfirmModal({
         </form>
       </Card>
     </div>
+  );
+}
+
+/** Selectors for elements that can receive keyboard focus. */
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled]):not([type='hidden'])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function getFocusableElements(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (el) => !el.hasAttribute("inert") && el.offsetParent !== null,
   );
 }
 

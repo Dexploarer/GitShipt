@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SolanaWalletProvider } from "@/components/providers/SolanaWalletProvider";
+import { SkipLink } from "@/components/shared/SkipLink";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -57,8 +58,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="min-h-screen bg-app-gradient text-fg antialiased">
+        <SkipLink />
         <ThemeProvider>
-          <SolanaWalletProvider>{children}</SolanaWalletProvider>
+          <SolanaWalletProvider>
+            <div id="main-content">{children}</div>
+          </SolanaWalletProvider>
         </ThemeProvider>
       </body>
     </html>
