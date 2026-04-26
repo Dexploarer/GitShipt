@@ -25,12 +25,13 @@ const accentClass: Record<NonNullable<StatTileProps["accent"]>, string> = {
 };
 
 /**
- * Compact KPI card for the dashboard overview rows. Renders:
- *   - small label (label-sm + fg-secondary)
- *   - large numeric value (mono-md/headline-md)
+ * Canonical KPI tile used by both the project-owner dashboard and the admin
+ * console. Renders:
+ *   - small label (label-sm + fg-secondary) with an optional Lucide icon
+ *   - large numeric value (mono-md + headline-sm by default)
  *   - optional muted subtext beneath
  *
- * Uses `Card depth="raised"` so a tile-row of these has a subtle pop.
+ * Uses Card depth="raised" so a tile-row of these has a subtle pop.
  */
 export function StatTile({
   label,
@@ -51,7 +52,10 @@ export function StatTile({
         <span className="truncate">{label}</span>
         {Icon ? (
           <Icon
-            className={cn("size-4 shrink-0 text-fg-muted", accent === "primary" && "text-primary")}
+            className={cn(
+              "size-4 shrink-0 text-fg-muted",
+              accent === "primary" && "text-primary",
+            )}
             aria-hidden
           />
         ) : null}
@@ -68,7 +72,7 @@ export function StatTile({
         </div>
       </div>
       {sub ? (
-        <div className="text-caption text-fg-muted truncate">{sub}</div>
+        <div className="truncate text-caption text-fg-muted">{sub}</div>
       ) : null}
     </Card>
   );

@@ -5,3 +5,5 @@ export * from "./badge";
 export * from "./pill";
 export * from "./input";
 export * from "./sidebar";
+export * from "./skeleton";
+export * from "./spinner";

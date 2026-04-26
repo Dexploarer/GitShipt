@@ -14,7 +14,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/dashboard/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { RetryPayoutButton } from "./_components/RetryPayoutButton";
 
 export const dynamic = "force-dynamic";

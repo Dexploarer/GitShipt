@@ -9,7 +9,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { EmptyState } from "@/components/dashboard/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Sparkles } from "lucide-react";
 import { GeneralForm } from "./_components/GeneralForm";
 import { PauseSection } from "./_components/PauseSection";

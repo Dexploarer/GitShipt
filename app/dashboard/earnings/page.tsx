@@ -11,8 +11,8 @@ import { projects } from "@/db/schema";
 import { formatSol } from "@/lib/format";
 import { AppShell } from "../_components/AppShell";
 import { DashboardSidebar } from "@/components/sidebar/DashboardSidebar";
-import { StatTile } from "@/components/dashboard/StatTile";
-import { EmptyState } from "@/components/dashboard/EmptyState";
+import { StatTile } from "@/components/shared/StatTile";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Card,
   CardHeader,

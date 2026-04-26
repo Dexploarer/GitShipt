@@ -11,7 +11,7 @@ import { AppShell } from "../../../_components/AppShell";
 import { OwnedProjectSidebar } from "@/components/sidebar/OwnedProjectSidebar";
 import { LeaderboardTable } from "@/app/r/[org]/[repo]/_components/LeaderboardTable";
 import { ScoringConfigEditor } from "./_components/ScoringConfigEditor";
-import { EmptyState } from "@/components/dashboard/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 export const dynamic = "force-dynamic";
 
