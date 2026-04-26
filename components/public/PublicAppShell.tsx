@@ -41,7 +41,7 @@ export function PublicAppShell({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <main className="min-w-0 flex-1 overflow-y-auto bg-app-gradient px-4 pt-4 pb-3 lg:pl-10 lg:pr-4">
+          <main className="min-w-0 flex-1 overflow-y-auto bg-app-gradient px-4 pt-4 pb-3 lg:px-10">
             <div className="mx-auto w-full max-w-content">
               <div className="mb-3 lg:hidden">
                 <MobileSidebarTrigger />
