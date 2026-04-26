@@ -7,36 +7,16 @@ import { formatSol, formatUsd } from "@/lib/format";
 import type { LandingTicker } from "@/lib/queries/global";
 
 /**
- * Bento variant of the live ticker. Renders as 4 standalone cells (so the
- * page-level grid can place them anywhere) instead of a single horizontal
- * strip. Each cell self-tracks the ±0.4% drift seeded from a 10s tick.
+ * Floating live-stat cell (no Card wrapper). Same visual vocabulary as
+ * TokenStatsRow on the project page — soft border + bg/40 + caption label
+ * + mono value. Each cell self-tracks ±0.4% drift on a 10s tick.
  */
 
 const CELLS = [
-  {
-    key: "volume",
-    label: "24h Volume",
-    Icon: Activity,
-    accent: "text-fg",
-  },
-  {
-    key: "fees",
-    label: "Lifetime Fees",
-    Icon: Coins,
-    accent: "text-primary",
-  },
-  {
-    key: "projects",
-    label: "Active Projects",
-    Icon: Sparkles,
-    accent: "text-fg",
-  },
-  {
-    key: "earning",
-    label: "Earners",
-    Icon: Users,
-    accent: "text-fg",
-  },
+  { key: "volume", label: "24h Volume", Icon: Activity, accent: "text-fg" },
+  { key: "fees", label: "Lifetime Fees", Icon: Coins, accent: "text-primary" },
+  { key: "projects", label: "Active Projects", Icon: Sparkles, accent: "text-fg" },
+  { key: "earning", label: "Earners", Icon: Users, accent: "text-fg" },
 ] as const;
 
 type CellKey = (typeof CELLS)[number]["key"];
@@ -70,12 +50,10 @@ export function BentoTickerCell({
   initial,
   cellKey,
   className,
-  size = "default",
 }: {
   initial: LandingTicker;
   cellKey: CellKey;
   className?: string;
-  size?: "default" | "lg";
 }) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -91,34 +69,20 @@ export function BentoTickerCell({
   return (
     <div
       className={cn(
-        "flex h-full flex-col justify-between rounded-lg border border-border bg-surface",
-        size === "lg" ? "p-5" : "p-4",
+        "flex flex-col gap-1.5 rounded-lg border border-border/60 bg-surface/40 px-4 py-3",
         className,
       )}
     >
-      <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 text-label-sm text-fg-muted">
+      <div className="flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 text-caption text-fg-muted">
           <span className="size-1.5 animate-pulse-dot rounded-full bg-success" />
           {cell.label}
         </span>
-        <cell.Icon
-          className="size-4 text-fg-muted"
-          aria-hidden
-        />
+        <cell.Icon className="size-3.5 text-fg-muted" aria-hidden />
       </div>
       <div
-        className={cn(
-          "tabular-nums",
-          cell.accent,
-          size === "lg"
-            ? "mt-3 text-mono-md font-medium"
-            : "mt-3 text-mono-md",
-        )}
-        style={
-          size === "lg"
-            ? { fontSize: "32px", letterSpacing: "-0.01em" }
-            : { fontSize: "20px", letterSpacing: "-0.005em" }
-        }
+        className={cn("text-mono-md tabular-nums", cell.accent)}
+        style={{ fontSize: "20px", letterSpacing: "-0.005em" }}
         aria-live="polite"
       >
         {format(cellKey, value)}
