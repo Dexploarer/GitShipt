@@ -8,7 +8,12 @@ import { projects } from "@/db/schema";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
 import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
-import { hasCredentials, canLaunchOnBags, serverEnv } from "@/lib/env";
+import {
+  hasCredentials,
+  canLaunchOnBags,
+  serverEnv,
+  stubsAllowed,
+} from "@/lib/env";
 import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { LaunchProjectResponseSchema } from "@repo/shared";
@@ -102,6 +107,16 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
   // Promoting a simulated_live project to a real launch never returns a
   // cached stub response.
   const willStubMode = !canLaunchOnBags().ok || !hasCredentials.bags();
+  if (willStubMode && !stubsAllowed()) {
+    const guard = canLaunchOnBags();
+    return NextResponse.json(
+      {
+        error: "live_credentials_required",
+        message: guard.ok ? "BAGS_API_KEY missing" : guard.reason,
+      },
+      { status: 503 },
+    );
+  }
   const namespace = willStubMode
     ? `sim:${peek?.simulatedAt?.toISOString() ?? "first"}`
     : "real";

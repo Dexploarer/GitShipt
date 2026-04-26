@@ -11,7 +11,12 @@ import { accounts, projects, projectMemberships, users } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
-import { hasCredentials, canLaunchOnBags, serverEnv } from "@/lib/env";
+import {
+  hasCredentials,
+  canLaunchOnBags,
+  serverEnv,
+  stubsAllowed,
+} from "@/lib/env";
 import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
@@ -126,6 +131,13 @@ export async function createAndLaunchAction(
         status: verifyResult.status,
       };
     }
+  } else if (!stubsAllowed()) {
+    return {
+      ok: false,
+      error: "github_credentials_required",
+      message: "GitHub credentials are required to verify repo ownership.",
+      status: 503,
+    };
   }
 
   const dbp = dbPool();

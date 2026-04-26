@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 import { dbHttp } from "@/db";
 import { sql } from "drizzle-orm";
-import { hasCredentials } from "@/lib/env";
+import { hasCredentials, productionReadiness } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,7 @@ export async function GET(): Promise<Response> {
     db: "stub",
     redis: "stub",
     bags: hasCredentials.bags() ? "ok" : "stub",
+    bagsPartner: hasCredentials.bagsPartner() ? "ok" : "stub",
     github: hasCredentials.github() ? "ok" : "stub",
     githubApp: hasCredentials.githubApp() ? "ok" : "stub",
     solana: hasCredentials.solana() ? "ok" : "stub",
@@ -47,9 +48,17 @@ export async function GET(): Promise<Response> {
     status.redis = "stub";
   }
 
+  const production = productionReadiness();
+  if (!production.ok && production.mode === "production") {
+    status.production = "fail";
+  } else {
+    status.production = "ok";
+  }
+
   return NextResponse.json({
     ok: !Object.values(status).some((v) => v === "fail"),
     status,
+    production,
     at: new Date().toISOString(),
   });
 }

@@ -69,6 +69,7 @@ export const FeeShareConfigResponseSchema = z.object({
   configKey: z.string().min(32),
   txSignatures: z.array(z.string()).default([]),
   feeClaimersTotalBps: z.number().int().min(0).max(10_000).optional(),
+  partnerWallet: SolanaAddressSchema.optional(),
   partnerConfigKey: z.string().min(32).optional(),
   poolClaimerWallet: SolanaAddressSchema.optional(),
   __stub: z.boolean().optional(),
@@ -127,6 +128,7 @@ export const LaunchIntentInputSchema = z.object({
   adminWallet: z.string().min(32).optional(),
   partner: z.string().min(32).optional(),
   partnerConfig: z.string().min(32).optional(),
+  refCode: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(),
   tokenizeEquity: z.boolean().optional(),
 });
 export type LaunchIntentInput = z.infer<typeof LaunchIntentInputSchema>;

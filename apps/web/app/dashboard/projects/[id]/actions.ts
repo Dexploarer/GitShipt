@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { start } from "workflow/api";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { dbHttp } from "@/db";
@@ -15,6 +16,7 @@ import { withIdempotency } from "@/lib/idempotency";
 import { check } from "@/lib/rate-limit";
 import { updateProjectCaches } from "@/lib/cache-actions";
 import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
+import { takeProjectSnapshot } from "@/workflows/takeSnapshot";
 
 /**
  * Server Actions for the per-project admin console.
@@ -403,24 +405,11 @@ export async function forceSnapshot(
     );
   }
 
-  // takeSnapshot is owned by Agent B and may not exist yet. Try to invoke it
-  // dynamically; if the module is missing, return runId=null and audit anyway.
   const runId: string | null = await withIdempotency(
     data.idempotencyKey ?? `snap:${data.projectId}:${Date.now()}`,
     async () => {
-      try {
-        const [{ start }, mod] = await Promise.all([
-          import("workflow/api"),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          import("@/workflows/takeSnapshot" as any).catch(() => null as any),
-        ]);
-        if (!mod || typeof mod.takeSnapshot !== "function") return null;
-        const run = await start(mod.takeSnapshot, [data.projectId]);
-        return run.runId ?? null;
-      } catch (e) {
-        console.warn("[forceSnapshot] could not start workflow", e);
-        return null;
-      }
+      const run = await start(takeProjectSnapshot, [data.projectId]);
+      return run.runId ?? null;
     },
     { scope: `project:snapshot:force:${data.projectId}:${userId}` },
   );

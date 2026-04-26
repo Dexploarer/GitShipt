@@ -400,6 +400,26 @@
   }
 }
 
+/* The shared sidebar is a fixed mobile drawer below lg. On desktop the shell
+   must reserve it in normal flex flow; keep this reset in plain CSS so Tailwind
+   utility generation/order cannot leave the drawer fixed over the page. */
+@media (min-width: 64rem) {
+  [data-gitbags-sidebar="true"] {
+    position: static !important;
+    inset: auto !important;
+    width: 260px;
+    height: 100%;
+    margin: 0 !important;
+    flex-shrink: 0;
+    translate: 0 0;
+    transform: none;
+  }
+
+  [data-gitbags-sidebar="true"][data-collapsed="true"] {
+    width: 68px;
+  }
+}
+
 /* ============================================================
  * Base resets and selection.
  * ============================================================ */

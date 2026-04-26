@@ -16,7 +16,7 @@ import type { LeaderboardEntry } from "@/db/schema/snapshots";
 import type { PayoutConfig, ScoringConfig } from "@/db/schema/projects";
 import { and, eq, sql } from "drizzle-orm";
 import { bags } from "@/lib/bags/client";
-import { hasCredentials, canLaunchOnBags } from "@/lib/env";
+import { hasCredentials, canLaunchOnBags, stubsAllowed } from "@/lib/env";
 import { computeMerkleRoot } from "@/lib/payouts/merkle";
 import { computeDistributionPlan } from "@/lib/payouts/distribution";
 import { loadContributorWallets } from "./snapshot-helpers";
@@ -74,10 +74,18 @@ export function recipientIdempotencyKey(
 
 /** True when we should skip on-chain transactions and just record the plan. */
 export function isStubMode(): boolean {
-  if (!hasCredentials.bags()) return true;
-  if (!hasCredentials.payoutKey()) return true;
-  if (!hasCredentials.solana()) return true;
+  const missing =
+    !hasCredentials.bags() ||
+    !hasCredentials.payoutKey() ||
+    !hasCredentials.solana();
+  if (missing && !stubsAllowed()) {
+    throw new Error("Live Bags, Solana RPC, and payout key credentials are required in production payouts.");
+  }
+  if (missing) return true;
   const launch = canLaunchOnBags();
+  if (!launch.ok && !stubsAllowed()) {
+    throw new Error(`Live payout refused in production: ${launch.reason}`);
+  }
   return !launch.ok;
 }
 

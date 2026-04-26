@@ -1,4 +1,11 @@
-import { Database, Github, PlugZap, Sparkles, Zap } from "lucide-react";
+import {
+  Database,
+  Github,
+  PlugZap,
+  ShieldCheck,
+  Sparkles,
+  Zap,
+} from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import {
   Card,
@@ -7,7 +14,7 @@ import {
   CardDescription,
 } from "@repo/ui";
 import { Badge } from "@repo/ui";
-import { hasCredentials } from "@/lib/env";
+import { hasCredentials, productionReadiness, serverEnv } from "@/lib/env";
 import { dbHttp } from "@/db";
 import { sql } from "drizzle-orm";
 import { redis } from "@/lib/redis";
@@ -34,6 +41,7 @@ export default async function AdminIntegrationsPage() {
     pingBags(),
     pingGithubApp(),
     pingHelius(),
+    pingProductionReadiness(),
     pingSentry(),
   ]);
 
@@ -98,6 +106,10 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
   );
 }
 
+function shortWallet(value: string): string {
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
 async function pingDb(): Promise<ServiceHealth> {
   const t = Date.now();
   try {
@@ -152,12 +164,14 @@ async function pingRedis(): Promise<ServiceHealth> {
 }
 
 async function pingBags(): Promise<ServiceHealth> {
+  const env = serverEnv();
+  const partnerDetail = `Partner ${shortWallet(env.BAGS_PARTNER_WALLET)}; ref=${env.BAGS_REF_CODE}.`;
   if (!bags.hasCredentials()) {
     return {
       name: "Bags.fm",
       status: "stub",
       latencyMs: null,
-      detail: "BAGS_API_KEY missing — typed client returning stubs.",
+      detail: `BAGS_API_KEY missing — typed client returning stubs. ${partnerDetail}`,
       icon: Sparkles,
     };
   }
@@ -168,7 +182,7 @@ async function pingBags(): Promise<ServiceHealth> {
       name: "Bags.fm",
       status: "ok",
       latencyMs: Date.now() - t,
-      detail: "Lifetime fees probe ok.",
+      detail: `Lifetime fees probe ok. ${partnerDetail}`,
       icon: Sparkles,
     };
   } catch (e) {
@@ -246,6 +260,27 @@ async function pingHelius(): Promise<ServiceHealth> {
       icon: Zap,
     };
   }
+}
+
+async function pingProductionReadiness(): Promise<ServiceHealth> {
+  const readiness = productionReadiness();
+  const problemCount = readiness.missing.length + readiness.warnings.length;
+  return {
+    name: "Production readiness",
+    status: readiness.ok ? "ok" : "fail",
+    latencyMs: null,
+    detail: readiness.ok
+      ? readiness.mode === "production"
+        ? `Mainnet env ready for ${readiness.bagsApiBaseUrl}.`
+        : `Non-production mode on ${readiness.cluster}; production gate is idle.`
+      : `${problemCount} configuration issue${problemCount === 1 ? "" : "s"}: ${[
+          ...readiness.missing,
+          ...readiness.warnings,
+        ]
+          .slice(0, 3)
+          .join(", ")}${problemCount > 3 ? ", ..." : ""}`,
+    icon: ShieldCheck,
+  };
 }
 
 async function pingSentry(): Promise<ServiceHealth> {
