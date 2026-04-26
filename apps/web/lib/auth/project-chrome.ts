@@ -1,14 +1,14 @@
 import "server-only";
 import { isProjectAdmin } from "./admin-check";
-import { getSessionUser, type SessionUserChrome } from "./session";
+import { getSessionUser } from "./session";
 
 /**
- * Resolves the chrome (`user` + `canAdmin`) that every page under
- * `/r/[org]/[repo]/*` needs to feed `<ProjectShell>`.
+ * Resolves project-scoped chrome that every page under `/r/[org]/[repo]/*`
+ * needs to feed `<ProjectShell>`.
  *
- * Returns `{ user: null, canAdmin: false }` when there's no session — the
- * ProjectShell then renders without the user card and without the admin
- * nav group.
+ * Returns `canAdmin: false` when there's no session. The root layout already
+ * seeds the global user card through SessionChromeProvider; this helper only
+ * answers the project-specific admin question.
  *
  * Centralized so every sub-route (leaderboard / payouts / snapshots /
  * repository / token / docs) shares one implementation; previously only
@@ -16,7 +16,6 @@ import { getSessionUser, type SessionUserChrome } from "./session";
  * the user card silently disappear when navigating into a sub-route.
  */
 export interface ProjectShellChrome {
-  user: SessionUserChrome | null;
   canAdmin: boolean;
 }
 
@@ -24,7 +23,7 @@ export async function getProjectShellChrome(
   projectId: string,
 ): Promise<ProjectShellChrome> {
   const user = await getSessionUser();
-  if (!user) return { user: null, canAdmin: false };
+  if (!user) return { canAdmin: false };
 
   let canAdmin = false;
   try {
@@ -33,5 +32,5 @@ export async function getProjectShellChrome(
     canAdmin = false;
   }
 
-  return { user, canAdmin };
+  return { canAdmin };
 }

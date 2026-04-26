@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, CheckCircle2, FlaskConical, Rocket } from "lucide-react";
@@ -16,37 +16,17 @@ import { LeaderboardConfigForm } from "./LeaderboardConfigForm";
 import { ReviewAndSign } from "./ReviewAndSign";
 import { createAndLaunchAction } from "../actions";
 import {
-  DEFAULT_PLATFORM_FEE_BPS,
   DEFAULT_SCORING_CONFIG,
-  DEFAULT_TOP_N,
-  DEFAULT_WINDOW_DAYS,
-  DEFAULT_CLAIM_THRESHOLD_LAMPORTS,
-  defaultTierWeights,
-  type GithubRepo,
-  type TokenMetadataInput,
   type CreateProjectBody,
 } from "@repo/shared";
-
-type Step = 1 | 2 | 3 | 4;
-
-export interface LeaderboardConfig {
-  windowDays: number;
-  topN: number;
-  tierWeights: number[];
-  claimThresholdLamports: number;
-  platformFeeBps: number;
-}
-
-const DEFAULT_LEADERBOARD: LeaderboardConfig = {
-  windowDays: DEFAULT_WINDOW_DAYS,
-  topN: DEFAULT_TOP_N,
-  tierWeights: defaultTierWeights(DEFAULT_TOP_N),
-  claimThresholdLamports: DEFAULT_CLAIM_THRESHOLD_LAMPORTS,
-  platformFeeBps: DEFAULT_PLATFORM_FEE_BPS,
-};
+import {
+  useLaunchWizardStore,
+  type LaunchSuccess,
+  type LaunchWizardStep,
+} from "@/lib/state/launch-wizard-store";
 
 /**
- * Two real states the wizard tracks during submit:
+ * The wizard tracks two real states during submit:
  *   - "idle"        : the form is interactive
  *   - "submitting"  : the server action is in flight (single round-trip)
  *
@@ -54,19 +34,6 @@ const DEFAULT_LEADERBOARD: LeaderboardConfig = {
  * That misled the user into believing each Bags step was happening live,
  * when in reality the action is one round-trip server-side. Removed.
  */
-type LaunchStatus = "idle" | "submitting";
-
-interface LaunchSuccess {
-  projectId: string;
-  tokenMint: string;
-  txSig: string | null;
-  configKey?: string;
-  stub: boolean;
-  note?: string;
-  ghOwner: string;
-  ghRepo: string;
-}
-
 export interface WizardShellProps {
   signedIn: boolean;
   /** Server-rendered: true when BAGS_API_KEY is missing (stub mode). */
@@ -75,59 +42,35 @@ export interface WizardShellProps {
 
 export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>(1);
-  const [repo, setRepo] = useState<GithubRepo | null>(null);
-  const [metadata, setMetadata] = useState<TokenMetadataInput | null>(null);
-  const [leaderboard, setLeaderboard] =
-    useState<LeaderboardConfig>(DEFAULT_LEADERBOARD);
-
   const [, startTransition] = useTransition();
-  const [status, setStatus] = useState<LaunchStatus>("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [success, setSuccess] = useState<LaunchSuccess | null>(null);
+  const step = useLaunchWizardStore((state) => state.step);
+  const repo = useLaunchWizardStore((state) => state.repo);
+  const metadata = useLaunchWizardStore((state) => state.metadata);
+  const leaderboard = useLaunchWizardStore((state) => state.leaderboard);
+  const status = useLaunchWizardStore((state) => state.status);
+  const errorMessage = useLaunchWizardStore((state) => state.errorMessage);
+  const success = useLaunchWizardStore((state) => state.success);
+  const goToStep = useLaunchWizardStore((state) => state.goToStep);
+  const selectRepo = useLaunchWizardStore((state) => state.selectRepo);
+  const setMetadata = useLaunchWizardStore((state) => state.setMetadata);
+  const setLeaderboard = useLaunchWizardStore((state) => state.setLeaderboard);
+  const startSubmit = useLaunchWizardStore((state) => state.startSubmit);
+  const failSubmit = useLaunchWizardStore((state) => state.failSubmit);
+  const succeedSubmit = useLaunchWizardStore((state) => state.succeedSubmit);
+  const clearError = useLaunchWizardStore((state) => state.clearError);
+  const reset = useLaunchWizardStore((state) => state.reset);
 
-  function goNext(toStep: Step) {
-    setErrorMessage(null);
-    setStep(toStep);
-  }
-
-  function goBack(toStep: Step) {
-    setErrorMessage(null);
-    setStep(toStep);
-  }
-
-  function handleRepoSelect(selected: GithubRepo) {
-    setRepo(selected);
-    if (!metadata) {
-      setMetadata({
-        name: selected.name.slice(0, 32),
-        symbol: deriveSymbolFromRepo(selected.name),
-        description: selected.description ?? "",
-        imageUrl: selected.ownerAvatarUrl,
-      });
-    }
-    goNext(2);
-  }
-
-  function handleMetadataSubmit(data: TokenMetadataInput) {
-    setMetadata(data);
-    goNext(3);
-  }
-
-  function handleLeaderboardSubmit(data: LeaderboardConfig) {
-    setLeaderboard(data);
-    goNext(4);
-  }
+  useEffect(() => {
+    if (!signedIn) reset();
+  }, [reset, signedIn]);
 
   async function handleLaunch() {
     if (!repo || !metadata) {
-      setErrorMessage("Missing repo or token metadata. Restart the wizard.");
+      failSubmit("Missing repo or token metadata. Restart the wizard.");
       return;
     }
 
-    setErrorMessage(null);
-    setSuccess(null);
-    setStatus("submitting");
+    startSubmit();
 
     const body: CreateProjectBody = {
       ghRepoId: repo.id,
@@ -157,14 +100,14 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
         const result = await createAndLaunchAction(body);
 
         if (!result.ok) {
-          setStatus("idle");
-          setErrorMessage(formatActionError(result.error, result.message));
+          failSubmit(formatActionError(result.error, result.message));
           return;
         }
 
-        setSuccess({
+        succeedSubmit({
           projectId: result.projectId,
           tokenMint: result.tokenMint,
+          status: result.status,
           txSig: result.txSig,
           configKey: result.configKey,
           stub: result.stub,
@@ -172,16 +115,14 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
           ghOwner: result.ghOwner,
           ghRepo: result.ghRepo,
         });
-        setStatus("idle");
       } catch (e) {
-        setStatus("idle");
-        setErrorMessage(e instanceof Error ? e.message : "Launch failed.");
+        failSubmit(e instanceof Error ? e.message : "Launch failed.");
       }
     });
   }
 
   function handleRetry() {
-    setErrorMessage(null);
+    clearError();
   }
 
   function handleViewProject() {
@@ -217,7 +158,7 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
           <SubmittingState />
         ) : step === 1 ? (
           <RepoPicker
-            onSelect={handleRepoSelect}
+            onSelect={selectRepo}
             selectedId={repo?.id ?? null}
           />
         ) : step === 2 && repo ? (
@@ -232,8 +173,8 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
             <TokenMetadataForm
               repo={repo}
               initial={metadata}
-              onBack={() => goBack(1)}
-              onSubmit={handleMetadataSubmit}
+              onBack={() => goToStep(1)}
+              onSubmit={setMetadata}
             />
           </>
         ) : step === 3 ? (
@@ -247,8 +188,8 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
             ) : null}
             <LeaderboardConfigForm
               initial={leaderboard}
-              onBack={() => goBack(2)}
-              onSubmit={handleLeaderboardSubmit}
+              onBack={() => goToStep(2)}
+              onSubmit={setLeaderboard}
             />
           </>
         ) : step === 4 && repo && metadata ? (
@@ -265,7 +206,7 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
               repo={repo}
               metadata={metadata}
               leaderboard={leaderboard}
-              onBack={() => goBack(3)}
+              onBack={() => goToStep(3)}
               onLaunch={handleLaunch}
               isPending={false}
               isStubMode={isStubMode}
@@ -333,20 +274,26 @@ function LaunchResult({
           </span>
         )}
         <CardTitle>
-          {result.stub ? "Test launch recorded" : "Token launched"}
+          {result.stub
+            ? "Test launch recorded"
+            : result.status === "launch_configured"
+              ? "Launch configuration recorded"
+              : "Token launched"}
         </CardTitle>
         <CardDescription>
           {result.stub
             ? "No real Bags.fm token was created. We persisted a test draft so you can preview the project page UX."
+            : result.status === "launch_configured"
+              ? "Bags token metadata and fee-share config are ready. The project will not enter payout rotation until the final launch transaction is broadcast."
             : "Your project is live on Bags.fm and now appears on the public leaderboard."}
         </CardDescription>
       </header>
 
-      {result.stub ? (
+      {result.stub || result.status === "launch_configured" ? (
         <Card depth="flat" padding="default" className="bg-warning-soft/40">
           <div className="flex items-start gap-3">
             <Badge variant="warning" dot dotColor="warning">
-              Test mode
+              {result.stub ? "Test mode" : "Needs launch tx"}
             </Badge>
             <p className="flex-1 text-body-sm text-fg-secondary">
               {result.note ??
@@ -473,9 +420,9 @@ export function TestModeBanner({ className }: { className?: string }) {
 // Step indicator
 // ============================================================
 
-function StepIndicator({ current }: { current: Step }) {
+function StepIndicator({ current }: { current: LaunchWizardStep }) {
   const steps = [1, 2, 3, 4] as const;
-  const labels: Record<Step, string> = {
+  const labels: Record<LaunchWizardStep, string> = {
     1: "Repo",
     2: "Token",
     3: "Leaderboard",
@@ -547,11 +494,6 @@ function SignedOutPrompt() {
 // ============================================================
 // Helpers
 // ============================================================
-
-function deriveSymbolFromRepo(repoName: string): string {
-  const cleaned = repoName.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  return cleaned.slice(0, 10) || "GBAGS";
-}
 
 function formatActionError(code: string, message: string): string {
   switch (code) {

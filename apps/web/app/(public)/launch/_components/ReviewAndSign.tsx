@@ -12,7 +12,7 @@ import {
   type GithubRepo,
   type TokenMetadataInput,
 } from "@repo/shared";
-import type { LeaderboardConfig } from "./WizardShell";
+import type { LeaderboardConfig } from "@/lib/state/launch-wizard-store";
 
 export interface ReviewAndSignProps {
   repo: GithubRepo;

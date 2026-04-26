@@ -25,14 +25,13 @@ export default async function PublicProjectLayout({
   if (!data) notFound();
 
   const { header } = data;
-  const { user, canAdmin } = await getProjectShellChrome(header.id);
+  const { canAdmin } = await getProjectShellChrome(header.id);
   const defaultSidebarCollapsed = await getDefaultSidebarCollapsed();
 
   return (
     <ProjectShell
       header={header}
       canAdmin={canAdmin}
-      user={user}
       defaultSidebarCollapsed={defaultSidebarCollapsed}
     >
       {children}

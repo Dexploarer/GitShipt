@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
 import { SidebarProvider } from "@repo/ui";
-import type { SidebarUserCardProps } from "@/components/sidebar/SidebarUserCard";
 import type { ProjectHeader } from "@/lib/queries/project-page";
 import { ProjectShellMain, ProjectShellSidebar } from "./ProjectShellClient";
 
@@ -26,8 +25,6 @@ export interface ProjectShellProps {
   active?: ProjectSidebarActive;
   canAdmin?: boolean;
   defaultSidebarCollapsed?: boolean;
-  /** Signed-in user — surfaces the SidebarUserCard in the footer. */
-  user?: SidebarUserCardProps | null;
   /**
    * Whether <main> should overflow-hidden on lg (true for the leaderboard
    * page where the bento grid fits the viewport) or overflow-y-auto on
@@ -53,7 +50,6 @@ export function ProjectShell({
   active,
   canAdmin = false,
   defaultSidebarCollapsed = false,
-  user,
   fitViewport,
   children,
 }: ProjectShellProps) {
@@ -63,7 +59,6 @@ export function ProjectShell({
       <div className="flex h-screen overflow-hidden bg-bg text-fg">
         <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
           <ProjectShellSidebar
-            user={user}
             surface={{
               kind: "public-project",
               projectId: header.id,

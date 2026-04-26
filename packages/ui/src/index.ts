@@ -7,3 +7,4 @@ export * from "./input";
 export * from "./sidebar";
 export * from "./skeleton";
 export * from "./spinner";
+export * from "./ui-store";

@@ -45,7 +45,7 @@ import {
 } from "@repo/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@repo/ui";
-import { SidebarUserCard, type SidebarUserCardProps } from "./SidebarUserCard";
+import { SidebarUserCard } from "./SidebarUserCard";
 import { useSessionChrome } from "@/components/auth/SessionChromeProvider";
 import { resolveOrigin } from "@/lib/nav/origins";
 import { cn } from "@repo/lib";
@@ -64,12 +64,11 @@ import { cn } from "@repo/lib";
  *   // Visitor on a public page
  *   <AppSidebar surface={{ kind: 'public' }} />
  *
- *   // Signed-in user on a public page
- *   <AppSidebar user={user} surface={{ kind: 'public', isPlatformAdmin }} />
+ *   // Signed-in chrome is resolved from SessionChromeProvider / authStore.
+ *   <AppSidebar surface={{ kind: 'public' }} />
  *
  *   // Signed-in user on /dashboard/projects/[id]/*
  *   <AppSidebar
- *     user={user}
  *     surface={{
  *       kind: 'owner-project',
  *       projectId, projectName, slug,
@@ -78,7 +77,6 @@ import { cn } from "@repo/lib";
  *
  *   // Anyone on /r/[org]/[repo]/*
  *   <AppSidebar
- *     user={user}
  *     surface={{
  *       kind: 'public-project',
  *       projectId, projectName, slug, canAdmin,
@@ -86,7 +84,7 @@ import { cn } from "@repo/lib";
  *   />
  *
  *   // Signed-in admin on /admin/*
- *   <AppSidebar user={user} surface={{ kind: 'admin' }} />
+ *   <AppSidebar surface={{ kind: 'admin' }} />
  */
 
 export type AppSidebarSurface =
@@ -107,12 +105,6 @@ export type AppSidebarSurface =
   | { kind: "admin" };
 
 export interface AppSidebarProps {
-  /** Session user. When present, renders the user card + sign-out + Account
-   *  group; when null, renders the get-started CTA + visitor nav. */
-  user?: SidebarUserCardProps | null;
-  /** Whether the signed-in user holds a platform admin role. Surfaces an
-   *  Admin-console shortcut on the public surface; ignored elsewhere. */
-  isPlatformAdmin?: boolean;
   /** What chrome to render. Discriminated union — see examples above. */
   surface: AppSidebarSurface;
   /** Optional extra slot rendered in the footer above the user card. */
@@ -547,8 +539,6 @@ function compose(
 // ─── The component ────────────────────────────────────────────────────────
 
 export function AppSidebar({
-  user,
-  isPlatformAdmin,
   surface,
   footerSlot,
   activeKey,
@@ -557,9 +547,8 @@ export function AppSidebar({
   const searchParams = useSearchParams();
   const fromOrigin = searchParams?.get("from") ?? null;
   const chromeUser = useSessionChrome();
-  const resolvedUser = user ?? chromeUser;
-  const resolvedIsPlatformAdmin =
-    isPlatformAdmin ?? Boolean(chromeUser?.isPlatformAdmin);
+  const resolvedUser = chromeUser;
+  const resolvedIsPlatformAdmin = Boolean(chromeUser?.isPlatformAdmin);
 
   const signedIn = Boolean(
     resolvedUser &&

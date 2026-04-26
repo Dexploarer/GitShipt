@@ -11,8 +11,11 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { useSidebar } from "@repo/ui";
-import { signOutAction } from "./sign-out-action";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@repo/lib";
+import { authClient } from "@/lib/auth/client";
+import { resetClientStateForLogout } from "@/lib/state/logout";
 
 export interface SidebarUserCardProps {
   /** Stable authenticated user id. Used as a signed-in signal. */
@@ -53,8 +56,11 @@ export function SidebarUserCard({
   username,
   imageUrl,
 }: SidebarUserCardProps) {
-  const { collapsed } = useSidebar();
+  const { collapsed, closeMobile } = useSidebar();
+  const router = useRouter();
+  const { disconnect } = useWallet();
   const [open, setOpen] = React.useState(false);
+  const [isSigningOut, startSignOutTransition] = React.useTransition();
   const ref = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -82,6 +88,35 @@ export function SidebarUserCard({
   const handle = username ? `@${username}` : (email ?? null);
   const initial = (displayName.trim().charAt(0) || "?").toUpperCase();
   const profileHref = username ? `/u/${username}` : "/dashboard";
+
+  function signOut() {
+    setOpen(false);
+    closeMobile();
+    resetClientStateForLogout();
+
+    startSignOutTransition(() => {
+      void (async () => {
+        try {
+          await disconnect();
+        } catch {
+          // Wallet may already be disconnected or unavailable.
+        }
+
+        try {
+          const result = await authClient.signOut();
+          if ("error" in result && result.error) {
+            throw result.error;
+          }
+        } catch {
+          // Keep the optimistic signed-out chrome and refresh server state below.
+          // If the cookie was already invalid, this still lands on public UI.
+        } finally {
+          router.replace("/");
+          router.refresh();
+        }
+      })();
+    });
+  }
 
   return (
     <div ref={ref} className="relative">
@@ -164,21 +199,24 @@ export function SidebarUserCard({
             onSelect={() => setOpen(false)}
           />
           <Divider />
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              role="menuitem"
-              className={cn(
-                "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left",
-                "text-body-sm text-fg-secondary",
-                "transition-colors hover:bg-surface-elevated hover:text-danger",
-                "focus-visible:outline-none focus-visible:bg-surface-elevated focus-visible:text-danger",
-              )}
-            >
-              <LogOut className="size-4 shrink-0" aria-hidden />
-              <span className="flex-1 truncate">Sign out</span>
-            </button>
-          </form>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isSigningOut}
+            onClick={signOut}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left",
+              "text-body-sm text-fg-secondary",
+              "transition-colors hover:bg-surface-elevated hover:text-danger",
+              "focus-visible:outline-none focus-visible:bg-surface-elevated focus-visible:text-danger",
+              "disabled:pointer-events-none disabled:opacity-60",
+            )}
+          >
+            <LogOut className="size-4 shrink-0" aria-hidden />
+            <span className="flex-1 truncate">
+              {isSigningOut ? "Signing out..." : "Sign out"}
+            </span>
+          </button>
         </div>
       ) : null}
     </div>
