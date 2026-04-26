@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
+import { bags } from "@/lib/bags/client";
 import { getProjectPayoutHistory } from "@/lib/queries/dashboard";
 import {
   formatAddress,
@@ -34,8 +35,20 @@ export default async function TokenPage({
   const { project } = ctx;
   const payouts = await getProjectPayoutHistory(id, 20);
   const completed = payouts.filter((p) => p.status === "completed");
-
   const contributorBps = 10_000 - project.platformFeeBps;
+  const incorporation =
+    project.tokenMint && hasCredentials.bags()
+      ? await bags.getIncorporationDetails(project.tokenMint).catch(() => null)
+      : null;
+  const launchIntentUrl = bags.createLaunchIntentUrl({
+    name: project.name,
+    description: project.description ?? undefined,
+    imageUrl: project.imageUrl ?? undefined,
+    feeShareBps: contributorBps,
+    partner: process.env.BAGS_PARTNER_WALLET,
+    partnerConfig: process.env.BAGS_PARTNER_CONFIG_KEY,
+    tokenizeEquity: true,
+  });
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
@@ -76,6 +89,23 @@ export default async function TokenPage({
                   {project.bagsLaunchId ?? "—"}
                 </span>
               </Row>
+              <Row label="Launch state">
+                <Badge
+                  variant={
+                    project.status === "live"
+                      ? "success"
+                      : project.status === "launch_configured"
+                        ? "warning"
+                        : "default"
+                  }
+                  size="sm"
+                  dot={project.status === "live"}
+                >
+                  {project.status === "launch_configured"
+                    ? "Configured"
+                    : project.status}
+                </Badge>
+              </Row>
               <Row label="Contributor fee share">
                 <span className="inline-flex items-center gap-2 text-mono-md text-primary">
                   {formatPercent(contributorBps / 100, 1)}
@@ -87,7 +117,7 @@ export default async function TokenPage({
               <div className="border-t border-border pt-3">
                 <Button asChild variant="secondary">
                   <Link
-                    href={`https://bags.fm/token/${project.tokenMint}`}
+                    href={bags.bagsTokenUrl(project.tokenMint)}
                     target="_blank"
                     rel="noreferrer noopener"
                   >
@@ -102,6 +132,57 @@ export default async function TokenPage({
               <Link href="/launch" className="text-primary hover:underline">
                 Launch on Bags.fm →
               </Link>
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card depth="flat" padding="none">
+        <CardHeader className="border-b border-border px-6 py-4">
+          <CardTitle>Incorporation</CardTitle>
+          <CardDescription>
+            Optional Bags.fm business formation handoff for tokenized projects.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 px-6 py-5">
+          {project.tokenMint ? (
+            <>
+              <Row label="Bags status">
+                <span className="text-mono-md text-fg">
+                  {incorporation?.incorporationStatus ?? "Not started"}
+                </span>
+              </Row>
+              <Row label="Ready">
+                <Badge
+                  variant={
+                    incorporation?.isReadyForIncorporation
+                      ? "success"
+                      : "default"
+                  }
+                  size="sm"
+                >
+                  {incorporation?.isReadyForIncorporation ? "Ready" : "No"}
+                </Badge>
+              </Row>
+              <p className="text-body-sm text-fg-secondary">
+                GitBags does not collect founder KYC, residential addresses, or
+                tax residency data. Use the Bags-hosted flow so sensitive
+                incorporation details stay with Bags.
+              </p>
+              <Button asChild variant="secondary">
+                <Link
+                  href={launchIntentUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  Open Bags incorporation intent
+                  <ExternalLink className="size-3.5" />
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <p className="text-body-md text-fg-secondary">
+              Finish token setup before starting incorporation.
             </p>
           )}
         </CardContent>

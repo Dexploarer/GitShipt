@@ -54,7 +54,7 @@ export default async function ProjectRepositoryPage({
     .limit(1);
 
   const repoUrl = `https://github.com/${header.ghOwner}/${header.ghRepo}`;
-  const installed = Boolean(header.tokenMint); // proxy: launched projects are App-installed
+  const installed = header.status === "live";
 
   return (
     <div className="flex flex-col gap-4">

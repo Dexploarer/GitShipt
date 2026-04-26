@@ -22,15 +22,19 @@ export interface TokenSparkCardProps {
  * here — server/client mismatch and unstable test snapshots).
  */
 export function TokenSparkCard({ header, pool }: TokenSparkCardProps) {
-  if (!header.tokenMint) {
+  if (!header.tokenMint || header.status !== "live") {
     return (
       <Card depth="raised" padding="sm">
         <div className="text-label-sm text-fg-muted">Token</div>
         <div className="mt-2 text-body-md text-fg-secondary">
-          No token launched
+          {header.status === "launch_configured"
+            ? "Launch configured"
+            : "No token launched"}
         </div>
         <div className="mt-1 text-caption text-fg-muted">
-          Launch on Bags.fm to start the daily fee pool.
+          {header.status === "launch_configured"
+            ? "Broadcast the launch tx to start the daily fee pool."
+            : "Launch on Bags.fm to start the daily fee pool."}
         </div>
       </Card>
     );
