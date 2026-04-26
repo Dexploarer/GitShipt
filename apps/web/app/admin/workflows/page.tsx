@@ -22,7 +22,9 @@ interface WorkflowDef {
     | "takeSnapshot"
     | "executePayout"
     | "expireEscrow"
-    | "processClaim";
+    | "processClaim"
+    | "publishKpis";
+  heartbeatKey: string | null;
   schedule: string;
   needsArgs: boolean;
   description: string;
@@ -31,42 +33,56 @@ interface WorkflowDef {
 const WORKFLOWS: WorkflowDef[] = [
   {
     name: "healthPulse",
+    heartbeatKey: "runtime",
     schedule: "* * * * *",
     needsArgs: false,
     description: "Per-minute heartbeat tick.",
   },
   {
     name: "indexGithubDeltas",
+    heartbeatKey: "indexer",
     schedule: "*/5 * * * *",
     needsArgs: false,
     description: "Pulls commits/PRs/reviews/issues since last cursor.",
   },
   {
     name: "computeLeaderboard",
+    heartbeatKey: "leaderboard",
     schedule: "0 * * * *",
     needsArgs: true,
     description: "Re-scores every project. Manual trigger needs projectId.",
   },
   {
     name: "takeSnapshot",
+    heartbeatKey: "snapshot",
     schedule: "0 0 * * *",
-    needsArgs: true,
-    description: "Daily snapshot freeze. Manual trigger needs projectId.",
+    needsArgs: false,
+    description: "Daily snapshot freeze. Per-project trigger lives on project pages.",
   },
   {
     name: "executePayout",
+    heartbeatKey: "payouts",
     schedule: "30 0 * * *",
-    needsArgs: true,
-    description: "Claim + distribute. Manual trigger needs snapshotId.",
+    needsArgs: false,
+    description: "Claim + distribute all frozen snapshots awaiting payout.",
   },
   {
     name: "expireEscrow",
+    heartbeatKey: "escrow",
     schedule: "0 1 * * *",
     needsArgs: false,
     description: "Sweep expired escrow back to platform.",
   },
   {
+    name: "publishKpis",
+    heartbeatKey: null,
+    schedule: "* * * * *",
+    needsArgs: false,
+    description: "Publish the cached public landing ticker.",
+  },
+  {
     name: "processClaim",
+    heartbeatKey: null,
     schedule: "(event)",
     needsArgs: true,
     description: "Drains escrow on wallet link. Event-driven, not cron.",
@@ -84,8 +100,8 @@ export default async function AdminWorkflowsPage() {
       <header>
         <h1 className="text-headline-md tracking-tight">Workflows</h1>
         <p className="text-body-sm text-fg-secondary">
-          Inspector + manual re-trigger. Full Vercel Workflows API binding ships
-          in v1.1.
+          Inspector and manual re-trigger surface for the cron-backed workflow
+          runs.
         </p>
       </header>
 
@@ -111,7 +127,9 @@ export default async function AdminWorkflowsPage() {
           </thead>
           <tbody>
             {WORKFLOWS.map((w) => {
-              const beat = beatsByName.get(w.name);
+              const beat = w.heartbeatKey
+                ? beatsByName.get(w.heartbeatKey)
+                : undefined;
               const status = beat?.status ?? "red";
               return (
                 <tr key={w.name} className="border-t border-border/40">

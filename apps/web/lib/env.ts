@@ -37,6 +37,7 @@ const serverEnvSchema = z.object({
   // Safety guard: refuse real launch txns when devnet cluster + prod key
   // unless explicitly opted in. Read-only Bags calls always work.
   BAGS_ALLOW_PROD_LAUNCH: z.coerce.boolean().default(false),
+  ALLOW_STUBS_IN_PROD: z.coerce.boolean().default(false),
 
   // Solana
   HELIUS_RPC_URL: z.string().url().optional(),
@@ -117,6 +118,11 @@ export const hasCredentials = {
   payoutKey: () => Boolean(serverEnv().SOLANA_PAYOUT_KEYPAIR),
   cron: () => Boolean(serverEnv().CRON_SECRET),
 };
+
+export function stubsAllowed(): boolean {
+  const env = serverEnv();
+  return env.NODE_ENV !== "production" || env.ALLOW_STUBS_IN_PROD;
+}
 
 /**
  * Safety check: should we allow a real Bags launch transaction?

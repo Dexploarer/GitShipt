@@ -12,7 +12,8 @@ type WorkflowName =
   | "takeSnapshot"
   | "executePayout"
   | "expireEscrow"
-  | "processClaim";
+  | "processClaim"
+  | "publishKpis";
 
 export function WorkflowRetriggerButton({
   name,

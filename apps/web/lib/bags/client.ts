@@ -1,4 +1,9 @@
-import { serverEnv, hasCredentials, canLaunchOnBags } from "@/lib/env";
+import {
+  serverEnv,
+  hasCredentials,
+  canLaunchOnBags,
+  stubsAllowed,
+} from "@/lib/env";
 import { payoutSigner } from "@/lib/solana/signer";
 import bs58 from "bs58";
 import {
@@ -74,6 +79,7 @@ type BagsSdk = {
   };
   state: {
     getConnection: () => unknown;
+    getTokenLifetimeFees: (tokenMint: unknown) => Promise<number>;
     getLaunchWalletV2Bulk: (
       items: Array<{ username: string; provider: BagsProvider }>,
     ) => Promise<
@@ -183,7 +189,16 @@ async function getSdk(): Promise<BagsSdk> {
 }
 
 function shouldUseStubLaunch(): boolean {
-  return !hasCredentials.bags() || !canLaunchOnBags().ok;
+  const shouldStub = !hasCredentials.bags() || !canLaunchOnBags().ok;
+  if (shouldStub && !stubsAllowed()) {
+    const guard = canLaunchOnBags();
+    throw new Error(
+      `Live Bags credentials are required in production: ${
+        guard.ok ? "BAGS_API_KEY missing" : guard.reason
+      }`,
+    );
+  }
+  return shouldStub;
 }
 
 function publicKeyToString(value: unknown): string {
@@ -494,10 +509,17 @@ export const bags = {
     if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) {
       return LifetimeFeesSchema.parse(stubBags.lifetimeFees(tokenMint));
     }
-    const raw = await bagsRest<unknown>("token-launch/lifetime-fees", {
-      query: { tokenMint },
+    const [{ PublicKey }, sdk] = await Promise.all([
+      import("@solana/web3.js"),
+      getSdk(),
+    ]);
+    const totalLifetimeLamports = await sdk.state.getTokenLifetimeFees(
+      new PublicKey(tokenMint),
+    );
+    return LifetimeFeesSchema.parse({
+      tokenMint,
+      totalLifetimeLamports,
     });
-    return LifetimeFeesSchema.parse(raw);
   },
 
   /**

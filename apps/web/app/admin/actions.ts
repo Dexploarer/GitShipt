@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { start } from "workflow/api";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { dbHttp } from "@/db";
@@ -15,7 +16,7 @@ import {
 } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { audit } from "@/lib/audit";
-import { withIdempotency } from "@/lib/idempotency";
+import { deriveKey, withIdempotency } from "@/lib/idempotency";
 import { requirePermission } from "@/lib/auth/permissions";
 import {
   destructiveAction,
@@ -24,6 +25,13 @@ import {
 import { serverEnv } from "@/lib/env";
 import { updateProjectCaches } from "@/lib/cache-actions";
 import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
+import { healthPulse } from "@/workflows/healthPulse";
+import { indexGithubDeltas } from "@/workflows/indexGithubDeltas";
+import { takeSnapshot, takeProjectSnapshot } from "@/workflows/takeSnapshot";
+import { executePayout } from "@/workflows/executePayout";
+import { expireEscrow } from "@/workflows/expireEscrow";
+import { publishKpis } from "@/workflows/publishKpis";
+import { computeLeaderboard as computeLeaderboardWorkflow } from "@/workflows/computeLeaderboard";
 
 /**
  * Server actions for the super-admin console.
@@ -315,7 +323,9 @@ const ForceSnapshotSchema = z.object({
   idempotencyKey: z.string().min(8).optional(),
 });
 
-export async function forceSnapshot(input: unknown): Promise<{ ok: true }> {
+export async function forceSnapshot(
+  input: unknown,
+): Promise<{ ok: true; runId: string | null }> {
   const parsed = ForceSnapshotSchema.parse(input);
   const ctx = await requireSession();
 
@@ -324,19 +334,15 @@ export async function forceSnapshot(input: unknown): Promise<{ ok: true }> {
     projectId: parsed.projectId,
   });
 
-  // The actual snapshot work is performed by `takeSnapshot` / `computeLeaderboard`
-  // workflows. For v0 we audit the manual trigger and flag a row in
-  // platform_config the workflow can pick up. The real workflow integration
-  // will fire `start(takeSnapshot, [projectId])` once Agent B's pipeline is
-  // wired in.
-  // TODO(v1.1): kick off `start(takeSnapshot, [projectId])`.
-  await withIdempotency(
+  const runId = await withIdempotency(
     parsed.idempotencyKey ?? `snapshot:force:${parsed.projectId}`,
     async () => {
+      const run = await start(takeProjectSnapshot, [parsed.projectId]);
       const value = {
         projectId: parsed.projectId,
         requestedBy: ctx.userId,
         requestedAt: new Date().toISOString(),
+        runId: run.runId,
       };
       await dbHttp
         .insert(platformConfig)
@@ -354,17 +360,18 @@ export async function forceSnapshot(input: unknown): Promise<{ ok: true }> {
         action: "snapshot.force",
         targetType: "project",
         targetId: parsed.projectId,
-        metadata: { manualTrigger: true },
+        metadata: { manualTrigger: true, runId: run.runId },
         ip: ctx.ip,
         userAgent: ctx.userAgent,
       });
+      return run.runId;
     },
     { scope: `admin:snapshot:force:${parsed.projectId}:${ctx.userId}` },
   );
 
   revalidatePath(`/admin/projects/${parsed.projectId}`);
   await updateProjectCaches(parsed.projectId);
-  return { ok: true };
+  return { ok: true, runId };
 }
 
 // ---------------------------------------------------------------------------
@@ -492,29 +499,36 @@ export async function updateBanner(input: unknown): Promise<{ ok: true }> {
 
   await requirePermission("platform.maintenance", { userId: ctx.userId });
 
-  const value = {
-    message: parsed.message,
-    visible: parsed.visible,
-    updatedBy: ctx.userId,
-    updatedAt: new Date().toISOString(),
-  };
-  await dbHttp
-    .insert(platformConfig)
-    .values({ key: "banner.global", value, updatedBy: ctx.userId })
-    .onConflictDoUpdate({
-      target: platformConfig.key,
-      set: { value, updatedBy: ctx.userId, updatedAt: new Date() },
-    });
+  await withIdempotency(
+    deriveKey("banner", ctx.userId, parsed.visible ? 1 : 0, parsed.message),
+    async () => {
+      const value = {
+        message: parsed.message,
+        visible: parsed.visible,
+        updatedBy: ctx.userId,
+        updatedAt: new Date().toISOString(),
+      };
+      await dbHttp
+        .insert(platformConfig)
+        .values({ key: "banner.global", value, updatedBy: ctx.userId })
+        .onConflictDoUpdate({
+          target: platformConfig.key,
+          set: { value, updatedBy: ctx.userId, updatedAt: new Date() },
+        });
 
-  await audit({
-    actorUserId: ctx.userId,
-    action: "admin.access",
-    targetType: "platform_config",
-    targetId: "banner.global",
-    metadata: { ...parsed },
-    ip: ctx.ip,
-    userAgent: ctx.userAgent,
-  });
+      await audit({
+        actorUserId: ctx.userId,
+        action: "admin.access",
+        targetType: "platform_config",
+        targetId: "banner.global",
+        metadata: { ...parsed },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+      });
+      return { ok: true } as const;
+    },
+    { scope: `admin:banner:${ctx.userId}` },
+  );
 
   revalidatePath("/admin/maintenance");
   return { ok: true };
@@ -669,11 +683,10 @@ const TriggerWorkflowSchema = z.object({
   name: z.enum([
     "healthPulse",
     "indexGithubDeltas",
-    "computeLeaderboard",
     "takeSnapshot",
     "executePayout",
     "expireEscrow",
-    "processClaim",
+    "publishKpis",
   ]),
 });
 
@@ -685,21 +698,30 @@ export async function retriggerWorkflow(
 
   await requirePermission("admin.workflows.inspect", { userId: ctx.userId });
 
-  // Only the args-free workflows can be triggered manually here. Workflows
-  // that need arguments (processClaim, takeSnapshot, processSnapshotPayout)
-  // are not invoked from this control surface.
-  // TODO(v1.1): kick off the actual workflow run via `start(...)`.
+  const run =
+    parsed.name === "healthPulse"
+      ? await start(healthPulse, [])
+      : parsed.name === "indexGithubDeltas"
+        ? await start(indexGithubDeltas, [])
+        : parsed.name === "takeSnapshot"
+          ? await start(takeSnapshot, [])
+          : parsed.name === "executePayout"
+            ? await start(executePayout, [])
+            : parsed.name === "expireEscrow"
+              ? await start(expireEscrow, [])
+              : await start(publishKpis, []);
+
   await audit({
     actorUserId: ctx.userId,
     action: "admin.access",
     targetType: "workflow",
     targetId: parsed.name,
-    metadata: { kind: "retrigger", note: "v0 audit-only stub" },
+    metadata: { kind: "retrigger", runId: run.runId },
     ip: ctx.ip,
     userAgent: ctx.userAgent,
   });
 
-  return { ok: true };
+  return { ok: true, runId: run.runId };
 }
 
 // ---------------------------------------------------------------------------
@@ -712,7 +734,7 @@ const RecomputeLeaderboardSchema = z.object({
 
 export async function recomputeLeaderboard(
   input: unknown,
-): Promise<{ ok: true }> {
+): Promise<{ ok: true; runId: string }> {
   const parsed = RecomputeLeaderboardSchema.parse(input);
   const ctx = await requireSession();
 
@@ -721,19 +743,21 @@ export async function recomputeLeaderboard(
     projectId: parsed.projectId,
   });
 
+  const run = await start(computeLeaderboardWorkflow, [parsed.projectId]);
+
   await audit({
     actorUserId: ctx.userId,
     action: "scoring.update",
     targetType: "project",
     targetId: parsed.projectId,
-    metadata: { kind: "recompute_leaderboard" },
+    metadata: { kind: "recompute_leaderboard", runId: run.runId },
     ip: ctx.ip,
     userAgent: ctx.userAgent,
   });
 
   revalidatePath(`/admin/projects/${parsed.projectId}`);
   await updateProjectCaches(parsed.projectId);
-  return { ok: true };
+  return { ok: true, runId: run.runId };
 }
 
 const UpdatePayoutConfigSchema = z.object({
@@ -750,19 +774,31 @@ export async function updatePayoutConfig(
     userId: ctx.userId,
     projectId: parsed.projectId,
   });
-  await dbHttp
-    .update(projects)
-    .set({ payoutConfig: parsed.payoutConfig satisfies PayoutConfig })
-    .where(eq(projects.id, parsed.projectId));
-  await audit({
-    actorUserId: ctx.userId,
-    action: "scoring.update",
-    targetType: "project",
-    targetId: parsed.projectId,
-    metadata: { kind: "payout_config_override" },
-    ip: ctx.ip,
-    userAgent: ctx.userAgent,
-  });
+  await withIdempotency(
+    deriveKey(
+      "payout-config",
+      parsed.projectId,
+      ctx.userId,
+      JSON.stringify(parsed.payoutConfig),
+    ),
+    async () => {
+      await dbHttp
+        .update(projects)
+        .set({ payoutConfig: parsed.payoutConfig satisfies PayoutConfig })
+        .where(eq(projects.id, parsed.projectId));
+      await audit({
+        actorUserId: ctx.userId,
+        action: "scoring.update",
+        targetType: "project",
+        targetId: parsed.projectId,
+        metadata: { kind: "payout_config_override" },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+      });
+      return { ok: true } as const;
+    },
+    { scope: `admin:payout-config:${parsed.projectId}:${ctx.userId}` },
+  );
   revalidatePath(`/admin/projects/${parsed.projectId}`);
   await updateProjectCaches(parsed.projectId);
   return { ok: true };

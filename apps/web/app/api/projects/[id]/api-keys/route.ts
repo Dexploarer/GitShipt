@@ -97,6 +97,12 @@ export async function POST(
   }
 
   const idemKey = req.headers.get("idempotency-key");
+  if (!idemKey) {
+    return NextResponse.json(
+      { error: "idempotency_key_required" },
+      { status: 400 },
+    );
+  }
 
   try {
     const result = await withIdempotency(

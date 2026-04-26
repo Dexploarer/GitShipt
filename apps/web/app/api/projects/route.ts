@@ -9,7 +9,7 @@ import { accounts, projects, projectMemberships, users } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
-import { hasCredentials } from "@/lib/env";
+import { hasCredentials, stubsAllowed } from "@/lib/env";
 import { revalidatePublicCaches } from "@/lib/cache";
 import { CreateProjectBodySchema, CreateProjectResponseSchema } from "@repo/shared";
 
@@ -88,6 +88,14 @@ export async function POST(req: Request): Promise<Response> {
         { status: verifyResult.status },
       );
     }
+  } else if (!stubsAllowed()) {
+    return NextResponse.json(
+      {
+        error: "github_credentials_required",
+        message: "GitHub credentials are required to verify repo ownership.",
+      },
+      { status: 503 },
+    );
   }
 
   // Make sure the user row actually exists (better-auth normally creates
@@ -106,6 +114,12 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const idempotencyKey = req.headers.get("idempotency-key");
+  if (!idempotencyKey) {
+    return NextResponse.json(
+      { error: "idempotency_key_required" },
+      { status: 400 },
+    );
+  }
 
   try {
     const result = await withIdempotency(
