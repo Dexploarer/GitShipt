@@ -44,7 +44,7 @@ export default async function LandingPage() {
               Right (cols 8-12): mia.png, full row height
         */}
         <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-12">
-          <div className="flex flex-col gap-4 lg:col-span-5 lg:min-h-0">
+          <div className="flex flex-col gap-4 lg:col-span-5 lg:min-h-0 lg:gap-10 lg:pt-16">
             <section className="flex flex-col items-start gap-4 lg:gap-5">
               <h1 className="text-[40px] font-semibold leading-[1.02] tracking-[-0.025em] text-fg sm:text-[52px] lg:text-[76px]">
                 Your repo,
@@ -87,7 +87,7 @@ export default async function LandingPage() {
                 fill
                 priority
                 sizes="(max-width: 1024px) 560px, 800px"
-                className="object-contain object-bottom"
+                className="object-contain object-center"
                 unoptimized
               />
             </div>
