@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
+import { auth } from "@/lib/auth";
+import { isProjectAdmin } from "@/lib/auth/admin-check";
+import { hasCredentials } from "@/lib/env";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { getTokenStats } from "@/lib/queries/token-stats";
 import { ProjectHeader } from "./_components/ProjectHeader";
@@ -39,6 +43,11 @@ export async function generateMetadata({
  * Sidebar is a Liquid-Glass aside (collapsable, full-height, rounded). The
  * right column stacks: main content card stack, then a tucked footer with
  * rounded-tl that visually meets the sidebar.
+ *
+ * Auth: when a session is present, also resolves `canAdmin` so the sidebar
+ * surfaces admin-only nav items + a "Manage in dashboard" entry. The check
+ * is purely cosmetic — every server action / API route re-validates via
+ * `requirePermission()`.
  */
 export default async function ProjectPage({
   params,
@@ -54,8 +63,39 @@ export default async function ProjectPage({
   const { header, leaderboard, pool, recentPayouts, nextPayoutAt } = data;
   const tokenStats = await getTokenStats(header);
 
+  // Session is best-effort — public route, never required. Skip the lookup
+  // entirely in stub mode (no DB) so the page still renders.
+  let canAdmin = false;
+  let user: {
+    name?: string | null;
+    email?: string | null;
+    username?: string | null;
+    imageUrl?: string | null;
+  } | null = null;
+  if (hasCredentials.db()) {
+    const session = await auth().api.getSession({ headers: await headers() });
+    if (session?.user) {
+      user = {
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+        username:
+          (session.user as { githubUsername?: string | null }).githubUsername ??
+          null,
+        imageUrl: session.user.image ?? null,
+      };
+      canAdmin = await isProjectAdmin(session.user.id, header.id);
+    }
+  }
+
   return (
-    <ProjectShell header={header} pool={pool} active="leaderboard" fitViewport>
+    <ProjectShell
+      header={header}
+      pool={pool}
+      active="leaderboard"
+      canAdmin={canAdmin}
+      user={user}
+      fitViewport
+    >
       {/* Bento shell. Mobile (< lg): vertical scroll, single column.
           Desktop (lg+): the page slots into the viewport — main is
           overflow-hidden, header spans both cols, leaderboard +

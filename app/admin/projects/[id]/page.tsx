@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { requirePermission } from "@/lib/auth/permissions";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { getProjectAdminDetail } from "@/lib/queries/admin";
 import { formatRelativeTime } from "@/lib/format";
 import { ProjectGodModeControls } from "./_components/ProjectGodModeControls";
@@ -32,11 +33,14 @@ export default async function AdminProjectDetailPage({
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-caption text-fg-muted">
-            <Link href="/admin/projects" className="underline-offset-2 hover:underline">
-              ← Projects
-            </Link>
-          </p>
+          <Breadcrumbs
+            items={[
+              { label: "Admin", href: "/admin" },
+              { label: "Projects", href: "/admin/projects" },
+              { label: project.name },
+            ]}
+            className="mb-1"
+          />
           <h1 className="text-headline-md tracking-tight">{project.name}</h1>
           <p className="text-mono-sm text-fg-secondary">
             {slug} · owned by {ownerUsername ?? ownerName ?? "—"}

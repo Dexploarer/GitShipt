@@ -4,7 +4,9 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import {
   PublicSidebar,
   type PublicSidebarActive,
+  type PublicSidebarUser,
 } from "@/components/sidebar/PublicSidebar";
+import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
 
 /**
  * PublicAppShell — viewport-locked app shell for public pages, mirroring
@@ -12,29 +14,40 @@ import {
  * one. Use this on landing / explore / leaderboard / docs / legal / etc.
  *
  *   - Outer flex h-screen overflow-hidden (page never scrolls; only main does)
- *   - Sidebar in a 12px outer gutter (top/left/bottom)
- *   - Content area scrolls internally; footer pinned bottom-right with
- *     rounded-tl, social icons, "devnet · BAGS.fm" caption
+ *   - Sidebar: inline column on lg+ (12px outer gutter), slide-over drawer
+ *     below lg. The hamburger lives at the top of <main>.
+ *   - Footer pinned bottom-right with rounded-tl, social icons.
  */
 export function PublicAppShell({
   active,
   footerLeft = "devnet · BAGS.fm",
+  user,
   children,
 }: {
   active?: PublicSidebarActive;
   footerLeft?: string;
+  /** Pass `null` for signed-out, an object when signed in. */
+  user?: PublicSidebarUser | null;
   children: React.ReactNode;
 }) {
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-bg text-fg">
-        <div className="shrink-0 p-3 pr-0">
-          <PublicSidebar active={active} />
+        {/* Sidebar — inline on lg+ (with 12px outer gutter), fixed slide-over
+            drawer on < lg (positioned by the Sidebar primitive). The wrapper
+            collapses to zero width below lg so content reflows full-width. */}
+        <div className="shrink-0 lg:p-3 lg:pr-0">
+          <PublicSidebar active={active} user={user} />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3">
-            <div className="mx-auto w-full max-w-content">{children}</div>
+            <div className="mx-auto w-full max-w-content">
+              <div className="mb-3 lg:hidden">
+                <MobileSidebarTrigger />
+              </div>
+              {children}
+            </div>
           </main>
 
           <footer

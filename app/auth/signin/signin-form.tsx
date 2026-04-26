@@ -5,6 +5,7 @@ import { Github, Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
 import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function SignInForm() {
   const params = useSearchParams();
@@ -28,8 +29,11 @@ export function SignInForm() {
 
   return (
     <div className="grid min-h-screen place-items-center bg-bg px-6 py-12">
-      <div className="w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-popover">
-        <Link href="/" className="mb-6 inline-flex items-center gap-3">
+      <div className="w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-card-elevated surface-highlight">
+        <Link
+          href="/"
+          className="mb-6 inline-flex items-center gap-3 transition-opacity hover:opacity-80"
+        >
           <span className="grid size-8 place-items-center rounded-md bg-primary text-bg">
             <Sparkles className="size-4" />
           </span>
@@ -42,33 +46,50 @@ export function SignInForm() {
           ownership when you launch a token.
         </p>
 
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="lg"
           onClick={handleGithub}
           disabled={isLoading}
-          className="mt-8 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-5 text-label-md text-fg transition-colors hover:bg-primary-hover disabled:opacity-60"
+          className="mt-8 w-full"
+          aria-busy={isLoading}
         >
           {isLoading ? (
-            <Loader2 className="size-4 animate-spin" />
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Redirecting to GitHub…
+            </>
           ) : (
-            <Github className="size-4" />
+            <>
+              <Github className="size-4" aria-hidden />
+              Continue with GitHub
+            </>
           )}
-          Continue with GitHub
-        </button>
+        </Button>
 
         {error ? (
-          <p className="mt-4 rounded-md border border-danger bg-danger-soft px-3 py-2 text-body-sm text-danger">
+          <p
+            role="alert"
+            className="mt-4 rounded-md border border-danger bg-danger-soft px-3 py-2 text-body-sm text-danger"
+          >
             {error}
           </p>
         ) : null}
 
         <p className="mt-8 text-caption text-fg-muted">
           By signing in, you agree to the{" "}
-          <Link href="/legal/terms" className="text-fg-secondary hover:text-fg">
+          <Link
+            href="/legal/terms"
+            className="text-fg-secondary underline-offset-2 transition-colors hover:text-fg hover:underline"
+          >
             terms
           </Link>{" "}
           and{" "}
-          <Link href="/legal/privacy" className="text-fg-secondary hover:text-fg">
+          <Link
+            href="/legal/privacy"
+            className="text-fg-secondary underline-offset-2 transition-colors hover:text-fg hover:underline"
+          >
             privacy policy
           </Link>
           .

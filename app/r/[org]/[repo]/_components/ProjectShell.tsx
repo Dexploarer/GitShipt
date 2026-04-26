@@ -2,17 +2,20 @@ import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
 import { ProjectSidebar } from "@/components/sidebar/ProjectSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
+import type { SidebarUserCardProps } from "@/components/sidebar/SidebarUserCard";
 import type { ProjectHeader, PoolOverview } from "@/lib/queries/project-page";
 
 /**
  * ProjectShell — shared app shell for every page under /r/[org]/[repo]/*.
  *
  * Composes:
- *   - SidebarProvider (collapse state)
+ *   - SidebarProvider (collapse + mobile drawer state)
  *   - Outer flex h-screen container (viewport-locked)
  *   - ProjectSidebar (with `active` key for nav highlight, canAdmin gating,
  *     and the standard token + wallet footer cards)
  *   - <main> with overflow-y-auto on lg+ via the consumer's choice
+ *   - MobileSidebarTrigger pinned to the top of <main> on < lg
  *   - <footer> anchored bottom-right with rounded-tl, GitHub/Twitter social
  *
  * Pages just pass `header`, `pool`, `active`, and `children`. The chrome
@@ -24,6 +27,8 @@ export interface ProjectShellProps {
   pool: PoolOverview;
   active: ProjectSidebarActive;
   canAdmin?: boolean;
+  /** Signed-in user — surfaces the SidebarUserCard in the footer. */
+  user?: SidebarUserCardProps | null;
   /**
    * Whether <main> should overflow-hidden on lg (true for the leaderboard
    * page where the bento grid fits the viewport) or overflow-y-auto on
@@ -49,6 +54,7 @@ export function ProjectShell({
   pool,
   active,
   canAdmin = false,
+  user,
   fitViewport = false,
   children,
 }: ProjectShellProps) {
@@ -56,13 +62,15 @@ export function ProjectShell({
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-bg text-fg">
-        <div className="shrink-0 p-3 pr-0">
+        <div className="shrink-0 lg:p-3 lg:pr-0">
           <ProjectSidebar
             slug={slug}
+            projectId={header.id}
             active={active}
             canAdmin={canAdmin}
             token={{ header, pool }}
             wallet={{}}
+            user={user}
           />
         </div>
 
@@ -74,6 +82,9 @@ export function ProjectShell({
                 : "min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3"
             }
           >
+            <div className="mb-3 lg:hidden">
+              <MobileSidebarTrigger />
+            </div>
             {children}
           </main>
 

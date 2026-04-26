@@ -7,6 +7,7 @@ import { hasCredentials } from "@/lib/env";
 import { hasPermission } from "@/lib/auth/permissions";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/sidebar/AdminSidebar";
+import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
 
 /**
  * `/admin/**` shell. Mirrors the project-page app shell exactly so the visual
@@ -38,14 +39,26 @@ export default async function AdminLayout({
     notFound();
   }
 
+  const adminUser = {
+    name: session.user.name ?? null,
+    email: session.user.email ?? null,
+    username:
+      (session.user as { githubUsername?: string | null }).githubUsername ??
+      null,
+    imageUrl: session.user.image ?? null,
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-bg text-fg">
-        <div className="shrink-0 p-3 pr-0">
-          <AdminSidebar />
+        <div className="shrink-0 lg:p-3 lg:pr-0">
+          <AdminSidebar user={adminUser} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 lg:overflow-hidden">
+            <div className="mb-3 lg:hidden">
+              <MobileSidebarTrigger />
+            </div>
             {children}
           </main>
           <footer

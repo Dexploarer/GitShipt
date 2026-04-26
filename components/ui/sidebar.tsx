@@ -22,8 +22,13 @@ import { cn } from "@/lib/utils";
  *     <main>{children}</main>
  *   </SidebarProvider>
  *
- * State: collapsed/expanded via React Context. Persisted to localStorage
- * under `gitbags:sidebar:collapsed`. Hydration-safe (only reads after mount).
+ * State:
+ *  - `collapsed` — desktop (lg+) collapse to a 68px icon rail. Persisted to
+ *    localStorage["gitbags:sidebar:collapsed"] after mount.
+ *  - `mobileOpen` — controls the slide-over drawer on small (< lg) viewports.
+ *    Defaults to false; opened by `<MobileSidebarTrigger>` outside the sidebar
+ *    (rendered in each app shell). Closes on backdrop click, Escape, or any
+ *    `<SidebarItem>` click (so navigating dismisses the drawer).
  */
 
 const STORAGE_KEY = "gitbags:sidebar:collapsed";
@@ -32,6 +37,11 @@ type SidebarContextValue = {
   collapsed: boolean;
   toggle: () => void;
   setCollapsed: (v: boolean) => void;
+  // Mobile drawer
+  mobileOpen: boolean;
+  setMobileOpen: (v: boolean) => void;
+  closeMobile: () => void;
+  toggleMobile: () => void;
 };
 
 const SidebarContext = React.createContext<SidebarContextValue | null>(null);
@@ -52,6 +62,7 @@ export function SidebarProvider({
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsedState] = React.useState(defaultCollapsed);
+  const [mobileOpen, setMobileOpenState] = React.useState(false);
 
   // Hydrate from localStorage after mount to avoid SSR mismatch.
   React.useEffect(() => {
@@ -70,12 +81,55 @@ export function SidebarProvider({
   }, []);
 
   const toggle = React.useCallback(() => {
-    setCollapsed(!collapsed);
-  }, [collapsed, setCollapsed]);
+    setCollapsedState((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        /* noop */
+      }
+      return next;
+    });
+  }, []);
+
+  const setMobileOpen = React.useCallback((v: boolean) => {
+    setMobileOpenState(v);
+  }, []);
+
+  const closeMobile = React.useCallback(() => {
+    setMobileOpenState(false);
+  }, []);
+
+  const toggleMobile = React.useCallback(() => {
+    setMobileOpenState((v) => !v);
+  }, []);
+
+  // Lock body scroll when the mobile drawer is open + close on Escape.
+  React.useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpenState(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileOpen]);
 
   const value = React.useMemo(
-    () => ({ collapsed, toggle, setCollapsed }),
-    [collapsed, toggle, setCollapsed],
+    () => ({
+      collapsed,
+      toggle,
+      setCollapsed,
+      mobileOpen,
+      setMobileOpen,
+      closeMobile,
+      toggleMobile,
+    }),
+    [collapsed, toggle, setCollapsed, mobileOpen, setMobileOpen, closeMobile, toggleMobile],
   );
 
   return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
@@ -90,28 +144,57 @@ export function Sidebar({
   children,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
-  const { collapsed } = useSidebar();
+  const { collapsed, mobileOpen, closeMobile } = useSidebar();
   return (
-    <aside
-      data-collapsed={collapsed ? "true" : "false"}
-      className={cn(
-        // Designed to live inside an overflow:hidden viewport-locked shell.
-        // Stretches to fill the parent's full height — internal regions
-        // (header / scrollable nav / footer) handle their own overflow so
-        // the nav can scroll independently of the page.
-        "flex h-full flex-col shrink-0",
-        "rounded-2xl",
-        "glass shadow-floating surface-highlight",
-        "border border-border/50",
-        "transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        "overflow-hidden",
-        collapsed ? "w-[68px]" : "w-[260px]",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </aside>
+    <>
+      {/* Mobile backdrop — only mounted while the drawer is open, < lg only. */}
+      {mobileOpen ? (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={closeMobile}
+          className={cn(
+            "fixed inset-0 z-40 bg-bg/60 backdrop-blur-sm lg:hidden",
+            "transition-opacity duration-200",
+          )}
+        />
+      ) : null}
+
+      <aside
+        data-collapsed={collapsed ? "true" : "false"}
+        data-mobile-open={mobileOpen ? "true" : "false"}
+        className={cn(
+          // ── Mobile (< lg): slide-over drawer pinned to the left.
+          // The shell shows it via `fixed` + a translateX transform. We always
+          // render the aside (so its internal state survives) and only toggle
+          // visibility/transform; no layout shift.
+          "fixed inset-y-0 left-0 z-50 m-3 flex flex-col",
+          "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          mobileOpen ? "translate-x-0" : "-translate-x-[110%]",
+          // Mobile drawer is always at the expanded width — collapsing only
+          // applies on desktop where the icon rail is useful.
+          "w-[260px]",
+
+          // ── Desktop (lg+): inline column inside the app-shell flex layout.
+          // Reset the mobile-only positioning, drop the m-3 (the parent owns
+          // the gutter on lg+), restore inline flow, and apply the collapse
+          // width transition.
+          "lg:static lg:m-0 lg:translate-x-0 lg:transition-[width]",
+          "lg:h-full lg:shrink-0",
+          collapsed ? "lg:w-[68px]" : "lg:w-[260px]",
+
+          // Surface
+          "rounded-2xl",
+          "glass shadow-floating surface-highlight",
+          "border border-border/50",
+          "overflow-hidden",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </aside>
+    </>
   );
 }
 
@@ -167,7 +250,9 @@ export function SidebarFooter({
     <div
       className={cn(
         "shrink-0 border-t border-border/40 bg-bg/30",
-        collapsed ? "px-2 py-2" : "px-3 py-3",
+        collapsed ? "lg:px-2 lg:py-2" : "lg:px-3 lg:py-3",
+        // On mobile the drawer is always at expanded padding.
+        "px-3 py-3",
         "space-y-2",
         className,
       )}
@@ -191,8 +276,15 @@ export function SidebarSection({
   const { collapsed } = useSidebar();
   return (
     <div className={cn("py-1.5", className)} {...props}>
-      {title && !collapsed ? (
-        <div className="px-2.5 pb-1.5 text-caption uppercase tracking-wider text-fg-muted">
+      {title ? (
+        <div
+          className={cn(
+            "px-2.5 pb-1.5 text-caption uppercase tracking-wider text-fg-muted",
+            // Hide the title only when desktop-collapsed; mobile drawer always
+            // renders at full width.
+            collapsed && "lg:hidden",
+          )}
+        >
           {title}
         </div>
       ) : null}
@@ -211,6 +303,8 @@ export interface SidebarItemProps {
   disabled?: boolean;
   /** Keep the item rendered when collapsed (default: true). Useful to hide admin-only items. */
   show?: boolean;
+  /** External link — opens in new tab with rel=noreferrer. */
+  external?: boolean;
 }
 
 export function SidebarItem({
@@ -222,8 +316,9 @@ export function SidebarItem({
   onClick,
   disabled,
   show = true,
+  external,
 }: SidebarItemProps) {
-  const { collapsed } = useSidebar();
+  const { collapsed, closeMobile } = useSidebar();
   if (!show) return null;
 
   const inner = (
@@ -232,13 +327,15 @@ export function SidebarItem({
       <span
         className={cn(
           "truncate text-label-md",
-          collapsed && "sr-only",
+          // Hide label only when desktop-collapsed; the mobile drawer is
+          // always at full width.
+          collapsed && "lg:sr-only",
         )}
       >
         {label}
       </span>
-      {badge && !collapsed ? (
-        <span className="ml-auto shrink-0">{badge}</span>
+      {badge ? (
+        <span className={cn("ml-auto shrink-0", collapsed && "lg:hidden")}>{badge}</span>
       ) : null}
     </>
   );
@@ -249,13 +346,38 @@ export function SidebarItem({
     active
       ? "bg-surface-elevated text-fg shadow-inset-light"
       : "text-fg-secondary hover:bg-surface-elevated/60 hover:text-fg",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
     disabled && "pointer-events-none opacity-40",
-    collapsed && "justify-center px-0",
+    collapsed && "lg:justify-center lg:px-0",
   );
 
+  const handleClick = () => {
+    onClick?.();
+    closeMobile();
+  };
+
   if (href && !disabled) {
+    if (external) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer noopener"
+          className={className}
+          title={collapsed ? label : undefined}
+          onClick={handleClick}
+        >
+          {inner}
+        </a>
+      );
+    }
     return (
-      <Link href={href} className={className} title={collapsed ? label : undefined}>
+      <Link
+        href={href}
+        className={className}
+        title={collapsed ? label : undefined}
+        onClick={handleClick}
+      >
         {inner}
       </Link>
     );
@@ -264,7 +386,7 @@ export function SidebarItem({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       className={cn(className, "w-full text-left")}
       title={collapsed ? label : undefined}
@@ -285,8 +407,10 @@ export function SidebarToggle({ className }: { className?: string }) {
       type="button"
       onClick={toggle}
       aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      // Hide the desktop collapse toggle on mobile — the drawer is opened/closed
+      // by the hamburger trigger or backdrop, not by this affordance.
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-md",
+        "hidden lg:inline-flex h-8 w-8 items-center justify-center rounded-md",
         "text-fg-secondary hover:bg-surface-elevated hover:text-fg",
         "transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",

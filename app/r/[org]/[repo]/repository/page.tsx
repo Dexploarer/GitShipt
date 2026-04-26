@@ -17,6 +17,7 @@ import { eq } from "drizzle-orm";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectShell } from "../_components/ProjectShell";
 import { formatRelativeTime, formatAddress } from "@/lib/format";
 
@@ -60,12 +61,16 @@ export default async function ProjectRepositoryPage({
     <ProjectShell header={header} pool={pool} active="repository">
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-2">
-          <Link
-            href={`/r/${header.ghOwner}/${header.ghRepo}`}
-            className="inline-flex w-fit items-center gap-1 text-body-sm text-fg-secondary transition-colors hover:text-fg"
-          >
-            ← Back to {header.name}
-          </Link>
+          <Breadcrumbs
+            items={[
+              { label: "Projects", href: "/explore" },
+              {
+                label: header.name,
+                href: `/r/${header.ghOwner}/${header.ghRepo}`,
+              },
+              { label: "Repository" },
+            ]}
+          />
           <h1 className="text-headline-lg leading-tight text-fg">Repository</h1>
           <p className="text-body-md text-fg-secondary">
             How GitBags sees this repo on GitHub — what's tracked, when it was

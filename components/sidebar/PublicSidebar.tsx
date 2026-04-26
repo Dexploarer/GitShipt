@@ -6,8 +6,10 @@ import {
   FileText,
   Github,
   Home,
+  LayoutDashboard,
   Rocket,
   Shield,
+  ShieldAlert,
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
@@ -24,12 +26,14 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { SidebarUserCard } from "./SidebarUserCard";
+import { cn } from "@/lib/utils";
 
 /**
  * Public-facing sidebar — used on landing, /explore, /leaderboard, /docs,
  * /legal/*, /u/[username]. Pure navigation: Home / Explore / Leaderboard /
  * Docs at the top, Legal at the bottom. Sign-in CTA + ThemeToggle in the
- * footer when not signed in.
+ * footer when not signed in; SidebarUserCard when signed in.
  *
  * Composed from the same `Sidebar` primitive used everywhere else, so the
  * collapse + glass + macOS Tahoe depth all match the rest of the app.
@@ -59,13 +63,30 @@ export type PublicSidebarActive =
   | "privacy"
   | undefined;
 
-export function PublicSidebar({ active }: { active?: PublicSidebarActive }) {
+export interface PublicSidebarUser {
+  name?: string | null;
+  email?: string | null;
+  username?: string | null;
+  imageUrl?: string | null;
+  /** Whether this user has admin/super_admin platform role. Reveals an Admin entry. */
+  isPlatformAdmin?: boolean;
+}
+
+export interface PublicSidebarProps {
+  active?: PublicSidebarActive;
+  /** Pass `null` (or omit) when no session is present; an object when signed in. */
+  user?: PublicSidebarUser | null;
+}
+
+export function PublicSidebar({ active, user }: PublicSidebarProps) {
   const pathname = usePathname() ?? "/";
   const isActive = (href: string, key: PublicSidebarActive) => {
     if (active !== undefined) return active === key;
     if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(`${href}/`);
   };
+
+  const signedIn = Boolean(user && (user.name || user.email));
 
   return (
     <Sidebar>
@@ -90,16 +111,40 @@ export function PublicSidebar({ active }: { active?: PublicSidebarActive }) {
         </SidebarSection>
 
         <SidebarSection title="Account">
-          <SidebarItem
-            icon={Github}
-            label="Sign in"
-            href="/auth/signin"
-          />
-          <SidebarItem
-            icon={Rocket}
-            label="Launch a token"
-            href="/launch"
-          />
+          {signedIn ? (
+            <>
+              <SidebarItem
+                icon={LayoutDashboard}
+                label="Dashboard"
+                href="/dashboard"
+              />
+              <SidebarItem
+                icon={Rocket}
+                label="Launch a token"
+                href="/launch"
+              />
+              {user?.isPlatformAdmin ? (
+                <SidebarItem
+                  icon={ShieldAlert}
+                  label="Admin console"
+                  href="/admin"
+                />
+              ) : null}
+            </>
+          ) : (
+            <>
+              <SidebarItem
+                icon={Github}
+                label="Sign in"
+                href="/auth/signin"
+              />
+              <SidebarItem
+                icon={Rocket}
+                label="Launch a token"
+                href="/launch"
+              />
+            </>
+          )}
         </SidebarSection>
 
         <SidebarSection title="Legal">
@@ -116,7 +161,16 @@ export function PublicSidebar({ active }: { active?: PublicSidebarActive }) {
       </SidebarContent>
 
       <SidebarFooter>
-        <CollapsibleSignInCta />
+        {signedIn ? (
+          <SidebarUserCard
+            name={user?.name ?? null}
+            email={user?.email ?? null}
+            username={user?.username ?? null}
+            imageUrl={user?.imageUrl ?? null}
+          />
+        ) : (
+          <CollapsibleSignInCta />
+        )}
         <div className="flex items-center justify-between gap-2">
           <CollapsiblePoweredBy />
           <ThemeToggle />
@@ -128,9 +182,13 @@ export function PublicSidebar({ active }: { active?: PublicSidebarActive }) {
 
 function CollapsibleBrand() {
   const { collapsed } = useSidebar();
-  if (collapsed) return null;
   return (
-    <span className="flex flex-col leading-tight min-w-0">
+    <span
+      className={cn(
+        "flex flex-col leading-tight min-w-0",
+        collapsed && "lg:hidden",
+      )}
+    >
       <span className="text-label-md text-fg truncate">GitBags</span>
       <span className="text-caption text-fg-muted truncate">by BAGS.fm</span>
     </span>
@@ -139,9 +197,13 @@ function CollapsibleBrand() {
 
 function CollapsibleSignInCta() {
   const { collapsed } = useSidebar();
-  if (collapsed) return null;
   return (
-    <Button asChild variant="primary" size="sm" className="w-full">
+    <Button
+      asChild
+      variant="primary"
+      size="sm"
+      className={cn("w-full", collapsed && "lg:hidden")}
+    >
       <Link href="/auth/signin">
         <Github className="size-4" /> Sign in with GitHub
       </Link>
@@ -151,9 +213,13 @@ function CollapsibleSignInCta() {
 
 function CollapsiblePoweredBy() {
   const { collapsed } = useSidebar();
-  if (collapsed) return <span className="sr-only">Powered by BAGS.fm</span>;
   return (
-    <span className="text-caption text-fg-muted truncate">
+    <span
+      className={cn(
+        "text-caption text-fg-muted truncate",
+        collapsed && "lg:sr-only",
+      )}
+    >
       Powered by BAGS.fm
     </span>
   );

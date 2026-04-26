@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, History } from "lucide-react";
+import { History } from "lucide-react";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectShell } from "../_components/ProjectShell";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { getProjectSnapshots } from "@/lib/queries/discovery";
@@ -50,15 +51,13 @@ export default async function ProjectSnapshotsPage({
   return (
     <ProjectShell header={header} pool={pool} active="snapshots">
       <div className="flex flex-col gap-4">
-        <nav>
-          <Link
-            href={`/r/${slug}`}
-            className="inline-flex items-center gap-1.5 text-label-sm text-fg-secondary transition-colors hover:text-fg"
-          >
-            <ArrowLeft className="size-3.5" />
-            Back to overview
-          </Link>
-        </nav>
+        <Breadcrumbs
+          items={[
+            { label: "Projects", href: "/explore" },
+            { label: header.name, href: `/r/${slug}` },
+            { label: "Snapshots" },
+          ]}
+        />
 
         <header className="flex flex-col gap-2">
           <h1 className="text-headline-lg tracking-tight">

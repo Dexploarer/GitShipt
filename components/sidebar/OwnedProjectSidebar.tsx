@@ -28,6 +28,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SidebarUserCard, type SidebarUserCardProps } from "./SidebarUserCard";
+import { cn } from "@/lib/utils";
 
 export type OwnedProjectActive =
   | "overview"
@@ -45,6 +47,8 @@ export interface OwnedProjectSidebarProps {
   slug: string; // owner/repo, used for the public link only
   projectName: string;
   active?: OwnedProjectActive;
+  /** Optional signed-in user for the footer card. */
+  user?: SidebarUserCardProps | null;
 }
 
 const PROJECT_ITEMS = [
@@ -89,8 +93,10 @@ export function OwnedProjectSidebar({
   slug,
   projectName,
   active = "overview",
+  user,
 }: OwnedProjectSidebarProps) {
   const base = `/dashboard/projects/${projectId}`;
+  const signedIn = Boolean(user && (user.name || user.email));
   return (
     <Sidebar>
       <SidebarHeader>
@@ -161,6 +167,14 @@ export function OwnedProjectSidebar({
       </SidebarContent>
 
       <SidebarFooter>
+        {signedIn && user ? (
+          <SidebarUserCard
+            name={user.name ?? null}
+            email={user.email ?? null}
+            username={user.username ?? null}
+            imageUrl={user.imageUrl ?? null}
+          />
+        ) : null}
         <div className="flex items-center justify-between gap-2">
           <CollapsiblePoweredBy />
           <ThemeToggle />
@@ -178,9 +192,13 @@ function CollapsibleBrand({
   slug: string;
 }) {
   const { collapsed } = useSidebar();
-  if (collapsed) return null;
   return (
-    <span className="flex flex-col leading-tight min-w-0">
+    <span
+      className={cn(
+        "flex flex-col leading-tight min-w-0",
+        collapsed && "lg:hidden",
+      )}
+    >
       <span className="text-label-md text-fg truncate">{projectName}</span>
       <span className="text-caption text-fg-muted truncate">{slug}</span>
     </span>
@@ -189,9 +207,13 @@ function CollapsibleBrand({
 
 function CollapsiblePoweredBy() {
   const { collapsed } = useSidebar();
-  if (collapsed) return <span className="sr-only">Powered by BAGS.fm</span>;
   return (
-    <span className="text-caption text-fg-muted truncate">
+    <span
+      className={cn(
+        "text-caption text-fg-muted truncate",
+        collapsed && "lg:sr-only",
+      )}
+    >
       Powered by BAGS.fm
     </span>
   );

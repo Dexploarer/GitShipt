@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { StatusBadge } from "../../page";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +73,14 @@ export default async function ProjectOverviewPage({
       <div className="mx-auto flex w-full max-w-content flex-col gap-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
+            <Breadcrumbs
+              items={[
+                { label: "Dashboard", href: "/dashboard" },
+                { label: "Projects", href: "/dashboard/projects" },
+                { label: project.name },
+              ]}
+              className="mb-1"
+            />
             <div className="flex items-center gap-2">
               <h1 className="truncate text-headline-lg leading-tight text-fg">
                 {project.name}

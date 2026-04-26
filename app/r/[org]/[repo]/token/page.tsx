@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectShell } from "../_components/ProjectShell";
 import { TokenInfoCard } from "../_components/TokenInfoCard";
 import { CopyButton } from "../_components/CopyButton";
@@ -54,12 +55,16 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
     <ProjectShell header={header} pool={pool} active="token">
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-2">
-          <Link
-            href={`/r/${header.ghOwner}/${header.ghRepo}`}
-            className="inline-flex w-fit items-center gap-1 text-body-sm text-fg-secondary transition-colors hover:text-fg"
-          >
-            ← Back to {header.name}
-          </Link>
+          <Breadcrumbs
+            items={[
+              { label: "Projects", href: "/explore" },
+              {
+                label: header.name,
+                href: `/r/${header.ghOwner}/${header.ghRepo}`,
+              },
+              { label: "Token" },
+            ]}
+          />
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-headline-lg leading-tight text-fg">Token</h1>
             {stats ? (

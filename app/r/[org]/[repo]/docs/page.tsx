@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BookOpen, ExternalLink } from "lucide-react";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectShell } from "../_components/ProjectShell";
 import { formatSol } from "@/lib/format";
 
@@ -40,12 +41,16 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
     <ProjectShell header={header} pool={pool} active="docs">
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-2">
-          <Link
-            href={`/r/${header.ghOwner}/${header.ghRepo}`}
-            className="inline-flex w-fit items-center gap-1 text-body-sm text-fg-secondary transition-colors hover:text-fg"
-          >
-            ← Back to {header.name}
-          </Link>
+          <Breadcrumbs
+            items={[
+              { label: "Projects", href: "/explore" },
+              {
+                label: header.name,
+                href: `/r/${header.ghOwner}/${header.ghRepo}`,
+              },
+              { label: "Docs" },
+            ]}
+          />
           <h1 className="text-headline-lg leading-tight text-fg">
             Docs for contributors
           </h1>

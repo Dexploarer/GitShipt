@@ -33,15 +33,23 @@ import {
 } from "@/components/ui/sidebar";
 import { Pill } from "@/components/ui/pill";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SidebarUserCard, type SidebarUserCardProps } from "./SidebarUserCard";
+import { cn } from "@/lib/utils";
+
+export interface AdminSidebarProps {
+  /** Optional signed-in user for the footer card. */
+  user?: SidebarUserCardProps | null;
+}
 
 /**
  * AdminSidebar — global super-admin navigation.
  *
  * Shows an unmistakable `[Admin: SUPER]` pill in the header so every operator
  * immediately knows they're in the elevated console (per DESIGN.md: danger-soft
- * fill, danger fg). The footer carries the ThemeToggle.
+ * fill, danger fg). The footer carries the SidebarUserCard + ThemeToggle.
  */
-export function AdminSidebar() {
+export function AdminSidebar({ user }: AdminSidebarProps = {}) {
+  const signedIn = Boolean(user && (user.name || user.email));
   const pathname = usePathname();
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
@@ -155,6 +163,14 @@ export function AdminSidebar() {
 
       <SidebarFooter>
         <CollapsibleEnvLine />
+        {signedIn && user ? (
+          <SidebarUserCard
+            name={user.name ?? null}
+            email={user.email ?? null}
+            username={user.username ?? null}
+            imageUrl={user.imageUrl ?? null}
+          />
+        ) : null}
         <div className="flex items-center justify-between gap-2">
           <CollapsibleAlertTag />
           <ThemeToggle />
@@ -166,34 +182,47 @@ export function AdminSidebar() {
 
 function CollapsibleBrand() {
   const { collapsed } = useSidebar();
-  if (collapsed) {
-    return (
+  return (
+    <>
+      {/* Compact glyph — only shown when desktop-collapsed. */}
       <span
-        className="inline-flex size-7 items-center justify-center rounded-md bg-danger-soft text-danger"
+        className={cn(
+          "hidden",
+          collapsed && "lg:inline-flex size-7 items-center justify-center rounded-md bg-danger-soft text-danger",
+        )}
         title="GitBags · Admin"
+        aria-hidden={!collapsed}
       >
         <ShieldAlert className="size-4" />
       </span>
-    );
-  }
-  return (
-    <span className="flex min-w-0 items-center gap-2">
-      <span className="flex flex-col leading-tight min-w-0">
-        <span className="truncate text-label-md text-fg">GitBags</span>
-        <span className="truncate text-caption text-fg-muted">Ops console</span>
+      {/* Full brand — hidden only on lg when collapsed. Mobile drawer always shows full. */}
+      <span
+        className={cn(
+          "flex min-w-0 items-center gap-2",
+          collapsed && "lg:hidden",
+        )}
+      >
+        <span className="flex flex-col leading-tight min-w-0">
+          <span className="truncate text-label-md text-fg">GitBags</span>
+          <span className="truncate text-caption text-fg-muted">Ops console</span>
+        </span>
+        <Pill className="ml-1 bg-danger-soft text-danger" size="sm">
+          Admin: SUPER
+        </Pill>
       </span>
-      <Pill className="ml-1 bg-danger-soft text-danger" size="sm">
-        Admin: SUPER
-      </Pill>
-    </span>
+    </>
   );
 }
 
 function CollapsibleEnvLine() {
   const { collapsed } = useSidebar();
-  if (collapsed) return null;
   return (
-    <div className="flex items-center gap-1.5 text-caption text-fg-muted">
+    <div
+      className={cn(
+        "flex items-center gap-1.5 text-caption text-fg-muted",
+        collapsed && "lg:hidden",
+      )}
+    >
       <Activity className="size-3" aria-hidden />
       <span className="truncate">devnet · super-admin realm</span>
     </div>
@@ -202,13 +231,13 @@ function CollapsibleEnvLine() {
 
 function CollapsibleAlertTag() {
   const { collapsed } = useSidebar();
-  if (collapsed) {
-    return (
-      <span className="sr-only">Destructive actions require MFA + reason.</span>
-    );
-  }
   return (
-    <span className="inline-flex items-center gap-1.5 text-caption text-danger">
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-caption text-danger",
+        collapsed && "lg:sr-only",
+      )}
+    >
       <AlertTriangle className="size-3" aria-hidden />
       <span className="truncate">Wrench-grade access</span>
       <Wrench className="size-3 sr-only" aria-hidden />
