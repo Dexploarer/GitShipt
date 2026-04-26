@@ -1,42 +1,49 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, Github, Users } from "lucide-react";
+import { ArrowUpRight, Github, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/ui/pill";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
 import { formatSol } from "@/lib/format";
+import { getLandingData, getGlobalLeaderboard } from "@/lib/queries/global";
 import {
-  getLandingData,
-  getGlobalLeaderboard,
-  type LandingProject,
-} from "@/lib/queries/global";
+  getProjectBySlug,
+  getProjectLeaderboard,
+  type LeaderboardRow,
+  type ProjectHeader,
+} from "@/lib/queries/project-page";
 import { BentoTickerCell } from "./_components/BentoTicker";
 import { TopEarnersBento } from "./_components/TopEarnersBento";
+
+const FEATURED_OWNER = "SYMBaiEX";
+const FEATURED_REPO = "gitbags";
 
 /**
  * Landing page — viewport-locked bento on lg+, scrollable column on mobile.
  *
- *   Row 1 (flex-1): Hero (cols 1-8) | Top earners list (cols 9-12)
+ *   Row 1 (flex-1): Hero (cols 1-8) | Featured project: GitBags (cols 9-12)
  *   Row 2 (auto):   4 live KPI cells, full width
- *   Row 3 (auto):   3 top project cards, full width
+ *   Row 3 (auto):   Top earners list (compact horizontal)
  *
- * On lg+ the whole layout sits inside `h-[calc(100vh-4.5rem)] overflow-hidden`
- * — the page never scrolls; the only thing that gives is the Top earners
- * card's internal list, which already has its own overflow.
+ * The featured project is the GitBags repo itself — debuts the project on
+ * its own landing and shows the contributors who actually built it.
  */
 export default async function LandingPage() {
-  const [{ topProjects, ticker }, { byContributor }] = await Promise.all([
+  const [{ ticker }, { byContributor }, featuredHeader] = await Promise.all([
     getLandingData(),
     getGlobalLeaderboard(),
+    getProjectBySlug(FEATURED_OWNER, FEATURED_REPO),
   ]);
-  const featured = topProjects.slice(0, 3);
+  const featuredContribs: LeaderboardRow[] = featuredHeader
+    ? await getProjectLeaderboard(featuredHeader.id, featuredHeader.payoutConfig)
+    : [];
 
   return (
     <PublicAppShell active="home">
       <div className="flex flex-col gap-3 lg:h-[calc(100vh-4.5rem)] lg:gap-3 lg:overflow-hidden">
-        {/* ── Row 1: hero + top earners ─────────────────────────────── */}
+        {/* ── Row 1: hero + featured project ─────────────────────────── */}
         <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-12">
           <section className="flex items-center lg:col-span-8 lg:min-h-0">
             <div className="grid w-full grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_auto] sm:gap-8 lg:gap-10">
@@ -101,7 +108,10 @@ export default async function LandingPage() {
           </section>
 
           <aside className="lg:col-span-4 lg:min-h-0">
-            <TopEarnersBento entries={byContributor} limit={6} />
+            <FeaturedProjectCard
+              header={featuredHeader}
+              contributors={featuredContribs}
+            />
           </aside>
         </div>
 
@@ -116,33 +126,9 @@ export default async function LandingPage() {
           <BentoTickerCell initial={ticker} cellKey="earning" />
         </section>
 
-        {/* ── Row 3: top projects (3 cards) ────────────────────────── */}
-        <section className="flex flex-col gap-2 lg:shrink-0">
-          <div className="flex items-end justify-between gap-3">
-            <h2 className="text-label-md text-fg-secondary">
-              Top projects on GitBags
-            </h2>
-            <Link
-              href="/explore"
-              className="inline-flex items-center gap-1 text-label-sm text-fg-secondary transition-colors hover:text-fg"
-            >
-              View all
-              <ArrowUpRight className="size-3.5" aria-hidden />
-            </Link>
-          </div>
-          {featured.length === 0 ? (
-            <Card depth="flat" padding="default" className="text-center">
-              <p className="text-body-sm text-fg-secondary">
-                No live projects yet — be the first to launch.
-              </p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 lg:gap-3">
-              {featured.map((p) => (
-                <CompactProjectCard key={p.id} project={p} />
-              ))}
-            </div>
-          )}
+        {/* ── Row 3: top earners across the platform ───────────────── */}
+        <section className="lg:shrink-0">
+          <TopEarnersBento entries={byContributor} limit={5} />
         </section>
       </div>
     </PublicAppShell>
@@ -150,51 +136,169 @@ export default async function LandingPage() {
 }
 
 /**
- * Inline, condensed project card sized for the landing's bottom row —
- * smaller padding and one stat row instead of three so the whole landing
- * still fits in a single viewport on lg+.
+ * Featured-project bento card — debuts the GitBags repo on its own landing.
+ * Top: project header (avatar, name, slug, status, stat row).
+ * Bottom: scrollable list of top contributors with rank medal, avatar,
+ * username, and score. Whole card links into the project page.
  */
-function CompactProjectCard({ project }: { project: LandingProject }) {
+function FeaturedProjectCard({
+  header,
+  contributors,
+}: {
+  header: ProjectHeader | null;
+  contributors: LeaderboardRow[];
+}) {
+  if (!header) {
+    return (
+      <Card depth="raised" padding="lg" className="flex h-full items-center justify-center text-center">
+        <p className="text-body-sm text-fg-muted">
+          Featured project not seeded yet.
+        </p>
+      </Card>
+    );
+  }
+
   const avatar =
-    project.imageUrl ?? `https://github.com/${project.ghOwner}.png`;
+    header.imageUrl ?? `https://github.com/${header.ghOwner}.png`;
+  const top = contributors.slice(0, 6);
+  const projectHref = `/r/${header.slug}`;
+
   return (
-    <Link href={`/r/${project.slug}`} className="group block">
-      <Card
-        depth="raised"
-        padding="sm"
-        className="flex h-full items-center gap-3 transition-colors group-hover:border-border-strong"
+    <Card
+      depth="raised"
+      padding="none"
+      className="flex h-full flex-col overflow-hidden"
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
+        <div className="inline-flex items-center gap-2">
+          <Trophy className="size-4 text-fg-secondary" aria-hidden />
+          <span className="text-label-sm uppercase tracking-wider text-fg-muted">
+            Featured project
+          </span>
+        </div>
+        <Link
+          href={projectHref}
+          className="inline-flex items-center gap-1 text-label-sm text-fg-secondary transition-colors hover:text-fg"
+        >
+          Open
+          <ArrowUpRight className="size-3.5" aria-hidden />
+        </Link>
+      </div>
+
+      <Link
+        href={projectHref}
+        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-elevated/40"
       >
         <Image
           src={avatar}
           alt=""
-          width={36}
-          height={36}
-          className="size-9 shrink-0 rounded-md bg-surface-elevated"
+          width={40}
+          height={40}
+          className="size-10 shrink-0 rounded-md bg-surface-elevated"
           unoptimized
         />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate text-label-md font-semibold tracking-tight text-fg">
-              {project.name}
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-headline-sm text-fg">
+              {header.name}
             </h3>
-            <Badge variant="success" size="sm" dot aria-label={`Status ${project.status}`}>
-              {project.status}
+            <Badge variant="success" size="sm" dot>
+              {header.status}
             </Badge>
           </div>
-          <div className="flex items-center gap-3 text-caption text-fg-muted">
-            <span className="truncate">{project.slug}</span>
-            <span aria-hidden>·</span>
-            <span className="text-mono-sm text-fg-secondary">
-              {formatSol(project.lifetimeFeesLamports, 1)}
-            </span>
-            <span aria-hidden>·</span>
-            <span className="inline-flex items-center gap-1 text-mono-sm text-fg-secondary">
-              <Users className="size-3" aria-hidden />
-              {project.contributorsCount.toLocaleString("en-US")}
-            </span>
-          </div>
+          <p className="truncate text-caption text-fg-muted">{header.slug}</p>
         </div>
-      </Card>
-    </Link>
+      </Link>
+
+      <div className="grid grid-cols-3 gap-2 border-y border-border/60 bg-bg/30 px-4 py-2.5">
+        <Stat label="Devs" value={header.contributorsCount.toLocaleString("en-US")} />
+        <Stat label="Stars" value={header.stars.toLocaleString("en-US")} />
+        <Stat label="Forks" value={header.forks.toLocaleString("en-US")} />
+      </div>
+
+      <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1.5">
+        <span className="text-label-sm uppercase tracking-wider text-fg-muted">
+          Top contributors
+        </span>
+        <Link
+          href={`${projectHref}/leaderboard`}
+          className="text-label-sm text-fg-secondary transition-colors hover:text-fg"
+        >
+          Leaderboard →
+        </Link>
+      </div>
+
+      {top.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center px-4 py-6 text-center text-body-sm text-fg-muted">
+          No contributors indexed yet.
+        </div>
+      ) : (
+        <ul className="flex flex-1 flex-col divide-y divide-border/60 overflow-y-auto">
+          {top.map((c) => (
+            <li key={c.contributorId}>
+              <Link
+                href={`/u/${c.ghUsername}`}
+                className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2 transition-colors hover:bg-surface-elevated/40"
+              >
+                <RankMedal rank={c.rank} />
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  {c.avatarUrl ? (
+                    <Image
+                      src={c.avatarUrl}
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="size-5 shrink-0 rounded-sm bg-surface-elevated"
+                      unoptimized
+                    />
+                  ) : null}
+                  <span className="truncate text-label-md text-fg">
+                    {c.ghUsername}
+                  </span>
+                </span>
+                <span className="text-mono-sm text-fg-secondary tabular-nums">
+                  {formatSol(BigInt(Math.round(c.weight * 1e9)), 2)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-caption text-fg-muted">{label}</span>
+      <span className="text-mono-sm text-fg">{value}</span>
+    </div>
+  );
+}
+
+function RankMedal({ rank }: { rank: number }) {
+  if (rank === 1)
+    return (
+      <span className="grid size-5 place-items-center rounded-sm bg-rank-gold text-bg text-mono-sm font-medium">
+        {rank}
+      </span>
+    );
+  if (rank === 2)
+    return (
+      <span className="grid size-5 place-items-center rounded-sm bg-rank-silver text-bg text-mono-sm font-medium">
+        {rank}
+      </span>
+    );
+  if (rank === 3)
+    return (
+      <span className="grid size-5 place-items-center rounded-sm bg-rank-bronze text-bg text-mono-sm font-medium">
+        {rank}
+      </span>
+    );
+  return (
+    <span className="grid size-5 place-items-center text-mono-sm text-fg-muted">
+      {rank}
+    </span>
   );
 }
