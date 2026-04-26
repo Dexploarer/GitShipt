@@ -90,7 +90,7 @@ export default async function LandingPage() {
                 fill
                 priority
                 sizes="(max-width: 640px) 360px, (max-width: 1024px) 460px, 700px"
-                className="object-contain object-center"
+                className="object-contain object-bottom"
                 unoptimized
               />
             </div>
