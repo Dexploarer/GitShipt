@@ -64,21 +64,21 @@ function TopProjectCard({ project }: { project: LandingProject }) {
     <Link href={`/r/${project.slug}`} className="group block">
       <Card
         depth="raised"
-        padding="default"
-        className="flex h-full flex-col gap-4 transition-colors group-hover:border-border-strong"
+        padding="sm"
+        className="flex h-full flex-col gap-3 transition-colors group-hover:border-border-strong"
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-2.5">
           <Image
             src={avatar}
             alt=""
-            width={48}
-            height={48}
-            className="size-12 shrink-0 rounded-xl bg-surface-elevated"
+            width={40}
+            height={40}
+            className="size-10 shrink-0 rounded-lg bg-surface-elevated"
             unoptimized
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="truncate text-headline-sm tracking-tight text-fg">
+              <h3 className="truncate text-label-md font-semibold tracking-tight text-fg">
                 {project.name}
               </h3>
               <Badge
@@ -90,45 +90,48 @@ function TopProjectCard({ project }: { project: LandingProject }) {
                 {project.status}
               </Badge>
             </div>
-            <p className="truncate text-body-sm text-fg-muted">
+            <p className="truncate text-caption text-fg-muted">
               {project.slug}
             </p>
           </div>
         </div>
 
-        {project.description ? (
-          <p className="line-clamp-2 text-body-sm text-fg-secondary">
-            {project.description}
-          </p>
-        ) : null}
-
-        <div className="mt-auto grid grid-cols-2 gap-3 border-t border-border pt-4">
+        <div className="mt-auto flex items-center gap-3 border-t border-border/60 pt-2.5">
           <Stat
-            label="Lifetime fees"
-            value={formatSol(project.lifetimeFeesLamports)}
+            label="Lifetime"
+            value={formatSol(project.lifetimeFeesLamports, 2)}
           />
           <Stat
-            label="Daily pool"
-            value={formatSol(project.dailyFeeLamports)}
+            label="Daily"
+            value={formatSol(project.dailyFeeLamports, 2)}
           />
-          <div className="col-span-2 flex items-center gap-1.5 text-label-sm text-fg-muted">
-            <Users className="size-3.5" aria-hidden />
-            <span>
-              {project.contributorsCount} contributor
-              {project.contributorsCount === 1 ? "" : "s"}
-            </span>
-          </div>
+          <Stat
+            label="Devs"
+            icon={<Users className="size-3" aria-hidden />}
+            value={project.contributorsCount.toLocaleString("en-US")}
+          />
         </div>
       </Card>
     </Link>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-label-sm text-fg-muted">{label}</span>
-      <span className="text-mono-md text-fg">{value}</span>
+    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span className="inline-flex items-center gap-1 text-caption text-fg-muted">
+        {icon}
+        {label}
+      </span>
+      <span className="truncate text-mono-sm text-fg">{value}</span>
     </div>
   );
 }
