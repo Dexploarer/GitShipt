@@ -191,6 +191,7 @@ export function Sidebar({
       ) : null}
 
       <aside
+        data-gitbags-sidebar="true"
         data-collapsed={collapsed ? "true" : "false"}
         data-mobile-open={mobileOpen ? "true" : "false"}
         className={cn(
@@ -209,7 +210,7 @@ export function Sidebar({
           // Reset the mobile-only positioning, drop the m-3 (the parent owns
           // the gutter on lg+), restore inline flow, and apply the collapse
           // width transition.
-          "lg:static lg:m-0 lg:translate-x-0 lg:transition-[width]",
+          "lg:static! lg:inset-auto! lg:m-0 lg:translate-x-0 lg:transition-[width]",
           "lg:h-full lg:shrink-0",
           collapsed ? "lg:w-[68px]" : "lg:w-[260px]",
 
