@@ -79,8 +79,8 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <aside className="flex flex-col gap-3 lg:col-span-7 lg:min-h-0">
-            <div className="pointer-events-none relative mx-auto aspect-square w-full max-w-[480px] sm:max-w-[560px] lg:aspect-auto lg:h-auto lg:w-full lg:max-w-none lg:flex-1 lg:min-h-0">
+          <aside className="flex flex-col gap-3 lg:col-span-7 lg:min-h-0 lg:justify-center">
+            <div className="pointer-events-none relative mx-auto aspect-square w-full max-w-[480px] sm:max-w-[560px] lg:aspect-auto lg:h-[600px] lg:w-full lg:max-w-none lg:shrink-0">
               <Image
                 src="/mia.png"
                 alt=""
