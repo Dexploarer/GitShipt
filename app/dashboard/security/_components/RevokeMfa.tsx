@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/shared/FormField";
+import { FormError } from "@/components/shared/FormError";
 
 /**
  * Disables MFA. Requires a valid current code so a stolen session cookie
@@ -60,11 +62,16 @@ export function RevokeMfa() {
   return (
     <form className="flex flex-col gap-3" onSubmit={submit}>
       <h3 className="text-label-md text-fg">Disable MFA</h3>
-      <label className="flex flex-col gap-1">
-        <span className="text-label-sm text-fg-secondary">
-          Confirm with your current 6-digit code
-        </span>
+      {error ? (
+        <FormError message={error} onDismiss={() => setError(null)} />
+      ) : null}
+      <FormField
+        label="Confirm with your current 6-digit code"
+        htmlFor="revoke-mfa-token"
+        required
+      >
         <Input
+          id="revoke-mfa-token"
           type="text"
           inputMode="numeric"
           autoComplete="one-time-code"
@@ -74,7 +81,7 @@ export function RevokeMfa() {
           placeholder="000000"
           className="text-mono-md"
         />
-      </label>
+      </FormField>
       <div className="flex gap-2">
         <Button
           type="submit"
@@ -96,7 +103,6 @@ export function RevokeMfa() {
           Cancel
         </Button>
       </div>
-      {error ? <p className="text-body-sm text-danger">{error}</p> : null}
     </form>
   );
 }

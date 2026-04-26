@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/shared/FormField";
+import { FormError } from "@/components/shared/FormError";
 import { updateMetadata } from "../../actions";
 
 export function GeneralForm({
@@ -45,44 +48,48 @@ export function GeneralForm({
 
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
-      <Field label="Display name">
-        <input
+      {error ? (
+        <FormError message={error} onDismiss={() => setError(null)} />
+      ) : null}
+
+      <FormField label="Display name" htmlFor="general-name" required>
+        <Input
+          id="general-name"
           type="text"
           value={name}
           maxLength={120}
           onChange={(e) => setName(e.target.value)}
           required
-          className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-body-md text-fg outline-none focus:border-primary"
         />
-      </Field>
-      <Field label="Description">
+      </FormField>
+
+      <FormField label="Description" htmlFor="general-description">
         <textarea
+          id="general-description"
           value={description}
           maxLength={1000}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-body-md text-fg outline-none focus:border-primary"
         />
-      </Field>
-      <Field label="Image URL">
-        <input
+      </FormField>
+
+      <FormField label="Image URL" htmlFor="general-image-url">
+        <Input
+          id="general-image-url"
           type="url"
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
           placeholder="https://…"
-          className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-body-md text-fg outline-none focus:border-primary"
         />
-      </Field>
-      {error ? (
-        <p className="text-body-sm text-danger" role="alert">
-          {error}
-        </p>
-      ) : null}
+      </FormField>
+
       {saved ? (
         <p className="text-body-sm text-success" role="status">
           Metadata saved.
         </p>
       ) : null}
+
       <div>
         <Button type="submit" variant="primary" disabled={pending}>
           <Save className="size-4" />
@@ -90,20 +97,5 @@ export function GeneralForm({
         </Button>
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="grid gap-1.5">
-      <span className="text-label-sm text-fg-secondary">{label}</span>
-      {children}
-    </label>
   );
 }

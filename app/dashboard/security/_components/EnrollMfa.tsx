@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/shared/FormField";
+import { FormError } from "@/components/shared/FormError";
 
 type EnrollResponse = { qrDataUrl: string; secretBase32: string };
 
@@ -60,6 +62,9 @@ export function EnrollMfa() {
   if (!data) {
     return (
       <div className="flex flex-col gap-3">
+        {error ? (
+          <FormError message={error} onDismiss={() => setError(null)} />
+        ) : null}
         <p className="text-body-sm text-fg-secondary">
           Click below to generate a fresh secret and a QR code you can scan
           with any authenticator app.
@@ -74,9 +79,6 @@ export function EnrollMfa() {
             {busy ? "Generating…" : "Set up authenticator"}
           </Button>
         </div>
-        {error ? (
-          <p className="text-body-sm text-danger">{error}</p>
-        ) : null}
       </div>
     );
   }
@@ -94,6 +96,9 @@ export function EnrollMfa() {
         />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-3">
+        {error ? (
+          <FormError message={error} onDismiss={() => setError(null)} />
+        ) : null}
         <div className="flex flex-col gap-1">
           <span className="text-label-sm uppercase tracking-wide text-fg-muted">
             Manual entry
@@ -102,11 +107,13 @@ export function EnrollMfa() {
             {data.secretBase32}
           </code>
         </div>
-        <label className="flex flex-col gap-1">
-          <span className="text-label-sm text-fg-secondary">
-            Enter the 6-digit code from your app
-          </span>
+        <FormField
+          label="Enter the 6-digit code from your app"
+          htmlFor="enroll-mfa-token"
+          required
+        >
           <Input
+            id="enroll-mfa-token"
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -116,7 +123,7 @@ export function EnrollMfa() {
             placeholder="000000"
             className="text-mono-md"
           />
-        </label>
+        </FormField>
         <div className="flex gap-2">
           <Button
             type="button"
@@ -139,9 +146,6 @@ export function EnrollMfa() {
             Cancel
           </Button>
         </div>
-        {error ? (
-          <p className="text-body-sm text-danger">{error}</p>
-        ) : null}
       </div>
     </div>
   );

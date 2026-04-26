@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/shared/FormField";
+import { FormError } from "@/components/shared/FormError";
 
 /**
  * Re-confirms MFA freshness for the next 5 minutes. Used immediately
@@ -42,11 +44,16 @@ export function VerifyMfa() {
 
   return (
     <form className="flex flex-col gap-3" onSubmit={submit}>
-      <label className="flex flex-col gap-1">
-        <span className="text-label-sm text-fg-secondary">
-          Re-confirm with your authenticator
-        </span>
+      {error ? (
+        <FormError message={error} onDismiss={() => setError(null)} />
+      ) : null}
+      <FormField
+        label="Re-confirm with your authenticator"
+        htmlFor="verify-mfa-token"
+        required
+      >
         <Input
+          id="verify-mfa-token"
           type="text"
           inputMode="numeric"
           autoComplete="one-time-code"
@@ -56,7 +63,7 @@ export function VerifyMfa() {
           placeholder="000000"
           className="text-mono-md"
         />
-      </label>
+      </FormField>
       <div className="flex items-center gap-3">
         <Button
           type="submit"
@@ -71,7 +78,6 @@ export function VerifyMfa() {
           </span>
         ) : null}
       </div>
-      {error ? <p className="text-body-sm text-danger">{error}</p> : null}
     </form>
   );
 }

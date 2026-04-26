@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/shared/FormField";
+import { FormError } from "@/components/shared/FormError";
 import { updateBanner } from "@/app/admin/actions";
 
 export function BannerForm({
@@ -32,17 +34,25 @@ export function BannerForm({
 
   return (
     <div className="mt-3 space-y-3">
-      <div className="space-y-1.5">
-        <label className="block text-label-sm text-fg-secondary">Message</label>
+      {err ? (
+        <FormError message={err} onDismiss={() => setErr(null)} />
+      ) : null}
+
+      <FormField
+        label="Message"
+        htmlFor="banner-message"
+        hint={`${message.length} / 500`}
+      >
         <textarea
+          id="banner-message"
           value={message}
           onChange={(e) => setMessage(e.target.value.slice(0, 500))}
           rows={3}
           className="w-full rounded-md border border-border bg-surface-elevated px-3 py-2 text-body-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="Scheduled maintenance Sat 04:00 UTC. Payouts pause for ~10 min."
         />
-        <p className="text-caption text-fg-muted">{message.length} / 500</p>
-      </div>
+      </FormField>
+
       <label className="flex items-center gap-2 text-body-sm text-fg-secondary">
         <input
           type="checkbox"
@@ -52,11 +62,7 @@ export function BannerForm({
         />
         Show banner publicly
       </label>
-      {err ? (
-        <p className="rounded-md border border-danger/40 bg-danger-soft px-3 py-2 text-body-sm text-danger">
-          {err}
-        </p>
-      ) : null}
+
       <div className="flex items-center justify-between gap-2">
         <span className="text-caption text-fg-muted">
           {savedAt ? `Saved ${new Date(savedAt).toLocaleTimeString()}` : "—"}

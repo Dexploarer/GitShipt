@@ -3,7 +3,10 @@
 import { useState, useTransition } from "react";
 import { Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { FormField } from "@/components/shared/FormField";
+import { FormError } from "@/components/shared/FormError";
 import { pauseProject } from "../../actions";
 
 export function PauseSection({
@@ -77,19 +80,19 @@ export function PauseSection({
       ) : (
         <div className="space-y-3 rounded-md border border-border-strong bg-surface-elevated px-4 py-3">
           {!isPaused ? (
-            <label className="grid gap-1">
-              <span className="text-label-sm text-fg-secondary">
-                Reason (optional, shown on the public page)
-              </span>
-              <input
+            <FormField
+              label="Reason (optional, shown on the public page)"
+              htmlFor="pause-reason"
+            >
+              <Input
+                id="pause-reason"
                 type="text"
                 value={reason}
                 maxLength={280}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full rounded-md border border-border-strong bg-surface px-3 py-2 text-body-md text-fg outline-none focus:border-primary"
                 placeholder="e.g. migrating maintainer keys"
               />
-            </label>
+            </FormField>
           ) : null}
           <div className="flex items-center gap-2">
             <Button
@@ -117,9 +120,7 @@ export function PauseSection({
             </Button>
           </div>
           {error ? (
-            <p className="text-body-sm text-danger" role="alert">
-              {error}
-            </p>
+            <FormError message={error} onDismiss={() => setError(null)} />
           ) : null}
         </div>
       )}
