@@ -4,10 +4,9 @@ import { ArrowUpRight, Github, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Pill } from "@/components/ui/pill";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
 import { formatSol } from "@/lib/format";
-import { getLandingData, getGlobalLeaderboard } from "@/lib/queries/global";
+import { getLandingData } from "@/lib/queries/global";
 import {
   getProjectBySlug,
   getProjectLeaderboard,
@@ -15,7 +14,6 @@ import {
   type ProjectHeader,
 } from "@/lib/queries/project-page";
 import { BentoTickerCell } from "./_components/BentoTicker";
-import { TopEarnersBento } from "./_components/TopEarnersBento";
 
 const FEATURED_OWNER = "SYMBaiEX";
 const FEATURED_REPO = "gitbags";
@@ -25,15 +23,13 @@ const FEATURED_REPO = "gitbags";
  *
  *   Row 1 (flex-1): Hero (cols 1-8) | Featured project: GitBags (cols 9-12)
  *   Row 2 (auto):   4 live KPI cells, full width
- *   Row 3 (auto):   Top earners list (compact horizontal)
  *
  * The featured project is the GitBags repo itself — debuts the project on
  * its own landing and shows the contributors who actually built it.
  */
 export default async function LandingPage() {
-  const [{ ticker }, { byContributor }, featuredHeader] = await Promise.all([
+  const [{ ticker }, featuredHeader] = await Promise.all([
     getLandingData(),
-    getGlobalLeaderboard(),
     getProjectBySlug(FEATURED_OWNER, FEATURED_REPO),
   ]);
   const featuredContribs: LeaderboardRow[] = featuredHeader
@@ -48,14 +44,6 @@ export default async function LandingPage() {
           <section className="flex items-center lg:col-span-8 lg:min-h-0">
             <div className="grid w-full grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_auto] sm:gap-8 lg:gap-10">
               <div className="flex flex-col items-start gap-3 lg:gap-4">
-                <Pill variant="primary" size="default" className="gap-2">
-                  <span
-                    aria-hidden
-                    className="size-1.5 animate-pulse-dot rounded-full bg-success"
-                  />
-                  GitBags · Live on Solana devnet
-                </Pill>
-
                 <h1 className="text-[36px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[44px] lg:text-[52px]">
                   Your repo,
                   <br />
@@ -93,13 +81,13 @@ export default async function LandingPage() {
                 </Link>
               </div>
 
-              <div className="relative mx-auto aspect-square w-full max-w-[280px] shrink-0 sm:mx-0 sm:w-[280px] sm:max-w-none lg:w-[340px]">
+              <div className="relative mx-auto aspect-square w-full max-w-[360px] shrink-0 sm:mx-0 sm:w-[360px] sm:max-w-none lg:w-[480px]">
                 <Image
                   src="/mia.png"
                   alt=""
                   fill
                   priority
-                  sizes="(max-width: 1024px) 280px, 340px"
+                  sizes="(max-width: 1024px) 360px, 480px"
                   className="object-contain object-center"
                   unoptimized
                 />
@@ -124,11 +112,6 @@ export default async function LandingPage() {
           <BentoTickerCell initial={ticker} cellKey="volume" />
           <BentoTickerCell initial={ticker} cellKey="projects" />
           <BentoTickerCell initial={ticker} cellKey="earning" />
-        </section>
-
-        {/* ── Row 3: top earners across the platform ───────────────── */}
-        <section className="lg:shrink-0">
-          <TopEarnersBento entries={byContributor} limit={5} />
         </section>
       </div>
     </PublicAppShell>
