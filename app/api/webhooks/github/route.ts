@@ -4,6 +4,7 @@ import { start } from "workflow/api";
 import { dbHttp } from "@/db";
 import { webhooksInbox, projects } from "@/db/schema";
 import { verifyAndParse } from "@/lib/github/webhook";
+import { audit } from "@/lib/audit";
 import { indexProjectDeltas } from "@/workflows/indexProjectDeltas";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ type GithubPayload = {
   installation?: { id: number };
   action?: string;
   pull_request?: { merged?: boolean };
+  sender?: { login?: string };
 };
 
 /**
@@ -44,11 +46,30 @@ export async function POST(req: Request): Promise<Response> {
     })
     .returning({ id: webhooksInbox.id });
 
+  const payload = result.payload as GithubPayload;
+
   if (insertResult.length === 0) {
+    try {
+      await audit({
+        actorUserId: null,
+        action: "github.event",
+        targetType: "platform",
+        targetId: "github",
+        metadata: {
+          eventType: result.event,
+          deliveryId: result.delivery,
+          installationId: payload.installation?.id ?? null,
+          repo: payload.repository?.full_name ?? null,
+          action: payload.action ?? null,
+          senderLogin: payload.sender?.login ?? null,
+          processed: false,
+        },
+      });
+    } catch {
+      // Audit failures must never block the webhook 200 response.
+    }
     return NextResponse.json({ ok: true, status: "duplicate" });
   }
-
-  const payload = result.payload as GithubPayload;
 
   const isPush = result.event === "push";
   const isMergedPR =
@@ -56,6 +77,7 @@ export async function POST(req: Request): Promise<Response> {
     payload.action === "closed" &&
     payload.pull_request?.merged === true;
 
+  let resolvedProjectId: string | null = null;
   if ((isPush || isMergedPR) && payload.repository) {
     const repoId = String(payload.repository.id);
     const [proj] = await dbHttp
@@ -63,8 +85,11 @@ export async function POST(req: Request): Promise<Response> {
       .from(projects)
       .where(eq(projects.ghRepoId, repoId))
       .limit(1);
-    if (proj && proj.status === "live") {
-      await start(indexProjectDeltas, [proj.id]);
+    if (proj) {
+      resolvedProjectId = proj.id;
+      if (proj.status === "live") {
+        await start(indexProjectDeltas, [proj.id]);
+      }
     }
   }
 
@@ -79,6 +104,26 @@ export async function POST(req: Request): Promise<Response> {
         eq(webhooksInbox.eventId, result.delivery),
       ),
     );
+
+  try {
+    await audit({
+      actorUserId: null,
+      action: "github.event",
+      targetType: resolvedProjectId ? "project" : "platform",
+      targetId: resolvedProjectId ?? "github",
+      metadata: {
+        eventType: result.event,
+        deliveryId: result.delivery,
+        installationId: payload.installation?.id ?? null,
+        repo: payload.repository?.full_name ?? null,
+        action: payload.action ?? null,
+        senderLogin: payload.sender?.login ?? null,
+        processed: true,
+      },
+    });
+  } catch {
+    // Audit failures must never block the webhook 200 response.
+  }
 
   return NextResponse.json({ ok: true });
 }
