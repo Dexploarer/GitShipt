@@ -41,57 +41,58 @@ export default async function LandingPage() {
       <div className="flex flex-col gap-3 lg:h-[calc(100vh-4.5rem)] lg:gap-3 lg:overflow-hidden">
         {/* ── Row 1: hero + featured project ─────────────────────────── */}
         <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-12">
-          <section className="flex items-stretch lg:col-span-8 lg:min-h-0">
-            <div className="grid h-full w-full grid-cols-1 items-end gap-4 sm:grid-cols-[1fr_auto] sm:gap-3 lg:gap-2">
-              <div className="flex flex-col items-start gap-3 self-start pt-2 lg:gap-4">
-                <h1 className="text-[36px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[44px] lg:text-[52px]">
-                  Your repo,
-                  <br />
-                  <span className="text-fg-muted">tokenized.</span>
-                </h1>
+          <section className="relative flex items-stretch lg:col-span-8 lg:min-h-0">
+            {/* mia.png — bottom-right anchored, behind the text. The PNG has
+                a transparent background so the text overlays cleanly. On
+                mobile the image stacks below the text via `relative` flow. */}
+            <div className="pointer-events-none relative mx-auto mt-4 aspect-square w-full max-w-[420px] shrink-0 sm:mt-0 sm:max-w-[460px] lg:absolute lg:right-0 lg:bottom-0 lg:z-0 lg:mx-0 lg:aspect-auto lg:h-[680px] lg:w-[680px] lg:max-w-none">
+              <Image
+                src="/mia.png"
+                alt=""
+                fill
+                priority
+                sizes="(max-width: 1024px) 460px, 680px"
+                className="object-contain object-bottom"
+                unoptimized
+              />
+            </div>
 
-                <p className="max-w-md text-body-md text-fg-secondary lg:text-body-lg">
-                  GitBags turns any GitHub repository into a tradeable
-                  Bags.fm token. Swap fees fund a daily on-chain SOL
-                  payout to your top contributors — automatic,
-                  transparent, no committee.
-                </p>
+            <div className="relative z-10 flex w-full flex-col items-start gap-3 self-start pt-2 lg:gap-4">
+              <h1 className="text-[36px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[44px] lg:text-[60px]">
+                Your repo,
+                <br />
+                <span className="text-fg-muted">tokenized.</span>
+              </h1>
 
-                <div className="mt-1 flex flex-wrap items-center gap-2.5">
-                  <Button asChild variant="primary" size="lg">
-                    <Link href="/launch">
-                      Launch a token
-                      <ArrowUpRight className="size-4" aria-hidden />
-                    </Link>
-                  </Button>
-                  <Button asChild variant="secondary" size="lg">
-                    <Link href="/explore">Browse projects</Link>
-                  </Button>
-                </div>
+              <p className="max-w-md text-body-md text-fg-secondary lg:text-body-lg">
+                GitBags turns any GitHub repository into a tradeable
+                Bags.fm token. Swap fees fund a daily on-chain SOL
+                payout to your top contributors — automatic,
+                transparent, no committee.
+              </p>
 
-                <Link
-                  href="https://github.com/SYMBaiEX/gitbags"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="inline-flex items-center gap-1.5 text-caption text-fg-muted transition-colors hover:text-fg"
-                >
-                  <Github className="size-3.5" aria-hidden />
-                  SYMBaiEX/gitbags
-                  <ArrowUpRight className="size-3" />
-                </Link>
+              <div className="mt-1 flex flex-wrap items-center gap-2.5">
+                <Button asChild variant="primary" size="lg">
+                  <Link href="/launch">
+                    Launch a token
+                    <ArrowUpRight className="size-4" aria-hidden />
+                  </Link>
+                </Button>
+                <Button asChild variant="secondary" size="lg">
+                  <Link href="/explore">Browse projects</Link>
+                </Button>
               </div>
 
-              <div className="relative mx-auto aspect-square w-full max-w-[400px] shrink-0 self-end sm:mx-0 sm:w-[400px] sm:max-w-none lg:w-[600px]">
-                <Image
-                  src="/mia.png"
-                  alt=""
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 400px, 600px"
-                  className="object-contain object-bottom"
-                  unoptimized
-                />
-              </div>
+              <Link
+                href="https://github.com/SYMBaiEX/gitbags"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center gap-1.5 text-caption text-fg-muted transition-colors hover:text-fg"
+              >
+                <Github className="size-3.5" aria-hidden />
+                SYMBaiEX/gitbags
+                <ArrowUpRight className="size-3" />
+              </Link>
             </div>
           </section>
 
