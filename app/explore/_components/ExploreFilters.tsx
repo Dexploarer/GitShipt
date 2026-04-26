@@ -2,8 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { ChevronDown, Search, X } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 type StatusKey = "all" | "live" | "paused";
 type SortKey = "trending" | "lifetime" | "contributors" | "newest";
@@ -15,8 +16,8 @@ const STATUS_OPTIONS: Array<{ key: StatusKey; label: string }> = [
 ];
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
-  { key: "trending", label: "Trending (24h fees)" },
-  { key: "lifetime", label: "Top earners (lifetime SOL)" },
+  { key: "trending", label: "Trending · 24h fees" },
+  { key: "lifetime", label: "Top earners · lifetime" },
   { key: "contributors", label: "Most contributors" },
   { key: "newest", label: "Newest" },
 ];
@@ -70,17 +71,37 @@ export function ExploreFilters() {
   const [sortOpen, setSortOpen] = useState(false);
 
   return (
-    <div className="sticky top-16 z-30 -mx-margin border-b border-border bg-bg/85 px-margin py-3 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-content flex-wrap items-center gap-3">
-        {/* Status chips */}
-        <div className="flex items-center gap-1 rounded-md border border-border bg-surface p-0.5">
+    <div className="flex flex-col gap-3 rounded-xl border border-border/60 glass surface-highlight px-3 py-3 shadow-card-elevated md:flex-row md:items-center md:gap-3">
+      {/* Search */}
+      <Input
+        variant="ghost"
+        size="default"
+        type="search"
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        placeholder="Search by repo, name, or owner…"
+        leadingIcon={<Search className="size-4" />}
+        clearable
+        onClear={() => setSearchValue("")}
+        wrapperClassName="md:max-w-md md:flex-1"
+        aria-label="Search projects"
+      />
+
+      <div className="flex flex-wrap items-center gap-2 md:ml-auto">
+        {/* Status segmented chips */}
+        <div
+          role="tablist"
+          aria-label="Status filter"
+          className="inline-flex items-center gap-0.5 rounded-md border border-border/60 bg-bg/40 p-0.5"
+        >
           {STATUS_OPTIONS.map(({ key, label }) => {
             const on = status === key;
             return (
               <button
                 key={key}
                 type="button"
-                aria-pressed={on}
+                role="tab"
+                aria-selected={on}
                 onClick={() =>
                   pushParams((p) => {
                     if (key === "all") p.delete("status");
@@ -100,38 +121,22 @@ export function ExploreFilters() {
           })}
         </div>
 
-        {/* Search */}
-        <label className="relative flex min-w-0 flex-1 items-center sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 size-4 text-fg-muted" />
-          <input
-            type="search"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Search by repo or name…"
-            className="h-9 w-full rounded-md border border-border-strong bg-surface px-9 text-body-md text-fg placeholder:text-fg-muted focus:border-primary focus:outline-none"
-          />
-          {searchValue ? (
-            <button
-              type="button"
-              onClick={() => setSearchValue("")}
-              aria-label="Clear search"
-              className="absolute right-2 inline-flex size-6 items-center justify-center rounded text-fg-muted hover:bg-surface-elevated hover:text-fg"
-            >
-              <X className="size-3.5" />
-            </button>
-          ) : null}
-        </label>
-
         {/* Sort dropdown */}
-        <div className="relative ml-auto">
+        <div className="relative">
           <button
             type="button"
             onClick={() => setSortOpen((v) => !v)}
             onBlur={() => setTimeout(() => setSortOpen(false), 120)}
             aria-expanded={sortOpen}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-border-strong bg-surface px-3 text-label-md text-fg transition-colors hover:bg-surface-elevated"
+            aria-haspopup="listbox"
+            className={cn(
+              "inline-flex h-9 items-center gap-2 rounded-md border border-border/60 bg-bg/40 px-3 text-label-md text-fg",
+              "transition-colors hover:bg-surface-elevated/60",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+            )}
           >
-            <span className="text-fg-muted">Sort:</span>
+            <span className="text-fg-muted">Sort</span>
+            <span className="text-mono-sm text-fg-secondary">·</span>
             <span>
               {SORT_OPTIONS.find((o) => o.key === sort)?.label ??
                 SORT_OPTIONS[0]?.label}
@@ -144,13 +149,18 @@ export function ExploreFilters() {
             />
           </button>
           {sortOpen ? (
-            <div className="absolute right-0 z-40 mt-1 w-64 rounded-lg border border-border-strong bg-surface-overlay p-1 shadow-popover">
+            <div
+              role="listbox"
+              className="absolute right-0 z-40 mt-1 w-64 rounded-lg border border-border/60 glass surface-highlight p-1 shadow-popover"
+            >
               {SORT_OPTIONS.map(({ key, label }) => {
                 const on = sort === key;
                 return (
                   <button
                     key={key}
                     type="button"
+                    role="option"
+                    aria-selected={on}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       setSortOpen(false);
@@ -162,8 +172,8 @@ export function ExploreFilters() {
                     className={cn(
                       "block w-full rounded-md px-3 py-2 text-left text-body-sm transition-colors",
                       on
-                        ? "bg-surface-elevated text-fg"
-                        : "text-fg-secondary hover:bg-surface-elevated hover:text-fg",
+                        ? "bg-surface-elevated text-fg shadow-inset-light"
+                        : "text-fg-secondary hover:bg-surface-elevated/60 hover:text-fg",
                     )}
                   >
                     {label}

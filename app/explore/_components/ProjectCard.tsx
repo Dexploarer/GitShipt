@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Github } from "lucide-react";
+import { Coins, Github, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatSol } from "@/lib/format";
@@ -7,54 +7,78 @@ import { cn } from "@/lib/utils";
 import type { PublicProjectRow } from "@/lib/queries/discovery";
 
 /**
- * Single project tile in the /explore grid. Whole card is a link to the
- * project page; hover lifts the shadow. Stats are mono per design rule.
+ * Discovery tile in the /explore grid — pump.fun / bags.fm style.
+ *
+ * Layout (top to bottom):
+ *  - Header row: avatar (56) + name/slug + status badge
+ *  - Description (clamp-2)
+ *  - Token mint chip (mono, truncated) + age chip
+ *  - Stat strip (Lifetime / 24h fee / Devs) — mono values, hairline divider above
+ *
+ * Whole card is a link to /r/{slug}; raised → floating shadow on hover.
  */
 export function ProjectCard({ project }: { project: PublicProjectRow }) {
   const initial = project.name.slice(0, 1).toUpperCase();
   return (
     <Link
       href={`/r/${project.slug}`}
-      className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg rounded-lg"
+      className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
     >
       <Card
         depth="raised"
         padding="default"
         className={cn(
-          "flex h-full flex-col gap-4 transition-shadow",
-          "group-hover:shadow-floating",
+          "flex h-full flex-col gap-3 transition-[box-shadow,border-color,transform] duration-200",
+          "group-hover:-translate-y-0.5 group-hover:border-border-strong group-hover:shadow-floating",
         )}
       >
         <header className="flex items-start gap-3">
           <Avatar imageUrl={project.imageUrl} fallback={initial} />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-headline-sm text-fg">
+            <h3 className="truncate text-headline-sm leading-tight text-fg">
               {project.name}
             </h3>
-            <div className="mt-0.5 flex items-center gap-1.5 text-mono-sm text-fg-muted">
-              <Github className="size-3" />
+            <div className="mt-1 inline-flex items-center gap-1.5 text-mono-sm text-fg-muted">
+              <Github className="size-3 shrink-0" aria-hidden />
               <span className="truncate">{project.slug}</span>
             </div>
           </div>
           <StatusBadge status={project.status} />
         </header>
 
-        <p className="line-clamp-2 text-body-sm text-fg-secondary min-h-[34px]">
+        <p className="line-clamp-2 min-h-[34px] text-body-sm text-fg-secondary">
           {project.description ?? "No description provided."}
         </p>
 
-        <dl className="mt-auto grid grid-cols-3 gap-2 border-t border-border pt-3">
-          <Stat label="Lifetime fees">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {project.tokenMint ? (
+            <Chip>
+              <span className="text-fg-muted">CA</span>
+              <span className="text-mono-sm text-fg-secondary">
+                {shortenMint(project.tokenMint)}
+              </span>
+            </Chip>
+          ) : null}
+          <Chip>
+            <span className="text-fg-muted">Age</span>
+            <span className="text-mono-sm text-fg-secondary">
+              {timeAgo(project.createdAt)}
+            </span>
+          </Chip>
+        </div>
+
+        <dl className="mt-auto grid grid-cols-3 gap-2 border-t border-border/60 pt-3">
+          <Stat label="Lifetime" icon={<Coins className="size-3" />}>
             <span className="text-mono-md text-fg">
               {formatSol(project.lifetimeFeesLamports, 2)}
             </span>
           </Stat>
-          <Stat label="Daily fee">
+          <Stat label="Daily">
             <span className="text-mono-md text-fg">
               {formatSol(project.dailyFeeLamports, 2)}
             </span>
           </Stat>
-          <Stat label="Contributors">
+          <Stat label="Devs" icon={<Users className="size-3" />}>
             <span className="text-mono-md text-fg">
               {project.contributorsCount.toLocaleString("en-US")}
             </span>
@@ -78,7 +102,7 @@ function Avatar({
       <img
         src={imageUrl}
         alt=""
-        className="size-12 shrink-0 rounded-xl object-cover"
+        className="size-14 shrink-0 rounded-xl border border-border/60 object-cover"
         loading="lazy"
       />
     );
@@ -86,7 +110,7 @@ function Avatar({
   return (
     <span
       aria-hidden
-      className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary-soft text-headline-sm text-primary"
+      className="grid size-14 shrink-0 place-items-center rounded-xl border border-border/60 bg-primary-soft text-headline-sm font-semibold text-primary"
     >
       {fallback}
     </span>
@@ -122,17 +146,49 @@ function StatusBadge({ status }: { status: PublicProjectRow["status"] }) {
   );
 }
 
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-bg/40 px-2 py-0.5 text-caption">
+      {children}
+    </span>
+  );
+}
+
 function Stat({
   label,
+  icon,
   children,
 }: {
   label: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <dt className="text-caption text-fg-muted">{label}</dt>
+      <dt className="inline-flex items-center gap-1 text-caption text-fg-muted">
+        {icon}
+        {label}
+      </dt>
       <dd className="mt-0.5">{children}</dd>
     </div>
   );
+}
+
+function shortenMint(mint: string): string {
+  if (mint.length <= 10) return mint;
+  return `${mint.slice(0, 4)}…${mint.slice(-4)}`;
+}
+
+function timeAgo(date: Date): string {
+  const ms = Date.now() - date.getTime();
+  const min = Math.max(0, Math.floor(ms / 60_000));
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `${mo}mo`;
+  const y = Math.floor(d / 365);
+  return `${y}y`;
 }

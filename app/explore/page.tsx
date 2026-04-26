@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Compass } from "lucide-react";
 import { PublicAppShell } from "@/components/public/PublicAppShell";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   getAllPublicProjects,
   type ExploreFilters,
@@ -10,7 +12,7 @@ import { ExploreFilters as FiltersBar } from "./_components/ExploreFilters";
 import { ProjectCard } from "./_components/ProjectCard";
 
 export const metadata: Metadata = {
-  title: "Explore projects · GitBags",
+  title: "Explore projects",
   description:
     "Open-source repos rewarding their contributors with daily on-chain payouts.",
 };
@@ -48,26 +50,38 @@ export default async function ExplorePage({
   const params = await searchParams;
   const filters = parseFilters(params);
   const projects = await getAllPublicProjects(filters);
+  const hasFilters = Boolean(params.q || params.status || params.sort);
 
   return (
     <PublicAppShell active="explore">
-      <div className="flex flex-col gap-3">
-        <h1 className="text-headline-lg tracking-tight">Explore projects</h1>
-        <p className="max-w-2xl text-body-lg text-fg-secondary">
-          Open-source repos rewarding their contributors with daily on-chain
-          payouts.
-        </p>
-      </div>
+      <div className="flex flex-col gap-6 lg:gap-8">
+        <header className="flex flex-col items-start gap-3">
+          <h1 className="text-[40px] font-semibold leading-[1.02] tracking-[-0.025em] text-fg sm:text-[52px] lg:text-[60px]">
+            Explore <span className="text-fg-muted">projects.</span>
+          </h1>
+          <p className="max-w-2xl text-body-lg text-fg-secondary">
+            Every live GitBags repo, ranked by trading-fee flow. Filter by
+            status, sort by what matters to you, and click into any project
+            to see its leaderboard, payouts, and token.
+          </p>
+        </header>
 
-      <div className="mt-8">
         <FiltersBar />
-      </div>
 
-      <div className="mt-8">
+        <div className="flex items-center justify-between">
+          <span className="text-caption text-fg-muted">
+            {projects.length === 0
+              ? "0 projects"
+              : projects.length === 1
+                ? "1 project"
+                : `${projects.length.toLocaleString("en-US")} projects`}
+          </span>
+        </div>
+
         {projects.length === 0 ? (
-          <EmptyState hasFilters={Boolean(params.q || params.status || params.sort)} />
+          <EmptyState hasFilters={hasFilters} />
         ) : (
-          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {projects.map((p) => (
               <li key={p.id}>
                 <ProjectCard project={p} />
@@ -82,29 +96,30 @@ export default async function ExplorePage({
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-3 rounded-lg border border-border bg-surface px-6 py-16 text-center">
-      <Compass className="size-12 text-fg-muted" aria-hidden />
+    <Card depth="raised" padding="lg" className="mx-auto flex max-w-md flex-col items-center gap-3 text-center">
+      <span
+        aria-hidden
+        className="grid size-12 place-items-center rounded-xl bg-primary-soft text-primary"
+      >
+        <Compass className="size-6" />
+      </span>
       <h2 className="text-headline-sm text-fg">No projects match</h2>
       <p className="text-body-md text-fg-secondary">
         {hasFilters
           ? "Try a different filter or clear your search to see every live project."
           : "No projects are live yet — be the first to launch one."}
       </p>
-      {hasFilters ? (
-        <Link
-          href="/explore"
-          className="mt-2 inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-label-md text-fg transition-colors hover:bg-primary-hover"
-        >
-          Clear filters
-        </Link>
-      ) : (
-        <Link
-          href="/launch"
-          className="mt-2 inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-label-md text-fg transition-colors hover:bg-primary-hover"
-        >
-          Launch a project
-        </Link>
-      )}
-    </div>
+      <div className="mt-2">
+        {hasFilters ? (
+          <Button asChild variant="primary" size="default">
+            <Link href="/explore">Clear filters</Link>
+          </Button>
+        ) : (
+          <Button asChild variant="primary" size="default">
+            <Link href="/launch">Launch a project</Link>
+          </Button>
+        )}
+      </div>
+    </Card>
   );
 }
