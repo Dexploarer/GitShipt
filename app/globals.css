@@ -371,28 +371,32 @@
 }
 
 /* Subtle gradient hairline at the top edge of glass surfaces to mimic
-   the catch-light of physical glass. Plain CSS class (Tailwind v4 @utility
-   can't carry pseudo-elements). */
-.surface-highlight {
-  position: relative;
-  isolation: isolate;
-}
-.surface-highlight::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--fg) 5%, transparent) 0%,
-    transparent 28%
-  );
-  z-index: 0;
-}
-.surface-highlight > * {
-  position: relative;
-  z-index: 1;
+   the catch-light of physical glass. Lives in @layer components so explicit
+   Tailwind position utilities (fixed/absolute/static) on the same element
+   still win — the ::before only needs *some* positioned ancestor, which
+   `relative` here provides as a default if no other position is set. */
+@layer components {
+  .surface-highlight {
+    position: relative;
+    isolation: isolate;
+  }
+  .surface-highlight::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--fg) 5%, transparent) 0%,
+      transparent 28%
+    );
+    z-index: 0;
+  }
+  .surface-highlight > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 /* ============================================================
