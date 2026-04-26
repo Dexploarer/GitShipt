@@ -30,7 +30,7 @@ export default async function LandingPage() {
 
   return (
     <PublicAppShell active="home">
-      <div className="flex flex-col gap-8 px-4 lg:px-8">
+      <div className="flex flex-col gap-6 px-4 lg:px-8">
         {/* Hero — content left, image right. items-center vertically
             balances the short text block against the tall image so we
             don't get empty space above the text on lg+. Mobile stacks
@@ -99,8 +99,6 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* Subtle separator that ties hero into the KPI strip */}
-        <div aria-hidden className="h-px w-full bg-border/40" />
 
         {/* Live KPI strip — 4 floating cells, no Card wrapper */}
         <section
