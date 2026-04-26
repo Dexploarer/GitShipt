@@ -391,21 +391,18 @@ export const bags = {
       );
     }
 
+    const partnerWallet = validated.partner ?? env.BAGS_PARTNER_WALLET;
+    const partnerConfigKey =
+      validated.partnerConfig ?? env.BAGS_PARTNER_CONFIG_KEY;
     const payer = new PublicKey(validated.payer);
     const result = await sdk.config.createBagsFeeShareConfig({
       payer,
       baseMint: new PublicKey(validated.baseMint),
       feeClaimers,
-      partner: validated.partner
-        ? new PublicKey(validated.partner)
-        : env.BAGS_PARTNER_WALLET
-          ? new PublicKey(env.BAGS_PARTNER_WALLET)
-          : undefined,
-      partnerConfig: validated.partnerConfig
-        ? new PublicKey(validated.partnerConfig)
-        : env.BAGS_PARTNER_CONFIG_KEY
-          ? new PublicKey(env.BAGS_PARTNER_CONFIG_KEY)
-          : undefined,
+      partner: partnerWallet ? new PublicKey(partnerWallet) : undefined,
+      partnerConfig: partnerConfigKey
+        ? new PublicKey(partnerConfigKey)
+        : undefined,
       bagsConfigType: validated.bagsConfigType ?? env.BAGS_CONFIG_TYPE,
     });
 
@@ -430,7 +427,8 @@ export const bags = {
       configKey: publicKeyToString(result.meteoraConfigKey),
       txSignatures,
       feeClaimersTotalBps: totalBps,
-      partnerConfigKey: validated.partnerConfig ?? env.BAGS_PARTNER_CONFIG_KEY,
+      partnerWallet,
+      partnerConfigKey,
       poolClaimerWallet:
         validated.feeClaimers.length === 1
           ? Array.from(claimerBpsByWallet.keys())[0]
@@ -556,9 +554,11 @@ export const bags = {
 
   /** Build a Bags-hosted launch intent URL for user-signed handoff flows. */
   createLaunchIntentUrl(input: LaunchIntentInput): string {
+    const env = serverEnv();
     const validated = LaunchIntentInputSchema.parse(input);
     const url = new URL("launch", "https://bags.fm/");
     url.searchParams.set("intent", "true");
+    url.searchParams.set("ref", validated.refCode ?? env.BAGS_REF_CODE);
     if (validated.name) url.searchParams.set("name", validated.name);
     if (validated.symbol) url.searchParams.set("ticker", validated.symbol);
     if (validated.description) {
@@ -576,9 +576,12 @@ export const bags = {
     if (validated.adminWallet) {
       url.searchParams.set("adminWallet", validated.adminWallet);
     }
-    if (validated.partner) url.searchParams.set("partner", validated.partner);
-    if (validated.partnerConfig) {
-      url.searchParams.set("partnerConfig", validated.partnerConfig);
+    const partnerWallet = validated.partner ?? env.BAGS_PARTNER_WALLET;
+    const partnerConfigKey =
+      validated.partnerConfig ?? env.BAGS_PARTNER_CONFIG_KEY;
+    if (partnerWallet) url.searchParams.set("partner", partnerWallet);
+    if (partnerConfigKey) {
+      url.searchParams.set("partnerConfig", partnerConfigKey);
     }
     if (validated.tokenizeEquity !== undefined) {
       url.searchParams.set(

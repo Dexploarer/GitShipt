@@ -232,7 +232,7 @@ score =
 
 ```ts
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection, Keypair } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 
 const sdk = new BagsSDK(
   process.env.BAGS_API_KEY!,
@@ -241,7 +241,7 @@ const sdk = new BagsSDK(
 );
 
 // Step 1: create token info (uploads metadata, returns tokenMint + metadataUrl)
-const tokenInfo = await sdk.tokenLaunch.createTokenInfo({
+const tokenInfo = await sdk.tokenLaunch.createTokenInfoAndMetadata({
   name: "GitBags",
   symbol: "GBAGS",
   description:
@@ -250,15 +250,19 @@ const tokenInfo = await sdk.tokenLaunch.createTokenInfo({
 });
 
 // Step 2: create fee share config
-// MVP model: platform claims 100% pooled, redistributes off-chain
-// share_fee is the on-chain platform fee (5% bps)
-const { configKey } = await sdk.tokenLaunch.feeShare.createConfig({
+// MVP model: direct wallet claimers total 10,000 bps. Partner attribution is
+// separate from GitBags' own fee-claimer rail.
+const { meteoraConfigKey } = await sdk.config.createBagsFeeShareConfig({
   payer: launchWallet.publicKey,
   baseMint: tokenInfo.tokenMint,
   feeClaimers: [
-    { provider: "github", username: GITBAGS_PLATFORM_GH_USERNAME, bps: 9500 }, // pool
+    { user: poolClaimerWallet, userBps: 9500 }, // pool
+    { user: treasuryWallet, userBps: 500 }, // GitBags platform rail
   ],
-  share_fee: 500, // 5% on-chain platform fee
+  partner: new PublicKey(process.env.BAGS_PARTNER_WALLET!),
+  partnerConfig: process.env.BAGS_PARTNER_CONFIG_KEY
+    ? new PublicKey(process.env.BAGS_PARTNER_CONFIG_KEY)
+    : undefined,
 });
 
 // Step 3: create launch transaction
@@ -266,8 +270,8 @@ const launchTx = await sdk.tokenLaunch.createLaunchTransaction({
   metadataUrl: tokenInfo.tokenMetadata,
   tokenMint: tokenInfo.tokenMint,
   launchWallet: launchWallet.publicKey,
-  initialBuyLamports: 0n,
-  configKey,
+  initialBuyLamports: 0,
+  configKey: meteoraConfigKey,
 });
 
 // Step 4: sign and broadcast
@@ -278,6 +282,14 @@ const signature = await signAndSendTransaction(
   launchWallet,
 );
 ```
+
+### Partner API and referral attribution
+
+`BAGS_API_KEY` is the private server credential for the Bags public API. It is
+not the partner key. Token launches and Bags-hosted handoff URLs also attach
+the GitBags partner wallet `HXs58Qa6YtgJfWVkQVnpFmw6WoEdFEL4LLD1ArZjMvTH` and
+referral code `symbiex` (`https://bags.fm/?ref=symbiex`) unless an explicit
+override is passed for a specialized partner campaign.
 
 ### Daily fee claim and redistribute
 
@@ -1003,6 +1015,12 @@ GITHUB_APP_WEBHOOK_SECRET
 BAGS_API_KEY
 BAGS_API_BASE_URL
 BAGS_WEBHOOK_SECRET
+BAGS_PARTNER_WALLET=HXs58Qa6YtgJfWVkQVnpFmw6WoEdFEL4LLD1ArZjMvTH
+BAGS_REF_CODE=symbiex
+BAGS_PARTNER_CONFIG_KEY
+BAGS_CONFIG_TYPE
+BAGS_ALLOW_PROD_LAUNCH=false
+ALLOW_STUBS_IN_PROD=false
 
 # Solana
 HELIUS_RPC_URL

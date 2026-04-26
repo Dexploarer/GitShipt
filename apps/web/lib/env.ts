@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+export const DEFAULT_BAGS_PARTNER_WALLET =
+  "HXs58Qa6YtgJfWVkQVnpFmw6WoEdFEL4LLD1ArZjMvTH";
+export const DEFAULT_BAGS_REF_CODE = "symbiex";
+
 const serverEnvSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -30,8 +34,15 @@ const serverEnvSchema = z.object({
     .url()
     .default("https://public-api-v2.bags.fm/api/v1/"),
   BAGS_WEBHOOK_SECRET: z.string().min(1).optional(),
-  BAGS_PARTNER_WALLET: z.string().min(32).optional(),
+  BAGS_PARTNER_WALLET: z
+    .string()
+    .min(32)
+    .default(DEFAULT_BAGS_PARTNER_WALLET),
   BAGS_PARTNER_CONFIG_KEY: z.string().min(32).optional(),
+  BAGS_REF_CODE: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,64}$/)
+    .default(DEFAULT_BAGS_REF_CODE),
   BAGS_CONFIG_TYPE: z.string().min(1).optional(),
   BAGS_INITIAL_BUY_LAMPORTS: z.coerce.number().int().min(0).default(0),
   // Safety guard: refuse real launch txns when devnet cluster + prod key
@@ -114,6 +125,7 @@ export const hasCredentials = {
       serverEnv().GITHUB_APP_WEBHOOK_SECRET,
     ),
   bags: () => Boolean(serverEnv().BAGS_API_KEY),
+  bagsPartner: () => Boolean(serverEnv().BAGS_PARTNER_WALLET),
   solana: () => Boolean(serverEnv().HELIUS_RPC_URL),
   payoutKey: () => Boolean(serverEnv().SOLANA_PAYOUT_KEYPAIR),
   cron: () => Boolean(serverEnv().CRON_SECRET),
@@ -149,4 +161,90 @@ export function canLaunchOnBags():
     };
   }
   return { ok: true };
+}
+
+export interface ProductionReadiness {
+  ok: boolean;
+  mode: "production" | "non-production";
+  missing: string[];
+  warnings: string[];
+  cluster: ClientEnv["NEXT_PUBLIC_SOLANA_CLUSTER"];
+  bagsApiBaseUrl: string;
+  partnerWalletConfigured: boolean;
+  refCode: string;
+}
+
+export function productionReadiness(): ProductionReadiness {
+  const env = serverEnv();
+  const publicEnv = clientEnv();
+  const missing: string[] = [];
+  const warnings: string[] = [];
+
+  if (env.NODE_ENV !== "production") {
+    return {
+      ok: true,
+      mode: "non-production",
+      missing,
+      warnings,
+      cluster: publicEnv.NEXT_PUBLIC_SOLANA_CLUSTER,
+      bagsApiBaseUrl: env.BAGS_API_BASE_URL,
+      partnerWalletConfigured: Boolean(env.BAGS_PARTNER_WALLET),
+      refCode: env.BAGS_REF_CODE,
+    };
+  }
+
+  const requiredServer: Array<[string, unknown]> = [
+    ["DATABASE_URL", env.DATABASE_URL],
+    ["REDIS_URL", env.REDIS_URL],
+    ["BETTER_AUTH_SECRET", env.BETTER_AUTH_SECRET],
+    ["BETTER_AUTH_URL", env.BETTER_AUTH_URL],
+    ["GITHUB_CLIENT_ID", env.GITHUB_CLIENT_ID],
+    ["GITHUB_CLIENT_SECRET", env.GITHUB_CLIENT_SECRET],
+    ["GITHUB_APP_ID", env.GITHUB_APP_ID],
+    ["GITHUB_APP_PRIVATE_KEY", env.GITHUB_APP_PRIVATE_KEY],
+    ["GITHUB_APP_WEBHOOK_SECRET", env.GITHUB_APP_WEBHOOK_SECRET],
+    ["BAGS_API_KEY", env.BAGS_API_KEY],
+    ["BAGS_WEBHOOK_SECRET", env.BAGS_WEBHOOK_SECRET],
+    ["BAGS_PARTNER_WALLET", env.BAGS_PARTNER_WALLET],
+    ["HELIUS_RPC_URL", env.HELIUS_RPC_URL],
+    ["SOLANA_PAYOUT_KEYPAIR", env.SOLANA_PAYOUT_KEYPAIR],
+    ["CRON_SECRET", env.CRON_SECRET],
+  ];
+
+  for (const [name, value] of requiredServer) {
+    if (!value) missing.push(name);
+  }
+
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    missing.push("NEXT_PUBLIC_APP_URL");
+  } else if (publicEnv.NEXT_PUBLIC_APP_URL.includes("localhost")) {
+    warnings.push("NEXT_PUBLIC_APP_URL points at localhost.");
+  }
+
+  if (publicEnv.NEXT_PUBLIC_SOLANA_CLUSTER !== "mainnet-beta") {
+    missing.push("NEXT_PUBLIC_SOLANA_CLUSTER=mainnet-beta");
+  }
+
+  if (env.ALLOW_STUBS_IN_PROD) {
+    warnings.push("ALLOW_STUBS_IN_PROD=true leaves production in stub mode.");
+  }
+
+  if (env.BAGS_API_KEY && !env.BAGS_API_KEY.startsWith("bags_prod_")) {
+    warnings.push("BAGS_API_KEY does not look like a production key.");
+  }
+
+  if (!env.BAGS_API_BASE_URL.startsWith("https://public-api-v2.bags.fm/")) {
+    warnings.push("BAGS_API_BASE_URL is not the canonical public API host.");
+  }
+
+  return {
+    ok: missing.length === 0 && warnings.length === 0,
+    mode: "production",
+    missing,
+    warnings,
+    cluster: publicEnv.NEXT_PUBLIC_SOLANA_CLUSTER,
+    bagsApiBaseUrl: env.BAGS_API_BASE_URL,
+    partnerWalletConfigured: Boolean(env.BAGS_PARTNER_WALLET),
+    refCode: env.BAGS_REF_CODE,
+  };
 }
