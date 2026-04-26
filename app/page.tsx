@@ -41,9 +41,9 @@ export default async function LandingPage() {
       <div className="flex flex-col gap-3 lg:h-[calc(100vh-4.5rem)] lg:gap-3 lg:overflow-hidden">
         {/* ── Row 1: hero + featured project ─────────────────────────── */}
         <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-12">
-          <section className="flex items-center lg:col-span-8 lg:min-h-0">
-            <div className="grid w-full grid-cols-1 items-center gap-6 sm:grid-cols-[1fr_auto] sm:gap-8 lg:gap-10">
-              <div className="flex flex-col items-start gap-3 lg:gap-4">
+          <section className="flex items-stretch lg:col-span-8 lg:min-h-0">
+            <div className="grid h-full w-full grid-cols-1 items-end gap-6 sm:grid-cols-[1fr_auto] sm:gap-8 lg:gap-10">
+              <div className="flex flex-col items-start gap-3 self-start pt-2 lg:gap-4">
                 <h1 className="text-[36px] font-semibold leading-[1.04] tracking-[-0.02em] text-fg sm:text-[44px] lg:text-[52px]">
                   Your repo,
                   <br />
@@ -81,14 +81,14 @@ export default async function LandingPage() {
                 </Link>
               </div>
 
-              <div className="relative mx-auto aspect-square w-full max-w-[360px] shrink-0 sm:mx-0 sm:w-[360px] sm:max-w-none lg:w-[480px]">
+              <div className="relative mx-auto aspect-square w-full max-w-[400px] shrink-0 self-end sm:mx-0 sm:w-[400px] sm:max-w-none lg:w-[600px]">
                 <Image
                   src="/mia.png"
                   alt=""
                   fill
                   priority
-                  sizes="(max-width: 1024px) 360px, 480px"
-                  className="object-contain object-center"
+                  sizes="(max-width: 1024px) 400px, 600px"
+                  className="object-contain object-bottom"
                   unoptimized
                 />
               </div>
