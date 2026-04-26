@@ -213,6 +213,7 @@ export async function claimBagsFees(args: {
   walletAddress: string;
   tokenMint: string;
 }): Promise<{ signature: string | null; txCount: number }> {
+  const { bags } = await import("@/lib/bags/client");
   const { transactions } = (await bags.getClaimTransactions(
     args.walletAddress,
     args.tokenMint,
@@ -224,25 +225,15 @@ export async function claimBagsFees(args: {
 
   const { Transaction, VersionedTransaction } = await import("@solana/web3.js");
   const { solanaConnection } = await import("@/lib/solana/connection");
-  const { payoutSigner } = await import("@/lib/solana/signer");
   const conn = solanaConnection("confirmed");
-  const signer = payoutSigner();
 
   const sigs: string[] = [];
   for (const txUnknown of transactions) {
-    if (txUnknown instanceof VersionedTransaction) {
-      txUnknown.sign([signer]);
-      const sig = await conn.sendTransaction(txUnknown, { maxRetries: 3 });
-      await conn.confirmTransaction(sig, "confirmed");
-      sigs.push(sig);
-      continue;
-    }
-
-    if (txUnknown instanceof Transaction) {
-      txUnknown.sign(signer);
-      const sig = await conn.sendRawTransaction(txUnknown.serialize(), {
-        maxRetries: 3,
-      });
+    if (
+      txUnknown instanceof VersionedTransaction ||
+      txUnknown instanceof Transaction
+    ) {
+      const sig = await bags.signAndSubmitTransaction(txUnknown);
       await conn.confirmTransaction(sig, "confirmed");
       sigs.push(sig);
       continue;
@@ -440,6 +431,9 @@ export async function dispatchRecipient(args: {
   ) {
     return { status: "skipped" };
   }
+  if (existing.status === "sending") {
+    return { status: "skipped" };
+  }
 
   // Wallet not linked -> escrow.
   if (!args.recipient.walletAddress) {
@@ -462,34 +456,50 @@ export async function dispatchRecipient(args: {
     return { status: "escrow" };
   }
 
-  // Wallet linked -> on-chain SOL transfer.
+  const attemptId = `payout:${args.payoutId}:${args.recipient.idempotencyKey}`;
+  const now = new Date();
+  const [claimed] = await dbHttp
+    .update(payoutRecipients)
+    .set({
+      status: "sending",
+      sendAttemptId: attemptId,
+      sendingAt: now,
+      error: null,
+    })
+    .where(eq(payoutRecipients.id, existing.id))
+    .returning({ id: payoutRecipients.id });
+  if (!claimed) return { status: "skipped" };
+
+  let signature: string;
   try {
     const { PublicKey } = await import("@solana/web3.js");
     const { transferSol } = await import("@/lib/solana/spl-transfer");
-    const { signature } = await transferSol(
+    const result = await transferSol(
       new PublicKey(args.recipient.walletAddress),
       amount,
-      `gitbags:${args.sourcePayoutId}:${args.recipient.contributorId}`,
+      attemptId,
     );
-    const now = new Date();
-    await dbHttp
-      .update(payoutRecipients)
-      .set({
-        status: "confirmed",
-        txSignature: signature,
-        sentAt: now,
-        confirmedAt: now,
-      })
-      .where(eq(payoutRecipients.id, existing.id));
-    return { status: "sent", sig: signature };
+    signature = result.signature;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await dbHttp
       .update(payoutRecipients)
-      .set({ status: "failed", error: message.slice(0, 500) })
+      .set({ status: "sending", error: message.slice(0, 500) })
       .where(eq(payoutRecipients.id, existing.id));
     return { status: "failed" };
   }
+
+  const confirmedAt = new Date();
+  await dbHttp
+    .update(payoutRecipients)
+    .set({
+      status: "confirmed",
+      txSignature: signature,
+      sentAt: confirmedAt,
+      confirmedAt,
+    })
+    .where(eq(payoutRecipients.id, existing.id));
+  return { status: "sent", sig: signature };
 }
 
 /**
