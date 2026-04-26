@@ -82,7 +82,7 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <div className="contents lg:flex lg:flex-col lg:col-span-7 lg:min-h-0 lg:justify-end lg:gap-4 lg:pb-[126px]">
+          <div className="contents lg:flex lg:flex-col lg:col-span-7 lg:min-h-0 lg:justify-end lg:gap-0 lg:pb-[126px]">
             <div className="pointer-events-none relative order-2 mx-auto aspect-square w-full max-w-[360px] sm:max-w-[460px] lg:order-none lg:aspect-auto lg:mx-0 lg:h-[700px] lg:w-full lg:max-w-none lg:shrink-0">
               <Image
                 src="/mia.png"
