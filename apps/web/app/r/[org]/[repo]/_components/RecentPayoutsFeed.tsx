@@ -3,8 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import { formatRelativeTime, formatSol } from "@repo/lib";
 import { cn } from "@repo/lib";
 import type { RecentPayoutRow } from "@/lib/queries/project-page";
-
-const SOLSCAN_CLUSTER = "devnet";
+import { solscanTxUrl } from "@/lib/solana/explorer";
 
 /**
  * Last 5 payouts, newest first. Each row is clickable iff a tx signature is
@@ -75,7 +74,7 @@ function PayoutRow({ row }: { row: RecentPayoutRow }) {
     return (
       <li>
         <a
-          href={`https://solscan.io/tx/${row.claimSignature}?cluster=${SOLSCAN_CLUSTER}`}
+          href={solscanTxUrl(row.claimSignature)}
           target="_blank"
           rel="noreferrer noopener"
           className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-3 transition-colors hover:bg-surface-elevated"

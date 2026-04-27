@@ -15,6 +15,7 @@ import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { CopyButton } from "@/components/shared";
+import { solscanAddressUrl } from "@/lib/solana/explorer";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +84,7 @@ export default async function WalletsPage() {
                       </span>
                       <CopyButton value={w.address} label="Copy address" />
                       <Link
-                        href={`https://solscan.io/account/${w.address}?cluster=devnet`}
+                        href={solscanAddressUrl(w.address)}
                         target="_blank"
                         rel="noreferrer noopener"
                         className="text-fg-muted hover:text-fg"

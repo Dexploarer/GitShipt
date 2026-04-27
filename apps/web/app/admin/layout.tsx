@@ -8,6 +8,7 @@ import { SidebarProvider } from "@repo/ui";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
 import { getDefaultSidebarCollapsed } from "@/lib/sidebar-state";
+import { clusterLabel } from "@/lib/solana/explorer";
 
 /**
  * `/admin/**` shell. Mirrors the project-page app shell exactly so the visual
@@ -61,7 +62,7 @@ export default async function AdminLayout({
             ].join(" ")}
           >
             <span className="truncate text-caption text-fg-muted">
-              Admin · devnet · BAGS.fm
+              Admin · {clusterLabel()} · BAGS.fm
             </span>
             <div className="flex items-center gap-1">
               <SocialLink

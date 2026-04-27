@@ -5,6 +5,7 @@ import { cn } from "@repo/lib";
 import { formatAddress, formatSol } from "@repo/lib";
 import { CopyButton } from "@/components/shared";
 import type { TokenStats } from "@/lib/queries/token-stats";
+import { solscanTokenUrl } from "@/lib/solana/explorer";
 
 /**
  * Token info — sits in the top-right grid cell next to ProjectHeader.
@@ -107,7 +108,7 @@ export function TokenInfoCard({
         </span>
         <CopyButton value={stats.tokenMint} label="Copy contract address" />
         <Link
-          href={`https://solscan.io/token/${stats.tokenMint}?cluster=devnet`}
+          href={solscanTokenUrl(stats.tokenMint)}
           target="_blank"
           rel="noreferrer noopener"
           aria-label="View on Solscan"

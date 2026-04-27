@@ -14,6 +14,7 @@ import { hasCredentials, serverEnv, clientEnv } from "@/lib/env";
 import { hasSolanaConnection, solanaConnection } from "@/lib/solana/connection";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { formatAddress } from "@repo/lib";
+import { clusterLabel, solscanAddressUrl } from "@/lib/solana/explorer";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +28,6 @@ export default async function AdminTreasuryPage() {
 
   const hotSol =
     hotPubkey && hasSolanaConnection() ? await fetchHotSol(hotPubkey) : null;
-
-  const solscanBase =
-    cluster === "mainnet-beta"
-      ? "https://solscan.io/account/"
-      : `https://solscan.io/account/`;
-  const solscanCluster =
-    cluster === "mainnet-beta" ? "" : `?cluster=${cluster}`;
 
   return (
     <div className="space-y-4">
@@ -73,7 +67,7 @@ export default async function AdminTreasuryPage() {
         />
         <StatTile
           label="Cluster"
-          value={cluster}
+          value={clusterLabel(cluster)}
           sub={hasCredentials.solana() ? "Helius" : "devnet fallback"}
           icon={ArrowUpRight}
         />
@@ -97,7 +91,7 @@ export default async function AdminTreasuryPage() {
             <span>
               {hotPubkey ? (
                 <Link
-                  href={`${solscanBase}${hotPubkey}${solscanCluster}`}
+                  href={solscanAddressUrl(hotPubkey, cluster)}
                   target="_blank"
                   rel="noreferrer noopener"
                   className="text-label-sm text-primary hover:underline"
@@ -143,7 +137,7 @@ export default async function AdminTreasuryPage() {
             <span>
               {coldAddress ? (
                 <Link
-                  href={`${solscanBase}${coldAddress}${solscanCluster}`}
+                  href={solscanAddressUrl(coldAddress, cluster)}
                   target="_blank"
                   rel="noreferrer noopener"
                   className="text-label-sm text-primary hover:underline"

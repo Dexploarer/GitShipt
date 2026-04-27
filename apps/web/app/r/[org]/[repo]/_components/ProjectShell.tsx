@@ -3,6 +3,7 @@ import { Github, Twitter } from "lucide-react";
 import { SidebarProvider } from "@repo/ui";
 import type { ProjectHeader } from "@/lib/queries/project-page";
 import { ProjectShellMain, ProjectShellSidebar } from "./ProjectShellClient";
+import { clusterLabel } from "@/lib/solana/explorer";
 
 /**
  * ProjectShell — shared app shell for every page under /r/[org]/[repo]/*.
@@ -86,7 +87,7 @@ export function ProjectShell({
             ].join(" ")}
           >
             <span className="truncate text-caption text-fg-muted">
-              {slug} · devnet · BAGS.fm
+              {slug} · {clusterLabel()} · BAGS.fm
             </span>
             <div className="flex items-center gap-1">
               <SocialLink

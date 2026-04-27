@@ -4,6 +4,7 @@ import { cn } from "@repo/lib";
 import { formatAddress, formatSol } from "@repo/lib";
 import { CopyButton } from "@/components/shared";
 import type { TokenStats } from "@/lib/queries/token-stats";
+import { solscanTokenUrl } from "@/lib/solana/explorer";
 
 /**
  * Inline token stats — replaces the QuickStat grid that used to sit under
@@ -85,7 +86,7 @@ export function TokenStatsRow({
           <div className="-mr-1 flex items-center gap-0.5">
             <CopyButton value={stats.tokenMint} label="Copy contract address" />
             <Link
-              href={`https://solscan.io/token/${stats.tokenMint}?cluster=devnet`}
+              href={solscanTokenUrl(stats.tokenMint)}
               target="_blank"
               rel="noreferrer noopener"
               aria-label="View on Solscan"

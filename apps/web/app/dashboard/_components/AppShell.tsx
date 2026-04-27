@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
 import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
+import { clusterLabel } from "@/lib/solana/explorer";
 
 /**
  * Shared dashboard shell — viewport-locked layout matching `/r/[org]/[repo]`:
@@ -46,7 +47,7 @@ export function AppShell({
           ].join(" ")}
         >
           <span className="truncate text-caption text-fg-muted">
-            {footerLeft ?? "GitBags Console · devnet · BAGS.fm"}
+            {footerLeft ?? `GitBags Console · ${clusterLabel()} · BAGS.fm`}
           </span>
           <div className="flex items-center gap-1">
             <SocialLink href="https://github.com/SYMBaiEX/gitbags" label="GitBags repo">

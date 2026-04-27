@@ -9,6 +9,7 @@ import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { formatSol, formatRelativeTime, formatAddress } from "@repo/lib";
+import { clusterLabel, solscanTxUrl } from "@/lib/solana/explorer";
 
 type Params = Promise<{ org: string; repo: string }>;
 
@@ -22,7 +23,7 @@ export async function generateMetadata({
   if (!data) return { title: `${org}/${repo} · Payouts` };
   return {
     title: `${data.header.name} · Payouts`,
-    description: `Daily payout history for ${data.header.slug} on devnet.`,
+    description: `Daily payout history for ${data.header.slug} on ${clusterLabel()}.`,
   };
 }
 
@@ -254,7 +255,7 @@ function PayoutRow({
       <div className="text-right">
         {payout.claimSignature ? (
           <Link
-            href={`https://solscan.io/tx/${payout.claimSignature}?cluster=devnet`}
+            href={solscanTxUrl(payout.claimSignature)}
             target="_blank"
             rel="noreferrer noopener"
             aria-label={`View transaction ${formatAddress(payout.claimSignature)} on Solscan`}

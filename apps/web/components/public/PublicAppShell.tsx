@@ -3,6 +3,7 @@ import { Github, Twitter } from "lucide-react";
 import { SidebarProvider } from "@repo/ui";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
+import { clusterLabel } from "@/lib/solana/explorer";
 
 /**
  * PublicAppShell — viewport-locked app shell for public pages (landing,
@@ -20,7 +21,7 @@ import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger"
 export type PublicSidebarActive = string | undefined;
 
 export function PublicAppShell({
-  footerLeft = "devnet · BAGS.fm",
+  footerLeft = `${clusterLabel()} · BAGS.fm`,
   defaultSidebarCollapsed = false,
   children,
 }: {

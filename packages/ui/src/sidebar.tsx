@@ -4,11 +4,7 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@repo/lib";
-import {
-  createUiStore,
-  useUiStoreValue,
-  type UiStore,
-} from "./ui-store";
+import { createUiStore, useUiStoreValue, type UiStore } from "./ui-store";
 
 /**
  * Sidebar primitive — shadcn-composable, macOS Tahoe / Liquid Glass aesthetic.
@@ -73,7 +69,10 @@ export function useSidebar(): SidebarContextValue {
   }
 
   const collapsed = useUiStoreValue(store, (state) => state.sidebar.collapsed);
-  const mobileOpen = useUiStoreValue(store, (state) => state.sidebar.mobileOpen);
+  const mobileOpen = useUiStoreValue(
+    store,
+    (state) => state.sidebar.mobileOpen,
+  );
   const setSidebarCollapsed = useUiStoreValue(
     store,
     (state) => state.setSidebarCollapsed,
@@ -139,7 +138,10 @@ export function SidebarProvider({
     storeRef.current = createUiStore({ collapsed: defaultCollapsed });
   }
   const store = storeRef.current;
-  const mobileOpen = useUiStoreValue(store, (state) => state.sidebar.mobileOpen);
+  const mobileOpen = useUiStoreValue(
+    store,
+    (state) => state.sidebar.mobileOpen,
+  );
   const closeSidebarMobile = useUiStoreValue(
     store,
     (state) => state.closeSidebarMobile,
@@ -210,7 +212,7 @@ export function Sidebar({
           // Reset the mobile-only positioning, drop the m-3 (the parent owns
           // the gutter on lg+), restore inline flow, and apply the collapse
           // width transition.
-          "lg:static! lg:inset-auto! lg:m-0 lg:translate-x-0 lg:transition-[width]",
+          "lg:static lg:inset-auto lg:m-0 lg:translate-x-0 lg:transition-[width]",
           "lg:h-full lg:shrink-0",
           collapsed ? "lg:w-[68px]" : "lg:w-[260px]",
 

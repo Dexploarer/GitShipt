@@ -3,6 +3,7 @@ import { ArrowUpRight, Wallet } from "lucide-react";
 import { formatAddress } from "@repo/lib";
 import { Card } from "@repo/ui";
 import { Button } from "@repo/ui";
+import { solscanAddressUrl } from "@/lib/solana/explorer";
 
 export interface UserWalletCardProps {
   walletAddress?: string | null;
@@ -38,7 +39,7 @@ export function UserWalletCard({
       <div className="flex items-center justify-between">
         <div className="text-label-sm text-fg-muted">Wallet</div>
         <a
-          href={`https://solscan.io/account/${walletAddress}?cluster=devnet`}
+          href={solscanAddressUrl(walletAddress)}
           target="_blank"
           rel="noreferrer noopener"
           aria-label="Open on Solscan"

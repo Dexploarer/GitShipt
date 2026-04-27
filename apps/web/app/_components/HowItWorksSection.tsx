@@ -17,7 +17,7 @@ const STEPS = [
     n: 2,
     title: "Launch a Bags token",
     Icon: Sparkles,
-    body: "GitBags mints a Bags.fm token bound to the repo. It's live and tradeable on devnet immediately.",
+    body: "GitBags mints a Bags.fm token bound to the repo and makes it tradeable on the configured Solana cluster.",
   },
   {
     n: 3,

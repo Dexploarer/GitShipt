@@ -9,8 +9,7 @@ import {
 import { formatRelativeTime, formatSol } from "@repo/lib";
 import { cn } from "@repo/lib";
 import type { ContributorProfilePayoutRow } from "@/lib/queries/discovery";
-
-const SOLSCAN_CLUSTER = "devnet";
+import { solscanTxUrl } from "@/lib/solana/explorer";
 
 /**
  * Last 30 payouts received. Mirrors the project page's RecentPayoutsFeed
@@ -68,7 +67,7 @@ function PayoutRow({ row }: { row: ContributorProfilePayoutRow }) {
     return (
       <li>
         <a
-          href={`https://solscan.io/tx/${row.txSignature}?cluster=${SOLSCAN_CLUSTER}`}
+          href={solscanTxUrl(row.txSignature)}
           target="_blank"
           rel="noreferrer noopener"
           className={cn(

@@ -5,6 +5,7 @@ import { getProjectRecord } from "@/lib/queries/dashboard";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { AppShell } from "../../_components/AppShell";
 import { requireAuthSession } from "@/lib/auth/session";
+import { clusterLabel } from "@/lib/solana/explorer";
 
 /**
  * Per-project gate. We re-validate the session here AND check
@@ -65,7 +66,7 @@ export default async function ProjectLayout({
           }}
         />
       }
-      footerLeft={`${project.slug} · devnet · BAGS.fm`}
+      footerLeft={`${project.slug} · ${clusterLabel()} · BAGS.fm`}
     >
       {children}
     </AppShell>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
+import { clusterLabel } from "@/lib/solana/explorer";
 
 /**
  * Minimal footer for public pages. Stays out of the way; it carries the
@@ -24,7 +25,7 @@ export function PublicFooter() {
           </SocialLink>
         </div>
         <span>
-          © {year} GitBags <span aria-hidden>·</span> devnet
+          © {year} GitBags <span aria-hidden>·</span> {clusterLabel()}
         </span>
       </div>
     </footer>

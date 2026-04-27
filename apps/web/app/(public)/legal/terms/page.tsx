@@ -5,15 +5,14 @@ import { LegalSection } from "@/app/legal/_components/LegalSection";
 export const metadata: Metadata = {
   title: "Terms of Service · GitBags",
   description:
-    "Terms governing use of GitBags — a hackathon-stage Solana devnet token launchpad that pays trading fees back to GitHub repository contributors.",
+    "Terms governing use of GitBags — a Solana token launchpad that pays trading fees back to GitHub repository contributors.",
 };
 
 const LAST_UPDATED = "2026-04-26";
 
 /**
- * Terms of Service — long-form, demo-grade copy specific to GitBags'
- * actual operating model: Solana devnet launches, daily contributor
- * payouts via Bags.fm, GitHub OAuth + SIWS auth, no mainnet custody.
+ * Terms of Service — long-form copy specific to GitBags' operating model:
+ * Solana launches, daily contributor payouts via Bags.fm, GitHub OAuth + SIWS.
  */
 export const dynamic = "force-dynamic";
 
@@ -32,7 +31,7 @@ export default async function TermsPage() {
         </p>
         <p className="text-body-md text-fg-secondary">
           These terms govern your use of GitBags, a hackathon-stage launchpad
-          that mints Solana devnet tokens for open-source repositories and
+          that mints Solana tokens for open-source repositories and
           routes a share of trading fees to the repository&apos;s top
           contributors. Read carefully before launching a project or linking a
           wallet.
@@ -183,20 +182,19 @@ export default async function TermsPage() {
           </p>
         </LegalSection>
 
-        <LegalSection index={9} title="Devnet disclaimer">
+        <LegalSection index={9} title="Network and demo-mode disclaimer">
           <p>
-            GitBags currently operates exclusively on Solana devnet. Devnet SOL
-            has no monetary value, and devnet tokens are not tradeable on
-            mainnet venues. Any &ldquo;USD&rdquo; figure shown in the UI is a
-            synthetic display value derived from devnet activity and does not
-            represent real currency.
+            GitBags may run in local, devnet, testnet, or mainnet mode
+            depending on deployment configuration. Non-mainnet SOL and tokens
+            have no monetary value, and any &ldquo;USD&rdquo; figure shown for a
+            non-mainnet project is a synthetic display value.
           </p>
           <p>
             Because GitBags is hackathon-stage software, the database, the
             indexer, and the on-chain state may be reset, migrated, or wiped at
-            any time without notice. Mainnet activation, if and when it occurs,
-            will be announced explicitly and is not implied by anything you see
-            in the current product.
+            any time without notice outside explicitly announced production
+            environments. Mainnet activation is controlled by production
+            readiness gates and is not implied by a local or preview deployment.
           </p>
         </LegalSection>
 

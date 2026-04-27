@@ -15,6 +15,7 @@ import { Badge } from "@repo/ui";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { RetryPayoutButton } from "./_components/RetryPayoutButton";
+import { solscanTxUrl } from "@/lib/solana/explorer";
 
 export const dynamic = "force-dynamic";
 
@@ -108,7 +109,7 @@ export default async function PayoutsPage({
                       <td className="px-4 py-3">
                         {r.claimSignature ? (
                           <Link
-                            href={`https://solscan.io/tx/${r.claimSignature}?cluster=devnet`}
+                            href={solscanTxUrl(r.claimSignature)}
                             target="_blank"
                             rel="noreferrer noopener"
                             className="inline-flex items-center gap-1 text-mono-sm text-primary hover:underline"
