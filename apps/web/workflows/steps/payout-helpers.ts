@@ -14,7 +14,7 @@ import {
 } from "@/db/schema";
 import type { LeaderboardEntry } from "@/db/schema/snapshots";
 import type { PayoutConfig, ScoringConfig } from "@/db/schema/projects";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { bags } from "@/lib/bags/client";
 import { hasCredentials, canLaunchOnBags, stubsAllowed } from "@/lib/env";
 import { computeMerkleRoot } from "@/lib/payouts/merkle";
@@ -47,6 +47,7 @@ export interface SnapshotContextJson {
   snapshot: {
     id: string;
     projectId: string;
+    snapshotPeriod: string;
     formulaVersion: string;
     leaderboard: LeaderboardEntry[];
     merkleRoot: string;
@@ -65,11 +66,12 @@ export interface SnapshotContextJson {
 
 /** Build the deterministic idempotency key used on payout_recipients. */
 export function recipientIdempotencyKey(
-  snapshotId: string,
+  projectId: string,
+  snapshotPeriod: string,
   contributorId: string,
 ): string {
   return createHash("sha256")
-    .update(`${snapshotId}|${contributorId}`)
+    .update(`${projectId}|${snapshotPeriod}|${contributorId}`)
     .digest("hex");
 }
 
@@ -98,11 +100,13 @@ export async function loadFrozenSnapshotsAwaitingPayout(): Promise<
 > {
   enterDbWorkflowContext("payout-helpers:loadFrozenSnapshotsAwaitingPayout");
   const rows = await dbHttp.execute<{ id: string }>(sql`
-    select s.id::text as id
+    select distinct on (s.project_id, s.snapshot_period) s.id::text as id
     from snapshots s
-    left join payouts p on p.snapshot_id = s.id
+    left join payouts p
+      on p.project_id = s.project_id
+     and p.snapshot_period = s.snapshot_period
     where s.status = 'frozen' and p.id is null
-    order by s.taken_at asc
+    order by s.project_id, s.snapshot_period, s.taken_at asc, s.id asc
   `);
   return rows.rows.map((r) => ({ id: r.id }));
 }
@@ -115,6 +119,7 @@ export async function loadSnapshotContext(
     .select({
       snapshotId: snapshots.id,
       snapshotProjectId: snapshots.projectId,
+      snapshotPeriod: snapshots.snapshotPeriod,
       formulaVersion: snapshots.formulaVersion,
       leaderboard: snapshots.leaderboard,
       merkleRoot: snapshots.merkleRoot,
@@ -134,10 +139,25 @@ export async function loadSnapshotContext(
 
   if (!row) return null;
 
+  const [periodPayout] = await dbHttp
+    .select({ id: payouts.id, snapshotId: payouts.snapshotId })
+    .from(payouts)
+    .where(
+      and(
+        eq(payouts.projectId, row.projectId),
+        eq(payouts.snapshotPeriod, row.snapshotPeriod),
+      ),
+    )
+    .limit(1);
+  if (periodPayout && periodPayout.snapshotId !== row.snapshotId) {
+    return null;
+  }
+
   return {
     snapshot: {
       id: row.snapshotId,
       projectId: row.snapshotProjectId,
+      snapshotPeriod: row.snapshotPeriod,
       formulaVersion: row.formulaVersion,
       leaderboard: row.leaderboard,
       merkleRoot: row.merkleRoot,
@@ -290,7 +310,8 @@ export async function buildPlan(
     amountLamports: row.amountLamports.toString(),
     walletAddress: row.walletAddress,
     idempotencyKey: recipientIdempotencyKey(
-      ctxJson.snapshot.id,
+      ctxJson.project.id,
+      ctxJson.snapshot.snapshotPeriod,
       row.contributorId,
     ),
   }));
@@ -326,6 +347,7 @@ export async function assertCycleUnderCap(
 export async function persistPayoutPlan(args: {
   snapshotId: string;
   projectId: string;
+  snapshotPeriod: string;
   plan: DistributionPlanRowJson[];
   claimSignature: string | null;
   totalLamportsStr: string;
@@ -352,13 +374,15 @@ export async function persistPayoutPlan(args: {
       mode: "service",
       reason: "workflow:payout-helpers:persistPayoutPlan",
     });
-    // Insert payout, returning the id. UNIQUE(snapshot_id) — second-run
-    // against the same snapshot fetches the existing id instead.
+    // Insert payout, returning the id. UNIQUE(project_id, snapshot_period) is
+    // the period-level guard; UNIQUE(snapshot_id) remains a narrower retry
+    // guard for the exact same snapshot.
     const [inserted] = await tx
       .insert(payouts)
       .values({
         snapshotId: args.snapshotId,
         projectId: args.projectId,
+        snapshotPeriod: args.snapshotPeriod,
         totalAmountLamports: totalLamports,
         claimSignature: args.claimSignature,
         status: args.stub ? "pending" : "distributing",
@@ -366,30 +390,48 @@ export async function persistPayoutPlan(args: {
         scheduledAt: now,
         startedAt: now,
       })
-      .onConflictDoNothing({ target: payouts.snapshotId })
-      .returning({ id: payouts.id });
+      .onConflictDoNothing()
+      .returning({ id: payouts.id, snapshotId: payouts.snapshotId });
 
     let payoutId: string;
+    let payoutSnapshotId: string;
     if (inserted) {
       payoutId = inserted.id;
+      payoutSnapshotId = inserted.snapshotId;
     } else {
       const [existing] = await tx
-        .select({ id: payouts.id })
+        .select({ id: payouts.id, snapshotId: payouts.snapshotId })
         .from(payouts)
-        .where(eq(payouts.snapshotId, args.snapshotId))
+        .where(
+          and(
+            eq(payouts.projectId, args.projectId),
+            eq(payouts.snapshotPeriod, args.snapshotPeriod),
+          ),
+        )
         .limit(1);
       if (!existing) throw new Error("persistPayoutPlan: payout row missing");
       payoutId = existing.id;
+      payoutSnapshotId = existing.snapshotId;
+    }
+
+    if (!inserted) {
+      const [existingRecipients] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(payoutRecipients)
+        .where(eq(payoutRecipients.payoutId, payoutId));
+      return { payoutId, recipientCount: existingRecipients?.count ?? 0 };
     }
 
     // Update snapshot with claim total + amount-tree merkle root.
-    await tx
-      .update(snapshots)
-      .set({
-        totalFeesLamports: totalLamports,
-        merkleRoot,
-      })
-      .where(eq(snapshots.id, args.snapshotId));
+    if (payoutSnapshotId === args.snapshotId) {
+      await tx
+        .update(snapshots)
+        .set({
+          totalFeesLamports: totalLamports,
+          merkleRoot,
+        })
+        .where(eq(snapshots.id, args.snapshotId));
+    }
 
     // Insert recipients; UNIQUE(idempotencyKey) absorbs retries.
     if (args.plan.length > 0) {
@@ -458,16 +500,36 @@ export async function dispatchRecipient(args: {
     return { status: "skipped" };
   }
 
+  const attemptId = `payout:${args.payoutId}:${args.recipient.idempotencyKey}`;
+  const now = new Date();
+
   // Wallet not linked -> escrow.
   if (!args.recipient.walletAddress) {
     const expiresAt = new Date(
       Date.now() + Math.max(1, args.escrowDays) * 86_400_000,
     );
-    await dbPool().transaction(async (tx) => {
+    const escrowed = await dbPool().transaction(async (tx) => {
       await applyDbRlsContext(tx, {
         mode: "service",
         reason: "workflow:payout-helpers:dispatchRecipient:escrow",
       });
+      const [claimed] = await tx
+        .update(payoutRecipients)
+        .set({
+          status: "sending",
+          sendAttemptId: attemptId,
+          sendingAt: now,
+          error: null,
+        })
+        .where(
+          and(
+            eq(payoutRecipients.id, existing.id),
+            inArray(payoutRecipients.status, ["pending", "failed"]),
+          ),
+        )
+        .returning({ id: payoutRecipients.id });
+      if (!claimed) return false;
+
       await tx.insert(escrowHoldings).values({
         contributorId: args.recipient.contributorId,
         tokenMint: null,
@@ -477,14 +539,14 @@ export async function dispatchRecipient(args: {
       });
       await tx
         .update(payoutRecipients)
-        .set({ status: "escrow", sentAt: new Date() })
+        .set({ status: "escrow", sentAt: new Date(), sendAttemptId: null })
         .where(eq(payoutRecipients.id, existing.id));
+      return true;
     });
+    if (!escrowed) return { status: "skipped" };
     return { status: "escrow" };
   }
 
-  const attemptId = `payout:${args.payoutId}:${args.recipient.idempotencyKey}`;
-  const now = new Date();
   const [claimed] = await dbHttp
     .update(payoutRecipients)
     .set({
@@ -493,7 +555,12 @@ export async function dispatchRecipient(args: {
       sendingAt: now,
       error: null,
     })
-    .where(eq(payoutRecipients.id, existing.id))
+    .where(
+      and(
+        eq(payoutRecipients.id, existing.id),
+        inArray(payoutRecipients.status, ["pending", "failed"]),
+      ),
+    )
     .returning({ id: payoutRecipients.id });
   if (!claimed) return { status: "skipped" };
 
@@ -511,7 +578,11 @@ export async function dispatchRecipient(args: {
     const message = err instanceof Error ? err.message : String(err);
     await dbHttp
       .update(payoutRecipients)
-      .set({ status: "sending", error: message.slice(0, 500) })
+      .set({
+        status: "failed",
+        sendAttemptId: null,
+        error: message.slice(0, 500),
+      })
       .where(eq(payoutRecipients.id, existing.id));
     return { status: "failed" };
   }

@@ -23,6 +23,9 @@ export const escrowHoldings = pgTable(
     tokenMint: text("token_mint"), // null for native SOL
     amountLamports: bigint("amount_lamports", { mode: "bigint" }).notNull(),
     sourcePayoutId: text("source_payout_id"),
+    drainAttemptId: text("drain_attempt_id"),
+    drainingAt: timestamp("draining_at", { withTimezone: true }),
+    drainError: text("drain_error"),
     drainedAt: timestamp("drained_at", { withTimezone: true }),
     drainSignature: text("drain_signature"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -33,5 +36,6 @@ export const escrowHoldings = pgTable(
   (t) => ({
     contributorIdx: index("escrow_contributor_idx").on(t.contributorId),
     expiresIdx: index("escrow_expires_idx").on(t.expiresAt),
+    drainAttemptIdx: index("escrow_drain_attempt_idx").on(t.drainAttemptId),
   }),
 );

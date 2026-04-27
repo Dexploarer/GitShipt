@@ -6,6 +6,7 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { projects } from "./projects";
@@ -42,10 +43,13 @@ export interface LeaderboardEntry {
 export const snapshots = pgTable(
   "snapshots",
   {
-    id: text("id").primaryKey().$defaultFn(() => createId()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
     projectId: text("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
+    snapshotPeriod: text("snapshot_period").notNull(),
     takenAt: timestamp("taken_at", { withTimezone: true }).notNull(),
     formulaVersion: text("formula_version").notNull(),
     leaderboard: jsonb("leaderboard").$type<LeaderboardEntry[]>().notNull(),
@@ -65,6 +69,10 @@ export const snapshots = pgTable(
       t.projectId,
       t.takenAt,
     ),
+    periodIdx: index("snapshots_period_idx").on(t.snapshotPeriod),
+    projectPeriodActiveUq: uniqueIndex("snapshots_project_period_active_uq")
+      .on(t.projectId, t.snapshotPeriod)
+      .where(sql`${t.status} in ('pending', 'frozen', 'paid')`),
     statusIdx: index("snapshots_status_idx").on(t.status),
   }),
 );

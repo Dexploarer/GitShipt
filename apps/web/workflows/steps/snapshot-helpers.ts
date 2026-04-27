@@ -24,6 +24,9 @@ import {
 import { computeMerkleRoot } from "@/lib/payouts/merkle";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
 
+const SNAPSHOT_PERIOD_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const activeSnapshotPeriodPredicate = sql`status in ('pending', 'frozen', 'paid')`;
+
 export interface LoadedProjectForSnapshot {
   id: string;
   name: string;
@@ -120,24 +123,47 @@ export async function loadRankedContributors(
 
 export interface FreezeSnapshotResult {
   snapshotId: string;
+  snapshotPeriod: string;
   takenAtISO: string;
   merkleRoot: string;
   leaderboardCount: number;
+  created: boolean;
+}
+
+export function snapshotPeriodKey(input: Date | string): string {
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("snapshotPeriodKey: invalid date");
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+function normalizeSnapshotPeriod(
+  snapshotPeriod: string | undefined,
+  takenAt: Date,
+): string {
+  const period = snapshotPeriod ?? snapshotPeriodKey(takenAt);
+  if (!SNAPSHOT_PERIOD_PATTERN.test(period)) {
+    throw new Error("freezeSnapshot: snapshotPeriod must be YYYY-MM-DD");
+  }
+  return period;
 }
 
 /**
- * Insert a frozen snapshot row. Uses dbHttp single-shot insert — the freeze
- * is naturally atomic (one insert, no dependents at this stage). The payout
- * row that references this snapshot is created later by executePayout.
+ * Insert a frozen snapshot row or return the existing active row for this UTC
+ * period. The DB partial unique index on (projectId, snapshotPeriod) is the
+ * durable guarantee that retries cannot create duplicate payout candidates.
  */
 export async function freezeSnapshot(args: {
   projectId: string;
   formulaVersion: string;
   leaderboard: LeaderboardEntry[];
+  snapshotPeriod?: string;
   takenAtISO?: string;
 }): Promise<FreezeSnapshotResult> {
   enterDbWorkflowContext("snapshot-helpers:freezeSnapshot");
   const takenAt = args.takenAtISO ? new Date(args.takenAtISO) : new Date();
+  const snapshotPeriod = normalizeSnapshotPeriod(args.snapshotPeriod, takenAt);
   const merkleRoot = computeMerkleRoot(
     args.leaderboard.map((e) => ({
       contributorId: e.contributorId,
@@ -154,6 +180,7 @@ export async function freezeSnapshot(args: {
     .insert(snapshots)
     .values({
       projectId: args.projectId,
+      snapshotPeriod,
       takenAt,
       formulaVersion: args.formulaVersion,
       leaderboard: args.leaderboard,
@@ -162,17 +189,51 @@ export async function freezeSnapshot(args: {
       status: "frozen",
       forced: "false",
     })
+    .onConflictDoNothing({
+      target: [snapshots.projectId, snapshots.snapshotPeriod],
+      where: activeSnapshotPeriodPredicate,
+    })
     .returning({ id: snapshots.id });
 
-  if (!inserted) {
-    throw new Error("freezeSnapshot: insert returned no row");
+  if (inserted) {
+    return {
+      snapshotId: inserted.id,
+      snapshotPeriod,
+      takenAtISO: takenAt.toISOString(),
+      merkleRoot,
+      leaderboardCount: args.leaderboard.length,
+      created: true,
+    };
+  }
+
+  const [existing] = await dbHttp
+    .select({
+      id: snapshots.id,
+      takenAt: snapshots.takenAt,
+      merkleRoot: snapshots.merkleRoot,
+      leaderboard: snapshots.leaderboard,
+    })
+    .from(snapshots)
+    .where(
+      and(
+        eq(snapshots.projectId, args.projectId),
+        eq(snapshots.snapshotPeriod, snapshotPeriod),
+        activeSnapshotPeriodPredicate,
+      ),
+    )
+    .limit(1);
+
+  if (!existing) {
+    throw new Error("freezeSnapshot: period conflict row missing");
   }
 
   return {
-    snapshotId: inserted.id,
-    takenAtISO: takenAt.toISOString(),
-    merkleRoot,
-    leaderboardCount: args.leaderboard.length,
+    snapshotId: existing.id,
+    snapshotPeriod,
+    takenAtISO: existing.takenAt.toISOString(),
+    merkleRoot: existing.merkleRoot,
+    leaderboardCount: existing.leaderboard.length,
+    created: false,
   };
 }
 

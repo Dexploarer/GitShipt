@@ -33,10 +33,9 @@ export async function takeSnapshot(): Promise<{ count: number }> {
 }
 
 /**
- * Per-project snapshot freeze. Idempotent at the leaf level — we'd ideally
- * dedupe by (projectId, day) but the snapshot table doesn't have that
- * unique today; the executePayout step de-dupes via UNIQUE(snapshot_id) on
- * payouts.
+ * Per-project snapshot freeze. Idempotent by (projectId, UTC day): the
+ * snapshot table owns the period uniqueness, and freezeSnapshot returns the
+ * existing active period row when a cron/manual retry races.
  */
 export async function takeProjectSnapshot(projectId: string): Promise<{
   snapshotId: string;

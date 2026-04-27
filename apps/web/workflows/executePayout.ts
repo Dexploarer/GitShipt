@@ -135,6 +135,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
   const persisted = await persistStep({
     snapshotId,
     projectId: ctx.project.id,
+    snapshotPeriod: ctx.snapshot.snapshotPeriod,
     plan,
     claimSignature: claimSig,
     totalLamportsStr: capCheck.total,
@@ -269,6 +270,7 @@ async function capCheckStep(
 async function persistStep(args: {
   snapshotId: string;
   projectId: string;
+  snapshotPeriod: string;
   plan: DistributionPlanRowJson[];
   claimSignature: string | null;
   totalLamportsStr: string;

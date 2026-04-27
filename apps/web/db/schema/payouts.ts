@@ -53,6 +53,7 @@ export const payouts = pgTable(
     projectId: text("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "restrict" }),
+    snapshotPeriod: text("snapshot_period").notNull(),
     totalAmountLamports: bigint("total_amount_lamports", { mode: "bigint" })
       .notNull()
       .default(sql`0`),
@@ -75,6 +76,9 @@ export const payouts = pgTable(
       t.scheduledAt,
     ),
     snapshotUq: uniqueIndex("payouts_snapshot_uq").on(t.snapshotId),
+    projectSnapshotPeriodUq: uniqueIndex(
+      "payouts_project_snapshot_period_uq",
+    ).on(t.projectId, t.snapshotPeriod),
     projectIdx: index("payouts_project_idx").on(t.projectId),
   }),
 );

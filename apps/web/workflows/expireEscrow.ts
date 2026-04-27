@@ -15,20 +15,22 @@ import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 /**
  * expireEscrow — daily root, 01:00 UTC. Sweeps holdings whose grace period
- * has elapsed. v0 just marks them drained with a sentinel; the actual
- * on-chain treasury sweep is a v1.1 concern (per PRD).
+ * has elapsed. v0 retires native SOL escrow with a sentinel; token escrow
+ * stays open until an SPL sweep implementation exists.
  */
-export async function expireEscrow(): Promise<{ swept: number }> {
+export async function expireEscrow(): Promise<{ swept: number; failed: number }> {
   await assertNotKilled();
   await heartbeat("escrow");
   const expired = await loadExpiredStep();
   let swept = 0;
+  let failed = 0;
   for (const h of expired) {
-    await sweepStep(h.id);
-    swept++;
+    const result = await sweepStep(h.id);
+    if (result.status === "drained") swept++;
+    if (result.status === "failed") failed++;
   }
-  await auditSweep(swept);
-  return { swept };
+  await auditSweep({ swept, failed });
+  return { swept, failed };
 }
 
 // ============================================================
@@ -68,21 +70,27 @@ async function loadExpiredStep(): Promise<ExpiredEscrowRow[]> {
   return await loadExpiredEscrow();
 }
 
-async function sweepStep(holdingId: string): Promise<void> {
+async function sweepStep(
+  holdingId: string,
+): ReturnType<typeof sweepBackToTreasury> {
   "use step";
   enterDbWorkflowContext("expireEscrow:sweep");
-  await sweepBackToTreasury(holdingId);
+  return await sweepBackToTreasury(holdingId);
 }
 
-async function auditSweep(swept: number): Promise<void> {
+async function auditSweep(args: { swept: number; failed: number }): Promise<void> {
   "use step";
   enterDbWorkflowContext("expireEscrow:auditSweep");
-  if (swept === 0) return;
+  if (args.swept === 0 && args.failed === 0) return;
   await audit({
     actorUserId: null,
     action: "payout.cancel",
     targetType: "escrow",
     targetId: "batch",
-    metadata: { swept, mode: "v0-mark-only" },
+    metadata: {
+      swept: args.swept,
+      failed: args.failed,
+      mode: "v0-native-mark-only",
+    },
   });
 }
