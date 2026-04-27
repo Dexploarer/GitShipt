@@ -20,6 +20,7 @@ import { LaunchProjectResponseSchema } from "@repo/shared";
 import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 /**
  * Default platform GitHub username used as the pool fee claimer at launch.

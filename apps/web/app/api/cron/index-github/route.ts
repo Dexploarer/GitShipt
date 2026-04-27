@@ -4,6 +4,7 @@ import { isAuthorizedCron } from "@/lib/cron-auth";
 import { indexGithubDeltas } from "@/workflows/indexGithubDeltas";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 800;
 
 /**
  * GitHub indexer cron — every 15 minutes per vercel.json. Spawns the

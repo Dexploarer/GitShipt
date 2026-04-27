@@ -62,43 +62,17 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-26 6:03pm CDT
+# [gitbags] recent context, 2026-04-26 8:16pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (24,423t read) | 2,448,844t work | 99% savings
+Stats: 50 obs (23,569t read) | 3,001,181t work | 99% savings
 
 ### Apr 26, 2026
-564 5:03p 🔵 GitBags Security Audit: 7 Critical/High/Medium Bugs Found by Sub-Agent
-565 " 🔵 GitBags Auth Security Stack: MFA, Idempotency, Admin Gate Architecture Confirmed
-566 " 🔵 GitBags Payout Workflow: Escrow Fallback + Dispatch Step Architecture Confirmed
-567 5:04p 🔵 GitBags Monorepo Structure: Bun Workspaces + Root-Level Env Loading
-569 5:05p 🔵 GitBags UI/UX Audit: 9 Accessibility and Design System Findings
-570 " 🔵 GitBags Backend Security Audit: 7 Findings Including Auth Secret Fallback and Duplicate Payout Risk
-571 5:07p ⚖️ GitBags Backend/Security Audit Initiated — Scope Locked
-582 5:12p 🔵 GitBags App Shell Architecture: 4-Surface Sidebar Layout Pattern
-583 " 🔴 App Shell Sidebar Wrapper: `contents` → `w-0 shrink-0 lg:w-auto` Fix
-584 " 🔵 GitBags Playwright Setup: Binary at apps/web but @playwright/test Package Missing
-585 " ⚖️ GitBags: Next.js/Vercel Architecture Audit Initiated — Read-Only Scope
-589 5:14p 🔵 Sidebar Renders `position:fixed` on Desktop Due to Missing Tailwind @source Directive
-590 " 🔴 globals.css: Added `@source` for packages/ui/src to Fix Missing lg: Utility Classes
-591 5:15p 🔵 Shell Wrapper Patch Reverted — `@source` Fix Alone Restored Correct Sidebar Layout
-592 " 🟣 GitBags Production Build: 80+ Routes Compile Clean with Turbopack in 5.1s
-593 " ⚖️ Three Sub-Agents Spawned to Audit Auth/State Management Before Implementing Fixes
-598 5:18p 🔵 GitBags Auth/Sign-Out Architecture: Server-Action-Driven with Static React Context Chrome
-599 " 🟣 Zustand 5.0.12 Installed in apps/web
-600 " 🔵 Fourth Sub-Agent Spawned for Sign-Out Test Coverage Research
-597 " 🔵 GitBags Client-Side State Audit: No Zustand, Four Context Sources, One Stale-Logout Risk
-602 5:23p 🔵 GitBags Sign-Out Flow: Single Call Site in SidebarUserCard, No Server Action
-603 5:25p 🔵 GitBags Test Infrastructure: Minimal Coverage — Only 2 Test Files Exist
-604 " 🔵 GitBags Sign-Out: Server Action + Hand-Rolled Dropdown — Full Implementation Mapped
-605 " 🔵 GitBags Session Architecture: better-auth + Stub Mode — Auth Mocking Strategy for Tests
 631 5:33p 🔵 GitBags Security Audit: P0 Bugs — Fee Claim No-Op + Token Marked Live Prematurely
 632 " 🔵 GitBags Security Audit: P1 Bugs — Idempotency Races, Double Payout, Auth Secret Fallback, Redis Fail-Open
-633 " 🔵 GitBags Security Audit: P2 — Explore Sort Listbox Keyboard Inaccessible
-634 " ⚖️ GitBags: Zustand Global State Rollout Across Entire Codebase
 630 " 🔵 Zustand v5 Best Practices for Next.js 16 App Router Monorepo — April 2026 Research
 635 5:35p 🟣 GitBags: Zustand uiStore Created in @repo/ui Package — Sidebar State Migrated
 636 " 🟣 GitBags: SidebarUserCard Sign-Out Migrated from Server Action to Optimistic Client-Side Flow
@@ -121,6 +95,32 @@ Stats: 50 obs (24,423t read) | 2,448,844t work | 99% savings
 657 " 🔄 GitBags: AuthStoreUser De-duplicated — Now Type Alias for SessionUserChrome
 658 " 🔵 GitBags App Shell Architecture: SidebarProvider Placement Across Four Layout Types
 675 5:58p 🔵 GitBags Security Audit: Focused Investigation on 7 High-Priority Vulnerabilities
+704 6:31p 🔵 GitBags Bags SDK Audit: Confirmed Wired Features vs. Untouched Capabilities
+705 " 🔵 GitBags Bags Integration: Prioritized Gap List with Implementation Paths
+706 6:33p ⚖️ GitBags Post-Merge Security Audit Scope Defined
+717 6:50p 🔵 GitBags Security Audit: 7 Findings Across P0–P2 Severity
+718 " ⚖️ GitBags: Full Zustand Global State Migration Initiated via Multi-Agent Orchestration
+719 6:52p 🔴 P0 Fix: signAndSubmitViaBags Now Handles Both Transaction and VersionedTransaction Types
+720 " 🟣 env.ts: Default Partner Wallet, BAGS_REF_CODE, and productionReadiness() Added
+721 " 🟣 New api-key-auth.ts Middleware: Project-Scoped API Key Verification
+722 " 🟣 Leaderboard API Route: Optional API Key Auth Added
+723 " 🟣 Health Route and Admin Integrations: Production Readiness Check Added
+724 " ✅ Bags Client: Partner Wallet/Config Resolution Simplified + Ref Code Added to Intent URLs
+727 6:58p ✅ Stale Feature Branches Deleted After Merge to Main
+748 7:17p ⚖️ GitBags Operator/Security Slice: Task Scope + Ownership Boundaries
+787 7:41p 🔵 GitBags: Drizzle NeonHttp Query Failure on Project Slug Lookup
+790 7:43p 🔴 GitBags DrizzleQueryError Root Cause: Migrations 0003+0004 Never Applied to Neon DB
+791 " 🔵 GitBags: Production Build and Full Test Suite Pass After Schema Fix
+792 " 🔵 GitBags: 30+ Zombie context7-mcp Processes Survive SIGTERM — Parented to Cursor (PID 1779)
+795 7:46p 🔴 GitBags Process Cleanup Complete: Dev Server and 32 context7-mcp Workers Killed
+797 7:49p ✅ GitBags Migration Journal Fix Committed and Pushed to main
+816 8:06p 🔵 DEP0169 url.parse() Deprecation Warning in LandingPage
+818 " ✅ GitBags apps/web/package.json: NODE_OPTIONS --no-experimental-webstorage Added to All Scripts
+819 8:08p 🔴 GitBags redis.ts: url.parse() Replaced with WHATWG URL API via redisOptionsFromUrl()
+826 8:10p 🔵 GitBags Vercel Build Failure: Unmatched Cron Function Pattern
+828 8:11p 🔵 GitBags Vercel Build Failure: Unmatched Cron Function Pattern
+832 8:14p 🔴 GitBags vercel.json `functions` Block Removed — maxDuration Migrated to Route Segment Config
+833 " 🔵 GitBags Vercel Project Node.js Version Mismatch: package.json 22.x vs Project Settings 24.x
 
-Access 2449k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 3001k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

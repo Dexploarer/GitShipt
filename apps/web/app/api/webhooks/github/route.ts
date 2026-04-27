@@ -9,6 +9,7 @@ import { indexProjectDeltas } from "@/workflows/indexProjectDeltas";
 import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 type GithubPayload = {
   repository?: { id: number; full_name: string };

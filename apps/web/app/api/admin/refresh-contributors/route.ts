@@ -18,6 +18,7 @@ import { revalidateProjectCaches } from "@/lib/cache";
 import { withIdempotency } from "@/lib/idempotency";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const BodySchema = z
   .object({

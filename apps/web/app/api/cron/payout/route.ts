@@ -4,6 +4,7 @@ import { executePayout } from "@/workflows/executePayout";
 import { isAuthorizedCron } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 800;
 
 /**
  * Daily payout cron — 00:30 UTC. Triggers `executePayout`, which fans out

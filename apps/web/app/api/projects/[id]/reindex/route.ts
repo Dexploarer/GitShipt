@@ -15,6 +15,7 @@ import { indexProjectDeltas } from "@/workflows/indexProjectDeltas";
 import { withIdempotency } from "@/lib/idempotency";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 /**
  * POST /api/projects/[id]/reindex
