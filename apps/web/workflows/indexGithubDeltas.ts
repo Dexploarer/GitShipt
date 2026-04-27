@@ -5,6 +5,7 @@ import { projects, platformConfig } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { start } from "workflow/api";
 import { indexProjectDeltas } from "./indexProjectDeltas";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 /**
  * Top-level indexer — runs every 15 minutes. Fans out to per-project
@@ -22,6 +23,7 @@ export async function indexGithubDeltas(): Promise<{ count: number }> {
 
 async function heartbeat(): Promise<void> {
   "use step";
+  enterDbWorkflowContext("indexGithubDeltas:heartbeat");
   const at = new Date().toISOString();
   await dbHttp
     .insert(platformConfig)
@@ -40,6 +42,7 @@ async function heartbeat(): Promise<void> {
 
 async function loadActiveProjects(): Promise<string[]> {
   "use step";
+  enterDbWorkflowContext("indexGithubDeltas:loadActiveProjects");
   const rows = await dbHttp
     .select({ id: projects.id })
     .from(projects)

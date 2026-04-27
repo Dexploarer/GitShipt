@@ -9,6 +9,7 @@ import {
   verifyAndParseBagsWebhook,
 } from "@/lib/bags/webhook";
 import { revalidateProjectCaches } from "@/lib/cache";
+import { enterDbServiceContext } from "@/lib/db-rls";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -21,6 +22,7 @@ export async function POST(req: Request): Promise<Response> {
     }
     return NextResponse.json({ error: result.reason }, { status: 401 });
   }
+  enterDbServiceContext("webhook:bags");
 
   const insertResult = await dbHttp
     .insert(webhooksInbox)

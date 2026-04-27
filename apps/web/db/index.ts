@@ -4,6 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import { Pool } from "@neondatabase/serverless";
 import { serverEnv } from "@/lib/env";
 import * as schema from "./schema";
+import { createRlsNeonClient, pgServiceOptions } from "./rls-context";
 
 /**
  * HTTP driver — single-shot serverless queries. Use for:
@@ -14,7 +15,9 @@ import * as schema from "./schema";
  * Faster cold-start (no WS handshake), but cannot do `BEGIN/COMMIT`.
  */
 const httpEnv = serverEnv();
-const httpClient = httpEnv.DATABASE_URL ? neon(httpEnv.DATABASE_URL) : null;
+const httpClient = httpEnv.DATABASE_URL
+  ? createRlsNeonClient(neon(httpEnv.DATABASE_URL))
+  : null;
 export const dbHttp = httpClient
   ? drizzleHttp(httpClient, { schema })
   : (new Proxy({} as ReturnType<typeof drizzleHttp<typeof schema>>, {
@@ -44,7 +47,7 @@ export function dbPool(): ReturnType<typeof drizzleServerless<typeof schema>> {
       "DATABASE_URL_UNPOOLED (or DATABASE_URL) is not configured. Provision Neon Postgres.",
     );
   }
-  const pool = new Pool({ connectionString });
+  const pool = new Pool({ connectionString, options: pgServiceOptions() });
   _dbPool = drizzleServerless(pool, { schema });
   return _dbPool;
 }

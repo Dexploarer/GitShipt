@@ -13,10 +13,7 @@ import {
   contributorClaims,
   wallets,
 } from "@/db/schema";
-import type {
-  ScoringConfig,
-  PayoutConfig,
-} from "@/db/schema/projects";
+import type { ScoringConfig, PayoutConfig } from "@/db/schema/projects";
 import type { LeaderboardEntry } from "@/db/schema/snapshots";
 import type { ContributorScoreInputs } from "@/db/schema/contributors";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
@@ -25,11 +22,18 @@ import {
   type SnapshotContributor,
 } from "@/lib/payouts/distribution";
 import { computeMerkleRoot } from "@/lib/payouts/merkle";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 export interface LoadedProjectForSnapshot {
   id: string;
   name: string;
-  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
+  status:
+    | "draft"
+    | "launch_configured"
+    | "live"
+    | "paused"
+    | "killed"
+    | "simulated_live";
   tokenMint: string | null;
   scoringConfig: ScoringConfig;
   payoutConfig: PayoutConfig;
@@ -37,6 +41,7 @@ export interface LoadedProjectForSnapshot {
 
 /** Projects with status='live' that have at least one ranked contributor. */
 export async function loadEligibleProjectIds(): Promise<string[]> {
+  enterDbWorkflowContext("snapshot-helpers:loadEligibleProjectIds");
   const rows = await dbHttp.execute<{ id: string }>(sql`
     select p.id::text as id
     from projects p
@@ -54,6 +59,7 @@ export async function loadEligibleProjectIds(): Promise<string[]> {
 export async function loadProjectForSnapshot(
   projectId: string,
 ): Promise<LoadedProjectForSnapshot | null> {
+  enterDbWorkflowContext("snapshot-helpers:loadProjectForSnapshot");
   const [row] = await dbHttp
     .select({
       id: projects.id,
@@ -77,6 +83,7 @@ export async function loadRankedContributors(
   projectId: string,
   topN: number,
 ): Promise<SnapshotContributor[]> {
+  enterDbWorkflowContext("snapshot-helpers:loadRankedContributors");
   const limit = Math.max(0, Math.floor(topN));
   if (limit === 0) return [];
   const rows = await dbHttp
@@ -129,6 +136,7 @@ export async function freezeSnapshot(args: {
   leaderboard: LeaderboardEntry[];
   takenAtISO?: string;
 }): Promise<FreezeSnapshotResult> {
+  enterDbWorkflowContext("snapshot-helpers:freezeSnapshot");
   const takenAt = args.takenAtISO ? new Date(args.takenAtISO) : new Date();
   const merkleRoot = computeMerkleRoot(
     args.leaderboard.map((e) => ({
@@ -179,6 +187,7 @@ export async function freezeSnapshot(args: {
 export async function loadContributorWallets(
   contributorIds: string[],
 ): Promise<Record<string, string>> {
+  enterDbWorkflowContext("snapshot-helpers:loadContributorWallets");
   if (contributorIds.length === 0) return {};
   const rows = await dbHttp
     .select({

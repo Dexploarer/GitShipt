@@ -3,6 +3,7 @@
 import { dbHttp } from "@/db";
 import { platformConfig } from "@/db/schema";
 import { sql } from "drizzle-orm";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 /**
  * healthPulse — minute-level heartbeat workflow.
@@ -21,6 +22,7 @@ export async function healthPulse(): Promise<{ ok: true; at: string }> {
 
 async function recordHeartbeat(): Promise<string> {
   "use step";
+  enterDbWorkflowContext("healthPulse:recordHeartbeat");
 
   const at = new Date().toISOString();
   const value = { lastBeatAt: at, source: "healthPulse" };

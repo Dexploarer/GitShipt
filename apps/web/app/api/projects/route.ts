@@ -4,14 +4,18 @@ import { headers } from "next/headers";
 import { Octokit } from "@octokit/rest";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { dbPool } from "@/db";
+import { dbHttp, dbPool } from "@/db";
 import { accounts, projects, projectMemberships, users } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { hasCredentials, stubsAllowed } from "@/lib/env";
 import { revalidatePublicCaches } from "@/lib/cache";
-import { CreateProjectBodySchema, CreateProjectResponseSchema } from "@repo/shared";
+import {
+  CreateProjectBodySchema,
+  CreateProjectResponseSchema,
+} from "@repo/shared";
+import { applyDbRlsContext } from "@/lib/db-rls";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +105,7 @@ export async function POST(req: Request): Promise<Response> {
   // Make sure the user row actually exists (better-auth normally creates
   // it on first sign-in, but we defend against drift).
   const dbp = dbPool();
-  const userExists = await dbp
+  const userExists = await dbHttp
     .select({ id: users.id })
     .from(users)
     .where(eq(users.id, userId))
@@ -126,6 +130,7 @@ export async function POST(req: Request): Promise<Response> {
       idempotencyKey,
       async () => {
         const { projectId } = await dbp.transaction(async (tx) => {
+          await applyDbRlsContext(tx);
           const [inserted] = await tx
             .insert(projects)
             .values({
@@ -225,8 +230,7 @@ async function verifyRepoAdmin(args: {
   ghOwner: string;
   ghRepo: string;
 }): Promise<VerifyRepoOk | VerifyRepoErr> {
-  const dbp = dbPool();
-  const [account] = await dbp
+  const [account] = await dbHttp
     .select({ accessToken: accounts.accessToken })
     .from(accounts)
     .where(

@@ -7,6 +7,7 @@ import { computeRawScore, DEFAULT_WEIGHTS } from "@/lib/scoring/v0";
 import type { ScoringConfig } from "@/db/schema/projects";
 import type { ContributorScoreInputs } from "@/db/schema/contributors";
 import { revalidateProjectCaches } from "@/lib/cache";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 /**
  * Recompute scores + ranks for all non-excluded contributors of a project.
@@ -36,6 +37,7 @@ export async function computeLeaderboard(
 
 async function heartbeat(): Promise<void> {
   "use step";
+  enterDbWorkflowContext("computeLeaderboard:heartbeat");
   const at = new Date().toISOString();
   await dbHttp
     .insert(platformConfig)
@@ -56,6 +58,7 @@ async function loadScoringConfig(
   projectId: string,
 ): Promise<ScoringConfig | null> {
   "use step";
+  enterDbWorkflowContext("computeLeaderboard:loadScoringConfig");
   const [row] = await dbHttp
     .select({ scoringConfig: projects.scoringConfig })
     .from(projects)
@@ -68,6 +71,7 @@ async function loadContributors(
   projectId: string,
 ): Promise<Array<{ id: string; inputs: ContributorScoreInputs }>> {
   "use step";
+  enterDbWorkflowContext("computeLeaderboard:loadContributors");
   const rows = await dbHttp
     .select({
       id: contributors.id,
@@ -87,6 +91,7 @@ async function writeScores(
   updates: Array<{ id: string; score: number }>,
 ): Promise<void> {
   "use step";
+  enterDbWorkflowContext("computeLeaderboard:writeScores");
   if (updates.length === 0) return;
   // Write per-row; for hackathon scale (<=10k contribs/project) this is fine.
   for (const u of updates) {
@@ -99,6 +104,7 @@ async function writeScores(
 
 async function assignRanks(projectId: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("computeLeaderboard:assignRanks");
   await dbHttp.execute(sql`
     with ranked as (
       select id, row_number() over (order by score desc) as rk
@@ -114,5 +120,6 @@ async function assignRanks(projectId: string): Promise<void> {
 
 async function revalidateProjectCachesStep(projectId: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("computeLeaderboard:revalidateProjectCaches");
   await revalidateProjectCaches(projectId);
 }

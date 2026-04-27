@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { dbPool } from "@/db";
 import * as schema from "@/db/schema";
 import { serverEnv, hasCredentials } from "@/lib/env";
+import { establishDbUserContext, enterDbAnonymousContext } from "@/lib/db-rls";
 
 /**
  * better-auth instance. Boots lazily so the app can render in stub mode
@@ -72,7 +73,20 @@ function buildOptions(): BetterAuthOptions {
 
 export function auth(): ReturnType<typeof betterAuth> {
   if (_authCache) return _authCache;
-  _authCache = betterAuth(buildOptions());
+  const instance = betterAuth(buildOptions());
+  const originalGetSession = instance.api.getSession.bind(instance.api);
+  instance.api.getSession = (async (
+    ...args: Parameters<typeof originalGetSession>
+  ) => {
+    const session = await originalGetSession(...args);
+    if (session?.user?.id) {
+      await establishDbUserContext(session.user.id, "better-auth-session");
+    } else {
+      enterDbAnonymousContext("better-auth-empty-session");
+    }
+    return session;
+  }) as typeof originalGetSession;
+  _authCache = instance;
   return _authCache;
 }
 

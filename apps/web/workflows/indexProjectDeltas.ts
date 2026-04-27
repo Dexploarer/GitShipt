@@ -14,6 +14,7 @@ import {
 } from "@/lib/github/indexer";
 import type { ScoringConfig } from "@/db/schema/projects";
 import { computeLeaderboard } from "./computeLeaderboard";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 type LoadedProject = {
   id: string;
@@ -62,6 +63,7 @@ export async function indexProjectDeltas(
 
 async function loadProject(projectId: string): Promise<LoadedProject | null> {
   "use step";
+  enterDbWorkflowContext("indexProjectDeltas:loadProject");
   const [row] = await dbHttp
     .select({
       id: projects.id,
@@ -81,6 +83,7 @@ async function loadSinceCursor(
   scoringConfig: ScoringConfig,
 ): Promise<string> {
   "use step";
+  enterDbWorkflowContext("indexProjectDeltas:loadSinceCursor");
   const [row] = await dbHttp
     .select({
       lastIncrementalSyncAt: ghIndexerState.lastIncrementalSyncAt,
@@ -130,6 +133,7 @@ async function upsertContributors(
   aggregates: ContributorAggregate[],
 ): Promise<{ count: number }> {
   "use step";
+  enterDbWorkflowContext("indexProjectDeltas:upsertContributors");
   if (aggregates.length === 0) return { count: 0 };
 
   const now = new Date();
@@ -162,6 +166,7 @@ async function upsertContributors(
 
 async function markCursor(projectId: string, atISO: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("indexProjectDeltas:markCursor");
   const at = new Date(atISO);
   await dbHttp
     .insert(ghIndexerState)

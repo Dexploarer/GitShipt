@@ -1,6 +1,7 @@
 import { dbHttp } from "@/db";
 import { projectMemberships, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { establishDbUserContext, withDbServiceContext } from "@/lib/db-rls";
 
 export type GlobalRole = "user" | "moderator" | "admin" | "super_admin";
 export type ProjectRole = "project_owner" | "project_moderator";
@@ -123,26 +124,36 @@ export async function requirePermission(
 ): Promise<void> {
   const allowed = PERMISSIONS[permission];
 
-  const [user] = await dbHttp
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.id, ctx.userId))
-    .limit(1);
+  const [user] = await withDbServiceContext(
+    "require-permission:user-role",
+    () =>
+      dbHttp
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, ctx.userId))
+        .limit(1),
+  );
   if (!user) throw new PermissionError(permission, ctx.userId, ctx.projectId);
+  await establishDbUserContext(ctx.userId, `permission:${permission}`);
 
   if (allowed.includes(user.role)) return;
 
-  if (ctx.projectId) {
-    const [membership] = await dbHttp
-      .select({ role: projectMemberships.role })
-      .from(projectMemberships)
-      .where(
-        and(
-          eq(projectMemberships.userId, ctx.userId),
-          eq(projectMemberships.projectId, ctx.projectId),
-        ),
-      )
-      .limit(1);
+  const projectId = ctx.projectId;
+  if (projectId) {
+    const [membership] = await withDbServiceContext(
+      "require-permission:project-membership",
+      () =>
+        dbHttp
+          .select({ role: projectMemberships.role })
+          .from(projectMemberships)
+          .where(
+            and(
+              eq(projectMemberships.userId, ctx.userId),
+              eq(projectMemberships.projectId, projectId),
+            ),
+          )
+          .limit(1),
+    );
     if (membership && allowed.includes(membership.role)) return;
   }
 

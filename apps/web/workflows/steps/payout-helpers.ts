@@ -26,6 +26,7 @@ import {
   getCycleCap,
   type SnapshotContextLike,
 } from "@/lib/payouts/safety";
+import { applyDbRlsContext, enterDbWorkflowContext } from "@/lib/db-rls";
 
 void schema; // keep referenced for future use
 
@@ -79,7 +80,9 @@ export function isStubMode(): boolean {
     !hasCredentials.payoutKey() ||
     !hasCredentials.solana();
   if (missing && !stubsAllowed()) {
-    throw new Error("Live Bags, Solana RPC, and payout key credentials are required in production payouts.");
+    throw new Error(
+      "Live Bags, Solana RPC, and payout key credentials are required in production payouts.",
+    );
   }
   if (missing) return true;
   const launch = canLaunchOnBags();
@@ -93,6 +96,7 @@ export function isStubMode(): boolean {
 export async function loadFrozenSnapshotsAwaitingPayout(): Promise<
   Array<{ id: string }>
 > {
+  enterDbWorkflowContext("payout-helpers:loadFrozenSnapshotsAwaitingPayout");
   const rows = await dbHttp.execute<{ id: string }>(sql`
     select s.id::text as id
     from snapshots s
@@ -106,6 +110,7 @@ export async function loadFrozenSnapshotsAwaitingPayout(): Promise<
 export async function loadSnapshotContext(
   snapshotId: string,
 ): Promise<SnapshotContextJson | null> {
+  enterDbWorkflowContext("payout-helpers:loadSnapshotContext");
   const [row] = await dbHttp
     .select({
       snapshotId: snapshots.id,
@@ -157,6 +162,7 @@ export type PreflightJson =
 export async function runPreflight(
   ctxJson: SnapshotContextJson,
 ): Promise<PreflightJson> {
+  enterDbWorkflowContext("payout-helpers:runPreflight");
   const ctx: SnapshotContextLike = {
     snapshot: {
       id: ctxJson.snapshot.id,
@@ -175,6 +181,7 @@ export async function runPreflight(
 }
 
 export async function killSwitchAborted(): Promise<boolean> {
+  enterDbWorkflowContext("payout-helpers:killSwitchAborted");
   return isKillSwitchEnabled();
 }
 
@@ -263,6 +270,7 @@ export async function buildPlan(
   ctxJson: SnapshotContextJson,
   claimedLamportsStr: string,
 ): Promise<DistributionPlanRowJson[]> {
+  enterDbWorkflowContext("payout-helpers:buildPlan");
   const claimedLamports = BigInt(claimedLamportsStr);
   const contributorIds = ctxJson.snapshot.leaderboard.map(
     (e) => e.contributorId,
@@ -292,6 +300,7 @@ export async function buildPlan(
 export async function assertCycleUnderCap(
   planRowsJson: DistributionPlanRowJson[],
 ): Promise<{ ok: true; total: string } | { ok: false; reason: string }> {
+  enterDbWorkflowContext("payout-helpers:assertCycleUnderCap");
   const total = planRowsJson.reduce(
     (acc, r) => acc + BigInt(r.amountLamports),
     0n,
@@ -323,6 +332,7 @@ export async function persistPayoutPlan(args: {
   stub: boolean;
   merkleRootOverride?: string;
 }): Promise<{ payoutId: string; recipientCount: number }> {
+  enterDbWorkflowContext("payout-helpers:persistPayoutPlan");
   const db = dbPool();
   const now = new Date();
   const totalLamports = BigInt(args.totalLamportsStr);
@@ -338,6 +348,10 @@ export async function persistPayoutPlan(args: {
     );
 
   return await db.transaction(async (tx) => {
+    await applyDbRlsContext(tx, {
+      mode: "service",
+      reason: "workflow:payout-helpers:persistPayoutPlan",
+    });
     // Insert payout, returning the id. UNIQUE(snapshot_id) — second-run
     // against the same snapshot fetches the existing id instead.
     const [inserted] = await tx
@@ -418,6 +432,7 @@ export async function dispatchRecipient(args: {
   status: "sent" | "escrow" | "skipped" | "failed";
   sig?: string;
 }> {
+  enterDbWorkflowContext("payout-helpers:dispatchRecipient");
   const amount = BigInt(args.recipient.amountLamports);
   if (amount <= 0n) return { status: "skipped" };
 
@@ -449,6 +464,10 @@ export async function dispatchRecipient(args: {
       Date.now() + Math.max(1, args.escrowDays) * 86_400_000,
     );
     await dbPool().transaction(async (tx) => {
+      await applyDbRlsContext(tx, {
+        mode: "service",
+        reason: "workflow:payout-helpers:dispatchRecipient:escrow",
+      });
       await tx.insert(escrowHoldings).values({
         contributorId: args.recipient.contributorId,
         tokenMint: null,
@@ -527,6 +546,7 @@ export async function finalizePayout(payoutId: string): Promise<{
     pending: number;
   };
 }> {
+  enterDbWorkflowContext("payout-helpers:finalizePayout");
   const stub = isStubMode();
   const rows = await dbHttp
     .select({ status: payoutRecipients.status })

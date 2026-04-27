@@ -8,6 +8,7 @@ import {
   type ActiveEscrowRow,
 } from "./steps/escrow-helpers";
 import type { ProcessClaimInput } from "@repo/shared";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 /**
  * processClaim — on-demand workflow triggered from POST /api/claims/link.
@@ -44,6 +45,7 @@ export async function processClaim(input: ProcessClaimInput): Promise<{
 
 async function linkStep(input: ProcessClaimInput): Promise<void> {
   "use step";
+  enterDbWorkflowContext("processClaim:link");
   await linkContributorWallet({
     contributorId: input.contributorId,
     userId: input.userId,
@@ -53,6 +55,7 @@ async function linkStep(input: ProcessClaimInput): Promise<void> {
 
 async function auditLink(input: ProcessClaimInput): Promise<void> {
   "use step";
+  enterDbWorkflowContext("processClaim:auditLink");
   await audit({
     actorUserId: input.userId,
     action: "auth.wallet_link",
@@ -66,6 +69,7 @@ async function loadActiveStep(
   contributorId: string,
 ): Promise<ActiveEscrowRow[]> {
   "use step";
+  enterDbWorkflowContext("processClaim:loadActive");
   return await loadActiveEscrowFor(contributorId);
 }
 
@@ -74,5 +78,6 @@ async function drainStep(args: {
   walletAddress: string;
 }): Promise<{ status: string; sig?: string }> {
   "use step";
+  enterDbWorkflowContext("processClaim:drain");
   return await drainHoldingToWallet(args);
 }

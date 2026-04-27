@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { dbPool } from "@/db";
+import { dbHttp } from "@/db";
 import { projects } from "@/db/schema";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
 import { audit } from "@/lib/audit";
@@ -94,8 +94,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
   // Peek at project state BEFORE entering withIdempotency so we can namespace
   // the cache key per-mode. Otherwise a stub-mode response is cached and any
   // later real-launch attempt returns the cached fake mint forever.
-  const dbpForPeek = dbPool();
-  const [peek] = await dbpForPeek
+  const [peek] = await dbHttp
     .select({
       status: projects.status,
       simulatedAt: projects.simulatedAt,
@@ -129,9 +128,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
     const result = await withIdempotency(
       idempotencyKey,
       async () => {
-        const dbp = dbPool();
-
-        const [project] = await dbp
+        const [project] = await dbHttp
           .select()
           .from(projects)
           .where(eq(projects.id, projectId))
@@ -149,7 +146,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
           project.status === "simulated_live" && !willStubMode;
 
         if (isPromotingFromStub) {
-          await dbp
+          await dbHttp
             .update(projects)
             .set({
               tokenMint: null,
@@ -165,7 +162,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
               updatedAt: new Date(),
             })
             .where(eq(projects.id, projectId));
-          const [reloaded] = await dbp
+          const [reloaded] = await dbHttp
             .select()
             .from(projects)
             .where(eq(projects.id, projectId))
@@ -199,7 +196,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
               serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
           });
           const persistNow = new Date();
-          await dbp
+          await dbHttp
             .update(projects)
             .set({
               bagsLaunchId: launch.signature,
@@ -351,7 +348,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
         // STUB MODE: write `simulated_live` and stamp `simulated_at` so a later
         // real-mode launch can promote this row instead of being blocked.
         const persistNow = new Date();
-        const [updated] = await dbp
+        const [updated] = await dbHttp
           .update(projects)
           .set({
             tokenMint: tokenInfo.tokenMint,

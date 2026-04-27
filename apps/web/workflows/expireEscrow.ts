@@ -11,6 +11,7 @@ import {
   sweepBackToTreasury,
   type ExpiredEscrowRow,
 } from "./steps/escrow-helpers";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 /**
  * expireEscrow — daily root, 01:00 UTC. Sweeps holdings whose grace period
@@ -36,6 +37,7 @@ export async function expireEscrow(): Promise<{ swept: number }> {
 
 async function assertNotKilled(): Promise<void> {
   "use step";
+  enterDbWorkflowContext("expireEscrow:assertNotKilled");
   if (await isKillSwitchEnabled()) {
     throw new FatalError("kill_switch_enabled: expireEscrow aborted");
   }
@@ -43,6 +45,7 @@ async function assertNotKilled(): Promise<void> {
 
 async function heartbeat(name: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("expireEscrow:heartbeat");
   const at = new Date().toISOString();
   await dbHttp
     .insert(platformConfig)
@@ -61,16 +64,19 @@ async function heartbeat(name: string): Promise<void> {
 
 async function loadExpiredStep(): Promise<ExpiredEscrowRow[]> {
   "use step";
+  enterDbWorkflowContext("expireEscrow:loadExpired");
   return await loadExpiredEscrow();
 }
 
 async function sweepStep(holdingId: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("expireEscrow:sweep");
   await sweepBackToTreasury(holdingId);
 }
 
 async function auditSweep(swept: number): Promise<void> {
   "use step";
+  enterDbWorkflowContext("expireEscrow:auditSweep");
   if (swept === 0) return;
   await audit({
     actorUserId: null,

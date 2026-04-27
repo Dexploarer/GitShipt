@@ -3,6 +3,7 @@
 import { getStepMetadata } from "workflow";
 import { redis } from "@/lib/redis";
 import { getLiveTickerData, type LandingTicker } from "@/lib/queries/global";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 /**
  * publishKpis — minute-level landing ticker snapshot.
@@ -40,6 +41,7 @@ export async function publishKpis(): Promise<{ ok: true; key: string }> {
 
 async function snapshotTicker(): Promise<void> {
   "use step";
+  enterDbWorkflowContext("publishKpis:snapshotTicker");
 
   const stepId = getStepMetadata().stepId;
 
@@ -62,5 +64,10 @@ async function snapshotTicker(): Promise<void> {
     stepId,
   };
 
-  await r.set(TICKER_REDIS_KEY, JSON.stringify(payload), "EX", TICKER_TTL_SECONDS);
+  await r.set(
+    TICKER_REDIS_KEY,
+    JSON.stringify(payload),
+    "EX",
+    TICKER_TTL_SECONDS,
+  );
 }

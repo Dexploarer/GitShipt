@@ -32,6 +32,7 @@ import {
 import { updateProjectCaches } from "@/lib/cache-actions";
 import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
+import { applyDbRlsContext } from "@/lib/db-rls";
 import {
   CreateProjectBodySchema,
   PayoutConfigSchema,
@@ -111,7 +112,7 @@ export async function directLaunchProject(input: unknown): Promise<{
       deriveKey("admin-direct-launch", ctx.userId, parsed.ghRepoId),
     async () => {
       const dbp = dbPool();
-      const [existing] = await dbp
+      const [existing] = await dbHttp
         .select({ id: projects.id, tokenMint: projects.tokenMint })
         .from(projects)
         .where(eq(projects.ghRepoId, parsed.ghRepoId))
@@ -121,6 +122,7 @@ export async function directLaunchProject(input: unknown): Promise<{
       }
 
       const projectId = await dbp.transaction(async (tx) => {
+        await applyDbRlsContext(tx);
         const [inserted] = await tx
           .insert(projects)
           .values({
@@ -226,7 +228,7 @@ export async function directLaunchProject(input: unknown): Promise<{
       }
 
       const now = new Date();
-      await dbp
+      await dbHttp
         .update(projects)
         .set({
           tokenMint: tokenInfo.tokenMint,

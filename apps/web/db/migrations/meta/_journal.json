@@ -36,6 +36,13 @@
       "when": 1777240200000,
       "tag": "0004_bags_launch_and_payout_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777241700000,
+      "tag": "0005_rls_hardening",
+      "breakpoints": true
     }
   ]
 }

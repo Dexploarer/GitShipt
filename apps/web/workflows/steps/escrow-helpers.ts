@@ -5,6 +5,7 @@ import { dbHttp, dbPool } from "@/db";
 import { escrowHoldings, contributorClaims } from "@/db/schema";
 import { and, eq, isNull, lt, sql } from "drizzle-orm";
 import { isStubMode } from "./payout-helpers";
+import { applyDbRlsContext, enterDbWorkflowContext } from "@/lib/db-rls";
 
 export interface ExpiredEscrowRow {
   id: string;
@@ -15,6 +16,7 @@ export interface ExpiredEscrowRow {
 
 /** Holdings whose expiresAt < now and which haven't been drained yet. */
 export async function loadExpiredEscrow(): Promise<ExpiredEscrowRow[]> {
+  enterDbWorkflowContext("escrow-helpers:loadExpiredEscrow");
   const rows = await dbHttp
     .select({
       id: escrowHoldings.id,
@@ -44,6 +46,7 @@ export async function loadExpiredEscrow(): Promise<ExpiredEscrowRow[]> {
 export async function sweepBackToTreasury(
   holdingId: string,
 ): Promise<{ holdingId: string; sentinel: string }> {
+  enterDbWorkflowContext("escrow-helpers:sweepBackToTreasury");
   const sentinel = "expired-no-action-v0";
   await dbHttp
     .update(escrowHoldings)
@@ -61,6 +64,7 @@ export async function linkContributorWallet(args: {
   userId: string;
   walletAddress: string;
 }): Promise<void> {
+  enterDbWorkflowContext("escrow-helpers:linkContributorWallet");
   const now = new Date();
   await dbHttp
     .insert(contributorClaims)
@@ -89,6 +93,7 @@ export interface ActiveEscrowRow {
 export async function loadActiveEscrowFor(
   contributorId: string,
 ): Promise<ActiveEscrowRow[]> {
+  enterDbWorkflowContext("escrow-helpers:loadActiveEscrowFor");
   const rows = await dbHttp
     .select({
       id: escrowHoldings.id,
@@ -121,6 +126,10 @@ export async function drainHoldingToWallet(args: {
   walletAddress: string;
 }): Promise<{ status: "drained" | "skipped" | "failed"; sig?: string }> {
   return await dbPool().transaction(async (tx) => {
+    await applyDbRlsContext(tx, {
+      mode: "service",
+      reason: "workflow:escrow-helpers:drainHoldingToWallet",
+    });
     const [row] = await tx
       .select({
         id: escrowHoldings.id,
@@ -155,7 +164,10 @@ export async function drainHoldingToWallet(args: {
           drainSignature: "spl-drain-not-implemented-v0",
         })
         .where(eq(escrowHoldings.id, row.id));
-      return { status: "drained" as const, sig: "spl-drain-not-implemented-v0" };
+      return {
+        status: "drained" as const,
+        sig: "spl-drain-not-implemented-v0",
+      };
     }
 
     // Native SOL drain.

@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { audit } from "@/lib/audit";
-import { dbPool } from "@/db";
+import { dbHttp } from "@/db";
 import { projects } from "@/db/schema";
 import { PermissionError, requirePermission } from "@/lib/auth/permissions";
 import { bags } from "@/lib/bags/client";
@@ -61,7 +61,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
     const result = await withIdempotency(
       idempotencyKey,
       async () => {
-        const [project] = await dbPool()
+        const [project] = await dbHttp
           .select({
             tokenMint: projects.tokenMint,
             status: projects.status,

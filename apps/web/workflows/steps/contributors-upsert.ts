@@ -2,6 +2,7 @@ import { dbHttp } from "@/db";
 import { contributors } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import type { ContributorAggregate } from "@/lib/github/indexer";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 /**
  * Step helper — upsert a batch of contributor aggregates for a project.
@@ -14,6 +15,7 @@ export async function stepUpsertContributors(
   aggregates: ContributorAggregate[],
 ): Promise<{ count: number }> {
   "use step";
+  enterDbWorkflowContext("contributors-upsert");
   if (aggregates.length === 0) return { count: 0 };
 
   const now = new Date();

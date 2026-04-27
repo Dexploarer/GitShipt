@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { eq, and } from "drizzle-orm";
 import { Octokit } from "@octokit/rest";
 import { auth } from "@/lib/auth";
-import { dbPool } from "@/db";
+import { dbHttp, dbPool } from "@/db";
 import { accounts, projects, projectMemberships, users } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
@@ -22,6 +22,7 @@ import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
 import { updateProjectCaches } from "@/lib/cache-actions";
 import { CreateProjectBodySchema, type CreateProjectBody } from "@repo/shared";
+import { applyDbRlsContext } from "@/lib/db-rls";
 
 /**
  * Server action used by `<ReviewAndSign>` to drive the create + launch flow
@@ -141,7 +142,7 @@ export async function createAndLaunchAction(
   }
 
   const dbp = dbPool();
-  const userRow = await dbp
+  const userRow = await dbHttp
     .select({ id: users.id })
     .from(users)
     .where(eq(users.id, userId))
@@ -169,6 +170,7 @@ export async function createAndLaunchAction(
 
         try {
           const txResult = await dbp.transaction(async (tx) => {
+            await applyDbRlsContext(tx);
             const [inserted] = await tx
               .insert(projects)
               .values({
@@ -220,7 +222,7 @@ export async function createAndLaunchAction(
           // UNIQUE violation on (ghOwner, ghRepo) → recover an existing project.
           const message = e instanceof Error ? e.message : String(e);
           if (/projects_gh_repo_uq/i.test(message)) {
-            const [existing] = await dbp
+            const [existing] = await dbHttp
               .select({
                 id: projects.id,
                 status: projects.status,
@@ -350,7 +352,7 @@ export async function createAndLaunchAction(
         // Persist token/config state. Real mode only reaches this point after
         // the Bags launch transaction is broadcast.
         const persistNow = new Date();
-        await dbp
+        await dbHttp
           .update(projects)
           .set({
             tokenMint: tokenInfo.tokenMint,
@@ -467,8 +469,7 @@ async function verifyRepoAdmin(args: {
   ghOwner: string;
   ghRepo: string;
 }): Promise<VerifyOk | VerifyErr> {
-  const dbp = dbPool();
-  const [account] = await dbp
+  const [account] = await dbHttp
     .select({ accessToken: accounts.accessToken })
     .from(accounts)
     .where(

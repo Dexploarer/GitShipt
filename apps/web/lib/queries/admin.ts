@@ -27,6 +27,7 @@ import {
   count,
   inArray,
 } from "drizzle-orm";
+import { applyDbRlsContext } from "@/lib/db-rls";
 
 /**
  * Admin-only query helpers. All callers must `requirePermission('admin.access')`
@@ -690,6 +691,10 @@ export async function promoteProjectFromStub(projectId: string): Promise<{
 }> {
   const dbp = (await import("@/db")).dbPool();
   return await dbp.transaction(async (tx) => {
+    await applyDbRlsContext(tx, {
+      mode: "service",
+      reason: "admin:promoteProjectFromStub",
+    });
     const [proj] = await tx
       .select({
         id: projects.id,
@@ -790,6 +795,10 @@ export async function transferProjectOwnership(
 }> {
   const dbp = (await import("@/db")).dbPool();
   return await dbp.transaction(async (tx) => {
+    await applyDbRlsContext(tx, {
+      mode: "service",
+      reason: "admin:transferProjectOwnership",
+    });
     const [proj] = await tx
       .select({ id: projects.id, ownerUserId: projects.ownerUserId })
       .from(projects)

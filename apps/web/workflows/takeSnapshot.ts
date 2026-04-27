@@ -14,6 +14,7 @@ import {
 } from "./steps/snapshot-helpers";
 import { isKillSwitchEnabled } from "@/lib/payouts/safety";
 import { revalidateProjectCaches } from "@/lib/cache";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 /**
  * takeSnapshot — daily root, 00:00 UTC.
@@ -71,6 +72,7 @@ export async function takeProjectSnapshot(projectId: string): Promise<{
 
 async function assertNotKilled(): Promise<void> {
   "use step";
+  enterDbWorkflowContext("takeSnapshot:assertNotKilled");
   const killed = await isKillSwitchEnabled();
   if (killed) {
     throw new FatalError("kill_switch_enabled: takeSnapshot aborted");
@@ -79,6 +81,7 @@ async function assertNotKilled(): Promise<void> {
 
 async function heartbeat(name: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("takeSnapshot:heartbeat");
   const at = new Date().toISOString();
   await dbHttp
     .insert(platformConfig)
@@ -97,6 +100,7 @@ async function heartbeat(name: string): Promise<void> {
 
 async function loadEligibleProjectIdsStep(): Promise<string[]> {
   "use step";
+  enterDbWorkflowContext("takeSnapshot:loadEligibleProjectIds");
   return await loadEligibleProjectIds();
 }
 
@@ -104,6 +108,7 @@ async function loadProjectStep(
   projectId: string,
 ): ReturnType<typeof loadProjectForSnapshot> {
   "use step";
+  enterDbWorkflowContext("takeSnapshot:loadProject");
   return await loadProjectForSnapshot(projectId);
 }
 
@@ -112,6 +117,7 @@ async function loadContributorsStep(
   topN: number,
 ): ReturnType<typeof loadRankedContributors> {
   "use step";
+  enterDbWorkflowContext("takeSnapshot:loadContributors");
   return await loadRankedContributors(projectId, topN);
 }
 
@@ -119,10 +125,12 @@ async function freezeStep(
   args: Parameters<typeof freezeSnapshot>[0],
 ): ReturnType<typeof freezeSnapshot> {
   "use step";
+  enterDbWorkflowContext("takeSnapshot:freeze");
   return await freezeSnapshot(args);
 }
 
 async function revalidateProjectCachesStep(projectId: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("takeSnapshot:revalidateProjectCaches");
   await revalidateProjectCaches(projectId);
 }

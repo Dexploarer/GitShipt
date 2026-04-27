@@ -1,4 +1,5 @@
 import { serverEnv } from "@/lib/env";
+import { enterDbServiceContext } from "@/lib/db-rls";
 
 /**
  * Vercel Cron sets `Authorization: Bearer ${CRON_SECRET}` on every cron
@@ -15,9 +16,14 @@ export function isAuthorizedCron(req: Request): boolean {
     if (env.NODE_ENV !== "production") {
       const origin = req.headers.get("origin");
       const host = req.headers.get("host");
-      if (!origin || origin.includes(host ?? "")) return true;
+      if (!origin || origin.includes(host ?? "")) {
+        enterDbServiceContext("cron:development");
+        return true;
+      }
     }
     return false;
   }
-  return req.headers.get("authorization") === `Bearer ${env.CRON_SECRET}`;
+  const ok = req.headers.get("authorization") === `Bearer ${env.CRON_SECRET}`;
+  if (ok) enterDbServiceContext("cron");
+  return ok;
 }

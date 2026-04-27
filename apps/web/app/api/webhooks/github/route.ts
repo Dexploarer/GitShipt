@@ -7,6 +7,7 @@ import { verifyAndParse } from "@/lib/github/webhook";
 import { audit } from "@/lib/audit";
 import { indexProjectDeltas } from "@/workflows/indexProjectDeltas";
 import { revalidateProjectCaches } from "@/lib/cache";
+import { enterDbServiceContext } from "@/lib/db-rls";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -32,6 +33,7 @@ export async function POST(req: Request): Promise<Response> {
     }
     return NextResponse.json({ error: result.reason }, { status: 401 });
   }
+  enterDbServiceContext("webhook:github");
 
   const signature = req.headers.get("x-hub-signature-256");
   const insertResult = await dbHttp

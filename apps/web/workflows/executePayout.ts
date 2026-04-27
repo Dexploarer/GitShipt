@@ -25,6 +25,7 @@ import {
 } from "./steps/payout-helpers";
 import { revalidateProjectCaches } from "@/lib/cache";
 import { withIdempotency } from "@/lib/idempotency";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 const ESCROW_DAYS = 30;
 
@@ -169,6 +170,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
 
 async function assertNotKilled(): Promise<void> {
   "use step";
+  enterDbWorkflowContext("executePayout:assertNotKilled");
   if (await isKillSwitchEnabled()) {
     throw new FatalError("kill_switch_enabled: executePayout aborted");
   }
@@ -176,6 +178,7 @@ async function assertNotKilled(): Promise<void> {
 
 async function heartbeat(name: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("executePayout:heartbeat");
   const at = new Date().toISOString();
   await dbHttp
     .insert(platformConfig)
@@ -194,6 +197,7 @@ async function heartbeat(name: string): Promise<void> {
 
 async function loadAwaitingStep(): Promise<Array<{ id: string }>> {
   "use step";
+  enterDbWorkflowContext("executePayout:loadAwaiting");
   return await loadFrozenSnapshotsAwaitingPayout();
 }
 
@@ -201,6 +205,7 @@ async function loadCtxStep(
   snapshotId: string,
 ): Promise<SnapshotContextJson | null> {
   "use step";
+  enterDbWorkflowContext("executePayout:loadContext");
   return await loadSnapshotContext(snapshotId);
 }
 
@@ -215,6 +220,7 @@ async function preflightStep(
   { ok: true; balanceLamports: string } | { ok: false; reason: string }
 > {
   "use step";
+  enterDbWorkflowContext("executePayout:preflight");
   return await runPreflight(ctx);
 }
 
@@ -228,6 +234,7 @@ async function claimableStep(args: {
   tokenMint: string | null;
 }): Promise<{ lamports: string; positionCount: number }> {
   "use step";
+  enterDbWorkflowContext("executePayout:claimable");
   return await checkClaimableLamports(args);
 }
 
@@ -247,6 +254,7 @@ async function buildPlanStep(
   claimedLamports: string,
 ): Promise<DistributionPlanRowJson[]> {
   "use step";
+  enterDbWorkflowContext("executePayout:buildPlan");
   return await buildPlan(ctx, claimedLamports);
 }
 
@@ -254,6 +262,7 @@ async function capCheckStep(
   plan: DistributionPlanRowJson[],
 ): Promise<{ ok: true; total: string } | { ok: false; reason: string }> {
   "use step";
+  enterDbWorkflowContext("executePayout:capCheck");
   return await assertCycleUnderCap(plan);
 }
 
@@ -266,6 +275,7 @@ async function persistStep(args: {
   stub: boolean;
 }): Promise<{ payoutId: string; recipientCount: number }> {
   "use step";
+  enterDbWorkflowContext("executePayout:persist");
   return await persistPayoutPlan(args);
 }
 
@@ -276,6 +286,7 @@ async function dispatchStep(args: {
   escrowDays: number;
 }): Promise<{ status: string; sig?: string }> {
   "use step";
+  enterDbWorkflowContext("executePayout:dispatch");
   const { stepId } = getStepMetadata();
   return await withIdempotency(
     `${stepId}:${args.recipient.idempotencyKey}`,
@@ -289,16 +300,19 @@ async function finalizeStep(payoutId: string): Promise<{
   totals: { sent: number; escrow: number; failed: number; pending: number };
 }> {
   "use step";
+  enterDbWorkflowContext("executePayout:finalize");
   return await finalizePayout(payoutId);
 }
 
 async function revalidateProjectCachesStep(projectId: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("executePayout:revalidateProjectCaches");
   await revalidateProjectCaches(projectId);
 }
 
 async function auditAbort(snapshotId: string, reason: string): Promise<void> {
   "use step";
+  enterDbWorkflowContext("executePayout:auditAbort");
   await audit({
     actorUserId: null,
     action: "payout.cancel",
@@ -315,6 +329,7 @@ async function auditCompleted(
   status: string,
 ): Promise<void> {
   "use step";
+  enterDbWorkflowContext("executePayout:auditCompleted");
   await audit({
     actorUserId: null,
     action: "payout.trigger",
