@@ -22,6 +22,20 @@
       "when": 1777182507276,
       "tag": "0002_api_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777240100000,
+      "tag": "0003_project_launch_configured",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777240200000,
+      "tag": "0004_bags_launch_and_payout_attempts",
+      "breakpoints": true
     }
   ]
 }
