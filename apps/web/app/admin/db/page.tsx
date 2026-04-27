@@ -1,11 +1,6 @@
 import { Database, Terminal } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { getTableRowCounts } from "@/lib/queries/admin";
@@ -19,12 +14,21 @@ export default async function AdminDbPage() {
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-headline-md tracking-tight">Database</h1>
-        <p className="text-body-sm text-fg-secondary">
-          Read-only inventory. SQL sandbox lands in v1.1 with explicit allowlist
-          + parameterized read-only role.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-headline-md tracking-tight">Database</h1>
+          <p className="text-body-sm text-fg-secondary">
+            Live read-only inventory. No SQL is executed from this page in v0.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="success" size="sm" dot>
+            row counts live
+          </Badge>
+          <Badge variant="warning" size="sm">
+            sandbox coming soon
+          </Badge>
+        </div>
       </header>
 
       <Card
@@ -37,18 +41,20 @@ export default async function AdminDbPage() {
             <Terminal className="size-4 text-fg-muted" /> SQL sandbox
           </CardTitle>
           <p className="mt-1 text-body-sm text-fg-secondary">
-            Run read-only queries against a parameterized role. v1.1.
+            Planned operator tool: allowlisted, parameterized read-only queries
+            through a separate DB role. Until that ships, use Neon/Drizzle
+            tooling outside the admin app.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="warning" size="sm">
-            v1.1
+            not wired
           </Badge>
           <Button
-            variant="primary"
+            variant="secondary"
             size="sm"
             disabled
-            title="Available in v1.1"
+            title="Coming soon: allowlisted read-only sandbox"
           >
             Open sandbox
           </Button>

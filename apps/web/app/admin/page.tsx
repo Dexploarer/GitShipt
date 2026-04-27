@@ -10,12 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Pill } from "@repo/ui";
 import { StatTile } from "@/components/shared/StatTile";
@@ -113,12 +108,75 @@ export default async function AdminOpsPage() {
         />
       </section>
 
+      <SurfaceStatusCard />
+
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <HeartbeatsCard rows={heartbeats} />
         <FailedPayoutsCard rows={failed} />
         <RecentAuditCard rows={recentAudit} />
         <HealthCard summary={healthSummary} />
       </section>
+    </div>
+  );
+}
+
+function SurfaceStatusCard() {
+  return (
+    <Card depth="raised" padding="sm">
+      <CardHeader className="px-1.5 pt-1">
+        <CardTitle className="flex items-center gap-2">
+          <AlertCircle className="size-4 text-fg-muted" /> Operator surface
+          status
+        </CardTitle>
+        <CardDescription>
+          This console mixes live controls with read-only inventory. Treat
+          coming-soon areas as visibility only, not complete tooling.
+        </CardDescription>
+      </CardHeader>
+      <div className="grid grid-cols-1 gap-2 px-1.5 pb-1 md:grid-cols-3">
+        <SurfaceStatusBucket
+          label="Live controls"
+          badge="audited"
+          variant="success"
+          items="maintenance kill switch, payout retry/cancel, project pause/kill, fee config"
+        />
+        <SurfaceStatusBucket
+          label="Manual or env-backed"
+          badge="operator-run"
+          variant="warning"
+          items="Bags launches, partner fee claims, treasury top-ups, env flags"
+        />
+        <SurfaceStatusBucket
+          label="Read-only / coming soon"
+          badge="not full tools"
+          variant="default"
+          items="DB sandbox, feature flag editor, abuse detector queue"
+        />
+      </div>
+    </Card>
+  );
+}
+
+function SurfaceStatusBucket({
+  label,
+  badge,
+  variant,
+  items,
+}: {
+  label: string;
+  badge: string;
+  variant: "success" | "warning" | "default";
+  items: string;
+}) {
+  return (
+    <div className="rounded-md border border-border/60 bg-surface-elevated/50 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-label-md text-fg">{label}</p>
+        <Badge variant={variant} size="sm">
+          {badge}
+        </Badge>
+      </div>
+      <p className="mt-2 text-body-sm text-fg-secondary">{items}</p>
     </div>
   );
 }

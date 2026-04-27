@@ -9,8 +9,11 @@ import {
   getPlatformConfigValue,
 } from "@/lib/queries/admin";
 import { hasCredentials, productionReadiness, serverEnv } from "@/lib/env";
+import { bags } from "@/lib/bags/client";
+import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { formatAddress, formatRelativeTime } from "@repo/lib";
 import { FeesForm } from "./_components/FeesForm";
+import { PartnerFeesClaimForm } from "./_components/PartnerFeesClaimForm";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +28,31 @@ export default async function AdminFeesPage() {
   const envDefault = env.PLATFORM_FEE_BPS_DEFAULT;
   const currentBps = stored?.value ?? envDefault;
   const readiness = productionReadiness();
+  let partnerStats: { claimedFees: string; unclaimedFees: string } | null = null;
+  let partnerStatsError: string | null = null;
+  if (hasCredentials.bags() && env.BAGS_PARTNER_CONFIG_KEY) {
+    try {
+      partnerStats = await bags.getPartnerClaimStats(env.BAGS_PARTNER_WALLET);
+    } catch (error) {
+      partnerStatsError =
+        error instanceof Error ? error.message : "Partner fee stats failed.";
+    }
+  }
+  let payoutSignerWallet: string | null = null;
+  try {
+    payoutSignerWallet = payoutSignerPublicKey();
+  } catch {
+    payoutSignerWallet = null;
+  }
+  const partnerClaimUnavailableReason = !env.BAGS_PARTNER_CONFIG_KEY
+    ? "Set BAGS_PARTNER_CONFIG_KEY before claiming partner revenue."
+    : !hasCredentials.bags()
+      ? "Set BAGS_API_KEY before claiming partner revenue."
+      : payoutSignerWallet !== env.BAGS_PARTNER_WALLET
+        ? "Server-side claiming requires BAGS_PARTNER_WALLET to match SOLANA_PAYOUT_KEYPAIR; otherwise claim through the Bags Dev Dashboard."
+        : partnerStats && BigInt(partnerStats.unclaimedFees) <= 0n
+          ? "No unclaimed partner fees are available."
+          : null;
   const [summary, auditRows] = await Promise.all([
     getPartnerFeeShareSummary(),
     getAuditLogs({
@@ -109,6 +137,14 @@ export default async function AdminFeesPage() {
               tone={readiness.ok ? "success" : "danger"}
             />
           </dl>
+          <PartnerFeesClaimForm
+            partnerWallet={env.BAGS_PARTNER_WALLET}
+            partnerConfigSet={Boolean(env.BAGS_PARTNER_CONFIG_KEY)}
+            stats={partnerStats}
+            statsError={partnerStatsError}
+            serverClaimAvailable={payoutSignerWallet === env.BAGS_PARTNER_WALLET}
+            unavailableReason={partnerClaimUnavailableReason}
+          />
         </Card>
       </section>
 

@@ -18,23 +18,30 @@ type WorkflowName =
 export function WorkflowRetriggerButton({
   name,
   disabled,
+  disabledReason,
 }: {
   name: WorkflowName;
   disabled: boolean;
+  disabledReason?: string;
 }) {
   const [busy, setBusy] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
+  const [result, setResult] = React.useState<
+    | { status: "idle" }
+    | { status: "queued"; runId: string | null }
+    | { status: "failed"; message: string }
+  >({ status: "idle" });
 
   async function fire() {
     setBusy(true);
-    setErr(null);
+    setResult({ status: "idle" });
     try {
-      await retriggerWorkflow({
+      const res = await retriggerWorkflow({
         name,
         idempotencyKey: `workflow-${name}-${Date.now()}`,
       });
+      setResult({ status: "queued", runId: res.runId ?? null });
     } catch (e) {
-      setErr((e as Error).message);
+      setResult({ status: "failed", message: (e as Error).message });
     } finally {
       setBusy(false);
     }
@@ -49,13 +56,28 @@ export function WorkflowRetriggerButton({
         disabled={disabled || busy}
         title={
           disabled
-            ? "Needs arguments — use the per-project trigger."
-            : undefined
+            ? disabledReason
+            : "Queues a workflow run; check Vercel for completion."
         }
       >
-        <Play className="size-3.5" /> {busy ? "Sending..." : "Re-trigger"}
+        <Play className="size-3.5" />{" "}
+        {busy
+          ? "Queueing..."
+          : result.status === "queued"
+            ? "Queued"
+            : "Queue run"}
       </Button>
-      {err ? <span className="text-caption text-danger">{err}</span> : null}
+      {result.status === "queued" ? (
+        <span
+          className="text-mono-sm text-success"
+          title={result.runId ?? "Run queued"}
+        >
+          {result.runId ? `run ${result.runId.slice(0, 8)}` : "queued"}
+        </span>
+      ) : null}
+      {result.status === "failed" ? (
+        <span className="text-caption text-danger">{result.message}</span>
+      ) : null}
     </div>
   );
 }

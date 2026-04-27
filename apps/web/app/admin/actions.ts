@@ -32,6 +32,7 @@ import {
 import { updateProjectCaches } from "@/lib/cache-actions";
 import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
+import { solanaConnection } from "@/lib/solana/connection";
 import { applyDbRlsContext } from "@/lib/db-rls";
 import {
   CreateProjectBodySchema,
@@ -171,7 +172,7 @@ export async function directLaunchProject(input: unknown): Promise<{
       const tokenInfo = await bags.createTokenInfo({
         name: parsed.name,
         symbol: parsed.symbol,
-        description: parsed.description ?? undefined,
+        description: parsed.description,
         imageUrl: parsed.imageUrl,
         website: parsed.website,
         twitter: parsed.twitter,
@@ -202,7 +203,7 @@ export async function directLaunchProject(input: unknown): Promise<{
             bps: 10_000 - parsed.platformFeeBps,
           },
         ],
-        platformFeeWallet: payoutWallet ?? undefined,
+        platformFeeWallet: serverEnv().SOLANA_TREASURY_ADDRESS,
         shareFee: parsed.platformFeeBps,
       });
 
@@ -675,6 +676,10 @@ const UpdateProjectFeeShareSchema = DestructiveBaseSchema.extend({
   bps: z.number().int().min(0).max(2000),
 });
 
+const ClaimPartnerFeesSchema = DestructiveBaseSchema.extend({
+  partnerWallet: z.string().min(32).optional(),
+});
+
 export async function updateProjectPlatformFeeBps(
   input: unknown,
 ): Promise<{ ok: true; bps: number }> {
@@ -741,6 +746,86 @@ export async function updateProjectPlatformFeeBps(
   revalidatePath("/admin/fees");
   await updateProjectCaches(proj.id);
   return { ok: true, bps: parsed.bps };
+}
+
+export async function claimPartnerFees(input: unknown): Promise<{
+  ok: true;
+  partnerWallet: string;
+  signatures: string[];
+  before: { claimedFees: string; unclaimedFees: string };
+  after: { claimedFees: string; unclaimedFees: string };
+}> {
+  const parsed = ClaimPartnerFeesSchema.parse(input);
+  const ctx = await requireSession();
+  const env = serverEnv();
+  const partnerWallet = parsed.partnerWallet ?? env.BAGS_PARTNER_WALLET;
+
+  if (!hasCredentials.bags()) throw new Error("BAGS_API_KEY missing");
+  if (!env.BAGS_PARTNER_CONFIG_KEY) {
+    throw new Error("BAGS_PARTNER_CONFIG_KEY missing");
+  }
+  const partnerConfigKey = env.BAGS_PARTNER_CONFIG_KEY;
+
+  const signerWallet = payoutSignerPublicKey();
+  if (!signerWallet) throw new Error("SOLANA_PAYOUT_KEYPAIR missing");
+  if (signerWallet !== partnerWallet) {
+    throw new Error(
+      "partner_wallet_signer_unavailable: BAGS_PARTNER_WALLET must match SOLANA_PAYOUT_KEYPAIR for server-side partner claims.",
+    );
+  }
+
+  return await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-partner-fees-claim", partnerWallet, ctx.userId),
+    async () =>
+      await destructiveAction(
+        {
+          actorUserId: ctx.userId,
+          permission: "platform.treasury.topup",
+          reason: parsed.reason,
+          targetName: "partner.fees.claim",
+          typedConfirmation: parsed.typedConfirmation,
+          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        },
+        {
+          action: "treasury.partner_claim",
+          targetType: "partner_config",
+          targetId: partnerConfigKey,
+          metadata: { partnerWallet },
+        },
+        async () => {
+          const before = await bags.getPartnerClaimStats(partnerWallet);
+          if (BigInt(before.unclaimedFees) <= 0n) {
+            throw new Error("no_partner_fees_to_claim");
+          }
+
+          const txs = await bags.getPartnerClaimTransactions(partnerWallet);
+          if (txs.length === 0) {
+            throw new Error("no_partner_claim_transactions");
+          }
+
+          const conn = solanaConnection("confirmed");
+          const signatures: string[] = [];
+          for (const tx of txs) {
+            const signature = await bags.signAndSubmitTransaction(tx.transaction);
+            await conn.confirmTransaction(signature, "confirmed");
+            signatures.push(signature);
+          }
+
+          const after = await bags.getPartnerClaimStats(partnerWallet);
+          return {
+            ok: true as const,
+            partnerWallet,
+            signatures,
+            before,
+            after,
+          };
+        },
+      ),
+    { scope: `admin:partner-fees:claim:${partnerWallet}` },
+  );
 }
 
 // ---------------------------------------------------------------------------
