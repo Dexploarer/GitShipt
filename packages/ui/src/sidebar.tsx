@@ -174,6 +174,7 @@ export function SidebarProvider({
 export function Sidebar({
   className,
   children,
+  "aria-label": ariaLabel = "App navigation",
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
   const { collapsed, mobileOpen, closeMobile } = useSidebar();
@@ -196,6 +197,7 @@ export function Sidebar({
         data-gitbags-sidebar="true"
         data-collapsed={collapsed ? "true" : "false"}
         data-mobile-open={mobileOpen ? "true" : "false"}
+        aria-label={ariaLabel}
         className={cn(
           // ── Mobile (< lg): slide-over drawer pinned to the left.
           // The shell shows it via `fixed` + a translateX transform. We always

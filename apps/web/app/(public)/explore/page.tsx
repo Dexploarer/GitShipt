@@ -55,6 +55,7 @@ export default async function ExplorePage({
 
   return (
     <div className="flex flex-col gap-6 lg:gap-8">
+      <h1 className="sr-only">Explore projects</h1>
       <FiltersBar />
 
       <div className="flex items-center justify-between">
