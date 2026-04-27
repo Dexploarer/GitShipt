@@ -82,7 +82,7 @@ export const useLaunchWizardStore = create<LaunchWizardState>((set) => ({
         ({
           name: repo.name.slice(0, 32),
           symbol: deriveSymbolFromRepo(repo.name),
-          description: repo.description ?? "",
+          description: defaultDescription(repo),
           imageUrl: repo.ownerAvatarUrl,
         } satisfies TokenMetadataInput),
       step: 2,
@@ -109,4 +109,10 @@ export function resetLaunchWizardStore(): void {
 function deriveSymbolFromRepo(repoName: string): string {
   const cleaned = repoName.toUpperCase().replace(/[^A-Z0-9]/g, "");
   return cleaned.slice(0, 10) || "GBAGS";
+}
+
+function defaultDescription(repo: GithubRepo): string {
+  const description = repo.description?.trim();
+  if (description) return description.slice(0, 1000);
+  return `Token for ${repo.owner}/${repo.name}. Fees redistribute to top contributors daily.`;
 }

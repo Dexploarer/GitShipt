@@ -54,4 +54,42 @@ describe("launch wizard store", () => {
       success: null,
     });
   });
+
+  test("records a stub-mode launch success without losing project routing data", () => {
+    useLaunchWizardStore.getState().selectRepo(repo);
+    useLaunchWizardStore.getState().setMetadata({
+      name: "git-bags",
+      symbol: "GITBAGS",
+      description: repo.description ?? "Daily fee payouts for repo contributors",
+      imageUrl: repo.ownerAvatarUrl,
+    });
+    useLaunchWizardStore.getState().setLeaderboard(DEFAULT_LEADERBOARD);
+    useLaunchWizardStore.getState().startSubmit();
+
+    useLaunchWizardStore.getState().succeedSubmit({
+      projectId: "project_1",
+      tokenMint: "StubMint111111111111111111111111111111111",
+      status: "simulated_live",
+      txSig: null,
+      configKey: "stub_config_key",
+      stub: true,
+      note: "Stub mode — token mint is fake; no on-chain transaction sent.",
+      ghOwner: repo.owner,
+      ghRepo: repo.name,
+    });
+
+    expect(useLaunchWizardStore.getState()).toMatchObject({
+      step: 4,
+      status: "idle",
+      errorMessage: null,
+      success: {
+        projectId: "project_1",
+        status: "simulated_live",
+        stub: true,
+        txSig: null,
+        ghOwner: "sym",
+        ghRepo: "git-bags",
+      },
+    });
+  });
 });

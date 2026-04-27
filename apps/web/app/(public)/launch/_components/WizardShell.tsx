@@ -75,10 +75,7 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
       ghRepo: repo.name,
       name: metadata.name,
       symbol: metadata.symbol,
-      description:
-        metadata.description && metadata.description.length > 0
-          ? metadata.description
-          : undefined,
+      description: metadata.description,
       imageUrl: metadata.imageUrl,
       website:
         metadata.website && metadata.website.length > 0
