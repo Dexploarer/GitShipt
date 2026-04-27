@@ -152,11 +152,183 @@ export const TokenClaimEventSchema = z
     tokenMint: z.string().min(32).optional(),
     claimer: z.string().min(32).optional(),
     wallet: z.string().min(32).optional(),
+    amount: z.string().optional(),
     amountLamports: z.coerce.bigint().optional(),
+    timestamp: z.number().int().optional(),
     createdAt: z.string().optional(),
   })
   .passthrough();
 export type TokenClaimEvent = z.infer<typeof TokenClaimEventSchema>;
+
+export const TokenClaimStatsSchema = TokenCreatorSchema.extend({
+  totalClaimed: z.string(),
+});
+export type TokenClaimStats = z.infer<typeof TokenClaimStatsSchema>;
+
+export const TopTokenByLifetimeFeesSchema = z
+  .object({
+    token: SolanaAddressSchema,
+    lifetimeFees: z.string(),
+    tokenInfo: z.record(z.string(), z.unknown()).nullable().optional(),
+    creators: z.array(TokenCreatorSchema).nullable().optional(),
+    tokenSupply: z.record(z.string(), z.unknown()).nullable().optional(),
+    tokenLatestPrice: z.record(z.string(), z.unknown()).nullable().optional(),
+  })
+  .passthrough();
+export type TopTokenByLifetimeFees = z.infer<
+  typeof TopTokenByLifetimeFeesSchema
+>;
+
+export const PoolConfigKeysResponseSchema = z.object({
+  poolConfigKeys: z.array(SolanaAddressSchema),
+});
+export type PoolConfigKeysResponse = z.infer<
+  typeof PoolConfigKeysResponseSchema
+>;
+
+export const PartnerConfigSchema = z
+  .object({
+    partner: SolanaAddressSchema,
+    bps: z.number().int().min(0).max(10_000),
+    bump: z.number().int().optional(),
+    totalClaimedFees: z.coerce.bigint(),
+    totalAccumulatedFees: z.coerce.bigint(),
+    totalLifetimeAccumulatedFees: z.coerce.bigint(),
+  })
+  .passthrough();
+export type PartnerConfig = z.infer<typeof PartnerConfigSchema>;
+
+export const PartnerClaimStatsSchema = z.object({
+  claimedFees: z.string(),
+  unclaimedFees: z.string(),
+});
+export type PartnerClaimStats = z.infer<typeof PartnerClaimStatsSchema>;
+
+export const BlockhashWithExpirySchema = z
+  .object({
+    blockhash: z.string().min(1),
+    lastValidBlockHeight: z.number().int().positive(),
+  })
+  .passthrough();
+export type BlockhashWithExpiry = z.infer<typeof BlockhashWithExpirySchema>;
+
+export const TransactionWithBlockhashSchema = z.object({
+  transaction: z.unknown(),
+  blockhash: BlockhashWithExpirySchema.optional(),
+});
+export type TransactionWithBlockhash = z.infer<
+  typeof TransactionWithBlockhashSchema
+>;
+
+export const TradeQuoteInputSchema = z
+  .object({
+    inputMint: SolanaAddressSchema,
+    outputMint: SolanaAddressSchema,
+    amount: z.number().int().positive(),
+    slippageMode: z.enum(["manual", "auto"]).optional(),
+    slippageBps: z.number().int().min(0).max(10_000).optional(),
+  })
+  .refine(
+    (value) => value.slippageMode !== "manual" || value.slippageBps !== undefined,
+    "manual slippage mode requires slippageBps.",
+  );
+export type TradeQuoteInput = z.infer<typeof TradeQuoteInputSchema>;
+
+export const TradeQuoteResponseSchema = z
+  .object({
+    contextSlot: z.number().int(),
+    inAmount: z.string(),
+    inputMint: SolanaAddressSchema,
+    minOutAmount: z.string(),
+    otherAmountThreshold: z.string(),
+    outAmount: z.string(),
+    outputMint: SolanaAddressSchema,
+    priceImpactPct: z.string(),
+    routePlan: z.array(z.record(z.string(), z.unknown())),
+    slippageBps: z.number().int(),
+    requestId: z.string().min(1),
+    simulatedComputeUnits: z.number().int().nullable(),
+  })
+  .passthrough();
+export type TradeQuoteResponse = z.infer<typeof TradeQuoteResponseSchema>;
+
+export const TradeSwapInputSchema = z.object({
+  quoteResponse: TradeQuoteResponseSchema,
+  userPublicKey: SolanaAddressSchema,
+});
+export type TradeSwapInput = z.infer<typeof TradeSwapInputSchema>;
+
+export const TradeSwapTransactionSchema = z
+  .object({
+    transaction: z.unknown(),
+    computeUnitLimit: z.number().int().positive(),
+    lastValidBlockHeight: z.number().int().positive(),
+    prioritizationFeeLamports: z.number().int().min(0),
+  })
+  .passthrough();
+export type TradeSwapTransaction = z.infer<typeof TradeSwapTransactionSchema>;
+
+export const FeeShareAdminTransferInputSchema = z.object({
+  baseMint: SolanaAddressSchema,
+  currentAdmin: SolanaAddressSchema,
+  newAdmin: SolanaAddressSchema,
+  payer: SolanaAddressSchema,
+});
+export type FeeShareAdminTransferInput = z.infer<
+  typeof FeeShareAdminTransferInputSchema
+>;
+
+export const FeeShareAdminUpdateConfigInputSchema = z.object({
+  baseMint: SolanaAddressSchema,
+  payer: SolanaAddressSchema,
+  feeClaimers: z
+    .array(
+      z.object({
+        wallet: SolanaAddressSchema,
+        bps: z.number().int().min(0).max(10_000),
+      }),
+    )
+    .min(1)
+    .max(100),
+  additionalLookupTables: z.array(SolanaAddressSchema).optional(),
+});
+export type FeeShareAdminUpdateConfigInput = z.infer<
+  typeof FeeShareAdminUpdateConfigInputSchema
+>;
+
+export const DexscreenerOrderLinkSchema = z.object({
+  url: z.string().url(),
+  label: z.string().min(1).optional(),
+});
+
+export const DexscreenerAvailabilitySchema = z.object({
+  available: z.boolean(),
+});
+export type DexscreenerAvailability = z.infer<
+  typeof DexscreenerAvailabilitySchema
+>;
+
+export const DexscreenerOrderInputSchema = z.object({
+  tokenAddress: SolanaAddressSchema,
+  description: z.string().min(1).max(5000),
+  iconImageUrl: z.string().url(),
+  headerImageUrl: z.string().url(),
+  payerWallet: SolanaAddressSchema,
+  links: z.array(DexscreenerOrderLinkSchema).optional(),
+  payWithSol: z.boolean().optional(),
+});
+export type DexscreenerOrderInput = z.infer<
+  typeof DexscreenerOrderInputSchema
+>;
+
+export const DexscreenerOrderSchema = z.object({
+  orderUUID: z.string().min(1),
+  recipientWallet: SolanaAddressSchema,
+  priceUSDC: z.number(),
+  transaction: z.unknown(),
+  lastValidBlockHeight: z.number().int().positive(),
+});
+export type DexscreenerOrder = z.infer<typeof DexscreenerOrderSchema>;
 
 export const IncorporationCategorySchema = z.enum([
   "RWA",

@@ -171,6 +171,7 @@ export interface ProductionReadiness {
   cluster: ClientEnv["NEXT_PUBLIC_SOLANA_CLUSTER"];
   bagsApiBaseUrl: string;
   partnerWalletConfigured: boolean;
+  partnerConfigConfigured: boolean;
   refCode: string;
 }
 
@@ -189,6 +190,7 @@ export function productionReadiness(): ProductionReadiness {
       cluster: publicEnv.NEXT_PUBLIC_SOLANA_CLUSTER,
       bagsApiBaseUrl: env.BAGS_API_BASE_URL,
       partnerWalletConfigured: Boolean(env.BAGS_PARTNER_WALLET),
+      partnerConfigConfigured: Boolean(env.BAGS_PARTNER_CONFIG_KEY),
       refCode: env.BAGS_REF_CODE,
     };
   }
@@ -233,6 +235,10 @@ export function productionReadiness(): ProductionReadiness {
     warnings.push("BAGS_API_KEY does not look like a production key.");
   }
 
+  if (env.BAGS_PARTNER_WALLET && !env.BAGS_PARTNER_CONFIG_KEY) {
+    missing.push("BAGS_PARTNER_CONFIG_KEY");
+  }
+
   if (!env.BAGS_API_BASE_URL.startsWith("https://public-api-v2.bags.fm/")) {
     warnings.push("BAGS_API_BASE_URL is not the canonical public API host.");
   }
@@ -245,6 +251,7 @@ export function productionReadiness(): ProductionReadiness {
     cluster: publicEnv.NEXT_PUBLIC_SOLANA_CLUSTER,
     bagsApiBaseUrl: env.BAGS_API_BASE_URL,
     partnerWalletConfigured: Boolean(env.BAGS_PARTNER_WALLET),
+    partnerConfigConfigured: Boolean(env.BAGS_PARTNER_CONFIG_KEY),
     refCode: env.BAGS_REF_CODE,
   };
 }
