@@ -91,7 +91,7 @@ export function ExploreFilters() {
       <div className="flex flex-wrap items-center gap-2 md:ml-auto">
         {/* Status segmented chips */}
         <div
-          role="tablist"
+          role="group"
           aria-label="Status filter"
           className="inline-flex items-center gap-0.5 rounded-md border border-border/60 bg-bg/40 p-0.5"
         >
@@ -101,8 +101,7 @@ export function ExploreFilters() {
               <button
                 key={key}
                 type="button"
-                role="tab"
-                aria-selected={on}
+                aria-pressed={on}
                 onClick={() =>
                   pushParams((p) => {
                     if (key === "all") p.delete("status");

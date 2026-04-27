@@ -46,14 +46,16 @@ export function ContributorRow({
         <RankMedal rank={row.rank} />
       </div>
       <div className="flex min-w-0 items-center gap-3">
-        <Image
-          src={avatar}
-          alt=""
-          width={32}
-          height={32}
-          className="size-8 shrink-0 rounded-lg bg-surface-elevated"
-          unoptimized
-        />
+        <span className="relative size-8 shrink-0 overflow-hidden rounded-lg bg-surface-elevated">
+          <Image
+            src={avatar}
+            alt=""
+            fill
+            sizes="32px"
+            className="object-cover"
+            unoptimized
+          />
+        </span>
         <div className="min-w-0">
           <div className="truncate text-body-md text-fg">{displayName}</div>
           <div className="truncate text-body-sm text-fg-muted">

@@ -27,15 +27,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-primary text-fg shadow-card-elevated hover:bg-primary-hover active:bg-primary-pressed",
+          "bg-primary [color:var(--bg)] shadow-card-elevated hover:bg-primary-hover active:bg-primary-pressed",
         secondary:
-          "bg-surface-elevated text-fg border border-border-strong shadow-card-elevated hover:bg-surface-overlay",
+          "bg-surface-elevated [color:var(--fg)] border border-border-strong shadow-card-elevated hover:bg-surface-overlay",
         ghost:
-          "bg-transparent text-fg-secondary hover:bg-surface-elevated hover:text-fg",
-        danger: "bg-danger text-fg shadow-card-elevated hover:brightness-110",
+          "bg-transparent [color:var(--fg-secondary)] hover:bg-surface-elevated hover:[color:var(--fg)]",
+        danger:
+          "bg-danger [color:var(--bg)] shadow-card-elevated hover:brightness-110",
         outline:
-          "bg-transparent text-fg border border-border-strong hover:bg-surface-elevated",
-        link: "bg-transparent text-fg-secondary hover:text-fg underline-offset-4 hover:underline",
+          "bg-transparent [color:var(--fg)] border border-border-strong hover:bg-surface-elevated",
+        link: "bg-transparent [color:var(--fg-secondary)] hover:[color:var(--fg)] underline-offset-4 hover:underline",
       },
       size: {
         sm: "h-8 px-3 text-label-sm",

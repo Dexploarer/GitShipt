@@ -36,9 +36,9 @@ export function ProjectCard({ project }: { project: PublicProjectRow }) {
         <header className="flex items-start gap-3">
           <Avatar imageUrl={project.imageUrl} fallback={initial} />
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-headline-sm leading-tight text-fg">
+            <h2 className="truncate text-headline-sm leading-tight text-fg">
               {project.name}
-            </h3>
+            </h2>
             <div className="mt-1 inline-flex items-center gap-1.5 text-mono-sm text-fg-muted">
               <Github className="size-3 shrink-0" aria-hidden />
               <span className="truncate">{project.slug}</span>
@@ -99,14 +99,16 @@ function Avatar({
 }) {
   if (imageUrl) {
     return (
-      <Image
-        src={imageUrl}
-        alt=""
-        width={56}
-        height={56}
-        unoptimized
-        className="size-14 shrink-0 rounded-xl border border-border/60 object-cover"
-      />
+      <span className="relative size-14 shrink-0 overflow-hidden rounded-xl border border-border/60">
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          sizes="56px"
+          unoptimized
+          className="object-cover"
+        />
+      </span>
     );
   }
   return (
@@ -145,6 +147,13 @@ function StatusBadge({ status }: { status: PublicProjectRow["status"] }) {
     return (
       <Badge variant="warning" size="sm">
         Configured
+      </Badge>
+    );
+  }
+  if (status === "simulated_live") {
+    return (
+      <Badge variant="warning" size="sm">
+        Simulated
       </Badge>
     );
   }

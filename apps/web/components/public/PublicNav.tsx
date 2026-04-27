@@ -68,7 +68,7 @@ export function PublicNav({ active }: { active?: PublicNavActive }) {
           <ThemeToggle className="ml-1" />
           <Link
             href="/auth/signin"
-            className="ml-2 inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-label-md text-fg transition-colors hover:bg-primary-hover"
+            className="ml-2 inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-label-md text-bg transition-colors hover:bg-primary-hover"
           >
             <Github className="size-4" />
             Sign in

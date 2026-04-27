@@ -53,8 +53,8 @@ export function ProjectShellMain({
     <main
       className={
         shouldFitViewport
-          ? "min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 lg:overflow-hidden"
-          : "min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3"
+          ? "min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:overflow-hidden lg:pb-3"
+          : "min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-3"
       }
     >
       <div className="mb-3 lg:hidden">

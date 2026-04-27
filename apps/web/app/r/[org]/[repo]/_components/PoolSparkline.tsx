@@ -14,8 +14,14 @@ import type { SparklinePoint } from "@repo/lib";
  */
 export function PoolSparkline({ data }: { data: SparklinePoint[] }) {
   return (
-    <div className="h-20 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-20 min-w-0 w-full">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={1}
+        minHeight={1}
+        initialDimension={{ width: 320, height: 80 }}
+      >
         <AreaChart
           data={data}
           margin={{ top: 4, right: 0, bottom: 0, left: 0 }}

@@ -28,10 +28,10 @@ export function NextPayoutCountdown({ targetIso }: { targetIso: string }) {
 
   return (
     <section className="flex h-full flex-col rounded-lg border border-border bg-surface p-6">
-      <span className="inline-flex items-center gap-2 text-label-sm text-fg-muted">
+      <h2 className="inline-flex items-center gap-2 text-label-sm text-fg-muted">
         <Timer className="size-4" />
         Next Payout
-      </span>
+      </h2>
 
       <div
         className="mt-4 text-mono-md text-fg tabular-nums"
@@ -39,7 +39,7 @@ export function NextPayoutCountdown({ targetIso }: { targetIso: string }) {
         style={{
           fontSize: "28px",
           lineHeight: 1.1,
-          letterSpacing: "-0.01em",
+          letterSpacing: 0,
         }}
         aria-live="polite"
       >

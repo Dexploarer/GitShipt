@@ -83,7 +83,7 @@ export function ProjectShell({
               "border-t border-l border-border/60",
               "glass shadow-card-elevated surface-highlight",
               "flex items-center justify-between gap-3",
-              "px-4 py-1.5",
+              "px-4 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] lg:py-1.5",
             ].join(" ")}
           >
             <span className="truncate text-caption text-fg-muted">

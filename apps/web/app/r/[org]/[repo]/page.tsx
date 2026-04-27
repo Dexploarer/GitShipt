@@ -78,7 +78,7 @@ export default async function ProjectPage({
                   countdown isn't pinched by row 3's flex height. */}
         <aside className="flex min-w-0 flex-col gap-3 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--border-strong)_transparent]">
           <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
-          <PoolOverviewCard pool={pool} />
+          <PoolOverviewCard pool={pool} projectStatus={header.status} />
           <RecentPayoutsFeed payouts={recentPayouts} />
         </aside>
 

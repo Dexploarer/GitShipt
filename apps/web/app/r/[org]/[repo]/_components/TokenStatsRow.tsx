@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@repo/lib";
 import { formatAddress, formatSol } from "@repo/lib";
+import { Badge } from "@repo/ui";
 import { CopyButton } from "@/components/shared";
 import type { TokenStats } from "@/lib/queries/token-stats";
 import { solscanTokenUrl } from "@/lib/solana/explorer";
@@ -40,7 +41,15 @@ export function TokenStatsRow({
   const TrendIcon = isUp ? TrendingUp : TrendingDown;
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-surface/40 px-3 py-2">
+        <span className="text-label-sm text-fg-secondary">
+          Token market data
+        </span>
+        <Badge variant={stats.isStub ? "warning" : "info"} size="sm">
+          {stats.isStub ? "Simulated" : "Estimated"}
+        </Badge>
+      </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Price">
           <span className="text-mono-md text-fg">

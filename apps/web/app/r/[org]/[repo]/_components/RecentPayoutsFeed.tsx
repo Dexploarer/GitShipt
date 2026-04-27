@@ -15,7 +15,7 @@ export function RecentPayoutsFeed({ payouts }: { payouts: RecentPayoutRow[] }) {
   return (
     <section className="rounded-lg border border-border bg-surface p-6">
       <header className="flex items-center justify-between">
-        <h3 className="text-headline-sm text-fg">Recent Payouts</h3>
+        <h2 className="text-headline-sm text-fg">Recent Payouts</h2>
         <Link
           href="/dashboard/payouts"
           className="text-label-sm text-fg-secondary transition-colors hover:text-fg"

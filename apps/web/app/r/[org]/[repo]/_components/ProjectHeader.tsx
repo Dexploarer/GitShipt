@@ -19,14 +19,16 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
 
   return (
     <header className="flex min-w-0 items-center gap-4 sm:gap-5 lg:gap-6">
-      <Image
-        src={avatar}
-        alt=""
-        width={112}
-        height={112}
-        className="size-20 shrink-0 rounded-2xl bg-surface-elevated ring-1 ring-border sm:size-24 lg:size-28"
-        unoptimized
-      />
+      <span className="relative size-20 shrink-0 overflow-hidden rounded-2xl bg-surface-elevated ring-1 ring-border sm:size-24 lg:size-28">
+        <Image
+          src={avatar}
+          alt=""
+          fill
+          sizes="(max-width: 640px) 80px, (max-width: 1024px) 96px, 112px"
+          className="object-cover"
+          unoptimized
+        />
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="truncate text-[28px] font-semibold leading-tight tracking-[-0.02em] text-fg sm:text-[36px] lg:text-[44px]">

@@ -39,7 +39,7 @@ export function PublicAppShell({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <main className="min-w-0 flex-1 overflow-y-auto bg-app-gradient px-4 pt-4 pb-3 lg:px-10">
+          <main className="min-w-0 flex-1 overflow-y-auto bg-app-gradient px-4 pt-4 pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:px-10 lg:pb-3">
             <div className="mx-auto w-full max-w-content">
               <div className="mb-3 lg:hidden">
                 <MobileSidebarTrigger />
@@ -55,7 +55,7 @@ export function PublicAppShell({
               "border-t border-l border-border/60",
               "glass shadow-card-elevated surface-highlight",
               "flex items-center justify-between gap-3",
-              "px-4 py-1.5",
+              "px-4 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] lg:py-1.5",
             ].join(" ")}
           >
             <span className="truncate text-caption text-fg-muted">
