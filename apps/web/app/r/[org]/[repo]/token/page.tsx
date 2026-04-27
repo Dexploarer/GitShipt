@@ -4,6 +4,9 @@ import Link from "next/link";
 import { ArrowUpRight, Coins, Sparkles } from "lucide-react";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { getTokenStats } from "@/lib/queries/token-stats";
+import { bags } from "@/lib/bags/client";
+import { BagsAnalyticsCard } from "@/components/bags/BagsAnalyticsCard";
+import { TradingPanel } from "@/components/bags/TradingPanel";
 import {
   Card,
   CardHeader,
@@ -17,6 +20,7 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { TokenInfoCard } from "../_components/TokenInfoCard";
 import { CopyButton } from "@/components/shared";
 import { formatSol, formatAddress } from "@repo/lib";
+import { clusterLabel, solscanTokenUrl } from "@/lib/solana/explorer";
 
 type Params = Promise<{ org: string; repo: string }>;
 
@@ -44,6 +48,15 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
 
   const { header } = data;
   const stats = await getTokenStats(header);
+  const [creators, claimEvents] =
+    header.tokenMint && header.status === "live"
+      ? await Promise.all([
+          bags.getTokenCreators(header.tokenMint).catch(() => []),
+          bags
+            .getTokenClaimEvents(header.tokenMint, { limit: 5 })
+            .catch(() => []),
+        ])
+      : [[], []];
   const platformFeePct = (header.platformFeeBps / 100).toFixed(1);
   const contributorPoolPct = ((10_000 - header.platformFeeBps) / 100).toFixed(
     1,
@@ -132,6 +145,14 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
               </CardContent>
             </Card>
 
+            <BagsAnalyticsCard
+              stats={stats}
+              pool={data.pool}
+              recentPayouts={data.recentPayouts}
+              creatorCount={creators.length}
+              claimEvents={claimEvents}
+            />
+
             {/* Tier weights */}
             <Card depth="raised" padding="default">
               <CardHeader>
@@ -187,7 +208,7 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
                     label="Copy contract address"
                   />
                   <Link
-                    href={`https://solscan.io/token/${header.tokenMint}?cluster=devnet`}
+                    href={solscanTokenUrl(header.tokenMint)}
                     target="_blank"
                     rel="noreferrer noopener"
                     aria-label="View on Solscan"
@@ -208,7 +229,7 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
                 ) : null}
                 <Row label="Cluster">
                   <Badge variant="warning" size="sm">
-                    devnet
+                    {clusterLabel()}
                   </Badge>
                 </Row>
                 <Row label="Lifetime fees">
@@ -222,6 +243,11 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
 
           {/* Right: TokenInfoCard preview (the embed widget) */}
           <aside className="flex flex-col gap-3 min-w-0">
+            <TradingPanel
+              projectId={header.id}
+              symbol={stats.symbol}
+              tokenMint={header.tokenMint}
+            />
             <div className="text-label-sm text-fg-muted">
               <Sparkles className="mr-1 inline size-3.5" /> Embed preview
             </div>
@@ -264,7 +290,6 @@ function FeeStat({
       <div className="text-caption text-fg-muted">{label}</div>
       <div
         className={`mt-1 text-mono-md ${accent ? "text-primary" : "text-fg"}`}
-        style={{ fontSize: "20px", letterSpacing: "-0.01em" }}
       >
         {value}
       </div>

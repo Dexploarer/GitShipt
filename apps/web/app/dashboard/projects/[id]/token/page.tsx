@@ -22,6 +22,8 @@ import { Button } from "@repo/ui";
 import { CopyButton } from "@/components/shared";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { StartIncorporationButton } from "./_components/StartIncorporationButton";
+import { IncorporationStatusCard } from "@/components/bags/IncorporationStatusCard";
+import { solscanTokenUrl, solscanTxUrl } from "@/lib/solana/explorer";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +68,7 @@ export default async function TokenPage({
                   </span>
                   <CopyButton value={project.tokenMint} label="Copy mint" />
                   <Link
-                    href={`https://solscan.io/token/${project.tokenMint}?cluster=devnet`}
+                    href={solscanTokenUrl(project.tokenMint)}
                     target="_blank"
                     rel="noreferrer noopener"
                     className="text-fg-muted hover:text-fg"
@@ -129,53 +131,19 @@ export default async function TokenPage({
         </CardContent>
       </Card>
 
-      <Card depth="flat" padding="none">
-        <CardHeader className="border-b border-border px-6 py-4">
-          <CardTitle>Incorporation</CardTitle>
-          <CardDescription>
-            Optional Bags.fm business formation handoff for tokenized projects.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3 px-6 py-5">
-          {project.tokenMint ? (
-            <>
-              <Row label="Bags status">
-                <span className="text-mono-md text-fg">
-                  {incorporation?.incorporationStatus ?? "Not started"}
-                </span>
-              </Row>
-              <Row label="Ready">
-                <Badge
-                  variant={
-                    incorporation?.isReadyForIncorporation
-                      ? "success"
-                      : "default"
-                  }
-                  size="sm"
-                >
-                  {incorporation?.isReadyForIncorporation ? "Ready" : "No"}
-                </Badge>
-              </Row>
-              <p className="text-body-sm text-fg-secondary">
-                GitBags does not collect founder KYC, residential addresses, or
-                tax residency data. Use the Bags-hosted flow so sensitive
-                incorporation details stay with Bags.
-              </p>
-              <StartIncorporationButton
-                projectId={id}
-                disabled={
-                  project.status !== "live" ||
-                  incorporation?.incorporationStarted === true
-                }
-              />
-            </>
-          ) : (
-            <p className="text-body-md text-fg-secondary">
-              Finish token setup before starting incorporation.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <IncorporationStatusCard
+        tokenMint={project.tokenMint}
+        incorporation={incorporation}
+        action={
+          <StartIncorporationButton
+            projectId={id}
+            disabled={
+              project.status !== "live" ||
+              incorporation?.incorporationStarted === true
+            }
+          />
+        }
+      />
 
       <Card depth="flat" padding="none">
         <CardHeader className="border-b border-border px-6 py-4">
@@ -210,7 +178,7 @@ export default async function TokenPage({
                   </div>
                   {p.claimSignature ? (
                     <Link
-                      href={`https://solscan.io/tx/${p.claimSignature}?cluster=devnet`}
+                      href={solscanTxUrl(p.claimSignature)}
                       target="_blank"
                       rel="noreferrer noopener"
                       className="text-mono-sm text-primary hover:underline"
