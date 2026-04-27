@@ -34,6 +34,7 @@ export type AuditAction =
   | "payout.retry"
   | "snapshot.force"
   | "treasury.topup"
+  | "treasury.partner_claim"
   | "fees.update"
   | "kill_switch.toggle"
   | "user.role_grant"

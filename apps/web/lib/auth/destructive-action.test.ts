@@ -84,4 +84,67 @@ describe("destructiveAction", () => {
       },
     });
   });
+
+  it("rejects typed-confirmation mismatches before MFA and side effects", async () => {
+    const { destructiveAction } = await import("./destructive-action");
+    const fn = vi.fn(async () => ({ ok: true }));
+
+    await expect(
+      destructiveAction(
+        {
+          actorUserId: "user_1",
+          permission: "project.delete",
+          projectId: "project_1",
+          reason: "Operator requested deletion after repository transfer.",
+          targetName: "SYMBaiEX/gitbags",
+          typedConfirmation: "symbiex/gitbags",
+          mfaConfirmedAtMs: Date.now(),
+        },
+        {
+          action: "project.delete",
+          targetType: "project",
+          targetId: "project_1",
+        },
+        fn,
+      ),
+    ).rejects.toMatchObject({
+      code: "confirmation_mismatch",
+    });
+
+    expect(requirePermissionMock).toHaveBeenCalledOnce();
+    expect(getMfaConfirmedAtMock).not.toHaveBeenCalled();
+    expect(fn).not.toHaveBeenCalled();
+    expect(auditMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects stale server-confirmed MFA before auditing", async () => {
+    getMfaConfirmedAtMock.mockResolvedValue(Date.now() - 5 * 60_000);
+    const { destructiveAction } = await import("./destructive-action");
+    const fn = vi.fn(async () => ({ ok: true }));
+
+    await expect(
+      destructiveAction(
+        {
+          actorUserId: "user_1",
+          permission: "platform.kill_switch",
+          reason: "Incident response requires stopping payouts immediately.",
+          targetName: "platform.kill_switch",
+          typedConfirmation: "platform.kill_switch",
+          mfaConfirmedAtMs: Date.now(),
+        },
+        {
+          action: "admin.access",
+          targetType: "platform_config",
+          targetId: "kill_switch.global",
+        },
+        fn,
+      ),
+    ).rejects.toMatchObject({
+      code: "mfa_expired",
+    });
+
+    expect(requirePermissionMock).toHaveBeenCalledOnce();
+    expect(fn).not.toHaveBeenCalled();
+    expect(auditMock).not.toHaveBeenCalled();
+  });
 });

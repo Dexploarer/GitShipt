@@ -6,6 +6,8 @@ type LimiterKind =
   | "siws-verify"
   | "project-create"
   | "force-snapshot"
+  | "trade-quote"
+  | "trade-swap"
   | "default";
 
 const SLIDING: Record<LimiterKind, { limit: number; windowSeconds: number }> = {
@@ -13,6 +15,8 @@ const SLIDING: Record<LimiterKind, { limit: number; windowSeconds: number }> = {
   "siws-verify": { limit: 10, windowSeconds: 60 },
   "project-create": { limit: 3, windowSeconds: 60 * 60 },
   "force-snapshot": { limit: 1, windowSeconds: 60 * 60 },
+  "trade-quote": { limit: 20, windowSeconds: 60 },
+  "trade-swap": { limit: 6, windowSeconds: 60 },
   default: { limit: 60, windowSeconds: 60 },
 };
 
