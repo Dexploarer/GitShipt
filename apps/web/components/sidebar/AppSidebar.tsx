@@ -30,6 +30,7 @@ import {
   Workflow,
   type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -476,7 +477,7 @@ function adminGroups(): NavGroup[] {
 // ─── Surface → composition ────────────────────────────────────────────────
 
 interface ResolvedComposition {
-  brand: { title: string; subtitle?: string; href: string };
+  brand: { title: string; subtitle?: string; href: string; logo?: boolean };
   returnTo: { label: string; href: string } | null;
   groups: NavGroup[];
 }
@@ -494,7 +495,12 @@ function compose(
       else groups.push(getStartedGroup());
       if (signedIn && isPlatformAdmin) groups.push(platformShortcutGroup());
       return {
-        brand: { title: "GitBags", subtitle: "by SYMBiEX & dEXploarer", href: "/" },
+        brand: {
+          title: "GitBags",
+          subtitle: "by SYMBiEX & dEXploarer",
+          href: "/",
+          logo: true,
+        },
         returnTo: null,
         groups,
       };
@@ -577,7 +583,8 @@ export function AppSidebar({
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href={brand.href} className="flex min-w-0 items-center">
+        <Link href={brand.href} className="flex min-w-0 items-center gap-2.5">
+          {brand.logo ? <CollapsibleBrandLogo /> : null}
           <CollapsibleBrand title={brand.title} subtitle={brand.subtitle} />
         </Link>
         <SidebarToggle className="ml-auto" />
@@ -633,6 +640,22 @@ export function AppSidebar({
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────
+
+function CollapsibleBrandLogo() {
+  const { collapsed } = useSidebar();
+  return (
+    <Image
+      src="/logo.png"
+      alt=""
+      width={28}
+      height={28}
+      sizes="28px"
+      className={cn("size-7 shrink-0 object-contain", collapsed && "lg:hidden")}
+      unoptimized
+      aria-hidden="true"
+    />
+  );
+}
 
 function ReturnToLink({ href, label }: { href: string; label: string }) {
   const { collapsed, closeMobile } = useSidebar();

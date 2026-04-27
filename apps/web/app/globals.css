@@ -107,23 +107,23 @@
   /* Text */
   --fg: #0f0f14;
   --fg-secondary: #52525b;
-  --fg-muted: #8b8b95;
+  --fg-muted: #6b6b76;
   --fg-disabled: #c4c4cc;
 
   /* Semantic — darkened for AA on white */
-  --success: #16a34a;
+  --success: #15803d;
   --success-soft: #dcfce7;
-  --warning: #ca8a04;
+  --warning: #a16207;
   --warning-soft: #fef9c3;
-  --danger: #dc2626;
+  --danger: #b91c1c;
   --danger-soft: #fee2e2;
-  --info: #2563eb;
+  --info: #1d4ed8;
   --info-soft: #dbeafe;
 
   /* Rank tiers — darkened to maintain readability on light cards */
-  --rank-gold: #d97706;
-  --rank-silver: #71717a;
-  --rank-bronze: #b45309;
+  --rank-gold: #b45309;
+  --rank-silver: #52525b;
+  --rank-bronze: #92400e;
 
   /* Charts */
   --chart-1: #9333ea;
@@ -739,5 +739,161 @@ body {
   .wallet-adapter-modal-title {
     padding-inline: 32px;
     font-size: 20px;
+  }
+}
+
+:root {
+  --hero-art-contact-shadow: rgb(0 0 0 / 0.46);
+  --hero-art-soft-shadow: rgb(0 0 0 / 0.24);
+  --hero-art-tight-shadow: rgb(0 0 0 / 0.32);
+  --hero-art-rim-light: rgb(255 255 255 / 0.22);
+  --hero-logo-contact-shadow: rgb(0 0 0 / 0.48);
+  --hero-logo-soft-shadow: rgb(0 0 0 / 0.28);
+  --hero-logo-tight-shadow: rgb(0 0 0 / 0.42);
+  --hero-logo-rim-light: rgb(255 255 255 / 0.28);
+  --hero-logo-edge-light: color-mix(in oklab, var(--success) 16%, transparent);
+}
+
+[data-theme="light"] {
+  --hero-art-contact-shadow: rgb(15 15 20 / 0.2);
+  --hero-art-soft-shadow: rgb(15 15 20 / 0.12);
+  --hero-art-tight-shadow: rgb(15 15 20 / 0.16);
+  --hero-art-rim-light: rgb(255 255 255 / 0.62);
+  --hero-logo-contact-shadow: rgb(15 15 20 / 0.28);
+  --hero-logo-soft-shadow: rgb(15 15 20 / 0.16);
+  --hero-logo-tight-shadow: rgb(15 15 20 / 0.24);
+  --hero-logo-rim-light: rgb(255 255 255 / 0.7);
+  --hero-logo-edge-light: color-mix(in oklab, var(--success) 10%, transparent);
+}
+
+.gitbags-mia-stage {
+  isolation: isolate;
+}
+
+.gitbags-mia-stage::before {
+  position: absolute;
+  z-index: 0;
+  right: 3%;
+  bottom: 1.5%;
+  left: 15%;
+  height: 22%;
+  border-radius: var(--radius-full);
+  background: var(--hero-art-contact-shadow);
+  content: "";
+  filter: blur(22px);
+  opacity: 0.44;
+  transform: translate3d(4%, 6%, 0) scaleX(0.82) scaleY(0.36);
+  transform-origin: center bottom;
+}
+
+.gitbags-mia-art {
+  filter: saturate(1.025) contrast(1.015)
+    drop-shadow(0 30px 22px var(--hero-art-soft-shadow))
+    drop-shadow(0 14px 10px var(--hero-art-contact-shadow))
+    drop-shadow(0 4px 3px var(--hero-art-tight-shadow))
+    drop-shadow(0 -1px 0 var(--hero-art-rim-light));
+}
+
+.gitbags-logo-float {
+  isolation: isolate;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.gitbags-logo-float::before {
+  position: absolute;
+  z-index: -1;
+  inset: 58% 10% 6%;
+  border-radius: var(--radius-full);
+  background: var(--hero-logo-contact-shadow);
+  content: "";
+  filter: blur(10px);
+  opacity: 0.72;
+  transform: translate3d(8%, 16%, -1px) scaleX(0.82) scaleY(0.5);
+  transform-origin: center;
+}
+
+.gitbags-logo-mark {
+  opacity: 0.9;
+  filter: saturate(1.08) contrast(1.04)
+    drop-shadow(0 22px 16px var(--hero-logo-soft-shadow))
+    drop-shadow(0 10px 7px var(--hero-logo-contact-shadow))
+    drop-shadow(0 3px 2px var(--hero-logo-tight-shadow))
+    drop-shadow(0 -1px 0 var(--hero-logo-rim-light))
+    drop-shadow(0 0 2px var(--hero-logo-edge-light));
+  transform-origin: center;
+}
+
+.gitbags-logo-float-a {
+  animation: gitbags-logo-float-a 6.8s cubic-bezier(0.25, 1, 0.5, 1) -0.8s
+    infinite alternate;
+}
+
+.gitbags-logo-float-b {
+  animation: gitbags-logo-float-b 7.4s cubic-bezier(0.22, 1, 0.36, 1) -2.1s
+    infinite alternate;
+}
+
+.gitbags-logo-float-c {
+  animation: gitbags-logo-float-c 5.9s cubic-bezier(0.25, 1, 0.5, 1) -1.4s
+    infinite alternate;
+}
+
+.gitbags-logo-float-d {
+  animation: gitbags-logo-float-d 8.1s cubic-bezier(0.22, 1, 0.36, 1) -3.2s
+    infinite alternate;
+}
+
+@keyframes gitbags-logo-float-a {
+  from {
+    transform: translate3d(-8px, 8px, 0) rotate(-1.5deg) scale(0.97);
+  }
+
+  to {
+    transform: translate3d(14px, -14px, 0) rotate(2deg) scale(1.06);
+  }
+}
+
+@keyframes gitbags-logo-float-b {
+  from {
+    transform: translate3d(12px, 4px, 0) rotate(1.5deg) scale(1);
+  }
+
+  to {
+    transform: translate3d(-12px, -15px, 0) rotate(-2.5deg) scale(1.07);
+  }
+}
+
+@keyframes gitbags-logo-float-c {
+  from {
+    transform: translate3d(4px, -7px, 0) rotate(-1deg) scale(0.95);
+  }
+
+  to {
+    transform: translate3d(-14px, 12px, 0) rotate(2deg) scale(1.05);
+  }
+}
+
+@keyframes gitbags-logo-float-d {
+  from {
+    transform: translate3d(-10px, -5px, 0) rotate(2deg) scale(1.02);
+  }
+
+  to {
+    transform: translate3d(13px, 14px, 0) rotate(-1.5deg) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gitbags-logo-float {
+    will-change: auto;
+  }
+
+  .gitbags-logo-float-a,
+  .gitbags-logo-float-b,
+  .gitbags-logo-float-c,
+  .gitbags-logo-float-d {
+    animation: none;
+    transform: none;
   }
 }
