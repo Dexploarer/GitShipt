@@ -27,7 +27,7 @@ GitBags is a launchpad-leaderboard hybrid where any GitHub repo can spawn a Bags
 This PRD has been verified against current platform docs. Material decisions and their sources:
 
 1. **Bags Token Launch v2 has native fee sharing with direct wallets and social identity lookup**. GitBags uses a direct platform pool wallet claimer for the contributor pool, while Bags can also resolve supported social identities (`github`, `twitter`, `kick`, `tiktok`, and legacy `moltbook`) to wallets when a future flow needs identity-based fee recipients. Maximum 100 fee earners per token (including creator). Source: Bags API changelog, Bags skill, and SDK examples (`@bagsfm/bags-sdk`).
-2. **Fee shares are configured at launch and cannot be edited dynamically post-launch**. This is the single biggest constraint. To support a daily-changing leaderboard, we set the platform claim wallet as the sole pooled `feeClaimer`, then redistribute off-chain via SPL token transfers each day. An optional `share_fee` (5% bps) is set as a separate claimer for platform revenue, kept on-chain.
+2. **Fee shares are configured at launch and post-launch edits require a Bags fee-share admin update transaction**. This is the single biggest constraint. To support a daily-changing leaderboard, we set the platform hot wallet as the pooled contributor `feeClaimer`, then redistribute off-chain via SOL transfers each day. GitBags platform revenue is a second explicit treasury `feeClaimer` in the same Bags config. Bags partner revenue is a separate partner-key rail (`partner` + `partnerConfig`) attached to the launch, not part of the 10,000 BPS claimer envelope.
 3. **Next.js 16.2 is current** (March 18, 2026). Cache Components, React Compiler, and Turbopack are all stable. **Critical**: `middleware.ts` is renamed to `proxy.ts` in Next.js 16. Patch level must be current to mitigate React Server Components RCE (CVE-2025-66478, CVSS 10.0, December 2025) and middleware bypass (CVE-2025-29927).
 4. **Vercel Postgres is deprecated**. Use Neon Postgres via Vercel Marketplace (Vercel-Managed integration). Auto-injects `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct).
 5. **Vercel Workflows is GA, Vercel Queues is public beta** (no allowlist). Workflows is built on Queues + Fluid Compute + managed persistence. Configured via `experimentalTriggers` in `vercel.json`. Run-level limits: ~2000 events or ~1 GB storage before replay slows down. Fan out via child workflows.
@@ -46,7 +46,7 @@ This PRD has been verified against current platform docs. Material decisions and
 | 3   | Hot wallet sits inside Vercel env (`Sensitive`-flagged) for v0; treasury is hardware-wallet-only | Confirm with security review               |
 | 4   | Top 10 default tier weights `[0.30, 0.20, 0.15, 0.05 × 7]`                                       | Default; configurable per-project post-MVP |
 | 5   | Scoring v0 = commits + merged PRs only, 30d window                                               | Locked for hackathon                       |
-| 6   | 5% platform fee is taken on-chain via Bags `share_fee`, not redistribution math                  | Cleaner accounting; lock                   |
+| 6   | 5% platform fee is taken on-chain via an explicit treasury fee claimer, not redistribution math  | Cleaner accounting; lock                   |
 
 ---
 
@@ -326,7 +326,8 @@ export async function processProjectPayout(projectId: string) {
 | Create fee share config                | `POST /api/v1/fee-share/config`                                             | Launch                 |
 | Create launch tx                       | `POST /api/v1/token-launch/create-launch-transaction`                       | Launch                 |
 | List claimable positions               | `GET /api/v1/token-launch/claimable-positions?wallet={addr}`                | Daily payout cron      |
-| Claim fees (SDK)                       | `sdk.feeClaim.*`                                                            | Daily payout cron      |
+| Claim fees (SDK)                       | `sdk.fee.*`                                                                 | Daily payout cron      |
+| Partner fee stats + claim txs          | `sdk.partner.getPartnerConfigClaimStats()` / `sdk.partner.getPartnerConfigClaimTransactions()` | Admin fees console |
 | Lifetime fees (analytics)              | `GET /api/v1/token-launch/lifetime-fees?tokenMint={m}`                      | Project page           |
 | Token holders (top N)                  | SDK `analytics.getTokenHolders`                                             | Optional dividend mode |
 
@@ -342,7 +343,7 @@ export async function processProjectPayout(projectId: string) {
 
 ## Payout math
 
-Bags `share_fee` already siphons 5% (500 bps) on-chain to the platform fee wallet at every trade. The remaining 95% accrues to the platform pool wallet (single GitHub-identity claimer). The daily workflow:
+The Bags fee-share config allocates 10000 BPS explicitly. For the default GitBags launch, 500 BPS accrues directly to the GitBags treasury wallet and 9500 BPS accrues to the platform hot wallet as the contributor pool. Separately, launches include the GitBags Bags partner key so the platform can also claim partner revenue from Bags. The daily contributor payout workflow only redistributes the contributor-pool wallet's claimable fees:
 
 ```
 poolFees       = bagsClaimablePositions(platformPoolWallet, tokenMint)

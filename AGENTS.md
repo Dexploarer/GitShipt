@@ -62,65 +62,66 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-26 8:16pm CDT
+# [gitbags] recent context, 2026-04-27 1:20am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (23,569t read) | 3,001,181t work | 99% savings
+Stats: 50 obs (22,328t read) | 3,333,547t work | 99% savings
 
 ### Apr 26, 2026
-631 5:33p 🔵 GitBags Security Audit: P0 Bugs — Fee Claim No-Op + Token Marked Live Prematurely
-632 " 🔵 GitBags Security Audit: P1 Bugs — Idempotency Races, Double Payout, Auth Secret Fallback, Redis Fail-Open
-630 " 🔵 Zustand v5 Best Practices for Next.js 16 App Router Monorepo — April 2026 Research
-635 5:35p 🟣 GitBags: Zustand uiStore Created in @repo/ui Package — Sidebar State Migrated
-636 " 🟣 GitBags: SidebarUserCard Sign-Out Migrated from Server Action to Optimistic Client-Side Flow
-637 " 🟣 GitBags: uiStore Vitest Tests Added — All 6 Tests Passing Clean
-638 " 🔵 GitBags State Audit: 380 useState/Context References Across 203 Files — Zustand Migration Scope Mapped
-639 5:36p 🔵 GitBags Zustand Store Split: uiStore in @repo/ui, authStore in apps/web
-640 " 🔵 AuthStoreUser vs SessionUserChrome: Duplicate Shape, Intentional Boundary
-641 " 🔵 GitBags Package Dependency Graph: @repo/lib → @repo/ui → @repo/shared (isolated), apps/web → all
-642 " 🔵 uiStore Sidebar State: localStorage + Cookie Dual-Persistence, Server-Read via sidebar-state.ts
-644 5:38p 🔵 GitBags Auth Architecture: Full Server-Owned vs Zustand Store Boundary Map
-645 " 🔵 GitBags: Zustand Auth Store Used Only in 3 Client Components — Not Navigation or Wallet State
-646 " 🔵 GitBags: Public Layout Missing Server-Side User Fetch — Relies Entirely on Root Layout Context
-647 " 🔵 GitBags: Server Actions Pattern — Every Mutation Re-Validates Session Independently (CVE-2025-29927)
-650 " 🔵 GitBags: Sidebar uiStore Updated to Vanilla+Context Pattern (useUiStoreValue)
-651 " ✅ GitBags: sign-out-action.ts Server Action Deleted — Replaced by Client-Side authClient.signOut()
-652 " 🔵 GitBags Zustand Audit: WizardShell Has 7 useState Pieces — Strong launchWizardStore Candidate
-654 5:40p 🔄 GitBags uiStore: Final Vanilla+Context Implementation Confirmed
-655 " 🟣 GitBags: useLaunchWizardStore Created — All 7 WizardShell useState Calls Replaced
-656 " 🔴 GitBags: ReviewAndSign isPending Was Hardcoded false — Now Driven by Zustand Status
-657 " 🔄 GitBags: AuthStoreUser De-duplicated — Now Type Alias for SessionUserChrome
-658 " 🔵 GitBags App Shell Architecture: SidebarProvider Placement Across Four Layout Types
-675 5:58p 🔵 GitBags Security Audit: Focused Investigation on 7 High-Priority Vulnerabilities
-704 6:31p 🔵 GitBags Bags SDK Audit: Confirmed Wired Features vs. Untouched Capabilities
-705 " 🔵 GitBags Bags Integration: Prioritized Gap List with Implementation Paths
-706 6:33p ⚖️ GitBags Post-Merge Security Audit Scope Defined
-717 6:50p 🔵 GitBags Security Audit: 7 Findings Across P0–P2 Severity
-718 " ⚖️ GitBags: Full Zustand Global State Migration Initiated via Multi-Agent Orchestration
-719 6:52p 🔴 P0 Fix: signAndSubmitViaBags Now Handles Both Transaction and VersionedTransaction Types
-720 " 🟣 env.ts: Default Partner Wallet, BAGS_REF_CODE, and productionReadiness() Added
-721 " 🟣 New api-key-auth.ts Middleware: Project-Scoped API Key Verification
-722 " 🟣 Leaderboard API Route: Optional API Key Auth Added
-723 " 🟣 Health Route and Admin Integrations: Production Readiness Check Added
-724 " ✅ Bags Client: Partner Wallet/Config Resolution Simplified + Ref Code Added to Intent URLs
-727 6:58p ✅ Stale Feature Branches Deleted After Merge to Main
-748 7:17p ⚖️ GitBags Operator/Security Slice: Task Scope + Ownership Boundaries
-787 7:41p 🔵 GitBags: Drizzle NeonHttp Query Failure on Project Slug Lookup
-790 7:43p 🔴 GitBags DrizzleQueryError Root Cause: Migrations 0003+0004 Never Applied to Neon DB
-791 " 🔵 GitBags: Production Build and Full Test Suite Pass After Schema Fix
-792 " 🔵 GitBags: 30+ Zombie context7-mcp Processes Survive SIGTERM — Parented to Cursor (PID 1779)
-795 7:46p 🔴 GitBags Process Cleanup Complete: Dev Server and 32 context7-mcp Workers Killed
-797 7:49p ✅ GitBags Migration Journal Fix Committed and Pushed to main
-816 8:06p 🔵 DEP0169 url.parse() Deprecation Warning in LandingPage
-818 " ✅ GitBags apps/web/package.json: NODE_OPTIONS --no-experimental-webstorage Added to All Scripts
-819 8:08p 🔴 GitBags redis.ts: url.parse() Replaced with WHATWG URL API via redisOptionsFromUrl()
-826 8:10p 🔵 GitBags Vercel Build Failure: Unmatched Cron Function Pattern
-828 8:11p 🔵 GitBags Vercel Build Failure: Unmatched Cron Function Pattern
-832 8:14p 🔴 GitBags vercel.json `functions` Block Removed — maxDuration Migrated to Route Segment Config
-833 " 🔵 GitBags Vercel Project Node.js Version Mismatch: package.json 22.x vs Project Settings 24.x
+954 10:59p 🔴 Audit Updated: M9 Hydration Mismatch on /explore + L5 Next Image Aspect-Ratio Warning
+1005 11:36p 🔵 GitBags Full System Audit — 2 Critical, 7 High, 9 Medium, 5 Low Issues Found
+1006 11:37p 🔵 GitBags AUDIT-2026-04-27.md — Full Audit Findings Map for Admin Worker D
+1007 " 🔵 GitBags vercel.json Cron Schedule Ground Truth — M4 Discrepancy Confirmed
+1008 " 🔵 GitBags Admin Directory Structure — 31 Files Across 15 Admin Route Segments
+1009 " 🔵 GitBags AUDIT-2026-04-27 Full Issue Inventory — Worker E Regression Coverage Session
+1010 " 🔵 GitBags Test Infrastructure Baseline — Existing Coverage Map Before Worker E Additions
+1011 11:39p 🔵 GitBags Admin Workflow Architecture: retriggerWorkflow Action + 8 Workflow Files
+1012 " 🔵 GitBags Admin Project Detail Page: God-Mode Controls and Status Badge Architecture
+1013 " 🔵 GitBags UI Design System: Badge and Button Primitive Variants Confirmed
+1014 11:45p 🟣 GitBags Admin Workflows Page: vercel.json-Aligned Schedule Display + ManualTrigger Discriminated Union
+1015 " 🟣 GitBags WorkflowRetriggerButton: Queued/Failed Result State + disabledReason Prop
+1016 " ✅ GitBags Admin Pages: Honest Completeness Badges on DB, Feature Flags, Abuse, and Ops Dashboard
+1017 11:46p ⚖️ GitBags Audit C2 — Snapshot/Payout Idempotency Remediation Scope Defined
+1018 11:48p 🟣 GitBags Playwright Regression Suite Added — 5 New E2E Tests for Audit Findings H6/L2/M9
+1019 " 🟣 GitBags SIWS Unit Test Suite Added — Nonce Issuance and Single-Use Verification
+1020 " 🟣 GitBags destructiveAction Test Coverage Extended — Confirmation Mismatch and Stale MFA Cases
+1021 " 🟣 GitBags Launch Wizard Stub-Mode Test Added to launch-wizard-store.test.ts
+1022 " 🔴 snapshot-payout-idempotency.test.ts: server-only Import Crash Fixed via Dynamic Imports
+1023 " 🔵 GitBags E2E: Light Theme Axe Contrast Test Fails — Real Color-Contrast Violations in /explore Light Mode
+1024 " 🔵 GitBags E2E: public-routes.spec.ts Flaky Under Parallel Workers Due to next.config.ts Hot Reload
+1025 " 🔵 GitBags Worker E Final Quality Gates — All Unit Tests Green, Build Clean, Axe Contrast Blocker Outstanding
+1030 11:55p 🔴 SPL Escrow Drain: Token Holdings No Longer Falsely Marked "Drained"
+1031 " 🔴 Snapshot Period Idempotency: Duplicate Payout Risk Eliminated via UNIQUE Index + Upsert
+1032 " 🔴 Payout Dispatch Race Condition Fixed: Compare-and-Swap on Recipient Status
+1033 " 🔴 Dependency Audit: Package Overrides + Vulnerable Packages Removed to Reduce vuln Count
+1034 " 🟣 CSP Report-Only Header Added for Production Violation Detection
+1035 " 🔴 Mobile Footer Occlusion Fixed with Safe Area Inset Padding
+1036 " 🟣 Homepage Hero Replaced: Mascot Image Removed, ProductRailVisual Terminal Added
+1037 " 🔴 Light Theme Contrast Tokens Darkened for WCAG AA Compliance
+1038 " 🔴 Explore Page h1 Added — Semantic Heading Fixed
+1039 " 🟣 Admin Console: Surface Status Card + Coming-Soon Badges on Placeholder Pages
+1040 " 🔴 Admin Workflow Page: Schedule Sourced from vercel.json Instead of Hardcoded Strings
+1041 " 🟣 Test Coverage: destructiveAction MFA + Launch Wizard Store Stub-Mode Cases Added
+### Apr 27, 2026
+1053 12:07a 🔵 GitBags Audit Pass — Full Quality Gate Results Confirmed
+1054 " 🔄 BentoTickerCell: Client Component Eliminated, Simulated Drift Removed
+1055 " 🔵 GitBags Landing Page Data Architecture: Redis-First with DB Fallback
+1056 " ✅ GitBags Audit Remediation: 60-File Commit Pending with Full Audit Coverage
+1058 12:08a 🟣 ProductRailVisual: Static Terminal Card → Live Data Settlement Board
+1059 12:21a 🟣 ProductRailVisual Skeuomorphic Polish Pass Designed (Patch Pending)
+1060 12:22a 🟣 ProductRailVisual Skeuomorphic Polish: Build Passes + Screenshot Captured
+1067 12:29a 🔄 GitBags ProductRailVisual: Skeuomorphic PCB Aesthetic Replaced with Open Spacious Layout
+1069 12:34a ✅ GitBags Landing: Tokenized Repo Panel Removed from ProductRailVisual
+1071 12:36a 🔵 GitBags Production Build Green — 84 Dynamic Routes, Dev Server on Port 3000
+1074 " 🔵 GitBags Landing Two-Column Layout: Screenshot Confirmed, Height Re-Tuned
+1079 12:41a 🟣 GitBags Landing: ProductRailVisual Replaced with /mia.png Mascot Hero Image
+1101 12:52a 🔴 GitBags Landing Hero: Space Restored Between Two-Column Grid and KPI Strip
+1108 1:15a ✅ GitBags Sidebar Header: Logo Added Left of Brand Name
+1109 1:16a 🔵 GitBags AppSidebar Header Structure — CollapsibleBrand Component, No Logo
+1111 " ✅ GitBags Sidebar Header: logo.png Added Left of Brand Name
 
-Access 3001k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 3334k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
