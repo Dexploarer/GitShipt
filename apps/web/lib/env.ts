@@ -34,10 +34,7 @@ const serverEnvSchema = z.object({
     .url()
     .default("https://public-api-v2.bags.fm/api/v1/"),
   BAGS_WEBHOOK_SECRET: z.string().min(1).optional(),
-  BAGS_PARTNER_WALLET: z
-    .string()
-    .min(32)
-    .default(DEFAULT_BAGS_PARTNER_WALLET),
+  BAGS_PARTNER_WALLET: z.string().min(32).default(DEFAULT_BAGS_PARTNER_WALLET),
   BAGS_PARTNER_CONFIG_KEY: z.string().min(32).optional(),
   BAGS_REF_CODE: z
     .string()
@@ -125,6 +122,7 @@ export const hasCredentials = {
       serverEnv().GITHUB_APP_WEBHOOK_SECRET,
     ),
   bags: () => Boolean(serverEnv().BAGS_API_KEY),
+  bagsWebhook: () => Boolean(serverEnv().BAGS_WEBHOOK_SECRET),
   bagsPartner: () => Boolean(serverEnv().BAGS_PARTNER_WALLET),
   solana: () => Boolean(serverEnv().HELIUS_RPC_URL),
   payoutKey: () => Boolean(serverEnv().SOLANA_PAYOUT_KEYPAIR),

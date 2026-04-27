@@ -5,9 +5,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { start } from "workflow/api";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { dbHttp } from "@/db";
-import { projects, payouts } from "@/db/schema";
+import {
+  platformConfig,
+  projectMemberships,
+  projects,
+  payouts,
+  users,
+} from "@/db/schema";
 import type { ScoringConfig, PayoutConfig } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -15,6 +21,7 @@ import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { check } from "@/lib/rate-limit";
 import { updateProjectCaches } from "@/lib/cache-actions";
+import { projectDocsKey } from "@/lib/queries/project-docs";
 import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
 import { takeProjectSnapshot } from "@/workflows/takeSnapshot";
 
@@ -369,7 +376,7 @@ export async function updateMetadata(
 
   await audit({
     actorUserId: userId,
-    action: "project.create", // closest existing AuditAction; "project.update" not in enum
+    action: "project.update",
     targetType: "project",
     targetId: data.projectId,
     metadata: { kind: "metadata", name: data.name },
@@ -426,4 +433,211 @@ export async function forceSnapshot(
   revalidatePath(`/dashboard/projects/${data.projectId}/leaderboard`);
   await updateProjectCaches(data.projectId);
   return { ok: true, runId };
+}
+
+// ---------------------------------------------------------------------------
+// updateProjectDocs — owner-authored public project docs
+// ---------------------------------------------------------------------------
+const updateDocsSchema = z.object({
+  projectId: z.string().min(1),
+  markdown: z.string().max(20_000),
+  published: z.boolean(),
+  idempotencyKey: z.string().min(8).max(128).optional(),
+});
+
+export async function updateProjectDocs(
+  input: z.input<typeof updateDocsSchema>,
+): Promise<{ ok: true }> {
+  const data = updateDocsSchema.parse(input);
+  const userId = await requireSessionUserId();
+  await requirePermission("project.update", {
+    userId,
+    projectId: data.projectId,
+  });
+
+  const rl = await check("default", `docs:${userId}:${data.projectId}`);
+  if (!rl.success) throw new Error("Rate limited — try again shortly.");
+
+  await withIdempotency(
+    data.idempotencyKey ?? `docs:${data.projectId}:${Date.now()}`,
+    async () => {
+      const value = {
+        markdown: data.markdown,
+        published: data.published,
+        updatedBy: userId,
+        updatedAt: new Date().toISOString(),
+      };
+      await dbHttp
+        .insert(platformConfig)
+        .values({
+          key: projectDocsKey(data.projectId),
+          value,
+          updatedBy: userId,
+        })
+        .onConflictDoUpdate({
+          target: platformConfig.key,
+          set: { value, updatedBy: userId, updatedAt: new Date() },
+        });
+      return { ok: true } as const;
+    },
+    { scope: `project:docs:${data.projectId}:${userId}` },
+  );
+
+  await audit({
+    actorUserId: userId,
+    action: "project.docs_update",
+    targetType: "project",
+    targetId: data.projectId,
+    metadata: {
+      published: data.published,
+      markdownLength: data.markdown.length,
+    },
+  });
+
+  const [project] = await dbHttp
+    .select({ ghOwner: projects.ghOwner, ghRepo: projects.ghRepo })
+    .from(projects)
+    .where(eq(projects.id, data.projectId))
+    .limit(1);
+
+  revalidatePath(`/dashboard/projects/${data.projectId}/docs`);
+  if (project) revalidatePath(`/r/${project.ghOwner}/${project.ghRepo}/docs`);
+  await updateProjectCaches(data.projectId);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Team membership — add/remove project moderators
+// ---------------------------------------------------------------------------
+const addMemberSchema = z.object({
+  projectId: z.string().min(1),
+  lookup: z.string().trim().min(1).max(120),
+  role: z.literal("project_moderator").default("project_moderator"),
+  idempotencyKey: z.string().min(8).max(128).optional(),
+});
+
+export async function addProjectMember(
+  input: z.input<typeof addMemberSchema>,
+): Promise<{ ok: true; userId: string }> {
+  const data = addMemberSchema.parse(input);
+  const userId = await requireSessionUserId();
+  await requirePermission("team.invite", {
+    userId,
+    projectId: data.projectId,
+  });
+
+  const lookup = data.lookup.replace(/^@/, "");
+  const [target] = await dbHttp
+    .select({
+      id: users.id,
+      email: users.email,
+      githubUsername: users.githubUsername,
+    })
+    .from(users)
+    .where(or(eq(users.email, data.lookup), eq(users.githubUsername, lookup)))
+    .limit(1);
+  if (!target) {
+    throw new Error("No GitBags user found for that email or GitHub username.");
+  }
+
+  const [project] = await dbHttp
+    .select({ ownerUserId: projects.ownerUserId })
+    .from(projects)
+    .where(eq(projects.id, data.projectId))
+    .limit(1);
+  if (!project) throw new Error("Project not found.");
+  if (project.ownerUserId === target.id) {
+    throw new Error("The project owner already has full access.");
+  }
+
+  await withIdempotency(
+    data.idempotencyKey ?? `team:add:${data.projectId}:${target.id}`,
+    async () => {
+      await dbHttp
+        .insert(projectMemberships)
+        .values({
+          userId: target.id,
+          projectId: data.projectId,
+          role: data.role,
+        })
+        .onConflictDoUpdate({
+          target: [projectMemberships.userId, projectMemberships.projectId],
+          set: { role: data.role },
+        });
+      return { ok: true, userId: target.id } as const;
+    },
+    { scope: `project:team:add:${data.projectId}:${userId}` },
+  );
+
+  await audit({
+    actorUserId: userId,
+    action: "team.member_add",
+    targetType: "project",
+    targetId: data.projectId,
+    metadata: {
+      targetUserId: target.id,
+      role: data.role,
+      email: target.email,
+      githubUsername: target.githubUsername,
+    },
+  });
+
+  revalidatePath(`/dashboard/projects/${data.projectId}/team`);
+  await updateProjectCaches(data.projectId);
+  return { ok: true, userId: target.id };
+}
+
+const removeMemberSchema = z.object({
+  projectId: z.string().min(1),
+  userId: z.string().min(1),
+  idempotencyKey: z.string().min(8).max(128).optional(),
+});
+
+export async function removeProjectMember(
+  input: z.input<typeof removeMemberSchema>,
+): Promise<{ ok: true }> {
+  const data = removeMemberSchema.parse(input);
+  const actorUserId = await requireSessionUserId();
+  await requirePermission("team.revoke", {
+    userId: actorUserId,
+    projectId: data.projectId,
+  });
+
+  const [project] = await dbHttp
+    .select({ ownerUserId: projects.ownerUserId })
+    .from(projects)
+    .where(eq(projects.id, data.projectId))
+    .limit(1);
+  if (!project) throw new Error("Project not found.");
+  if (project.ownerUserId === data.userId) {
+    throw new Error("Transfer ownership before removing the owner.");
+  }
+
+  await withIdempotency(
+    data.idempotencyKey ?? `team:remove:${data.projectId}:${data.userId}`,
+    async () => {
+      await dbHttp
+        .delete(projectMemberships)
+        .where(
+          and(
+            eq(projectMemberships.projectId, data.projectId),
+            eq(projectMemberships.userId, data.userId),
+          ),
+        );
+      return { ok: true } as const;
+    },
+    { scope: `project:team:remove:${data.projectId}:${actorUserId}` },
+  );
+
+  await audit({
+    actorUserId,
+    action: "team.member_remove",
+    targetType: "project",
+    targetId: data.projectId,
+    metadata: { targetUserId: data.userId },
+  });
+
+  revalidatePath(`/dashboard/projects/${data.projectId}/team`);
+  await updateProjectCaches(data.projectId);
+  return { ok: true };
 }

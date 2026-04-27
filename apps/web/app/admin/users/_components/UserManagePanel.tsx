@@ -34,7 +34,11 @@ export function UserManagePanel({
     setSybilBusy(true);
     setSybilErr(null);
     try {
-      await sybilFlagUser({ userId, reason: sybilReason.trim() });
+      await sybilFlagUser({
+        userId,
+        reason: sybilReason.trim(),
+        idempotencyKey: `sybil-${userId}-${Date.now()}`,
+      });
       setSybilReason("");
       setOpen(false);
     } catch (e) {
@@ -63,7 +67,9 @@ export function UserManagePanel({
                 className="rounded-md border border-border bg-bg px-2 py-1 text-body-sm text-fg"
               >
                 {ROLES.map((r) => (
-                  <option key={r} value={r}>{r}</option>
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
                 ))}
               </select>
               <Button

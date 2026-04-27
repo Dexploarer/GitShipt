@@ -39,6 +39,7 @@ export interface DestructiveConfirmModalProps {
     reason: string;
     typedConfirmation: string;
     mfaConfirmedAtMs: number | undefined;
+    idempotencyKey: string;
   }) => Promise<void>;
 }
 
@@ -163,6 +164,7 @@ export function DestructiveConfirmModal({
         reason: reason.trim(),
         typedConfirmation: typed,
         mfaConfirmedAtMs,
+        idempotencyKey: newClientIdempotencyKey("destructive"),
       });
       onOpenChange(false);
     } catch (e) {
@@ -318,6 +320,12 @@ export function DestructiveConfirmModal({
       </Card>
     </div>
   );
+}
+
+function newClientIdempotencyKey(prefix: string): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? `${prefix}-${crypto.randomUUID()}`
+    : `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 async function verifyMfa(token: string): Promise<number | undefined> {

@@ -1,16 +1,10 @@
-import { BookOpen, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { loadProjectFor } from "../../../_components/loadProject";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@repo/ui";
-import { Button } from "@repo/ui";
+import { getProjectDocs } from "@/lib/queries/project-docs";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { ProjectDocsEditor } from "./_components/ProjectDocsEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +15,9 @@ export default async function DocsPage({
 }) {
   if (!hasCredentials.db()) return <Stub />;
   const { id } = await params;
-  const ctx = await loadProjectFor(id, "project.read");
+  const ctx = await loadProjectFor(id, "project.update");
   const { project } = ctx;
+  const docs = await getProjectDocs(id);
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
@@ -37,34 +32,17 @@ export default async function DocsPage({
       <header>
         <h1 className="text-headline-lg leading-tight text-fg">Docs</h1>
         <p className="text-body-md text-fg-secondary">
-          Per-project docs published to your public page. Authoring lands in
-          v1.1.
+          Author project-specific contributor docs and publish them to the
+          public project page.
         </p>
       </header>
 
-      <Card depth="flat" padding="none">
-        <CardHeader className="border-b border-border px-6 py-4">
-          <CardTitle>No docs published</CardTitle>
-          <CardDescription>
-            Markdown editor &amp; publish flow ship in v1.1.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-6 py-8">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <BookOpen className="size-10 text-fg-muted" aria-hidden />
-            <p className="max-w-md text-body-md text-fg-secondary">
-              Show contributors how to participate, what counts as merit, and
-              how to claim. Authoring tools coming in v1.1.
-            </p>
-            <Button variant="primary" disabled title="Coming v1.1">
-              Edit docs
-            </Button>
-            <span className="text-caption text-fg-muted">
-              v1.1 — disabled in this build.
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+      <ProjectDocsEditor
+        projectId={id}
+        initialMarkdown={docs.markdown}
+        initialPublished={docs.published}
+        updatedAt={docs.updatedAt}
+      />
     </div>
   );
 }

@@ -5,10 +5,11 @@ import { revalidatePath } from "next/cache";
 import { start } from "workflow/api";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { dbHttp } from "@/db";
+import { dbHttp, dbPool } from "@/db";
 import {
   payouts,
   projects,
+  projectMemberships,
   users,
   platformConfig,
   snapshots,
@@ -22,9 +23,20 @@ import {
   destructiveAction,
   DestructiveActionError,
 } from "@/lib/auth/destructive-action";
-import { serverEnv } from "@/lib/env";
+import {
+  canLaunchOnBags,
+  hasCredentials,
+  serverEnv,
+  stubsAllowed,
+} from "@/lib/env";
 import { updateProjectCaches } from "@/lib/cache-actions";
-import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
+import { bags } from "@/lib/bags/client";
+import { payoutSignerPublicKey } from "@/lib/solana/signer";
+import {
+  CreateProjectBodySchema,
+  PayoutConfigSchema,
+  ScoringConfigSchema,
+} from "@repo/shared";
 import { healthPulse } from "@/workflows/healthPulse";
 import { indexGithubDeltas } from "@/workflows/indexGithubDeltas";
 import { takeSnapshot, takeProjectSnapshot } from "@/workflows/takeSnapshot";
@@ -64,11 +76,213 @@ const DestructiveBaseSchema = z.object({
   reason: z.string().min(20),
   typedConfirmation: z.string().min(1),
   mfaConfirmedAtMs: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).optional(),
 });
 
 // ---------------------------------------------------------------------------
 // Project lifecycle
 // ---------------------------------------------------------------------------
+
+const DirectLaunchSchema = CreateProjectBodySchema.extend({
+  idempotencyKey: z.string().min(8).optional(),
+});
+
+export async function directLaunchProject(input: unknown): Promise<{
+  ok: true;
+  projectId: string;
+  tokenMint: string;
+  status: "live" | "simulated_live";
+  txSig: string | null;
+  note?: string;
+}> {
+  if (!hasCredentials.db()) throw new Error("db_unavailable");
+  const parsed = DirectLaunchSchema.parse(input);
+  const ctx = await requireSession();
+
+  await requirePermission("admin.direct_launch", { userId: ctx.userId });
+
+  const willStubMode = !canLaunchOnBags().ok || !hasCredentials.bags();
+  if (willStubMode && !stubsAllowed()) {
+    throw new Error("live_credentials_required");
+  }
+
+  const result = await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-direct-launch", ctx.userId, parsed.ghRepoId),
+    async () => {
+      const dbp = dbPool();
+      const [existing] = await dbp
+        .select({ id: projects.id, tokenMint: projects.tokenMint })
+        .from(projects)
+        .where(eq(projects.ghRepoId, parsed.ghRepoId))
+        .limit(1);
+      if (existing) {
+        throw new Error("repo_already_exists");
+      }
+
+      const projectId = await dbp.transaction(async (tx) => {
+        const [inserted] = await tx
+          .insert(projects)
+          .values({
+            ownerUserId: ctx.userId,
+            ghOwner: parsed.ghOwner,
+            ghRepo: parsed.ghRepo,
+            ghRepoId: parsed.ghRepoId,
+            ghInstallationId: parsed.ghInstallationId ?? null,
+            name: parsed.name,
+            description: parsed.description ?? null,
+            imageUrl: parsed.imageUrl,
+            tokenWebsiteUrl: parsed.website ?? null,
+            tokenTwitterUrl: parsed.twitter ?? null,
+            tokenTelegramUrl: parsed.telegram ?? null,
+            status: "draft",
+            platformFeeBps: parsed.platformFeeBps,
+            scoringConfig: parsed.scoringConfig,
+            payoutConfig: parsed.payoutConfig,
+          })
+          .returning({ id: projects.id });
+        if (!inserted) throw new Error("Project insert returned no row.");
+
+        await tx.insert(projectMemberships).values({
+          userId: ctx.userId,
+          projectId: inserted.id,
+          role: "project_owner",
+        });
+        return inserted.id;
+      });
+
+      await audit({
+        actorUserId: ctx.userId,
+        action: "project.create",
+        targetType: "project",
+        targetId: projectId,
+        metadata: {
+          ghOwner: parsed.ghOwner,
+          ghRepo: parsed.ghRepo,
+          ghRepoId: parsed.ghRepoId,
+          directLaunch: true,
+        },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+      });
+
+      const tokenInfo = await bags.createTokenInfo({
+        name: parsed.name,
+        symbol: parsed.symbol,
+        description: parsed.description ?? undefined,
+        imageUrl: parsed.imageUrl,
+        website: parsed.website,
+        twitter: parsed.twitter,
+        telegram: parsed.telegram,
+      });
+      const isStub = Boolean(tokenInfo.__stub);
+
+      const payoutWallet = payoutSignerPublicKey();
+      if (!isStub && !payoutWallet) {
+        throw new Error(
+          "SOLANA_PAYOUT_KEYPAIR is required before live launch.",
+        );
+      }
+      const stubPoolWallet = isStub
+        ? (await bags.resolveWallet("github", "gitbags-platform")).wallet
+        : null;
+      const poolClaimerWallet = payoutWallet ?? stubPoolWallet;
+      if (!poolClaimerWallet) {
+        throw new Error("Unable to derive the Bags pool claimer wallet.");
+      }
+
+      const feeShareConfig = await bags.createFeeShareConfig({
+        payer: poolClaimerWallet,
+        baseMint: tokenInfo.tokenMint,
+        feeClaimers: [
+          {
+            wallet: poolClaimerWallet,
+            bps: 10_000 - parsed.platformFeeBps,
+          },
+        ],
+        platformFeeWallet: payoutWallet ?? undefined,
+        shareFee: parsed.platformFeeBps,
+      });
+
+      let txSig = feeShareConfig.txSignatures.at(-1) ?? null;
+      let launchSignature: string | null = null;
+      let note: string | undefined;
+      if (isStub) {
+        note = "Stub mode — token mint is fake; no on-chain transaction sent.";
+      } else {
+        const guard = canLaunchOnBags();
+        if (!guard.ok)
+          throw new Error(`Refusing on-chain launch: ${guard.reason}`);
+        const launch = await bags.createAndSubmitLaunchTransaction({
+          tokenMint: tokenInfo.tokenMint,
+          metadataUrl: tokenInfo.tokenMetadata,
+          configKey: feeShareConfig.configKey,
+          launchWallet: poolClaimerWallet,
+          initialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+        });
+        launchSignature = launch.signature;
+        txSig = launch.signature;
+        note = "Bags launch transaction broadcast. Token is live.";
+      }
+
+      const now = new Date();
+      await dbp
+        .update(projects)
+        .set({
+          tokenMint: tokenInfo.tokenMint,
+          bagsLaunchId: isStub ? feeShareConfig.configKey : launchSignature,
+          bagsConfigKey: feeShareConfig.configKey,
+          bagsLaunchSignature: launchSignature,
+          bagsLaunchWallet: isStub ? null : poolClaimerWallet,
+          bagsPoolClaimerWallet: poolClaimerWallet,
+          bagsTokenMetadata: tokenInfo.tokenMetadata,
+          bagsInitialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+          status: isStub ? "simulated_live" : "live",
+          simulatedAt: isStub ? now : null,
+          updatedAt: now,
+        })
+        .where(eq(projects.id, projectId));
+
+      await audit({
+        actorUserId: ctx.userId,
+        action: "project.launch",
+        targetType: "project",
+        targetId: projectId,
+        metadata: {
+          directLaunch: true,
+          tokenMint: tokenInfo.tokenMint,
+          bagsConfigKey: feeShareConfig.configKey,
+          feeShareConfigSignatures: feeShareConfig.txSignatures,
+          launchSignature,
+          poolClaimerWallet,
+          platformFeeBps: parsed.platformFeeBps,
+          stub: isStub,
+        },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+      });
+
+      return {
+        ok: true as const,
+        projectId,
+        tokenMint: tokenInfo.tokenMint,
+        status: isStub ? ("simulated_live" as const) : ("live" as const),
+        txSig,
+        note,
+      };
+    },
+    { scope: `admin:direct-launch:${ctx.userId}` },
+  );
+
+  revalidatePath("/admin/projects");
+  revalidatePath(`/admin/projects/${result.projectId}`);
+  revalidatePath(`/r/${parsed.ghOwner}/${parsed.ghRepo}`);
+  await updateProjectCaches(
+    result.projectId,
+    `${parsed.ghOwner}/${parsed.ghRepo}`,
+  );
+  return result;
+}
 
 const ProjectActionSchema = DestructiveBaseSchema.extend({
   projectId: z.string().min(1),
@@ -85,34 +299,41 @@ export async function pauseProject(input: unknown): Promise<{ ok: true }> {
     .limit(1);
   if (!proj) throw new Error("project_not_found");
 
-  await destructiveAction(
-    {
-      actorUserId: ctx.userId,
-      permission: "project.pause",
-      projectId: proj.id,
-      reason: parsed.reason,
-      targetName: proj.name,
-      typedConfirmation: parsed.typedConfirmation,
-      mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-      ip: ctx.ip,
-      userAgent: ctx.userAgent,
-    },
-    {
-      action: "project.pause",
-      targetType: "project",
-      targetId: proj.id,
-      metadata: { previousStatus: proj.id },
-    },
+  await withIdempotency(
+    parsed.idempotencyKey ?? deriveKey("admin-pause", proj.id, ctx.userId),
     async () => {
-      await dbHttp
-        .update(projects)
-        .set({
-          status: "paused",
-          pausedAt: new Date(),
-          pausedReason: parsed.reason.slice(0, 500),
-        })
-        .where(eq(projects.id, proj.id));
+      await destructiveAction(
+        {
+          actorUserId: ctx.userId,
+          permission: "project.pause",
+          projectId: proj.id,
+          reason: parsed.reason,
+          targetName: proj.name,
+          typedConfirmation: parsed.typedConfirmation,
+          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        },
+        {
+          action: "project.pause",
+          targetType: "project",
+          targetId: proj.id,
+          metadata: { previousStatus: proj.id },
+        },
+        async () => {
+          await dbHttp
+            .update(projects)
+            .set({
+              status: "paused",
+              pausedAt: new Date(),
+              pausedReason: parsed.reason.slice(0, 500),
+            })
+            .where(eq(projects.id, proj.id));
+        },
+      );
+      return { ok: true } as const;
     },
+    { scope: `admin:project:pause:${proj.id}:${ctx.userId}` },
   );
 
   revalidatePath(`/admin/projects/${proj.id}`);
@@ -132,29 +353,36 @@ export async function killProject(input: unknown): Promise<{ ok: true }> {
     .limit(1);
   if (!proj) throw new Error("project_not_found");
 
-  await destructiveAction(
-    {
-      actorUserId: ctx.userId,
-      permission: "project.kill",
-      projectId: proj.id,
-      reason: parsed.reason,
-      targetName: proj.name,
-      typedConfirmation: parsed.typedConfirmation,
-      mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-      ip: ctx.ip,
-      userAgent: ctx.userAgent,
-    },
-    {
-      action: "project.kill",
-      targetType: "project",
-      targetId: proj.id,
-    },
+  await withIdempotency(
+    parsed.idempotencyKey ?? deriveKey("admin-kill", proj.id, ctx.userId),
     async () => {
-      await dbHttp
-        .update(projects)
-        .set({ status: "killed", killedAt: new Date() })
-        .where(eq(projects.id, proj.id));
+      await destructiveAction(
+        {
+          actorUserId: ctx.userId,
+          permission: "project.kill",
+          projectId: proj.id,
+          reason: parsed.reason,
+          targetName: proj.name,
+          typedConfirmation: parsed.typedConfirmation,
+          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        },
+        {
+          action: "project.kill",
+          targetType: "project",
+          targetId: proj.id,
+        },
+        async () => {
+          await dbHttp
+            .update(projects)
+            .set({ status: "killed", killedAt: new Date() })
+            .where(eq(projects.id, proj.id));
+        },
+      );
+      return { ok: true } as const;
     },
+    { scope: `admin:project:kill:${proj.id}:${ctx.userId}` },
   );
 
   revalidatePath(`/admin/projects/${proj.id}`);
@@ -287,30 +515,38 @@ export async function cancelPayout(input: unknown): Promise<{ ok: true }> {
     throw new Error("payout_not_cancellable");
   }
 
-  await destructiveAction(
-    {
-      actorUserId: ctx.userId,
-      permission: "payouts.cancel",
-      projectId: row.projectId,
-      reason: parsed.reason,
-      targetName: row.id,
-      typedConfirmation: parsed.typedConfirmation,
-      mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-      ip: ctx.ip,
-      userAgent: ctx.userAgent,
-    },
-    {
-      action: "payout.cancel",
-      targetType: "payout",
-      targetId: row.id,
-      metadata: { previousStatus: row.status },
-    },
+  await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-cancel-payout", row.id, ctx.userId),
     async () => {
-      await dbHttp
-        .update(payouts)
-        .set({ status: "cancelled" })
-        .where(eq(payouts.id, row.id));
+      await destructiveAction(
+        {
+          actorUserId: ctx.userId,
+          permission: "payouts.cancel",
+          projectId: row.projectId,
+          reason: parsed.reason,
+          targetName: row.id,
+          typedConfirmation: parsed.typedConfirmation,
+          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        },
+        {
+          action: "payout.cancel",
+          targetType: "payout",
+          targetId: row.id,
+          metadata: { previousStatus: row.status },
+        },
+        async () => {
+          await dbHttp
+            .update(payouts)
+            .set({ status: "cancelled" })
+            .where(eq(payouts.id, row.id));
+        },
+      );
+      return { ok: true } as const;
     },
+    { scope: `admin:payout:cancel:${row.projectId}:${ctx.userId}` },
   );
 
   revalidatePath("/admin/payouts");
@@ -388,37 +624,44 @@ export async function updateFeesBps(
   const parsed = UpdateFeesSchema.parse(input);
   const ctx = await requireSession();
 
-  await destructiveAction(
-    {
-      actorUserId: ctx.userId,
-      permission: "platform.fees.update",
-      reason: parsed.reason,
-      targetName: "platform.fees.bps",
-      typedConfirmation: parsed.typedConfirmation,
-      mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-      ip: ctx.ip,
-      userAgent: ctx.userAgent,
-    },
-    {
-      action: "fees.update",
-      targetType: "platform_config",
-      targetId: "fees.platform_bps",
-      metadata: { bps: parsed.bps },
-    },
+  await withIdempotency(
+    parsed.idempotencyKey ?? deriveKey("admin-fees", parsed.bps, ctx.userId),
     async () => {
-      const value = { value: parsed.bps, updatedBy: ctx.userId };
-      await dbHttp
-        .insert(platformConfig)
-        .values({
-          key: "fees.platform_bps",
-          value,
-          updatedBy: ctx.userId,
-        })
-        .onConflictDoUpdate({
-          target: platformConfig.key,
-          set: { value, updatedBy: ctx.userId, updatedAt: new Date() },
-        });
+      await destructiveAction(
+        {
+          actorUserId: ctx.userId,
+          permission: "platform.fees.update",
+          reason: parsed.reason,
+          targetName: "platform.fees.bps",
+          typedConfirmation: parsed.typedConfirmation,
+          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        },
+        {
+          action: "fees.update",
+          targetType: "platform_config",
+          targetId: "fees.platform_bps",
+          metadata: { bps: parsed.bps },
+        },
+        async () => {
+          const value = { value: parsed.bps, updatedBy: ctx.userId };
+          await dbHttp
+            .insert(platformConfig)
+            .values({
+              key: "fees.platform_bps",
+              value,
+              updatedBy: ctx.userId,
+            })
+            .onConflictDoUpdate({
+              target: platformConfig.key,
+              set: { value, updatedBy: ctx.userId, updatedAt: new Date() },
+            });
+        },
+      );
+      return { ok: true } as const;
     },
+    { scope: `admin:fees:${ctx.userId}` },
   );
 
   revalidatePath("/admin/fees");
@@ -453,35 +696,43 @@ export async function updateProjectPlatformFeeBps(
     throw new Error("fee_share_locked_after_launch_config");
   }
 
-  await destructiveAction(
-    {
-      actorUserId: ctx.userId,
-      permission: "platform.fees.update",
-      projectId: proj.id,
-      reason: parsed.reason,
-      targetName: proj.name,
-      typedConfirmation: parsed.typedConfirmation,
-      mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-      ip: ctx.ip,
-      userAgent: ctx.userAgent,
-    },
-    {
-      action: "fees.update",
-      targetType: "project",
-      targetId: proj.id,
-      metadata: {
-        kind: "project_platform_fee_bps",
-        previousBps: proj.platformFeeBps,
-        bps: parsed.bps,
-        contributorPoolBps: 10_000 - parsed.bps,
-      },
-    },
+  await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-project-fee", proj.id, parsed.bps, ctx.userId),
     async () => {
-      await dbHttp
-        .update(projects)
-        .set({ platformFeeBps: parsed.bps, updatedAt: new Date() })
-        .where(eq(projects.id, proj.id));
+      await destructiveAction(
+        {
+          actorUserId: ctx.userId,
+          permission: "platform.fees.update",
+          projectId: proj.id,
+          reason: parsed.reason,
+          targetName: proj.name,
+          typedConfirmation: parsed.typedConfirmation,
+          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        },
+        {
+          action: "fees.update",
+          targetType: "project",
+          targetId: proj.id,
+          metadata: {
+            kind: "project_platform_fee_bps",
+            previousBps: proj.platformFeeBps,
+            bps: parsed.bps,
+            contributorPoolBps: 10_000 - parsed.bps,
+          },
+        },
+        async () => {
+          await dbHttp
+            .update(projects)
+            .set({ platformFeeBps: parsed.bps, updatedAt: new Date() })
+            .where(eq(projects.id, proj.id));
+        },
+      );
+      return { ok: true } as const;
     },
+    { scope: `admin:project-fee:${proj.id}:${ctx.userId}` },
   );
 
   revalidatePath(`/admin/projects/${proj.id}`);
@@ -511,42 +762,50 @@ export async function toggleKillSwitch(
     ? "ENABLE KILL SWITCH"
     : "DISABLE KILL SWITCH";
 
-  await destructiveAction(
-    {
-      actorUserId: ctx.userId,
-      permission: "platform.kill_switch",
-      reason: parsed.reason,
-      targetName,
-      typedConfirmation: parsed.typedConfirmation,
-      mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-      ip: ctx.ip,
-      userAgent: ctx.userAgent,
-    },
-    {
-      action: "kill_switch.toggle",
-      targetType: "platform_config",
-      targetId: "kill_switch.global",
-      metadata: { enabled: parsed.enabled, reason: parsed.reason },
-    },
+  await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-kill-switch", parsed.enabled ? 1 : 0, ctx.userId),
     async () => {
-      const value = {
-        enabled: parsed.enabled,
-        reason: parsed.reason.slice(0, 500),
-        toggledBy: ctx.userId,
-        toggledAt: new Date().toISOString(),
-      };
-      await dbHttp
-        .insert(platformConfig)
-        .values({
-          key: "kill_switch.global",
-          value,
-          updatedBy: ctx.userId,
-        })
-        .onConflictDoUpdate({
-          target: platformConfig.key,
-          set: { value, updatedBy: ctx.userId, updatedAt: new Date() },
-        });
+      await destructiveAction(
+        {
+          actorUserId: ctx.userId,
+          permission: "platform.kill_switch",
+          reason: parsed.reason,
+          targetName,
+          typedConfirmation: parsed.typedConfirmation,
+          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        },
+        {
+          action: "kill_switch.toggle",
+          targetType: "platform_config",
+          targetId: "kill_switch.global",
+          metadata: { enabled: parsed.enabled, reason: parsed.reason },
+        },
+        async () => {
+          const value = {
+            enabled: parsed.enabled,
+            reason: parsed.reason.slice(0, 500),
+            toggledBy: ctx.userId,
+            toggledAt: new Date().toISOString(),
+          };
+          await dbHttp
+            .insert(platformConfig)
+            .values({
+              key: "kill_switch.global",
+              value,
+              updatedBy: ctx.userId,
+            })
+            .onConflictDoUpdate({
+              target: platformConfig.key,
+              set: { value, updatedBy: ctx.userId, updatedAt: new Date() },
+            });
+        },
+      );
+      return { ok: true } as const;
     },
+    { scope: `admin:kill-switch:${ctx.userId}` },
   );
 
   revalidatePath("/admin/maintenance");
@@ -619,29 +878,37 @@ export async function grantRole(input: unknown): Promise<{ ok: true }> {
     .limit(1);
   if (!target) throw new Error("user_not_found");
 
-  await destructiveAction(
-    {
-      actorUserId: ctx.userId,
-      permission: "admin.users.role.grant",
-      reason: parsed.reason,
-      targetName: target.name,
-      typedConfirmation: parsed.typedConfirmation,
-      mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-      ip: ctx.ip,
-      userAgent: ctx.userAgent,
-    },
-    {
-      action: "user.role_grant",
-      targetType: "user",
-      targetId: target.id,
-      metadata: { previousRole: target.role, newRole: parsed.role },
-    },
+  await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-grant-role", target.id, parsed.role, ctx.userId),
     async () => {
-      await dbHttp
-        .update(users)
-        .set({ role: parsed.role })
-        .where(eq(users.id, target.id));
+      await destructiveAction(
+        {
+          actorUserId: ctx.userId,
+          permission: "admin.users.role.grant",
+          reason: parsed.reason,
+          targetName: target.name,
+          typedConfirmation: parsed.typedConfirmation,
+          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        },
+        {
+          action: "user.role_grant",
+          targetType: "user",
+          targetId: target.id,
+          metadata: { previousRole: target.role, newRole: parsed.role },
+        },
+        async () => {
+          await dbHttp
+            .update(users)
+            .set({ role: parsed.role })
+            .where(eq(users.id, target.id));
+        },
+      );
+      return { ok: true } as const;
     },
+    { scope: `admin:user:grant-role:${target.id}:${ctx.userId}` },
   );
 
   revalidatePath("/admin/users");
@@ -663,29 +930,37 @@ export async function resetUserMfa(input: unknown): Promise<{ ok: true }> {
     .limit(1);
   if (!target) throw new Error("user_not_found");
 
-  await destructiveAction(
-    {
-      actorUserId: ctx.userId,
-      permission: "admin.users.role.grant",
-      reason: parsed.reason,
-      targetName: target.name,
-      typedConfirmation: parsed.typedConfirmation,
-      mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-      ip: ctx.ip,
-      userAgent: ctx.userAgent,
-    },
-    {
-      action: "admin.access",
-      targetType: "user",
-      targetId: target.id,
-      metadata: { op: "reset_mfa" },
-    },
+  await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-reset-mfa", target.id, ctx.userId),
     async () => {
-      await dbHttp
-        .update(users)
-        .set({ mfaSecretEnc: null })
-        .where(eq(users.id, target.id));
+      await destructiveAction(
+        {
+          actorUserId: ctx.userId,
+          permission: "admin.users.role.grant",
+          reason: parsed.reason,
+          targetName: target.name,
+          typedConfirmation: parsed.typedConfirmation,
+          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        },
+        {
+          action: "admin.access",
+          targetType: "user",
+          targetId: target.id,
+          metadata: { op: "reset_mfa" },
+        },
+        async () => {
+          await dbHttp
+            .update(users)
+            .set({ mfaSecretEnc: null })
+            .where(eq(users.id, target.id));
+        },
+      );
+      return { ok: true } as const;
     },
+    { scope: `admin:user:reset-mfa:${target.id}:${ctx.userId}` },
   );
 
   revalidatePath("/admin/users");
@@ -695,6 +970,7 @@ export async function resetUserMfa(input: unknown): Promise<{ ok: true }> {
 const SybilFlagSchema = z.object({
   userId: z.string().min(1),
   reason: z.string().min(20),
+  idempotencyKey: z.string().min(8).optional(),
 });
 
 export async function sybilFlagUser(input: unknown): Promise<{ ok: true }> {
@@ -703,15 +979,23 @@ export async function sybilFlagUser(input: unknown): Promise<{ ok: true }> {
 
   await requirePermission("admin.users.role.grant", { userId: ctx.userId });
 
-  await audit({
-    actorUserId: ctx.userId,
-    action: "admin.access",
-    targetType: "user",
-    targetId: parsed.userId,
-    metadata: { kind: "abuse.sybil_flag", reason: parsed.reason },
-    ip: ctx.ip,
-    userAgent: ctx.userAgent,
-  });
+  await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-sybil-flag", parsed.userId, parsed.reason, ctx.userId),
+    async () => {
+      await audit({
+        actorUserId: ctx.userId,
+        action: "admin.access",
+        targetType: "user",
+        targetId: parsed.userId,
+        metadata: { kind: "abuse.sybil_flag", reason: parsed.reason },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+      });
+      return { ok: true } as const;
+    },
+    { scope: `admin:user:sybil:${parsed.userId}:${ctx.userId}` },
+  );
 
   revalidatePath("/admin/users");
   revalidatePath("/admin/abuse");
@@ -722,21 +1006,40 @@ export async function sybilFlagUser(input: unknown): Promise<{ ok: true }> {
 // Treasury (read-only top-up stub)
 // ---------------------------------------------------------------------------
 
-export async function topUpHotWallet(): Promise<{ ok: false; reason: string }> {
+const TopUpHotWalletSchema = z
+  .object({
+    idempotencyKey: z.string().min(8).optional(),
+  })
+  .optional();
+
+export async function topUpHotWallet(
+  input?: z.input<typeof TopUpHotWalletSchema>,
+): Promise<{ ok: false; reason: string }> {
+  const parsed = TopUpHotWalletSchema.parse(input) ?? {};
   const ctx = await requireSession();
   await requirePermission("platform.treasury.topup", { userId: ctx.userId });
-  await audit({
-    actorUserId: ctx.userId,
-    action: "treasury.topup",
-    targetType: "treasury",
-    targetId: "hot_wallet",
-    metadata: { stub: true, reason: "manual cold-treasury topup is v1.1" },
-    ip: ctx.ip,
-    userAgent: ctx.userAgent,
-  });
+  await withIdempotency(
+    parsed.idempotencyKey ?? deriveKey("admin-topup-hot-wallet", ctx.userId),
+    async () => {
+      await audit({
+        actorUserId: ctx.userId,
+        action: "treasury.topup",
+        targetType: "treasury",
+        targetId: "hot_wallet",
+        metadata: {
+          stub: true,
+          reason: "manual cold-treasury topup remains offline",
+        },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+      });
+      return { ok: false as const, reason: "offline_topup_required" };
+    },
+    { scope: `admin:treasury:topup:${ctx.userId}` },
+  );
   return {
     ok: false,
-    reason: "Hot wallet top-up requires cold-treasury MFA (manual, v1.1)",
+    reason: "Hot wallet top-up requires offline cold-treasury signing.",
   };
 }
 
@@ -753,6 +1056,7 @@ const TriggerWorkflowSchema = z.object({
     "expireEscrow",
     "publishKpis",
   ]),
+  idempotencyKey: z.string().min(8).optional(),
 });
 
 export async function retriggerWorkflow(
@@ -763,28 +1067,36 @@ export async function retriggerWorkflow(
 
   await requirePermission("admin.workflows.inspect", { userId: ctx.userId });
 
-  const run =
-    parsed.name === "healthPulse"
-      ? await start(healthPulse, [])
-      : parsed.name === "indexGithubDeltas"
-        ? await start(indexGithubDeltas, [])
-        : parsed.name === "takeSnapshot"
-          ? await start(takeSnapshot, [])
-          : parsed.name === "executePayout"
-            ? await start(executePayout, [])
-            : parsed.name === "expireEscrow"
-              ? await start(expireEscrow, [])
-              : await start(publishKpis, []);
+  const run = await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-workflow", parsed.name, ctx.userId, Date.now()),
+    async () => {
+      const workflowRun =
+        parsed.name === "healthPulse"
+          ? await start(healthPulse, [])
+          : parsed.name === "indexGithubDeltas"
+            ? await start(indexGithubDeltas, [])
+            : parsed.name === "takeSnapshot"
+              ? await start(takeSnapshot, [])
+              : parsed.name === "executePayout"
+                ? await start(executePayout, [])
+                : parsed.name === "expireEscrow"
+                  ? await start(expireEscrow, [])
+                  : await start(publishKpis, []);
 
-  await audit({
-    actorUserId: ctx.userId,
-    action: "admin.access",
-    targetType: "workflow",
-    targetId: parsed.name,
-    metadata: { kind: "retrigger", runId: run.runId },
-    ip: ctx.ip,
-    userAgent: ctx.userAgent,
-  });
+      await audit({
+        actorUserId: ctx.userId,
+        action: "admin.access",
+        targetType: "workflow",
+        targetId: parsed.name,
+        metadata: { kind: "retrigger", runId: workflowRun.runId },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+      });
+      return { runId: workflowRun.runId };
+    },
+    { scope: `admin:workflow:${parsed.name}:${ctx.userId}` },
+  );
 
   return { ok: true, runId: run.runId };
 }
@@ -795,6 +1107,7 @@ export async function retriggerWorkflow(
 
 const RecomputeLeaderboardSchema = z.object({
   projectId: z.string().min(1),
+  idempotencyKey: z.string().min(8).optional(),
 });
 
 export async function recomputeLeaderboard(
@@ -808,17 +1121,30 @@ export async function recomputeLeaderboard(
     projectId: parsed.projectId,
   });
 
-  const run = await start(computeLeaderboardWorkflow, [parsed.projectId]);
+  const run = await withIdempotency(
+    parsed.idempotencyKey ??
+      deriveKey("admin-recompute", parsed.projectId, ctx.userId, Date.now()),
+    async () => {
+      const workflowRun = await start(computeLeaderboardWorkflow, [
+        parsed.projectId,
+      ]);
 
-  await audit({
-    actorUserId: ctx.userId,
-    action: "scoring.update",
-    targetType: "project",
-    targetId: parsed.projectId,
-    metadata: { kind: "recompute_leaderboard", runId: run.runId },
-    ip: ctx.ip,
-    userAgent: ctx.userAgent,
-  });
+      await audit({
+        actorUserId: ctx.userId,
+        action: "scoring.update",
+        targetType: "project",
+        targetId: parsed.projectId,
+        metadata: {
+          kind: "recompute_leaderboard",
+          runId: workflowRun.runId,
+        },
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+      });
+      return { runId: workflowRun.runId };
+    },
+    { scope: `admin:recompute:${parsed.projectId}:${ctx.userId}` },
+  );
 
   revalidatePath(`/admin/projects/${parsed.projectId}`);
   await updateProjectCaches(parsed.projectId);

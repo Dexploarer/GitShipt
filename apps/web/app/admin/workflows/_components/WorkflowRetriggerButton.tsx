@@ -29,7 +29,10 @@ export function WorkflowRetriggerButton({
     setBusy(true);
     setErr(null);
     try {
-      await retriggerWorkflow({ name });
+      await retriggerWorkflow({
+        name,
+        idempotencyKey: `workflow-${name}-${Date.now()}`,
+      });
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -44,7 +47,11 @@ export function WorkflowRetriggerButton({
         variant={disabled ? "ghost" : "secondary"}
         onClick={fire}
         disabled={disabled || busy}
-        title={disabled ? "Needs arguments — use the per-project trigger." : undefined}
+        title={
+          disabled
+            ? "Needs arguments — use the per-project trigger."
+            : undefined
+        }
       >
         <Play className="size-3.5" /> {busy ? "Sending..." : "Re-trigger"}
       </Button>

@@ -56,7 +56,10 @@ export function ProjectGodModeControls({
   async function handleForceSnapshot() {
     setBusy("snapshot");
     try {
-      await forceSnapshot({ projectId });
+      await forceSnapshot({
+        projectId,
+        idempotencyKey: `admin-snapshot-${projectId}-${Date.now()}`,
+      });
     } finally {
       setBusy(null);
     }
@@ -65,7 +68,10 @@ export function ProjectGodModeControls({
   async function handleRecompute() {
     setBusy("recompute");
     try {
-      await recomputeLeaderboard({ projectId });
+      await recomputeLeaderboard({
+        projectId,
+        idempotencyKey: `admin-recompute-${projectId}-${Date.now()}`,
+      });
     } finally {
       setBusy(null);
     }
@@ -82,7 +88,11 @@ export function ProjectGodModeControls({
     }
     setBusy("scoring");
     try {
-      await overrideScoringConfig({ projectId, scoringConfig: parsed });
+      await overrideScoringConfig({
+        projectId,
+        scoringConfig: parsed,
+        idempotencyKey: `admin-scoring-${projectId}-${Date.now()}`,
+      });
     } catch (e) {
       setScoringErr((e as Error).message);
     } finally {

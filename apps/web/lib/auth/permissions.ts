@@ -31,6 +31,7 @@ export type Permission =
   | "platform.kill_switch"
   | "platform.maintenance"
   | "admin.access"
+  | "admin.direct_launch"
   | "admin.users.role.grant"
   | "admin.audit.read"
   | "admin.workflows.inspect";
@@ -85,6 +86,7 @@ const PERMISSIONS: Record<
   "platform.kill_switch": ["super_admin"],
   "platform.maintenance": ["super_admin"],
   "admin.access": ["admin", "super_admin"],
+  "admin.direct_launch": ["super_admin"],
   "admin.users.role.grant": ["super_admin"],
   "admin.audit.read": ["admin", "super_admin"],
   "admin.workflows.inspect": ["admin", "super_admin"],

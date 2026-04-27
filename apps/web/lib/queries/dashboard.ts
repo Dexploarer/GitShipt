@@ -31,7 +31,13 @@ export interface MyProjectRow {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
+  status:
+    | "draft"
+    | "launch_configured"
+    | "live"
+    | "paused"
+    | "killed"
+    | "simulated_live";
   tokenMint: string | null;
   contributorsCount: number;
   lifetimeFeesLamports: bigint;
@@ -192,7 +198,14 @@ export async function getProjectKPIs(projectId: string): Promise<ProjectKPIs> {
 export interface PayoutHistoryRow {
   id: string;
   executedAt: Date | null;
-  status: "pending" | "claiming" | "distributing" | "completed" | "failed" | "cancelled" | "simulated";
+  status:
+    | "pending"
+    | "claiming"
+    | "distributing"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "simulated";
   totalLamports: bigint;
   recipientCount: number;
   claimSignature: string | null;
@@ -272,7 +285,10 @@ export async function getMyEarnings(userId: string): Promise<MyEarnings> {
       lifetime: sql<string>`coalesce(sum(${payoutRecipients.amountLamports}) filter (where ${payoutRecipients.status} in ('sent','confirmed')), 0)::text`,
     })
     .from(payoutRecipients)
-    .innerJoin(contributors, eq(contributors.id, payoutRecipients.contributorId))
+    .innerJoin(
+      contributors,
+      eq(contributors.id, payoutRecipients.contributorId),
+    )
     .innerJoin(projects, eq(projects.id, contributors.projectId))
     .where(inArray(payoutRecipients.contributorId, contribIds))
     .groupBy(projects.id, projects.ghOwner, projects.ghRepo);
@@ -383,11 +399,18 @@ export interface ProjectRecord {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
+  status:
+    | "draft"
+    | "launch_configured"
+    | "live"
+    | "paused"
+    | "killed"
+    | "simulated_live";
   tokenMint: string | null;
   bagsLaunchId: string | null;
   ghInstallationId: string | null;
   platformFeeBps: number;
+  ownerUserId: string;
   scoringConfig: import("@/db/schema").ScoringConfig;
   payoutConfig: import("@/db/schema").PayoutConfig;
   pausedAt: Date | null;
@@ -418,6 +441,7 @@ export async function getProjectRecord(
     bagsLaunchId: r.bagsLaunchId,
     ghInstallationId: r.ghInstallationId,
     platformFeeBps: r.platformFeeBps,
+    ownerUserId: r.ownerUserId,
     scoringConfig: r.scoringConfig,
     payoutConfig: r.payoutConfig,
     pausedAt: r.pausedAt,
@@ -451,9 +475,7 @@ export async function getRecentProjectAudit(
     })
     .from(sql`audit_logs al`)
     .leftJoin(users, sql`u.id = al.actor_user_id`)
-    .where(
-      sql`al.target_type = 'project' and al.target_id = ${projectId}`,
-    )
+    .where(sql`al.target_type = 'project' and al.target_id = ${projectId}`)
     .orderBy(sql`al.created_at desc`)
     .limit(limit);
   return rows.map((r) => ({
@@ -483,8 +505,7 @@ export async function getIndexerState(
     .limit(1);
   if (!r) return null;
   const last = r.lastIncrementalSyncAt;
-  const isStale =
-    last == null || Date.now() - last.getTime() > 60 * 60 * 1000;
+  const isStale = last == null || Date.now() - last.getTime() > 60 * 60 * 1000;
   return {
     lastFullSyncAt: r.lastFullSyncAt,
     lastIncrementalSyncAt: r.lastIncrementalSyncAt,
@@ -512,9 +533,7 @@ export async function getFailedPayoutsForProject(
       lastError: payouts.lastError,
     })
     .from(payouts)
-    .where(
-      and(eq(payouts.projectId, projectId), eq(payouts.status, "failed")),
-    )
+    .where(and(eq(payouts.projectId, projectId), eq(payouts.status, "failed")))
     .orderBy(desc(payouts.scheduledAt))
     .limit(limit);
   return rows;

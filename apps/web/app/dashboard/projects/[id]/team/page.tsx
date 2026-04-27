@@ -1,4 +1,4 @@
-import { Sparkles, UserPlus, Users } from "lucide-react";
+import { Sparkles, Users } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { getProjectMembers } from "@/lib/queries/dashboard";
 import { formatRelativeTime } from "@repo/lib";
@@ -11,9 +11,12 @@ import {
   CardContent,
 } from "@repo/ui";
 import { Badge } from "@repo/ui";
-import { Button } from "@repo/ui";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import {
+  MemberInviteForm,
+  MemberRemoveButton,
+} from "./_components/TeamControls";
 
 export const dynamic = "force-dynamic";
 
@@ -38,17 +41,25 @@ export default async function TeamPage({
           { label: "Team" },
         ]}
       />
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header>
         <div>
           <h1 className="text-headline-lg leading-tight text-fg">Team</h1>
           <p className="text-body-md text-fg-secondary">
             Co-administrators with access to this project console.
           </p>
         </div>
-        <Button variant="primary" disabled title="Coming v1.1">
-          <UserPlus className="size-4" /> Invite member
-        </Button>
       </header>
+
+      <Card depth="flat" padding="default">
+        <div className="space-y-2">
+          <h2 className="text-headline-sm text-fg">Add moderator</h2>
+          <p className="text-body-sm text-fg-secondary">
+            Add an existing GitBags user by GitHub username or email. Moderators
+            can read project data, inspect payouts, and help operate snapshots.
+          </p>
+          <MemberInviteForm projectId={id} />
+        </div>
+      </Card>
 
       <Card depth="flat" padding="none">
         <CardHeader className="border-b border-border px-6 py-4">
@@ -56,7 +67,8 @@ export default async function TeamPage({
             {members.length} member{members.length === 1 ? "" : "s"}
           </CardTitle>
           <CardDescription>
-            Owner is shown elsewhere. Invitations land in v1.1.
+            Project owner access is controlled by ownership transfer. Moderator
+            access can be added or revoked here.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -65,7 +77,7 @@ export default async function TeamPage({
               <EmptyState
                 icon={Users}
                 title="No co-admins yet"
-                description="You are flying solo. Invitations open in v1.1."
+                description="Add a moderator when another operator needs project-console access."
               />
             </div>
           ) : (
@@ -73,7 +85,7 @@ export default async function TeamPage({
               {members.map((m) => (
                 <li
                   key={m.userId}
-                  className="grid grid-cols-[40px_minmax(0,1fr)_auto_auto] items-center gap-3 px-6 py-3"
+                  className="grid grid-cols-[40px_minmax(0,1fr)_auto_auto_auto] items-center gap-3 px-6 py-3"
                 >
                   {m.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -101,6 +113,11 @@ export default async function TeamPage({
                   <span className="text-caption text-fg-muted">
                     {formatRelativeTime(m.createdAt)}
                   </span>
+                  <MemberRemoveButton
+                    projectId={id}
+                    userId={m.userId}
+                    disabled={m.userId === project.ownerUserId}
+                  />
                 </li>
               ))}
             </ul>

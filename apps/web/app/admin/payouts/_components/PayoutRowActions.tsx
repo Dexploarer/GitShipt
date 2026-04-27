@@ -24,7 +24,10 @@ export function PayoutRowActions({
   async function doRetry() {
     setBusy(true);
     try {
-      await retryPayout({ payoutId });
+      await retryPayout({
+        payoutId,
+        idempotencyKey: `payout-retry-${payoutId}-${Date.now()}`,
+      });
     } finally {
       setBusy(false);
     }
@@ -37,7 +40,11 @@ export function PayoutRowActions({
         variant="ghost"
         disabled={!canRetry || busy}
         onClick={doRetry}
-        title={canRetry ? "Retry failed payout" : "Only failed payouts can be retried"}
+        title={
+          canRetry
+            ? "Retry failed payout"
+            : "Only failed payouts can be retried"
+        }
       >
         <RotateCcw className="size-3.5" /> Retry
       </Button>
@@ -46,7 +53,11 @@ export function PayoutRowActions({
         variant="ghost"
         disabled={!canCancel || busy}
         onClick={() => setCancelOpen(true)}
-        title={canCancel ? "Force-cancel pending payout" : "Cannot cancel terminal payout"}
+        title={
+          canCancel
+            ? "Force-cancel pending payout"
+            : "Cannot cancel terminal payout"
+        }
       >
         <Ban className="size-3.5" /> Cancel
       </Button>
@@ -65,8 +76,8 @@ export function PayoutRowActions({
         title="Force-cancel payout"
         description={
           <>
-            Marks this payout as <code className="text-mono-sm">cancelled</code>.
-            Any inflight on-chain claim will not be reversed automatically.
+            Marks this payout as <code className="text-mono-sm">cancelled</code>
+            . Any inflight on-chain claim will not be reversed automatically.
           </>
         }
         targetName={payoutId}

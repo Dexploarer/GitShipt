@@ -3,8 +3,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen, ExternalLink } from "lucide-react";
 import { getProjectPageData } from "@/lib/queries/project-page";
+import { getProjectDocs } from "@/lib/queries/project-docs";
 import { Card, CardHeader, CardTitle, CardContent } from "@repo/ui";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { MarkdownPreview } from "@/components/shared/MarkdownPreview";
 import { formatSol } from "@repo/lib";
 
 type Params = Promise<{ org: string; repo: string }>;
@@ -29,6 +31,7 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
   if (!data) notFound();
 
   const { header } = data;
+  const customDocs = await getProjectDocs(header.id);
   const repoUrl = `https://github.com/${header.ghOwner}/${header.ghRepo}`;
   const platformFeePct = (header.platformFeeBps / 100).toFixed(1);
   const contributorPoolPct = ((10_000 - header.platformFeeBps) / 100).toFixed(
@@ -62,6 +65,9 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
         <aside className="lg:sticky lg:top-4 lg:self-start">
           <nav className="flex flex-col gap-1 text-body-sm">
             {[
+              ...(customDocs.published && customDocs.markdown.trim().length > 0
+                ? ([["project-guide", "Project guide"]] as const)
+                : []),
               ["how-rewards-work", "How rewards work"],
               ["claiming-earnings", "Claiming earnings"],
               ["scoring-this-project", "Scoring (this project)"],
@@ -81,6 +87,12 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
 
         {/* Article */}
         <article className="flex flex-col gap-6 max-w-prose">
+          {customDocs.published && customDocs.markdown.trim().length > 0 ? (
+            <Section id="project-guide" title="Project guide">
+              <MarkdownPreview markdown={customDocs.markdown} />
+            </Section>
+          ) : null}
+
           <Section id="how-rewards-work" title="How rewards work">
             <p>
               {header.name} mints a token on{" "}
