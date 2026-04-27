@@ -13,11 +13,18 @@ import { audit } from "@/lib/audit";
 import { hasCredentials } from "@/lib/env";
 import { IdempotencyReplayError, withIdempotency } from "@/lib/idempotency";
 import { createApiKey, listApiKeysForProject } from "@/lib/queries/api-keys";
+import { ProjectApiKeyScopesSchema } from "@repo/shared";
 
 export const dynamic = "force-dynamic";
 
 const CreateBodySchema = z.object({
   name: z.string().min(1).max(64),
+  scopes: ProjectApiKeyScopesSchema.default([
+    "read:project",
+    "read:leaderboard",
+    "read:payouts",
+    "read:token",
+  ]),
 });
 
 /**
@@ -112,6 +119,7 @@ export async function POST(
           projectId,
           body.name,
           userId,
+          body.scopes,
         );
         await audit({
           actorUserId: userId,
@@ -123,6 +131,7 @@ export async function POST(
             name: row.name,
             prefix: row.prefix,
             lastFourPlain: row.lastFourPlain,
+            scopes: row.scopes,
           },
           ip: req.headers.get("x-forwarded-for") ?? null,
           userAgent: req.headers.get("user-agent") ?? null,
@@ -134,6 +143,7 @@ export async function POST(
             name: row.name,
             prefix: row.prefix,
             lastFourPlain: row.lastFourPlain,
+            scopes: row.scopes,
             createdAt: row.createdAt.toISOString(),
           },
         };
@@ -179,6 +189,7 @@ export async function GET(
         name: k.name,
         prefix: k.prefix,
         lastFourPlain: k.lastFourPlain,
+        scopes: k.scopes,
         lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
         createdAt: k.createdAt.toISOString(),
         createdByUserId: k.createdByUserId,

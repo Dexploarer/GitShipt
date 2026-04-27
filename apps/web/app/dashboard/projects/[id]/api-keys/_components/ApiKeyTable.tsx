@@ -2,6 +2,7 @@ import { KeyRound } from "lucide-react";
 import { Card } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { formatRelativeTime } from "@repo/lib";
+import { PROJECT_API_KEY_SCOPE_LABELS } from "@repo/shared";
 import type { ApiKeyListItem } from "@/lib/queries/api-keys";
 import { RevokeButton } from "./RevokeButton";
 
@@ -46,6 +47,9 @@ export function ApiKeyTable({ projectId, keys }: ApiKeyTableProps) {
                 Key
               </th>
               <th scope="col" className="px-5 py-3 font-medium">
+                Scopes
+              </th>
+              <th scope="col" className="px-5 py-3 font-medium">
                 Created
               </th>
               <th scope="col" className="px-5 py-3 font-medium">
@@ -62,13 +66,19 @@ export function ApiKeyTable({ projectId, keys }: ApiKeyTableProps) {
                 <td className="px-5 py-3 align-middle">
                   <div className="flex items-center gap-2">
                     <span className="text-body-md text-fg">{k.name}</span>
-                    <Badge variant="info" size="sm">
-                      read
-                    </Badge>
                   </div>
                 </td>
                 <td className="px-5 py-3 align-middle text-mono-sm text-fg-secondary">
                   {k.prefix}…{k.lastFourPlain}
+                </td>
+                <td className="px-5 py-3 align-middle">
+                  <div className="flex max-w-md flex-wrap gap-1.5">
+                    {k.scopes.map((scope) => (
+                      <Badge key={scope} variant="info" size="sm">
+                        {PROJECT_API_KEY_SCOPE_LABELS[scope]}
+                      </Badge>
+                    ))}
+                  </div>
                 </td>
                 <td className="px-5 py-3 align-middle text-mono-sm text-fg-secondary">
                   {formatRelativeTime(k.createdAt)}

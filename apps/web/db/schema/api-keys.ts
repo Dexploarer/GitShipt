@@ -18,13 +18,15 @@ import { createId } from "@repo/lib";
  *   - `hashedKey`      (SHA-256 of the raw key) — used for verification
  *   - `lastFourPlain`  (last 4 chars of raw key) — used to identify which key
  *
- * v0 supports `read` scope only; the `scopes` column exists so we can layer
- * fine-grained perms in v1.x without another migration.
+ * Fine-grained project scopes are stored as strings so new machine APIs can
+ * be added without another migration.
  */
 export const apiKeys = pgTable(
   "api_keys",
   {
-    id: text("id").primaryKey().$defaultFn(() => createId()),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
     projectId: text("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),

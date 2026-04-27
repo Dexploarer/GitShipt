@@ -11,10 +11,22 @@ import {
   platformConfig,
   payoutRecipients,
   projectMemberships,
+  apiKeys,
   type ScoringConfig,
   type PayoutConfig,
 } from "@/db/schema";
-import { and, desc, eq, gte, like, sql, count, inArray } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  isNull,
+  like,
+  or,
+  sql,
+  count,
+  inArray,
+} from "drizzle-orm";
 
 /**
  * Admin-only query helpers. All callers must `requirePermission('admin.access')`
@@ -164,7 +176,11 @@ export interface AuditRow {
 
 export interface AuditFilter {
   actionPrefix?: string;
+  actionPrefixes?: string[];
   actorUserId?: string;
+  targetType?: string;
+  targetId?: string;
+  sinceHours?: number;
   sinceMs?: number;
   limit?: number;
 }
@@ -172,16 +188,30 @@ export interface AuditFilter {
 export async function getAuditLogs(
   filter: AuditFilter = {},
 ): Promise<AuditRow[]> {
-  const sinceMs = filter.sinceMs ?? Date.now() - 24 * 60 * 60 * 1000;
+  const sinceMs =
+    filter.sinceMs ?? Date.now() - (filter.sinceHours ?? 24) * 60 * 60 * 1000;
   const since = new Date(sinceMs);
   const limit = Math.min(filter.limit ?? 100, 500);
 
   const conds = [gte(auditLogs.createdAt, since)];
-  if (filter.actionPrefix) {
-    conds.push(like(auditLogs.action, `${filter.actionPrefix}%`));
+  const actionPrefixes =
+    filter.actionPrefixes ?? (filter.actionPrefix ? [filter.actionPrefix] : []);
+  if (actionPrefixes.length === 1) {
+    conds.push(like(auditLogs.action, `${actionPrefixes[0]}%`));
+  } else if (actionPrefixes.length > 1) {
+    const prefixCond = or(
+      ...actionPrefixes.map((prefix) => like(auditLogs.action, `${prefix}%`)),
+    );
+    if (prefixCond) conds.push(prefixCond);
   }
   if (filter.actorUserId) {
     conds.push(eq(auditLogs.actorUserId, filter.actorUserId));
+  }
+  if (filter.targetType) {
+    conds.push(eq(auditLogs.targetType, filter.targetType));
+  }
+  if (filter.targetId) {
+    conds.push(eq(auditLogs.targetId, filter.targetId));
   }
 
   const rows = await dbHttp
@@ -288,6 +318,68 @@ export async function getAllProjects(filter?: {
   }));
 }
 
+export interface PartnerFeeShareSummary {
+  totalProjects: number;
+  launchedProjects: number;
+  liveLaunchedProjects: number;
+  simulatedProjects: number;
+  feeShareConfiguredProjects: number;
+  missingPoolClaimerProjects: number;
+  avgPlatformFeeBps: number;
+  minPlatformFeeBps: number;
+  maxPlatformFeeBps: number;
+  activeApiKeys: number;
+  apiKeysUsedLast24h: number;
+  lastApiKeyUsedAt: Date | null;
+  latestLaunchUpdatedAt: Date | null;
+}
+
+export async function getPartnerFeeShareSummary(): Promise<PartnerFeeShareSummary> {
+  const [projectRow] = await dbHttp
+    .select({
+      totalProjects: count(),
+      launchedProjects: sql<number>`COUNT(*) FILTER (WHERE ${projects.tokenMint} IS NOT NULL)::int`,
+      liveLaunchedProjects: sql<number>`COUNT(*) FILTER (WHERE ${projects.status} = 'live' AND ${projects.tokenMint} IS NOT NULL)::int`,
+      simulatedProjects: sql<number>`COUNT(*) FILTER (WHERE ${projects.status} = 'simulated_live')::int`,
+      feeShareConfiguredProjects: sql<number>`COUNT(*) FILTER (WHERE ${projects.bagsConfigKey} IS NOT NULL)::int`,
+      missingPoolClaimerProjects: sql<number>`COUNT(*) FILTER (WHERE ${projects.bagsConfigKey} IS NOT NULL AND ${projects.bagsPoolClaimerWallet} IS NULL)::int`,
+      avgPlatformFeeBps: sql<string>`COALESCE(ROUND(AVG(${projects.platformFeeBps})), 0)::text`,
+      minPlatformFeeBps: sql<number>`COALESCE(MIN(${projects.platformFeeBps}), 0)::int`,
+      maxPlatformFeeBps: sql<number>`COALESCE(MAX(${projects.platformFeeBps}), 0)::int`,
+      latestLaunchUpdatedAt: sql<Date | null>`MAX(${projects.updatedAt}) FILTER (WHERE ${projects.bagsConfigKey} IS NOT NULL)`,
+    })
+    .from(projects);
+
+  const [apiKeyRow] = await dbHttp
+    .select({
+      activeApiKeys: count(),
+      apiKeysUsedLast24h: sql<number>`COUNT(*) FILTER (WHERE ${apiKeys.lastUsedAt} >= NOW() - INTERVAL '24 hours')::int`,
+      lastApiKeyUsedAt: sql<Date | null>`MAX(${apiKeys.lastUsedAt})`,
+    })
+    .from(apiKeys)
+    .where(isNull(apiKeys.revokedAt));
+
+  return {
+    totalProjects: Number(projectRow?.totalProjects ?? 0),
+    launchedProjects: Number(projectRow?.launchedProjects ?? 0),
+    liveLaunchedProjects: Number(projectRow?.liveLaunchedProjects ?? 0),
+    simulatedProjects: Number(projectRow?.simulatedProjects ?? 0),
+    feeShareConfiguredProjects: Number(
+      projectRow?.feeShareConfiguredProjects ?? 0,
+    ),
+    missingPoolClaimerProjects: Number(
+      projectRow?.missingPoolClaimerProjects ?? 0,
+    ),
+    avgPlatformFeeBps: Number(projectRow?.avgPlatformFeeBps ?? 0),
+    minPlatformFeeBps: Number(projectRow?.minPlatformFeeBps ?? 0),
+    maxPlatformFeeBps: Number(projectRow?.maxPlatformFeeBps ?? 0),
+    activeApiKeys: Number(apiKeyRow?.activeApiKeys ?? 0),
+    apiKeysUsedLast24h: Number(apiKeyRow?.apiKeysUsedLast24h ?? 0),
+    lastApiKeyUsedAt: apiKeyRow?.lastApiKeyUsedAt ?? null,
+    latestLaunchUpdatedAt: projectRow?.latestLaunchUpdatedAt ?? null,
+  };
+}
+
 export async function getProjectAdminDetail(projectId: string): Promise<{
   project: typeof projects.$inferSelect;
   ownerName: string | null;
@@ -295,6 +387,8 @@ export async function getProjectAdminDetail(projectId: string): Promise<{
   scoringConfig: ScoringConfig;
   payoutConfig: PayoutConfig;
   contributorsCount: number;
+  activeApiKeys: number;
+  lastApiKeyUsedAt: Date | null;
 } | null> {
   const [row] = await dbHttp
     .select({
@@ -309,10 +403,19 @@ export async function getProjectAdminDetail(projectId: string): Promise<{
 
   if (!row) return null;
 
-  const [{ c: contributorsCount }] = (await dbHttp
-    .select({ c: count() })
-    .from(contributors)
-    .where(eq(contributors.projectId, projectId))) as [{ c: number }];
+  const [contributorsRow, apiKeyRow] = await Promise.all([
+    dbHttp
+      .select({ c: count() })
+      .from(contributors)
+      .where(eq(contributors.projectId, projectId)),
+    dbHttp
+      .select({
+        c: count(),
+        lastUsedAt: sql<Date | null>`MAX(${apiKeys.lastUsedAt})`,
+      })
+      .from(apiKeys)
+      .where(and(eq(apiKeys.projectId, projectId), isNull(apiKeys.revokedAt))),
+  ]);
 
   return {
     project: row.project,
@@ -320,7 +423,9 @@ export async function getProjectAdminDetail(projectId: string): Promise<{
     ownerUsername: row.ownerUsername,
     scoringConfig: row.project.scoringConfig,
     payoutConfig: row.project.payoutConfig,
-    contributorsCount,
+    contributorsCount: contributorsRow[0]?.c ?? 0,
+    activeApiKeys: apiKeyRow[0]?.c ?? 0,
+    lastApiKeyUsedAt: apiKeyRow[0]?.lastUsedAt ?? null,
   };
 }
 

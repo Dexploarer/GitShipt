@@ -9,15 +9,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
-import { getProjectAdminDetail } from "@/lib/queries/admin";
+import { AuditLogViewer } from "@/components/admin/AuditLogViewer";
+import { getAuditLogs, getProjectAdminDetail } from "@/lib/queries/admin";
 import { formatRelativeTime } from "@repo/lib";
 import { ProjectGodModeControls } from "./_components/ProjectGodModeControls";
 
@@ -31,7 +27,14 @@ export default async function AdminProjectDetailPage({
   const { id } = await params;
   await requireAdminPage("admin.access", "/admin");
 
-  const detail = await getProjectAdminDetail(id);
+  const [detail, projectAudit] = await Promise.all([
+    getProjectAdminDetail(id),
+    getAuditLogs({
+      targetId: id,
+      sinceHours: 7 * 24,
+      limit: 50,
+    }),
+  ]);
   if (!detail) notFound();
 
   const {
@@ -41,6 +44,8 @@ export default async function AdminProjectDetailPage({
     scoringConfig,
     payoutConfig,
     contributorsCount,
+    activeApiKeys,
+    lastApiKeyUsedAt,
   } = detail;
   const slug = `${project.ghOwner}/${project.ghRepo}`;
 
@@ -88,6 +93,7 @@ export default async function AdminProjectDetailPage({
           projectId={project.id}
           projectName={project.name}
           status={project.status}
+          platformFeeBps={project.platformFeeBps}
           scoringConfigJson={JSON.stringify(scoringConfig, null, 2)}
           payoutConfigJson={JSON.stringify(payoutConfig, null, 2)}
         />
@@ -126,6 +132,13 @@ export default async function AdminProjectDetailPage({
               label="Platform fee"
               value={`${project.platformFeeBps} bps`}
             />
+            <Stat label="Active API keys" value={activeApiKeys.toString()} />
+            <Stat
+              label="Last API key use"
+              value={
+                lastApiKeyUsedAt ? formatRelativeTime(lastApiKeyUsedAt) : "—"
+              }
+            />
             <Stat
               label="Created"
               value={formatRelativeTime(project.createdAt)}
@@ -146,24 +159,24 @@ export default async function AdminProjectDetailPage({
         </Card>
       </section>
 
-      <Card depth="flat" padding="sm">
-        <CardHeader className="px-1.5 pt-1">
-          <CardTitle className="flex items-center gap-2">
-            <Power className="size-4 text-fg-muted" /> Lifecycle log
-          </CardTitle>
-          <CardDescription>
-            Per-project history of pause/kill/snapshot decisions lives in the
-            global audit log. Filter by `targetId={project.id}`.
-          </CardDescription>
-        </CardHeader>
-        <p className="mt-2 px-1.5 text-body-sm text-fg-muted">
-          Open{" "}
-          <Link href="/admin/audit" className="underline underline-offset-2">
-            /admin/audit
-          </Link>{" "}
-          for the full history. Per-project audit chip filter ships in v1.1.
-        </p>
-      </Card>
+      <section className="space-y-2">
+        <div className="flex items-center gap-2 px-1.5">
+          <Power className="size-4 text-fg-muted" />
+          <div>
+            <h2 className="text-headline-sm tracking-tight">Lifecycle log</h2>
+            <p className="text-body-sm text-fg-secondary">
+              Admin, Bags launch, fee-share, API-key, and payout operations for
+              this project.
+            </p>
+          </div>
+        </div>
+        <AuditLogViewer
+          rows={projectAudit}
+          activePrefix="all"
+          basePath="/admin/audit"
+          targetId={project.id}
+        />
+      </section>
     </div>
   );
 }
@@ -180,7 +193,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 function StatusBadge({
   status,
 }: {
-  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
+  status:
+    | "draft"
+    | "launch_configured"
+    | "live"
+    | "paused"
+    | "killed"
+    | "simulated_live";
 }) {
   switch (status) {
     case "live":

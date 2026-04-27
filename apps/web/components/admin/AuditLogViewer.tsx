@@ -1,12 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { FileSearch } from "lucide-react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Pill } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { formatRelativeTime, formatAddress } from "@repo/lib";
@@ -16,6 +11,8 @@ import type { AuditRow } from "@/lib/queries/admin";
 const PREFIXES = [
   { key: "all", label: "All" },
   { key: "auth", label: "Auth" },
+  { key: "project.launch", label: "Bags launches" },
+  { key: "project.api_key", label: "API keys" },
   { key: "project", label: "Projects" },
   { key: "payout", label: "Payouts" },
   { key: "snapshot", label: "Snapshots" },
@@ -36,10 +33,16 @@ export function AuditLogViewer({
   rows,
   activePrefix = "all",
   basePath = "/admin/audit",
+  targetId,
+  targetType,
+  sinceHours,
 }: {
   rows: AuditRow[];
   activePrefix?: string;
   basePath?: string;
+  targetId?: string;
+  targetType?: string;
+  sinceHours?: number;
 }) {
   return (
     <Card depth="flat" padding="sm" className="space-y-3">
@@ -55,10 +58,12 @@ export function AuditLogViewer({
 
       <div className="flex flex-wrap items-center gap-1.5 px-2">
         {PREFIXES.map((p) => {
-          const href =
-            p.key === "all"
-              ? basePath
-              : `${basePath}?prefix=${encodeURIComponent(p.key)}`;
+          const href = auditHref(basePath, {
+            prefix: p.key === "all" ? undefined : p.key,
+            targetId,
+            targetType,
+            sinceHours,
+          });
           const active = activePrefix === p.key;
           return (
             <Link key={p.key} href={href}>
@@ -73,6 +78,28 @@ export function AuditLogViewer({
           );
         })}
       </div>
+
+      {targetId || targetType ? (
+        <div className="flex flex-wrap items-center gap-2 px-2 text-caption text-fg-muted">
+          <span>Filtered</span>
+          {targetType ? (
+            <Badge variant="default" size="sm">
+              targetType={targetType}
+            </Badge>
+          ) : null}
+          {targetId ? (
+            <Badge variant="default" size="sm">
+              targetId={formatAddress(targetId, 6, 4)}
+            </Badge>
+          ) : null}
+          <Link
+            href={auditHref(basePath, { prefix: activePrefix })}
+            className="underline underline-offset-2"
+          >
+            clear target
+          </Link>
+        </div>
+      ) : null}
 
       {rows.length === 0 ? (
         <p className="px-2 py-6 text-center text-body-sm text-fg-muted">
@@ -100,6 +127,26 @@ export function AuditLogViewer({
       )}
     </Card>
   );
+}
+
+function auditHref(
+  basePath: string,
+  params: {
+    prefix?: string;
+    targetId?: string;
+    targetType?: string;
+    sinceHours?: number;
+  },
+): string {
+  const query = new URLSearchParams();
+  if (params.prefix && params.prefix !== "all") {
+    query.set("prefix", params.prefix);
+  }
+  if (params.targetId) query.set("targetId", params.targetId);
+  if (params.targetType) query.set("targetType", params.targetType);
+  if (params.sinceHours) query.set("sinceHours", String(params.sinceHours));
+  const qs = query.toString();
+  return qs ? `${basePath}?${qs}` : basePath;
 }
 
 function AuditRowEl({ row }: { row: AuditRow }) {
@@ -174,6 +221,8 @@ function actionVariant(
   if (action.startsWith("payout")) return "info";
   if (action.startsWith("project.kill") || action.startsWith("kill_switch"))
     return "danger";
+  if (action.startsWith("project.launch")) return "success";
+  if (action.startsWith("project.api_key")) return "warning";
   if (action.startsWith("project.pause") || action.startsWith("project.delete"))
     return "warning";
   if (action.startsWith("auth")) return "primary";

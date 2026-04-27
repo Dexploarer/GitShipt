@@ -7,9 +7,13 @@ import { exportAuditCsv } from "@/app/admin/actions";
 
 export function ExportAuditButton({
   prefix,
+  targetId,
+  targetType,
   sinceMs,
 }: {
   prefix?: string;
+  targetId?: string;
+  targetType?: string;
   sinceMs: number;
 }) {
   const [busy, setBusy] = React.useState(false);
@@ -17,7 +21,12 @@ export function ExportAuditButton({
   async function handle() {
     setBusy(true);
     try {
-      const res = await exportAuditCsv({ prefix, sinceMs });
+      const res = await exportAuditCsv({
+        prefix,
+        targetId,
+        targetType,
+        sinceMs,
+      });
       const blob = new Blob([res.csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

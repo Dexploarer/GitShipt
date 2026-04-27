@@ -2,8 +2,9 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { verifyApiKey } from "@/lib/queries/api-keys";
 import type { ApiKeyRow } from "@/db/schema";
+import type { ProjectApiKeyScope } from "@repo/shared";
 
-export type ProjectApiKeyScope = "read" | "write" | "admin";
+type StoredApiKeyScope = ProjectApiKeyScope | "read" | "*";
 
 export function readPresentedApiKey(req: Request): string | null {
   const authorization = req.headers.get("authorization");
@@ -17,16 +18,18 @@ export function readPresentedApiKey(req: Request): string | null {
 export async function verifyProjectApiKey(
   req: Request,
   projectId: string,
-  requiredScope: ProjectApiKeyScope = "read",
+  requiredScope: ProjectApiKeyScope = "read:project",
 ): Promise<
-  | { ok: true; apiKey: ApiKeyRow }
-  | { ok: false; response: NextResponse }
+  { ok: true; apiKey: ApiKeyRow } | { ok: false; response: NextResponse }
 > {
   const presentedKey = readPresentedApiKey(req);
   if (!presentedKey) {
     return {
       ok: false,
-      response: NextResponse.json({ error: "api_key_required" }, { status: 401 }),
+      response: NextResponse.json(
+        { error: "api_key_required" },
+        { status: 401 },
+      ),
     };
   }
 
@@ -34,7 +37,10 @@ export async function verifyProjectApiKey(
   if (!apiKey) {
     return {
       ok: false,
-      response: NextResponse.json({ error: "invalid_api_key" }, { status: 401 }),
+      response: NextResponse.json(
+        { error: "invalid_api_key" },
+        { status: 401 },
+      ),
     };
   }
 
@@ -48,8 +54,14 @@ export async function verifyProjectApiKey(
     };
   }
 
-  const scopes = apiKey.scopes ?? [];
-  if (!scopes.includes("*") && !scopes.includes(requiredScope)) {
+  const scopes = (apiKey.scopes ?? []) as StoredApiKeyScope[];
+  const legacyReadAllowed =
+    scopes.includes("read") && requiredScope.startsWith("read:");
+  if (
+    !scopes.includes("*") &&
+    !scopes.includes(requiredScope) &&
+    !legacyReadAllowed
+  ) {
     return {
       ok: false,
       response: NextResponse.json(

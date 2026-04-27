@@ -8,7 +8,12 @@ export const dynamic = "force-dynamic";
 export default async function AdminAuditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ prefix?: string; sinceHours?: string }>;
+  searchParams: Promise<{
+    prefix?: string;
+    sinceHours?: string;
+    targetId?: string;
+    targetType?: string;
+  }>;
 }) {
   const sp = await searchParams;
   await requireAdminPage("admin.audit.read", "/admin/audit");
@@ -18,6 +23,8 @@ export default async function AdminAuditPage({
   const sinceMs = Date.now() - sinceHours * 60 * 60 * 1000;
   const rows = await getAuditLogs({
     actionPrefix: sp.prefix,
+    targetId: sp.targetId,
+    targetType: sp.targetType,
     sinceMs,
     limit: 500,
   });
@@ -31,13 +38,21 @@ export default async function AdminAuditPage({
             Last {sinceHours}h · {rows.length} entries · append-only.
           </p>
         </div>
-        <ExportAuditButton prefix={sp.prefix} sinceMs={sinceMs} />
+        <ExportAuditButton
+          prefix={sp.prefix}
+          targetId={sp.targetId}
+          targetType={sp.targetType}
+          sinceMs={sinceMs}
+        />
       </header>
 
       <AuditLogViewer
         rows={rows}
         activePrefix={sp.prefix ?? "all"}
         basePath="/admin/audit"
+        targetId={sp.targetId}
+        targetType={sp.targetType}
+        sinceHours={sinceHours}
       />
     </div>
   );

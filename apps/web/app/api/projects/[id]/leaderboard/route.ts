@@ -31,7 +31,7 @@ export async function GET(
 
   const hasApiKey = Boolean(readPresentedApiKey(req));
   if (hasApiKey) {
-    const apiKeyAuth = await verifyProjectApiKey(req, id, "read");
+    const apiKeyAuth = await verifyProjectApiKey(req, id, "read:leaderboard");
     if (!apiKeyAuth.ok) return apiKeyAuth.response;
   }
 
@@ -44,6 +44,8 @@ export async function GET(
   });
 
   const response = NextResponse.json(payload);
-  if (hasApiKey) response.headers.set("x-gitbags-api-key-auth", "read");
+  if (hasApiKey) {
+    response.headers.set("x-gitbags-api-key-auth", "read:leaderboard");
+  }
   return response;
 }

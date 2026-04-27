@@ -4,6 +4,10 @@ import bs58 from "bs58";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { dbHttp } from "@/db";
 import { apiKeys, type ApiKeyRow } from "@/db/schema";
+import {
+  ProjectApiKeyScopesSchema,
+  type ProjectApiKeyScope,
+} from "@repo/shared";
 
 /**
  * Project API key helpers. All callers must `requirePermission('project.update')`
@@ -26,6 +30,7 @@ export interface ApiKeyListItem {
   name: string;
   prefix: string;
   lastFourPlain: string;
+  scopes: ProjectApiKeyScope[];
   lastUsedAt: Date | null;
   createdAt: Date;
   createdByUserId: string;
@@ -54,7 +59,9 @@ export async function createApiKey(
   projectId: string,
   name: string,
   createdByUserId: string,
+  scopes: ProjectApiKeyScope[],
 ): Promise<CreateApiKeyResult> {
+  const validatedScopes = ProjectApiKeyScopesSchema.parse(scopes);
   const rawKey = generateRawKey();
   const hashedKey = hashKey(rawKey);
   const prefix = rawKey.slice(0, 8);
@@ -69,7 +76,7 @@ export async function createApiKey(
       hashedKey,
       lastFourPlain,
       createdByUserId,
-      scopes: ["read"],
+      scopes: validatedScopes,
     })
     .returning();
 
@@ -93,16 +100,18 @@ export async function listApiKeysForProject(
       name: apiKeys.name,
       prefix: apiKeys.prefix,
       lastFourPlain: apiKeys.lastFourPlain,
+      scopes: apiKeys.scopes,
       lastUsedAt: apiKeys.lastUsedAt,
       createdAt: apiKeys.createdAt,
       createdByUserId: apiKeys.createdByUserId,
     })
     .from(apiKeys)
-    .where(
-      and(eq(apiKeys.projectId, projectId), isNull(apiKeys.revokedAt)),
-    )
+    .where(and(eq(apiKeys.projectId, projectId), isNull(apiKeys.revokedAt)))
     .orderBy(desc(apiKeys.createdAt));
-  return rows;
+  return rows.map((row) => ({
+    ...row,
+    scopes: normalizeStoredScopes(row.scopes),
+  }));
 }
 
 /**
@@ -141,4 +150,15 @@ export async function verifyApiKey(rawKey: string): Promise<ApiKeyRow | null> {
     .set({ lastUsedAt: new Date() })
     .where(eq(apiKeys.id, row.id));
   return row;
+}
+
+function normalizeStoredScopes(scopes: string[] | null): ProjectApiKeyScope[] {
+  const parsed = ProjectApiKeyScopesSchema.safeParse(scopes ?? []);
+  if (parsed.success) return parsed.data;
+
+  if ((scopes ?? []).includes("read")) {
+    return ["read:project", "read:leaderboard", "read:payouts", "read:token"];
+  }
+
+  return ["read:leaderboard"];
 }

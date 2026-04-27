@@ -12,9 +12,8 @@ import { cn } from "@repo/lib";
  * Per PRD § "Critical action gates":
  *  - Reason textarea (min 20 chars, validated client-side AND server-side).
  *  - Type-the-target-name confirmation.
- *  - MFA reverify stub (for v0 we collect a 6-digit TOTP code optionally and
- *    pass `mfaConfirmedAtMs = Date.now()` when the user has typed it; v1.1
- *    will validate the code against the user's encrypted secret).
+ *  - MFA reverify against POST /api/auth/mfa/verify. The server action then
+ *    reads the Redis-backed MFA confirmation; client timestamps are telemetry.
  *
  * Caller passes an `action` async function that should call the relevant
  * Server Action with the validated payload.
@@ -44,6 +43,7 @@ export interface DestructiveConfirmModalProps {
 }
 
 const REASON_MIN = 20;
+const MFA_CODE_RE = /^\d{6}$/;
 
 export function DestructiveConfirmModal({
   open,
@@ -149,7 +149,8 @@ export function DestructiveConfirmModal({
 
   const reasonOk = reason.trim().length >= REASON_MIN;
   const typedOk = typed === targetName;
-  const canSubmit = reasonOk && typedOk && !busy;
+  const mfaOk = MFA_CODE_RE.test(mfa);
+  const canSubmit = reasonOk && typedOk && mfaOk && !busy;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -157,9 +158,7 @@ export function DestructiveConfirmModal({
     setBusy(true);
     setError(null);
     try {
-      // v0 MFA stub: when the operator types any 6-digit code we treat MFA as
-      // freshly confirmed. v1.1 will validate the TOTP server-side.
-      const mfaConfirmedAtMs = /^\d{6}$/.test(mfa) ? Date.now() : undefined;
+      const mfaConfirmedAtMs = await verifyMfa(mfa);
       await action({
         reason: reason.trim(),
         typedConfirmation: typed,
@@ -260,10 +259,11 @@ export function DestructiveConfirmModal({
           </Field>
 
           <Field
-            label="MFA code (optional, v1.1 will require)"
+            label="MFA code"
             hint={
               <span className="text-caption text-fg-muted">6-digit TOTP</span>
             }
+            error={!mfaOk && mfa.length > 0 ? "Enter 6 digits" : null}
           >
             <input
               value={mfa}
@@ -272,6 +272,7 @@ export function DestructiveConfirmModal({
               }
               inputMode="numeric"
               pattern="\d{6}"
+              required
               className={cn(
                 "w-full rounded-md border border-border bg-surface-elevated px-3 py-2",
                 "text-mono-sm tracking-widest text-fg placeholder:text-fg-muted",
@@ -317,6 +318,58 @@ export function DestructiveConfirmModal({
       </Card>
     </div>
   );
+}
+
+async function verifyMfa(token: string): Promise<number | undefined> {
+  const idempotencyKey =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `mfa-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  const res = await fetch("/api/auth/mfa/verify", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": idempotencyKey,
+    },
+    body: JSON.stringify({ token }),
+  });
+
+  const body: unknown = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(readMfaError(body, res.status));
+  }
+
+  if (
+    body &&
+    typeof body === "object" &&
+    "confirmedAt" in body &&
+    typeof body.confirmedAt === "string"
+  ) {
+    const ts = Date.parse(body.confirmedAt);
+    return Number.isFinite(ts) ? ts : undefined;
+  }
+
+  return undefined;
+}
+
+function readMfaError(body: unknown, status: number): string {
+  if (!body || typeof body !== "object" || !("error" in body)) {
+    return `MFA verification failed (${status}).`;
+  }
+
+  switch (body.error) {
+    case "not_enrolled":
+      return "MFA is not enrolled for this account. Enroll MFA before using destructive admin actions.";
+    case "invalid_token":
+      return "MFA code is invalid or expired.";
+    case "rate_limited":
+      return "Too many MFA attempts. Wait a moment, then try again.";
+    case "db_unavailable":
+      return "MFA verification needs the database connection.";
+    default:
+      return `MFA verification failed: ${String(body.error)}.`;
+  }
 }
 
 /** Selectors for elements that can receive keyboard focus. */

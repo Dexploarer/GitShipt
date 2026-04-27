@@ -425,6 +425,71 @@ export async function updateFeesBps(
   return { ok: true, bps: parsed.bps };
 }
 
+const UpdateProjectFeeShareSchema = DestructiveBaseSchema.extend({
+  projectId: z.string().min(1),
+  bps: z.number().int().min(0).max(2000),
+});
+
+export async function updateProjectPlatformFeeBps(
+  input: unknown,
+): Promise<{ ok: true; bps: number }> {
+  const parsed = UpdateProjectFeeShareSchema.parse(input);
+  const ctx = await requireSession();
+
+  const [proj] = await dbHttp
+    .select({
+      id: projects.id,
+      name: projects.name,
+      status: projects.status,
+      platformFeeBps: projects.platformFeeBps,
+      bagsConfigKey: projects.bagsConfigKey,
+    })
+    .from(projects)
+    .where(eq(projects.id, parsed.projectId))
+    .limit(1);
+  if (!proj) throw new Error("project_not_found");
+
+  if (proj.status !== "draft" || proj.bagsConfigKey) {
+    throw new Error("fee_share_locked_after_launch_config");
+  }
+
+  await destructiveAction(
+    {
+      actorUserId: ctx.userId,
+      permission: "platform.fees.update",
+      projectId: proj.id,
+      reason: parsed.reason,
+      targetName: proj.name,
+      typedConfirmation: parsed.typedConfirmation,
+      mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+      ip: ctx.ip,
+      userAgent: ctx.userAgent,
+    },
+    {
+      action: "fees.update",
+      targetType: "project",
+      targetId: proj.id,
+      metadata: {
+        kind: "project_platform_fee_bps",
+        previousBps: proj.platformFeeBps,
+        bps: parsed.bps,
+        contributorPoolBps: 10_000 - parsed.bps,
+      },
+    },
+    async () => {
+      await dbHttp
+        .update(projects)
+        .set({ platformFeeBps: parsed.bps, updatedAt: new Date() })
+        .where(eq(projects.id, proj.id));
+    },
+  );
+
+  revalidatePath(`/admin/projects/${proj.id}`);
+  revalidatePath("/admin/fees");
+  await updateProjectCaches(proj.id);
+  return { ok: true, bps: parsed.bps };
+}
+
 // ---------------------------------------------------------------------------
 // Kill switch + maintenance
 // ---------------------------------------------------------------------------
@@ -810,6 +875,8 @@ export async function updatePayoutConfig(
 
 const AuditExportSchema = z.object({
   prefix: z.string().optional(),
+  targetId: z.string().optional(),
+  targetType: z.string().optional(),
   sinceMs: z.number().int().positive().optional(),
 });
 
@@ -822,6 +889,8 @@ export async function exportAuditCsv(
   const { getAuditLogs } = await import("@/lib/queries/admin");
   const rows = await getAuditLogs({
     actionPrefix: parsed.prefix,
+    targetId: parsed.targetId,
+    targetType: parsed.targetType,
     sinceMs: parsed.sinceMs,
     limit: 500,
   });
@@ -855,7 +924,12 @@ export async function exportAuditCsv(
     action: "admin.access",
     targetType: "audit_log",
     targetId: "csv_export",
-    metadata: { prefix: parsed.prefix ?? null, count: rows.length },
+    metadata: {
+      prefix: parsed.prefix ?? null,
+      targetId: parsed.targetId ?? null,
+      targetType: parsed.targetType ?? null,
+      count: rows.length,
+    },
     ip: ctx.ip,
     userAgent: ctx.userAgent,
   });
