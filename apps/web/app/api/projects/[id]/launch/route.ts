@@ -268,7 +268,9 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
         const tokenInfo = await bags.createTokenInfo({
           name: project.name,
           symbol: deriveSymbolFromName(project.name),
-          description: project.description ?? undefined,
+          description:
+            project.description?.trim() ||
+            defaultTokenDescription(project.ghOwner, project.ghRepo),
           imageUrl: project.imageUrl ?? "https://gitbags.xyz/og/default.png",
           website: project.tokenWebsiteUrl ?? undefined,
           twitter: project.tokenTwitterUrl ?? undefined,
@@ -310,7 +312,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
               bps: 10_000 - project.platformFeeBps,
             },
           ],
-          platformFeeWallet: payoutWallet ?? undefined,
+          platformFeeWallet: serverEnv().SOLANA_TREASURY_ADDRESS,
           shareFee: project.platformFeeBps,
         });
 
@@ -448,6 +450,10 @@ function deriveSymbolFromName(name: string): string {
     .replace(/[^A-Z0-9]/g, "")
     .slice(0, 10);
   return cleaned || "GBAGS";
+}
+
+function defaultTokenDescription(owner: string, repo: string): string {
+  return `Token for ${owner}/${repo}. Fees redistribute to top contributors daily.`;
 }
 
 function serverEnvCluster(): string {

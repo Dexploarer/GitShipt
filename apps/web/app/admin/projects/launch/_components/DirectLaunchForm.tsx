@@ -44,7 +44,7 @@ export function DirectLaunchForm() {
         ghInstallationId: optional(form, "ghInstallationId"),
         name: read(form, "name"),
         symbol: read(form, "symbol").toUpperCase(),
-        description: optional(form, "description"),
+        description: read(form, "description"),
         imageUrl: read(form, "imageUrl"),
         website: optional(form, "website"),
         twitter: optional(form, "twitter"),
@@ -98,8 +98,8 @@ export function DirectLaunchForm() {
             <Field label="Symbol" name="symbol" required maxLength={10} />
             <Field label="Image URL" name="imageUrl" required type="url" />
             <Field label="Website" name="website" type="url" />
-            <Field label="Twitter/X" name="twitter" />
-            <Field label="Telegram" name="telegram" />
+            <Field label="Twitter/X" name="twitter" type="url" />
+            <Field label="Telegram" name="telegram" type="url" />
           </fieldset>
 
           <label className="block space-y-1.5">
@@ -107,6 +107,8 @@ export function DirectLaunchForm() {
             <textarea
               name="description"
               rows={4}
+              required
+              maxLength={1000}
               className="w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-fg outline-none focus:border-primary"
             />
           </label>

@@ -24,21 +24,23 @@ export const TokenMetadataSchema = z.object({
     .regex(/^[A-Z0-9]+$/, "Uppercase letters and numbers only"),
   description: z
     .string()
-    .max(2000, "Max 2000 characters")
-    .optional()
-    .or(z.literal("")),
+    .trim()
+    .min(1, "Description is required")
+    .max(1000, "Max 1000 characters"),
   imageUrl: z.string().url("Must be a valid URL"),
   website: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   twitter: z
     .string()
     .trim()
-    .max(100, "Max 100 characters")
+    .url("Must be a full URL")
+    .max(200, "Max 200 characters")
     .optional()
     .or(z.literal("")),
   telegram: z
     .string()
     .trim()
-    .max(100, "Max 100 characters")
+    .url("Must be a full URL")
+    .max(200, "Max 200 characters")
     .optional()
     .or(z.literal("")),
 });
@@ -116,11 +118,11 @@ export const CreateProjectBodySchema = z.object({
     .min(1)
     .max(10)
     .regex(/^[A-Z0-9]+$/),
-  description: z.string().max(2000).optional(),
+  description: z.string().trim().min(1).max(1000),
   imageUrl: z.string().url(),
   website: z.string().url().optional(),
-  twitter: z.string().trim().max(100).optional(),
-  telegram: z.string().trim().max(100).optional(),
+  twitter: z.string().trim().url().max(200).optional(),
+  telegram: z.string().trim().url().max(200).optional(),
   scoringConfig: ScoringConfigSchema,
   payoutConfig: PayoutConfigSchema,
   platformFeeBps: z.number().int().min(0).max(2000),

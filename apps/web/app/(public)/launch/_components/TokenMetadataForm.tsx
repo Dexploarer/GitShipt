@@ -58,7 +58,7 @@ export function TokenMetadataForm({
     defaultValues: initial ?? {
       name: repo.name.slice(0, 32),
       symbol: deriveSymbol(repo.name),
-      description: repo.description ?? "",
+      description: defaultDescription(repo),
       imageUrl: repo.ownerAvatarUrl,
     },
   });
@@ -109,12 +109,13 @@ export function TokenMetadataForm({
 
       <FormField
         label="Description"
-        hint="Optional. Up to 2000 characters. Shows on Bags.fm and your project page."
+        hint="Required. Up to 1000 characters. Shows on Bags.fm and your project page."
         error={errors.description?.message}
+        required
       >
         <textarea
           rows={4}
-          maxLength={2000}
+          maxLength={1000}
           {...register("description")}
           className={cn(
             "w-full rounded-md border border-border-strong bg-surface px-3 py-2",
@@ -145,17 +146,17 @@ export function TokenMetadataForm({
         </FormField>
         <FormField
           label="X / Twitter"
-          hint="Optional URL or handle."
+          hint="Optional full URL."
           error={errors.twitter?.message}
         >
-          <Input type="text" autoComplete="off" {...register("twitter")} />
+          <Input type="url" autoComplete="off" {...register("twitter")} />
         </FormField>
         <FormField
           label="Telegram"
-          hint="Optional URL or handle."
+          hint="Optional full URL."
           error={errors.telegram?.message}
         >
-          <Input type="text" autoComplete="off" {...register("telegram")} />
+          <Input type="url" autoComplete="off" {...register("telegram")} />
         </FormField>
       </div>
 
@@ -176,4 +177,10 @@ export function TokenMetadataForm({
 function deriveSymbol(repoName: string): string {
   const cleaned = repoName.toUpperCase().replace(/[^A-Z0-9]/g, "");
   return cleaned.slice(0, 10) || "GBAGS";
+}
+
+function defaultDescription(repo: GithubRepo): string {
+  const description = repo.description?.trim();
+  if (description) return description.slice(0, 1000);
+  return `Token for ${repo.owner}/${repo.name}. Fees redistribute to top contributors daily.`;
 }

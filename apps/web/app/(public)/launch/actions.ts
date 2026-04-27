@@ -278,7 +278,7 @@ export async function createAndLaunchAction(
         const tokenInfo = await bags.createTokenInfo({
           name: validated.name,
           symbol: validated.symbol,
-          description: validated.description ?? undefined,
+          description: validated.description,
           imageUrl: validated.imageUrl,
           website: validated.website,
           twitter: validated.twitter,
@@ -317,7 +317,7 @@ export async function createAndLaunchAction(
               bps: 10_000 - validated.platformFeeBps,
             },
           ],
-          platformFeeWallet: payoutWallet ?? undefined,
+          platformFeeWallet: serverEnv().SOLANA_TREASURY_ADDRESS,
           shareFee: validated.platformFeeBps,
         });
 
