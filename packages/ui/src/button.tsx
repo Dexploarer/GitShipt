@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
+import { Slot } from "radix-ui";
 import { cn } from "@repo/lib";
 
 /**
@@ -31,12 +32,10 @@ const buttonVariants = cva(
           "bg-surface-elevated text-fg border border-border-strong shadow-card-elevated hover:bg-surface-overlay",
         ghost:
           "bg-transparent text-fg-secondary hover:bg-surface-elevated hover:text-fg",
-        danger:
-          "bg-danger text-fg shadow-card-elevated hover:brightness-110",
+        danger: "bg-danger text-fg shadow-card-elevated hover:brightness-110",
         outline:
           "bg-transparent text-fg border border-border-strong hover:bg-surface-elevated",
-        link:
-          "bg-transparent text-fg-secondary hover:text-fg underline-offset-4 hover:underline",
+        link: "bg-transparent text-fg-secondary hover:text-fg underline-offset-4 hover:underline",
       },
       size: {
         sm: "h-8 px-3 text-label-sm",
@@ -51,43 +50,28 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 
-// Tiny Slot replacement (avoids pulling in @radix-ui). Renders the only child
-// with merged className and props. If asChild is true, the child must accept
-// className + ref; we just clone with merged className.
-function SlotPolyfill({
-  asChild,
-  className,
-  children,
-  ...rest
-}: { asChild?: boolean; className?: string; children: React.ReactNode } & Record<string, unknown>) {
-  if (asChild && React.isValidElement<{ className?: string }>(children)) {
-    return React.cloneElement(children, {
-      ...rest,
-      className: cn((children.props as { className?: string }).className, className),
-    } as React.HTMLAttributes<HTMLElement>);
-  }
-  return null;
-}
-
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  function Button({ className, variant, size, asChild = false, children, ...props }, ref) {
-    const merged = cn(buttonVariants({ variant, size }), className);
-    if (asChild) {
-      return (
-        <SlotPolyfill asChild className={merged} {...props}>
-          {children}
-        </SlotPolyfill>
-      );
-    }
+  function Button(
+    { className, variant, size, asChild = false, ...props },
+    ref,
+  ) {
+    const Comp = asChild ? Slot.Root : "button";
+
     return (
-      <button ref={ref} className={merged} {...props}>
-        {children}
-      </button>
+      <Comp
+        ref={ref}
+        data-slot="button"
+        data-variant={variant}
+        data-size={size}
+        className={cn(buttonVariants({ variant, size }), className)}
+        {...props}
+      />
     );
   },
 );
