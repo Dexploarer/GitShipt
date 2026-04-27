@@ -32,11 +32,11 @@ export type FeeClaimer = z.infer<typeof FeeClaimerSchema>;
 export const TokenInfoInputSchema = z.object({
   name: z.string().min(1).max(32),
   symbol: z.string().min(1).max(10),
-  description: z.string().max(2000).optional(),
+  description: z.string().trim().min(1).max(1000),
   imageUrl: z.string().url(),
   website: z.string().url().optional(),
-  twitter: z.string().min(1).max(100).optional(),
-  telegram: z.string().min(1).max(100).optional(),
+  twitter: z.string().url().max(200).optional(),
+  telegram: z.string().url().max(200).optional(),
 });
 export type TokenInfoInput = z.infer<typeof TokenInfoInputSchema>;
 
@@ -119,11 +119,11 @@ export type LifetimeFees = z.infer<typeof LifetimeFeesSchema>;
 export const LaunchIntentInputSchema = z.object({
   name: z.string().min(1).max(32).optional(),
   symbol: z.string().min(1).max(10).optional(),
-  description: z.string().max(2000).optional(),
+  description: z.string().max(1000).optional(),
   imageUrl: z.string().url().optional(),
   website: z.string().url().optional(),
-  twitter: z.string().min(1).max(100).optional(),
-  telegram: z.string().min(1).max(100).optional(),
+  twitter: z.string().url().max(200).optional(),
+  telegram: z.string().url().max(200).optional(),
   feeShareBps: z.number().int().min(0).max(10_000).optional(),
   adminWallet: z.string().min(32).optional(),
   partner: z.string().min(32).optional(),

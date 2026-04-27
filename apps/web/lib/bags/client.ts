@@ -353,6 +353,46 @@ function isSocialClaimer(
   return "provider" in claimer;
 }
 
+function resolvePlatformFeeWallet(
+  input: FeeShareConfigInput,
+  env: ReturnType<typeof serverEnv>,
+): string | null {
+  if (input.shareFee <= 0) return null;
+  const wallet = input.platformFeeWallet ?? env.SOLANA_TREASURY_ADDRESS;
+  if (!wallet) {
+    throw new Error(
+      "SOLANA_TREASURY_ADDRESS is required when platformFeeBps is greater than 0.",
+    );
+  }
+  if (wallet === input.payer) {
+    throw new Error(
+      "SOLANA_TREASURY_ADDRESS must be distinct from the payout wallet when platformFeeBps is greater than 0.",
+    );
+  }
+  return wallet;
+}
+
+function resolveRequiredPartnerPair(
+  input: FeeShareConfigInput,
+  env: ReturnType<typeof serverEnv>,
+): { partnerWallet?: string; partnerConfigKey?: string } {
+  const partnerWallet = input.partner ?? env.BAGS_PARTNER_WALLET;
+  const partnerConfigKey = input.partnerConfig ?? env.BAGS_PARTNER_CONFIG_KEY;
+
+  if (partnerWallet && !partnerConfigKey) {
+    throw new Error(
+      "BAGS_PARTNER_CONFIG_KEY is required when BAGS_PARTNER_WALLET is configured.",
+    );
+  }
+  if (!partnerWallet && partnerConfigKey) {
+    throw new Error(
+      "BAGS_PARTNER_WALLET is required when BAGS_PARTNER_CONFIG_KEY is configured.",
+    );
+  }
+
+  return { partnerWallet, partnerConfigKey };
+}
+
 function extractSubmittedSignature(raw: unknown): string {
   const parsed = SubmitTransactionResponseSchema.parse(raw);
   return typeof parsed === "string" ? parsed : parsed.response;
@@ -489,11 +529,15 @@ export const bags = {
       );
     }
 
-    const platformFeeWallet =
-      validated.platformFeeWallet ??
-      env.SOLANA_TREASURY_ADDRESS ??
-      validated.payer;
-    addFeeClaimer(claimerBpsByWallet, platformFeeWallet, validated.shareFee);
+    const platformFeeWallet = resolvePlatformFeeWallet(validated, env);
+    if (platformFeeWallet) {
+      if (claimerBpsByWallet.has(platformFeeWallet)) {
+        throw new Error(
+          "SOLANA_TREASURY_ADDRESS must be distinct from contributor pool fee claimers.",
+        );
+      }
+      addFeeClaimer(claimerBpsByWallet, platformFeeWallet, validated.shareFee);
+    }
 
     const feeClaimers = Array.from(claimerBpsByWallet, ([wallet, bps]) => ({
       user: new PublicKey(wallet),
@@ -509,9 +553,10 @@ export const bags = {
       );
     }
 
-    const partnerWallet = validated.partner ?? env.BAGS_PARTNER_WALLET;
-    const partnerConfigKey =
-      validated.partnerConfig ?? env.BAGS_PARTNER_CONFIG_KEY;
+    const { partnerWallet, partnerConfigKey } = resolveRequiredPartnerPair(
+      validated,
+      env,
+    );
     const payer = new PublicKey(validated.payer);
     const result = await sdk.config.createBagsFeeShareConfig({
       payer,
@@ -702,8 +747,8 @@ export const bags = {
     const partnerWallet = validated.partner ?? env.BAGS_PARTNER_WALLET;
     const partnerConfigKey =
       validated.partnerConfig ?? env.BAGS_PARTNER_CONFIG_KEY;
-    if (partnerWallet) url.searchParams.set("partner", partnerWallet);
-    if (partnerConfigKey) {
+    if (partnerWallet && partnerConfigKey) {
+      url.searchParams.set("partner", partnerWallet);
       url.searchParams.set("partnerConfig", partnerConfigKey);
     }
     if (validated.tokenizeEquity !== undefined) {

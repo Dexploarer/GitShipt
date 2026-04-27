@@ -237,6 +237,10 @@ export function productionReadiness(): ProductionReadiness {
     missing.push("BAGS_PARTNER_CONFIG_KEY");
   }
 
+  if (env.PLATFORM_FEE_BPS_DEFAULT > 0 && !env.SOLANA_TREASURY_ADDRESS) {
+    missing.push("SOLANA_TREASURY_ADDRESS");
+  }
+
   if (!env.BAGS_API_BASE_URL.startsWith("https://public-api-v2.bags.fm/")) {
     warnings.push("BAGS_API_BASE_URL is not the canonical public API host.");
   }
