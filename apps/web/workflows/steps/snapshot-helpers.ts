@@ -171,7 +171,7 @@ export async function freezeSnapshot(args: {
   enterDbWorkflowContext("snapshot-helpers:freezeSnapshot");
   const takenAt = args.takenAtISO ? new Date(args.takenAtISO) : new Date();
   const snapshotPeriod = normalizeSnapshotPeriod(args.snapshotPeriod, takenAt);
-  const merkleRoot = computeMerkleRoot(
+  const merkleRoot = await computeMerkleRoot(
     args.leaderboard.map((e) => ({
       contributorId: e.contributorId,
       // weight gets us to a per-contributor target; for snapshot integrity

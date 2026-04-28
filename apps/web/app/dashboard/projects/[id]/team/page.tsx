@@ -99,7 +99,10 @@ export default async function TeamPage({
                       {m.email}
                     </div>
                   </div>
-                  <Badge variant="default" size="sm">
+                  <Badge
+                    variant={m.role === "project_owner" ? "info" : "default"}
+                    size="sm"
+                  >
                     {m.role.replace("project_", "")}
                   </Badge>
                   <span className="text-caption text-fg-muted">

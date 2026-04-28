@@ -95,7 +95,7 @@ export default async function ContributorProfilePage({
                 {displayName}
               </h1>
               {gh ? (
-                <Badge variant="default" size="sm">
+                <Badge variant="success" size="sm" dot dotColor="success">
                   GitHub verified
                 </Badge>
               ) : null}

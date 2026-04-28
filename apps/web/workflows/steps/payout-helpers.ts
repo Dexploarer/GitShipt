@@ -3,7 +3,6 @@
  * workflows/executePayout.ts. Every function returns JSON-serializable
  * data; lamports are encoded as decimal strings.
  */
-import { createHash } from "crypto";
 import { dbHttp, dbPool, schema } from "@/db";
 import {
   payouts,
@@ -22,7 +21,7 @@ import {
   stubsAllowed,
   serverEnv,
 } from "@/lib/env";
-import { computeMerkleRoot } from "@/lib/payouts/merkle";
+import { computeMerkleRoot, sha256Hex } from "@/lib/payouts/merkle";
 import { computeDistributionPlan } from "@/lib/payouts/distribution";
 import { loadContributorWallets } from "./snapshot-helpers";
 import {
@@ -70,14 +69,12 @@ export interface SnapshotContextJson {
 }
 
 /** Build the deterministic idempotency key used on payout_recipients. */
-export function recipientIdempotencyKey(
+export async function recipientIdempotencyKey(
   projectId: string,
   snapshotPeriod: string,
   contributorId: string,
-): string {
-  return createHash("sha256")
-    .update(`${projectId}|${snapshotPeriod}|${contributorId}`)
-    .digest("hex");
+): Promise<string> {
+  return sha256Hex(`${projectId}|${snapshotPeriod}|${contributorId}`);
 }
 
 /** True when we should skip on-chain transactions and just record the plan. */
@@ -319,18 +316,20 @@ export async function buildPlan(
     walletRoutes,
   );
 
-  return plan.map((row) => ({
-    contributorId: row.contributorId,
-    rank: row.rank,
-    weight: row.weight,
-    amountLamports: row.amountLamports.toString(),
-    walletAddress: row.walletAddress,
-    idempotencyKey: recipientIdempotencyKey(
-      ctxJson.project.id,
-      ctxJson.snapshot.snapshotPeriod,
-      row.contributorId,
-    ),
-  }));
+  return Promise.all(
+    plan.map(async (row) => ({
+      contributorId: row.contributorId,
+      rank: row.rank,
+      weight: row.weight,
+      amountLamports: row.amountLamports.toString(),
+      walletAddress: row.walletAddress,
+      idempotencyKey: await recipientIdempotencyKey(
+        ctxJson.project.id,
+        ctxJson.snapshot.snapshotPeriod,
+        row.contributorId,
+      ),
+    })),
+  );
 }
 
 /** Sanity cap check on the cycle total. */
@@ -378,12 +377,12 @@ export async function persistPayoutPlan(args: {
   // Compute the amount-tree merkle root (vs. the weight-tree at freeze time).
   const merkleRoot =
     args.merkleRootOverride ??
-    computeMerkleRoot(
+    (await computeMerkleRoot(
       args.plan.map((p) => ({
         contributorId: p.contributorId,
         amountLamports: BigInt(p.amountLamports),
       })),
-    );
+    ));
 
   return await db.transaction(async (tx) => {
     await applyDbRlsContext(tx, {
