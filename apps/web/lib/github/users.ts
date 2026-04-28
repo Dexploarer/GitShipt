@@ -1,9 +1,8 @@
 import "server-only";
-import { Octokit } from "@octokit/rest";
-import { redis } from "@/lib/redis";
+import { z } from "zod";
 import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { fetchGitHubJsonWithEtag } from "@/lib/github/http-cache";
 import {
-  GitHubUserProfileCacheSchema,
   GitHubUserProfileSchema,
   type GitHubUserProfile,
 } from "@repo/shared";
@@ -27,37 +26,39 @@ export type { GitHubUserProfile };
 const CACHE_PREFIX = "gh:user:";
 const CACHE_TTL_SECONDS = 60 * 30; // 30 minutes
 
-let _publicOctokit: Octokit | null = null;
-function publicOctokit(): Octokit {
-  if (_publicOctokit) return _publicOctokit;
-  _publicOctokit = new Octokit();
-  return _publicOctokit;
-}
+const GitHubUserApiSchema = z
+  .object({
+    login: z.string(),
+    id: z.number().int(),
+    name: z.string().nullable().optional(),
+    bio: z.string().nullable().optional(),
+    company: z.string().nullable().optional(),
+    location: z.string().nullable().optional(),
+    blog: z.string().nullable().optional(),
+    email: z.string().nullable().optional(),
+    twitter_username: z.string().nullable().optional(),
+    avatar_url: z.string().url(),
+    html_url: z.string().url(),
+    public_repos: z.number().int().min(0).optional(),
+    followers: z.number().int().min(0).optional(),
+    following: z.number().int().min(0).optional(),
+    created_at: z.string(),
+  })
+  .loose();
 
 async function getGitHubUserUncached(
   username: string,
 ): Promise<GitHubUserProfile | null> {
   if (!username) return null;
 
-  const cacheKey = `${CACHE_PREFIX}${username.toLowerCase()}`;
-  const r = redis();
-
-  if (r) {
-    try {
-      const cached = await r.get(cacheKey);
-      if (cached) {
-        const parsed = GitHubUserProfileCacheSchema.parse(JSON.parse(cached));
-        if ("__null" in parsed) return null;
-        return parsed;
-      }
-    } catch {
-      // Cache miss / Redis unavailable — fall through to live fetch.
-    }
-  }
-
   let profile: GitHubUserProfile | null = null;
   try {
-    const { data } = await publicOctokit().users.getByUsername({ username });
+    const data = await fetchGitHubJsonWithEtag(
+      `${CACHE_PREFIX}${username.toLowerCase()}`,
+      `https://api.github.com/users/${encodeURIComponent(username)}`,
+      GitHubUserApiSchema,
+      { ttlSeconds: CACHE_TTL_SECONDS },
+    );
     profile = GitHubUserProfileSchema.parse({
       login: data.login,
       id: data.id,
@@ -70,9 +71,9 @@ async function getGitHubUserUncached(
       twitterUsername: data.twitter_username ?? null,
       avatarUrl: data.avatar_url,
       htmlUrl: data.html_url,
-      publicRepos: data.public_repos,
-      followers: data.followers,
-      following: data.following,
+      publicRepos: data.public_repos ?? 0,
+      followers: data.followers ?? 0,
+      following: data.following ?? 0,
       createdAt: data.created_at,
     });
   } catch (e) {
@@ -82,19 +83,6 @@ async function getGitHubUserUncached(
       console.warn(`[gh:user:${username}] fetch failed`, e);
     }
     profile = null;
-  }
-
-  if (r) {
-    try {
-      await r.set(
-        cacheKey,
-        JSON.stringify(profile ?? { __null: true }),
-        "EX",
-        CACHE_TTL_SECONDS,
-      );
-    } catch {
-      // Cache write failure is non-fatal.
-    }
   }
 
   return profile;

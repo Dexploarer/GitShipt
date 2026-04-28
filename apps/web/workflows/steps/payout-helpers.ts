@@ -34,6 +34,10 @@ import { applyDbRlsContext, enterDbWorkflowContext } from "@/lib/db-rls";
 
 void schema; // keep referenced for future use
 
+const MANUAL_RECONCILIATION_ERROR =
+  "manual_reconciliation_required_external_side_effect_may_have_succeeded";
+const SENDING_RECONCILIATION_AFTER_MS = 10 * 60 * 1000;
+
 /**
  * JSON-safe row used at workflow step boundaries — bigints encoded as
  * decimal strings, never raw bigint or Date.
@@ -265,18 +269,31 @@ export async function claimBagsFees(args: {
   const conn = solanaConnection("confirmed");
 
   const sigs: string[] = [];
-  for (const txUnknown of transactions) {
-    if (
-      txUnknown instanceof VersionedTransaction ||
-      txUnknown instanceof Transaction
-    ) {
-      const sig = await bags.signAndSubmitTransaction(txUnknown);
-      await conn.confirmTransaction(sig, "confirmed");
-      sigs.push(sig);
-      continue;
-    }
+  try {
+    for (const txUnknown of transactions) {
+      if (
+        txUnknown instanceof VersionedTransaction ||
+        txUnknown instanceof Transaction
+      ) {
+        const sig = await bags.signAndSubmitTransaction(txUnknown, {
+          operation: "Bags fee claim transaction",
+          bagsInstructionPolicy: "fee-claim",
+        });
+        sigs.push(sig);
+        await conn.confirmTransaction(sig, "confirmed");
+        continue;
+      }
 
-    throw new Error("Bags returned an unsupported claim transaction type.");
+      throw new Error("Bags returned an unsupported claim transaction type.");
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (sigs.length > 0) {
+      throw new Error(
+        `${MANUAL_RECONCILIATION_ERROR}:claim_signatures=${sigs.join(",")};${message}`,
+      );
+    }
+    throw error;
   }
   return {
     signature: sigs.length > 0 ? sigs.join(",") : null,
@@ -367,6 +384,7 @@ export async function persistPayoutPlan(args: {
   claimSignature: string | null;
   totalLamportsStr: string;
   stub: boolean;
+  reserveClaimFirst?: boolean;
   merkleRootOverride?: string;
 }): Promise<{ payoutId: string; recipientCount: number }> {
   enterDbWorkflowContext("payout-helpers:persistPayoutPlan");
@@ -400,7 +418,11 @@ export async function persistPayoutPlan(args: {
         snapshotPeriod: args.snapshotPeriod,
         totalAmountLamports: totalLamports,
         claimSignature: args.claimSignature,
-        status: args.stub ? "pending" : "distributing",
+        status: args.stub
+          ? "pending"
+          : args.reserveClaimFirst
+            ? "claiming"
+            : "distributing",
         attemptCount: 1,
         scheduledAt: now,
         startedAt: now,
@@ -472,6 +494,46 @@ export async function persistPayoutPlan(args: {
   });
 }
 
+export async function markPayoutClaimed(
+  payoutId: string,
+  claimSignature: string | null,
+): Promise<void> {
+  enterDbWorkflowContext("payout-helpers:markPayoutClaimed");
+  await dbHttp
+    .update(payouts)
+    .set({
+      claimSignature,
+      status: "distributing",
+      lastError: null,
+    })
+    .where(and(eq(payouts.id, payoutId), eq(payouts.status, "claiming")));
+}
+
+export async function markPayoutFailed(
+  payoutId: string,
+  reason: string,
+): Promise<void> {
+  enterDbWorkflowContext("payout-helpers:markPayoutFailed");
+  await dbHttp
+    .update(payouts)
+    .set({
+      status: "failed",
+      lastError: reason.slice(0, 1_000),
+      executedAt: new Date(),
+    })
+    .where(eq(payouts.id, payoutId));
+}
+
+async function payoutCanDispatch(payoutId: string): Promise<boolean> {
+  if (await isKillSwitchEnabled()) return false;
+  const [row] = await dbHttp
+    .select({ status: payouts.status })
+    .from(payouts)
+    .where(eq(payouts.id, payoutId))
+    .limit(1);
+  return row?.status === "distributing";
+}
+
 /**
  * Dispatch a single recipient: either send SOL (wallet linked) or insert an
  * escrow holding (wallet null). Updates payout_recipients.status accordingly.
@@ -492,12 +554,18 @@ export async function dispatchRecipient(args: {
   enterDbWorkflowContext("payout-helpers:dispatchRecipient");
   const amount = BigInt(args.recipient.amountLamports);
   if (amount <= 0n) return { status: "skipped" };
+  if (!(await payoutCanDispatch(args.payoutId))) {
+    return { status: "skipped" };
+  }
 
   // Read existing row state.
   const [existing] = await dbHttp
     .select({
       id: payoutRecipients.id,
       status: payoutRecipients.status,
+      sendAttemptId: payoutRecipients.sendAttemptId,
+      sendingAt: payoutRecipients.sendingAt,
+      txSignature: payoutRecipients.txSignature,
     })
     .from(payoutRecipients)
     .where(eq(payoutRecipients.idempotencyKey, args.recipient.idempotencyKey))
@@ -512,6 +580,7 @@ export async function dispatchRecipient(args: {
     return { status: "skipped" };
   }
   if (existing.status === "sending") {
+    await markStaleSendingRecipientForReconciliation(existing);
     return { status: "skipped" };
   }
 
@@ -540,6 +609,11 @@ export async function dispatchRecipient(args: {
           and(
             eq(payoutRecipients.id, existing.id),
             inArray(payoutRecipients.status, ["pending", "failed"]),
+            sql`exists (
+              select 1 from payouts p
+              where p.id = ${args.payoutId}
+                and p.status = 'distributing'
+            )`,
           ),
         )
         .returning({ id: payoutRecipients.id });
@@ -574,10 +648,28 @@ export async function dispatchRecipient(args: {
       and(
         eq(payoutRecipients.id, existing.id),
         inArray(payoutRecipients.status, ["pending", "failed"]),
+        sql`exists (
+          select 1 from payouts p
+          where p.id = ${args.payoutId}
+            and p.status = 'distributing'
+        )`,
       ),
     )
     .returning({ id: payoutRecipients.id });
   if (!claimed) return { status: "skipped" };
+
+  if (await isKillSwitchEnabled()) {
+    await dbHttp
+      .update(payoutRecipients)
+      .set({
+        status: "pending",
+        sendAttemptId: null,
+        sendingAt: null,
+        error: "kill_switch_enabled",
+      })
+      .where(eq(payoutRecipients.id, existing.id));
+    return { status: "skipped" };
+  }
 
   let signature: string;
   try {
@@ -602,17 +694,68 @@ export async function dispatchRecipient(args: {
     return { status: "failed" };
   }
 
-  const confirmedAt = new Date();
+  await markRecipientConfirmedWithRetry(existing.id, signature);
+  return { status: "sent", sig: signature };
+}
+
+async function markRecipientConfirmedWithRetry(
+  recipientId: string,
+  signature: string,
+): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const confirmedAt = new Date();
+      await dbHttp
+        .update(payoutRecipients)
+        .set({
+          status: "confirmed",
+          txSignature: signature,
+          sentAt: confirmedAt,
+          confirmedAt,
+          sendAttemptId: null,
+          sendingAt: null,
+          error: null,
+        })
+        .where(eq(payoutRecipients.id, recipientId));
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    }
+  }
+  const message = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(
+    `${MANUAL_RECONCILIATION_ERROR}:recipient=${recipientId};signature=${signature};${message}`,
+  );
+}
+
+async function markStaleSendingRecipientForReconciliation(existing: {
+  id: string;
+  sendAttemptId: string | null;
+  sendingAt: Date | null;
+  txSignature: string | null;
+}): Promise<void> {
+  if (existing.txSignature) {
+    await markRecipientConfirmedWithRetry(existing.id, existing.txSignature);
+    return;
+  }
+  if (!existing.sendingAt) return;
+  if (Date.now() - existing.sendingAt.getTime() < SENDING_RECONCILIATION_AFTER_MS) {
+    return;
+  }
   await dbHttp
     .update(payoutRecipients)
     .set({
-      status: "confirmed",
-      txSignature: signature,
-      sentAt: confirmedAt,
-      confirmedAt,
+      status: "failed",
+      error: `${MANUAL_RECONCILIATION_ERROR}:attempt=${existing.sendAttemptId ?? "unknown"}`,
     })
-    .where(eq(payoutRecipients.id, existing.id));
-  return { status: "sent", sig: signature };
+    .where(
+      and(
+        eq(payoutRecipients.id, existing.id),
+        eq(payoutRecipients.status, "sending"),
+      ),
+    );
 }
 
 /**
@@ -624,7 +767,7 @@ export async function dispatchRecipient(args: {
  * aggregation that filters on status='completed' will correctly skip it.
  */
 export async function finalizePayout(payoutId: string): Promise<{
-  status: "completed" | "failed" | "pending" | "simulated";
+  status: "completed" | "failed" | "pending" | "simulated" | "cancelled";
   totals: {
     sent: number;
     escrow: number;
@@ -634,6 +777,11 @@ export async function finalizePayout(payoutId: string): Promise<{
 }> {
   enterDbWorkflowContext("payout-helpers:finalizePayout");
   const stub = isStubMode();
+  const [payout] = await dbHttp
+    .select({ status: payouts.status })
+    .from(payouts)
+    .where(eq(payouts.id, payoutId))
+    .limit(1);
   const rows = await dbHttp
     .select({ status: payoutRecipients.status })
     .from(payoutRecipients)
@@ -647,8 +795,10 @@ export async function finalizePayout(payoutId: string): Promise<{
     else totals.pending++;
   }
 
-  let status: "completed" | "failed" | "pending" | "simulated";
-  if (stub) {
+  let status: "completed" | "failed" | "pending" | "simulated" | "cancelled";
+  if (payout?.status === "cancelled") {
+    status = "cancelled";
+  } else if (stub) {
     // dispatchStep was skipped — recipients stay 'pending'. The payout
     // terminates as 'simulated', NOT 'completed', so it never lies to the
     // public ledger.
@@ -665,7 +815,7 @@ export async function finalizePayout(payoutId: string): Promise<{
   await dbHttp
     .update(payouts)
     .set({
-      status,
+      ...(status === "cancelled" ? {} : { status }),
       executedAt: now,
       ...(status === "simulated" ? { simulatedAt: now } : {}),
     })

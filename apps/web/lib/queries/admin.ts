@@ -847,33 +847,30 @@ async function getTableRowCountsUncached(): Promise<
   ];
 
   // Cheap reltuples-based estimate. Falls back to 0 on error.
-  const out: Array<{ table: string; rows: number }> = [];
-  for (const t of tableNames) {
-    try {
-      const result = await dbHttp.execute(
-        sql.raw(
-          `SELECT reltuples::bigint AS rows FROM pg_class WHERE relname = '${t}' AND relkind = 'r' LIMIT 1`,
-        ),
-      );
-      const rows = result as unknown as {
-        rows?: Array<{ rows?: string | number }>;
-      };
-      const arr = Array.isArray(rows.rows)
-        ? rows.rows
-        : (rows as unknown as Array<{ rows?: string | number }>);
-      const first = (Array.isArray(arr) ? arr[0] : undefined) as
-        | { rows?: string | number }
-        | undefined;
-      const n = first?.rows;
-      out.push({
-        table: t,
-        rows: typeof n === "string" ? Number(n) : (n ?? 0),
-      });
-    } catch {
-      out.push({ table: t, rows: 0 });
-    }
+  try {
+    const result = await dbHttp.execute<{
+      tableName: string;
+      rowEstimate: string | number;
+    }>(sql`
+      SELECT allowed.name AS "tableName",
+             COALESCE(pg_class.reltuples::bigint, 0) AS "rowEstimate"
+      FROM unnest(${tableNames}::text[]) WITH ORDINALITY AS allowed(name, ord)
+      LEFT JOIN pg_class
+        ON pg_class.relname = allowed.name
+       AND pg_class.relkind = 'r'
+      ORDER BY allowed.ord
+    `);
+
+    return result.rows.map((row) => ({
+      table: row.tableName,
+      rows:
+        typeof row.rowEstimate === "string"
+          ? Number(row.rowEstimate)
+          : row.rowEstimate,
+    }));
+  } catch {
+    return tableNames.map((table) => ({ table, rows: 0 }));
   }
-  return out;
 }
 
 export async function getTableRowCounts(): Promise<

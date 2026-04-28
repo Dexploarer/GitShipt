@@ -1,15 +1,29 @@
 import {
   Keypair,
+  PublicKey,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
 import bs58 from "bs58";
 import { describe, expect, it } from "vitest";
-import { normalizeBagsTransaction } from "./transactions";
+import {
+  assertBagsTransactionSafeToSign,
+  normalizeBagsTransaction,
+} from "./transactions";
 
 const RECENT_BLOCKHASH = "11111111111111111111111111111111";
+const FEE_SHARE_V2_PROGRAM_ID = new PublicKey(
+  "FEE2tBhCKAt7shrod19QttSVREUYPiyMzoku1mL1gqVK",
+);
+const CLAIM_USER_DISCRIMINATOR = Uint8Array.from([
+  164, 64, 55, 199, 90, 78, 147, 188,
+]);
+const UPDATE_FEE_CONFIG_DISCRIMINATOR = Uint8Array.from([
+  104, 184, 103, 242, 88, 151, 107, 20,
+]);
 
 function legacyTransaction(): Transaction {
   const payer = Keypair.generate();
@@ -39,6 +53,22 @@ function versionedTransaction(): VersionedTransaction {
     ],
   }).compileToV0Message();
   return new VersionedTransaction(message);
+}
+
+function bagsInstructionTransaction(data: Uint8Array): Transaction {
+  const signer = Keypair.generate();
+  const tx = new Transaction({
+    feePayer: signer.publicKey,
+    recentBlockhash: RECENT_BLOCKHASH,
+  }).add(
+    new TransactionInstruction({
+      programId: FEE_SHARE_V2_PROGRAM_ID,
+      keys: [{ pubkey: signer.publicKey, isSigner: true, isWritable: true }],
+      data: Buffer.from(data),
+    }),
+  );
+  tx.sign(signer);
+  return tx;
 }
 
 describe("normalizeBagsTransaction", () => {
@@ -75,5 +105,118 @@ describe("normalizeBagsTransaction", () => {
 
     expect(normalized).toBeInstanceOf(VersionedTransaction);
     expect((normalized as VersionedTransaction).version).toBe("legacy");
+  });
+});
+
+describe("assertBagsTransactionSafeToSign", () => {
+  it("rejects transactions that do not require the payout signer", async () => {
+    const signer = Keypair.generate();
+    const tx = legacyTransaction();
+
+    await expect(
+      assertBagsTransactionSafeToSign(tx, signer.publicKey, {
+        operation: "claim",
+      }),
+    ).rejects.toThrow(/does not require the payout signer/);
+  });
+
+  it("rejects direct SOL transfers from the payout signer by default", async () => {
+    const signer = Keypair.generate();
+    const tx = new Transaction({
+      feePayer: signer.publicKey,
+      recentBlockhash: RECENT_BLOCKHASH,
+    }).add(
+      SystemProgram.transfer({
+        fromPubkey: signer.publicKey,
+        toPubkey: Keypair.generate().publicKey,
+        lamports: 1,
+      }),
+    );
+    tx.sign(signer);
+
+    await expect(
+      assertBagsTransactionSafeToSign(tx, signer.publicKey, {
+        operation: "claim",
+      }),
+    ).rejects.toThrow(/direct SOL transfer from the payout signer/);
+  });
+
+  it("allows signer SOL transfers only when the caller explicitly opts in", async () => {
+    const signer = Keypair.generate();
+    const tx = new Transaction({
+      feePayer: signer.publicKey,
+      recentBlockhash: RECENT_BLOCKHASH,
+    }).add(
+      SystemProgram.transfer({
+        fromPubkey: signer.publicKey,
+        toPubkey: Keypair.generate().publicKey,
+        lamports: 1,
+      }),
+    );
+    tx.sign(signer);
+
+    await expect(
+      assertBagsTransactionSafeToSign(tx, signer.publicKey, {
+        operation: "launch",
+        allowSignerSystemTransfer: true,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("allows expected Bags Fee Share v2 instructions for the selected policy", async () => {
+    const signer = Keypair.generate();
+    const tx = new Transaction({
+      feePayer: signer.publicKey,
+      recentBlockhash: RECENT_BLOCKHASH,
+    }).add(
+      new TransactionInstruction({
+        programId: FEE_SHARE_V2_PROGRAM_ID,
+        keys: [{ pubkey: signer.publicKey, isSigner: true, isWritable: true }],
+        data: Buffer.from(CLAIM_USER_DISCRIMINATOR),
+      }),
+    );
+    tx.sign(signer);
+
+    await expect(
+      assertBagsTransactionSafeToSign(tx, signer.publicKey, {
+        operation: "claim",
+        bagsInstructionPolicy: "fee-claim",
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects Bags Fee Share v2 instructions outside the selected policy", async () => {
+    const tx = bagsInstructionTransaction(UPDATE_FEE_CONFIG_DISCRIMINATOR);
+    const signer = tx.signatures[0]?.publicKey;
+    expect(signer).toBeDefined();
+
+    await expect(
+      assertBagsTransactionSafeToSign(tx, signer!, {
+        operation: "claim",
+        bagsInstructionPolicy: "fee-claim",
+      }),
+    ).rejects.toThrow(/unsupported Bags Fee Share v2 instruction/);
+  });
+
+  it("requires a Bags Fee Share v2 instruction when a policy is requested", async () => {
+    const signer = Keypair.generate();
+    const tx = new Transaction({
+      feePayer: signer.publicKey,
+      recentBlockhash: RECENT_BLOCKHASH,
+    }).add(
+      new TransactionInstruction({
+        programId: SystemProgram.programId,
+        keys: [{ pubkey: signer.publicKey, isSigner: true, isWritable: true }],
+        data: Buffer.from([0, 0, 0, 0]),
+      }),
+    );
+    tx.sign(signer);
+
+    await expect(
+      assertBagsTransactionSafeToSign(tx, signer.publicKey, {
+        operation: "claim",
+        bagsInstructionPolicy: "fee-claim",
+      }),
+    ).rejects.toThrow(/without a Bags Fee Share v2 fee-claim instruction/);
   });
 });

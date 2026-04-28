@@ -1,11 +1,14 @@
 import "server-only";
-import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { hasCredentials } from "@/lib/env";
 import { check } from "@/lib/rate-limit";
 import { getProjectRecord } from "@/lib/queries/dashboard";
 import { tradingHalt } from "@/lib/trading-controls";
 import { recordTradingMetric } from "@/lib/trading-metrics";
+import {
+  privateNoStoreHeaders,
+  privateNoStoreJson,
+} from "@/lib/no-store-response";
 import {
   ProjectTradeQuoteRequestSchema,
   getProjectTradeQuote,
@@ -19,7 +22,7 @@ interface RouteContext {
 }
 
 function rateLimitHeaders(limit: Awaited<ReturnType<typeof check>>): Headers {
-  const headers = new Headers();
+  const headers = privateNoStoreHeaders();
   headers.set("X-RateLimit-Limit", String(limit.limit));
   headers.set("X-RateLimit-Remaining", String(limit.remaining));
   if (limit.reset > 0) {
@@ -34,7 +37,7 @@ function rateLimitHeaders(limit: Awaited<ReturnType<typeof check>>): Headers {
 
 export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
   if (!hasCredentials.db()) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "db_unavailable", message: "DB not configured." },
       { status: 503 },
     );
@@ -51,7 +54,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       projectId,
       status: "rate_limited",
     });
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "rate_limited" },
       { status: 429, headers },
     );
@@ -65,7 +68,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       status: "blocked",
       reason: ready.code,
     });
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: ready.code, message: ready.message },
       { status: 503 },
     );
@@ -79,7 +82,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       status: "invalid",
       reason: "not_found",
     });
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return privateNoStoreJson({ error: "not_found" }, { status: 404 });
   }
   if (!project.tokenMint || project.status !== "live") {
     await recordTradingMetric({
@@ -88,7 +91,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       status: "blocked",
       reason: `project_status:${project.status}`,
     });
-    return NextResponse.json(
+    return privateNoStoreJson(
       {
         error: "token_not_tradeable",
         message: "Only live Bags tokens can be quoted.",
@@ -105,7 +108,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       status: "blocked",
       reason: `kill_switch:${halt.scope}`,
     });
-    return NextResponse.json(
+    return privateNoStoreJson(
       {
         error: "trading_disabled",
         message: "Trading builders are paused by a platform kill switch.",
@@ -125,7 +128,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       status: "invalid",
       reason: "invalid_json",
     });
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    return privateNoStoreJson({ error: "invalid_json" }, { status: 400 });
   }
 
   try {
@@ -137,7 +140,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       slippageBps: body.slippageBps,
     });
     await recordTradingMetric({ route: "quote", projectId, status: "success" });
-    return NextResponse.json(payload, { headers });
+    return privateNoStoreJson(payload, { headers });
   } catch (e) {
     if (e instanceof ZodError) {
       await recordTradingMetric({
@@ -146,7 +149,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
         status: "invalid",
         reason: "invalid_request",
       });
-      return NextResponse.json(
+      return privateNoStoreJson(
         { error: "invalid_request", issues: e.issues },
         { status: 400 },
       );
@@ -159,7 +162,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
       status: "failed",
       reason: "quote_failed",
     });
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "quote_failed", message },
       { status: 502 },
     );

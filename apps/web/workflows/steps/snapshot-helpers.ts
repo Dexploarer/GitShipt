@@ -39,6 +39,8 @@ export interface LoadedProjectForSnapshot {
     | "killed"
     | "simulated_live";
   tokenMint: string | null;
+  bagsPoolClaimerWallet: string | null;
+  platformFeeBps: number;
   scoringConfig: ScoringConfig;
   payoutConfig: PayoutConfig;
 }
@@ -70,6 +72,8 @@ export async function loadProjectForSnapshot(
       name: projects.name,
       status: projects.status,
       tokenMint: projects.tokenMint,
+      bagsPoolClaimerWallet: projects.bagsPoolClaimerWallet,
+      platformFeeBps: projects.platformFeeBps,
       scoringConfig: projects.scoringConfig,
       payoutConfig: projects.payoutConfig,
     })

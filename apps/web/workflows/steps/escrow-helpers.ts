@@ -1,11 +1,15 @@
 /**
- * Escrow pipeline helpers — sweep expired holdings + drain on wallet link.
+ * Claimable liability helpers — review expired holdings + drain on wallet link.
  */
 import { dbHttp, dbPool } from "@/db";
 import { escrowHoldings, contributorClaims } from "@/db/schema";
 import { and, eq, isNull, lt, sql } from "drizzle-orm";
 import { isStubMode } from "./payout-helpers";
 import { applyDbRlsContext, enterDbWorkflowContext } from "@/lib/db-rls";
+
+const MANUAL_RECONCILIATION_ERROR =
+  "manual_reconciliation_required_external_side_effect_may_have_succeeded";
+const DRAIN_RECONCILIATION_AFTER_MS = 10 * 60 * 1000;
 
 export interface ExpiredEscrowRow {
   id: string;
@@ -14,7 +18,7 @@ export interface ExpiredEscrowRow {
   expiresAtISO: string;
 }
 
-/** Holdings whose expiresAt < now and which haven't been drained yet. */
+/** Holdings whose expiresAt < now and which haven't been drained or reviewed. */
 export async function loadExpiredEscrow(): Promise<ExpiredEscrowRow[]> {
   enterDbWorkflowContext("escrow-helpers:loadExpiredEscrow");
   const rows = await dbHttp
@@ -30,6 +34,7 @@ export async function loadExpiredEscrow(): Promise<ExpiredEscrowRow[]> {
         lt(escrowHoldings.expiresAt, new Date()),
         isNull(escrowHoldings.drainedAt),
         isNull(escrowHoldings.drainAttemptId),
+        isNull(escrowHoldings.drainError),
       ),
     );
   return rows.map((r) => ({
@@ -41,8 +46,9 @@ export async function loadExpiredEscrow(): Promise<ExpiredEscrowRow[]> {
 }
 
 /**
- * v0 sweep: native SOL can be retired with a sentinel signature. Token escrow
- * is intentionally left open until an SPL transfer implementation exists.
+ * Expiry is an accounting review signal, not a transfer. Unclaimed rewards
+ * remain owed until the contributor links a wallet or an explicit admin/legal
+ * reallocation policy settles them with an auditable transaction.
  */
 export async function sweepBackToTreasury(
   holdingId: string,
@@ -80,15 +86,16 @@ export async function sweepBackToTreasury(
     return { holdingId, status: "failed", reason };
   }
 
-  const sentinel = "expired-no-action-v0";
+  const reason = "expired-liability-held-for-admin-review";
   await dbHttp
     .update(escrowHoldings)
     .set({
-      drainedAt: new Date(),
-      drainSignature: sentinel,
+      drainAttemptId: null,
+      drainingAt: null,
+      drainError: reason,
     })
     .where(eq(escrowHoldings.id, holdingId));
-  return { holdingId, status: "drained", sentinel };
+  return { holdingId, status: "skipped", reason };
 }
 
 /** Upsert the contributor_claims row to link a wallet/user. */
@@ -170,13 +177,33 @@ export async function drainHoldingToWallet(args: {
         tokenMint: escrowHoldings.tokenMint,
         drainedAt: escrowHoldings.drainedAt,
         drainAttemptId: escrowHoldings.drainAttemptId,
+        drainingAt: escrowHoldings.drainingAt,
       })
       .from(escrowHoldings)
       .where(eq(escrowHoldings.id, args.holdingId))
       .limit(1);
     if (!row) return { status: "skipped" as const };
     if (row.drainedAt) return { status: "skipped" as const };
-    if (row.drainAttemptId) return { status: "skipped" as const };
+    if (row.drainAttemptId) {
+      if (
+        row.drainingAt &&
+        Date.now() - row.drainingAt.getTime() >= DRAIN_RECONCILIATION_AFTER_MS
+      ) {
+        await tx
+          .update(escrowHoldings)
+          .set({
+            drainError: `${MANUAL_RECONCILIATION_ERROR}:attempt=${row.drainAttemptId}`,
+          })
+          .where(
+            and(
+              eq(escrowHoldings.id, row.id),
+              eq(escrowHoldings.drainAttemptId, row.drainAttemptId),
+              isNull(escrowHoldings.drainedAt),
+            ),
+          );
+      }
+      return { status: "skipped" as const };
+    }
 
     // Stub mode: sentinel only.
     if (isStubMode()) {
@@ -208,7 +235,7 @@ export async function drainHoldingToWallet(args: {
       return { status: "failed" as const };
     }
 
-    const attemptId = `escrow:${row.id}:${Date.now()}`;
+    const attemptId = `escrow:${row.id}`;
     const [claimed] = await tx
       .update(escrowHoldings)
       .set({
@@ -269,23 +296,62 @@ export async function drainHoldingToWallet(args: {
     return { status: "failed" as const };
   }
 
+  await markHoldingDrainedWithRetry({
+    holdingId: claim.holdingId,
+    attemptId: claim.attemptId,
+    signature,
+  });
+  return { status: "drained" as const, sig: signature };
+}
+
+async function markHoldingDrainedWithRetry(args: {
+  holdingId: string;
+  attemptId: string;
+  signature: string;
+}): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await dbHttp
+        .update(escrowHoldings)
+        .set({
+          drainedAt: new Date(),
+          drainSignature: args.signature,
+          drainAttemptId: null,
+          drainingAt: null,
+          drainError: null,
+        })
+        .where(
+          and(
+            eq(escrowHoldings.id, args.holdingId),
+            eq(escrowHoldings.drainAttemptId, args.attemptId),
+            isNull(escrowHoldings.drainedAt),
+          ),
+        );
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    }
+  }
+
+  const message =
+    lastError instanceof Error ? lastError.message : String(lastError);
   await dbHttp
     .update(escrowHoldings)
     .set({
-      drainedAt: new Date(),
-      drainSignature: signature,
-      drainAttemptId: null,
-      drainingAt: null,
-      drainError: null,
+      drainError: `${MANUAL_RECONCILIATION_ERROR}:signature=${args.signature};${message}`.slice(
+        0,
+        500,
+      ),
     })
     .where(
       and(
-        eq(escrowHoldings.id, claim.holdingId),
-        eq(escrowHoldings.drainAttemptId, claim.attemptId),
+        eq(escrowHoldings.id, args.holdingId),
+        eq(escrowHoldings.drainAttemptId, args.attemptId),
         isNull(escrowHoldings.drainedAt),
       ),
     );
-  return { status: "drained" as const, sig: signature };
 }
 
 // kept-imports defense

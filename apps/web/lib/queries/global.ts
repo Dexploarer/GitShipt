@@ -398,7 +398,7 @@ export function getGlobalLeaderboard(): Promise<{
  * animates them client-side), but exposed so a `/api/ticker` route can wrap
  * this without re-importing the heavier `getLandingData`.
  */
-async function getLiveTickerDataUncached(): Promise<LandingTicker> {
+export async function getLiveTickerDataUncached(): Promise<LandingTicker> {
   const [feesRows, activeRows, earningRows, walletRows] = await Promise.all([
     dbHttp
       .select({

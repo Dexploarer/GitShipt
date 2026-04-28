@@ -1,9 +1,8 @@
 import "server-only";
-import { Octokit } from "@octokit/rest";
-import { redis } from "@/lib/redis";
+import { z } from "zod";
+import { fetchGitHubJsonWithEtag } from "@/lib/github/http-cache";
 import {
   PublicRepoContributorSchema,
-  PublicRepoContributorsSchema,
   type PublicRepoContributor,
 } from "@repo/shared";
 
@@ -24,12 +23,17 @@ import {
 const CACHE_PREFIX = "gh:contribs:";
 const CACHE_TTL_SECONDS = 60 * 30; // 30 min
 
-let _publicOctokit: Octokit | null = null;
-function publicOctokit(): Octokit {
-  if (_publicOctokit) return _publicOctokit;
-  _publicOctokit = new Octokit();
-  return _publicOctokit;
-}
+const GitHubContributorApiSchema = z.array(
+  z
+    .object({
+      id: z.number().nullable().optional(),
+      login: z.string().nullable().optional(),
+      avatar_url: z.string().nullable().optional(),
+      contributions: z.number().nullable().optional(),
+      type: z.string().nullable().optional(),
+    })
+    .loose(),
+);
 
 /**
  * Fetches the top N contributors for a public repo via the listContributors
@@ -43,26 +47,25 @@ export async function fetchPublicRepoContributors(
   limit = 30,
 ): Promise<PublicRepoContributor[]> {
   if (!owner || !repo) return [];
-  const cacheKey = `${CACHE_PREFIX}${owner.toLowerCase()}/${repo.toLowerCase()}`;
-  const r = redis();
-
-  if (r) {
-    try {
-      const cached = await r.get(cacheKey);
-      if (cached) return PublicRepoContributorsSchema.parse(JSON.parse(cached));
-    } catch {
-      // fall through to live fetch
-    }
-  }
+  const normalizedOwner = owner.toLowerCase();
+  const normalizedRepo = repo.toLowerCase();
+  const safeLimit = Math.min(100, Math.max(1, limit));
 
   let result: PublicRepoContributor[] = [];
   try {
-    const { data } = await publicOctokit().repos.listContributors({
-      owner,
-      repo,
-      per_page: Math.min(100, Math.max(1, limit)),
-      anon: "false",
-    });
+    const url = new URL(
+      `https://api.github.com/repos/${encodeURIComponent(
+        owner,
+      )}/${encodeURIComponent(repo)}/contributors`,
+    );
+    url.searchParams.set("per_page", String(safeLimit));
+    url.searchParams.set("anon", "false");
+    const data = await fetchGitHubJsonWithEtag(
+      `${CACHE_PREFIX}${normalizedOwner}/${normalizedRepo}:${safeLimit}`,
+      url.toString(),
+      GitHubContributorApiSchema,
+      { ttlSeconds: CACHE_TTL_SECONDS },
+    );
     result = data
       .filter((c) => c.type === "User" && c.login)
       .slice(0, limit)
@@ -75,19 +78,8 @@ export async function fetchPublicRepoContributors(
         }),
       );
   } catch (e) {
-    const status = (e as { status?: number })?.status;
-    if (status !== 404) {
-      console.warn(`[gh:contribs:${owner}/${repo}] fetch failed`, e);
-    }
+    console.warn(`[gh:contribs:${owner}/${repo}] fetch failed`, e);
     result = [];
-  }
-
-  if (r) {
-    try {
-      await r.set(cacheKey, JSON.stringify(result), "EX", CACHE_TTL_SECONDS);
-    } catch {
-      // non-fatal
-    }
   }
 
   return result;

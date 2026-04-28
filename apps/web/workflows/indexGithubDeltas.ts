@@ -6,6 +6,11 @@ import { eq, sql } from "drizzle-orm";
 import { start } from "workflow/api";
 import { indexProjectDeltas } from "./indexProjectDeltas";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
+import {
+  acquireWorkflowLock,
+  releaseWorkflowLock,
+  type WorkflowLock,
+} from "@/lib/workflow-locks";
 
 /**
  * Top-level indexer — runs every 15 minutes. Fans out to per-project
@@ -13,12 +18,32 @@ import { enterDbWorkflowContext } from "@/lib/db-rls";
  * "indexer alive".
  */
 export async function indexGithubDeltas(): Promise<{ count: number }> {
-  await heartbeat();
-  const ids = await loadActiveProjects();
-  for (const id of ids) {
-    await start(indexProjectDeltas, [id]);
+  const lock = await acquireLockStep("indexGithubDeltas", "root", 15 * 60);
+  if (!lock.acquired) return { count: 0 };
+  try {
+    await heartbeat();
+    const ids = await loadActiveProjects();
+    for (const id of ids) {
+      await start(indexProjectDeltas, [id]);
+    }
+    return { count: ids.length };
+  } finally {
+    await releaseLockStep(lock);
   }
-  return { count: ids.length };
+}
+
+async function acquireLockStep(
+  workflowName: string,
+  scope: string,
+  ttlSeconds: number,
+): Promise<WorkflowLock> {
+  "use step";
+  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
+}
+
+async function releaseLockStep(lock: WorkflowLock): Promise<void> {
+  "use step";
+  await releaseWorkflowLock(lock);
 }
 
 async function heartbeat(): Promise<void> {

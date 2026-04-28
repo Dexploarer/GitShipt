@@ -273,7 +273,12 @@ export async function getProjectLeaderboard(
 ): Promise<LeaderboardRow[]> {
   return getCachedValue(
     () => getProjectLeaderboardUncached(projectId, payoutConfig),
-    ["gitbags:project-leaderboard:v1", projectId, String(payoutConfig.topN)],
+    [
+      "gitbags:project-leaderboard:v1",
+      projectId,
+      String(payoutConfig.topN),
+      JSON.stringify(payoutConfig.tierWeights),
+    ],
     {
       tags: [cacheTags.public, cacheTags.project(projectId)],
       revalidate: CACHE_SECONDS.live,
@@ -384,6 +389,7 @@ export async function getPoolOverview(
       "gitbags:pool-overview:v1",
       header.id,
       header.tokenMint ?? "no-token",
+      header.status,
       String(header.platformFeeBps),
     ],
     {

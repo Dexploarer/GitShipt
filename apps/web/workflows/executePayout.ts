@@ -26,6 +26,11 @@ import {
 import { revalidateProjectCaches } from "@/lib/cache";
 import { withIdempotency } from "@/lib/idempotency";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
+import {
+  acquireWorkflowLock,
+  releaseWorkflowLock,
+  type WorkflowLock,
+} from "@/lib/workflow-locks";
 
 const ESCROW_DAYS = 30;
 
@@ -34,13 +39,19 @@ const ESCROW_DAYS = 30;
  * frozen snapshot awaiting payout.
  */
 export async function executePayout(): Promise<{ count: number }> {
-  await assertNotKilled();
-  await heartbeat("payouts");
-  const snapshots = await loadAwaitingStep();
-  for (const s of snapshots) {
-    await start(processSnapshotPayout, [s.id]);
+  const lock = await acquireLockStep("executePayout", "root", 20 * 60);
+  if (!lock.acquired) return { count: 0 };
+  try {
+    await assertNotKilled();
+    await heartbeat("payouts");
+    const snapshots = await loadAwaitingStep();
+    for (const s of snapshots) {
+      await start(processSnapshotPayout, [s.id]);
+    }
+    return { count: snapshots.length };
+  } finally {
+    await releaseLockStep(lock);
   }
-  return { count: snapshots.length };
 }
 
 /**
@@ -48,10 +59,10 @@ export async function executePayout(): Promise<{ count: number }> {
  *   1. Load context
  *   2. Preflight safety (kill switch, balance, status)
  *   3. Check claimable lamports against threshold
- *   4. Stub mode? skip on-chain claim
- *   5. Claim Bags fees on-chain (if not stub)
- *   6. Build distribution plan + cycle-cap check
- *   7. Persist payout + recipients (transactional)
+ *   4. Build distribution plan + cycle-cap check
+ *   5. Reserve payout + recipients in the DB
+ *   6. Claim Bags fees on-chain (if not stub)
+ *   7. Mark the reserved payout as claimed/distributing
  *   8. Per-recipient dispatch (if not stub)
  *   9. Finalize payout state
  */
@@ -59,8 +70,29 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
   payoutId: string;
   recipientCount: number;
   stub: boolean;
-  status: "completed" | "failed" | "pending" | "simulated" | "skipped";
+  status:
+    | "completed"
+    | "failed"
+    | "pending"
+    | "simulated"
+    | "cancelled"
+    | "skipped";
 }> {
+  const lock = await acquireLockStep(
+    "processSnapshotPayout",
+    snapshotId,
+    30 * 60,
+  );
+  if (!lock.acquired) {
+    return {
+      payoutId: "",
+      recipientCount: 0,
+      stub: true,
+      status: "skipped",
+    };
+  }
+
+  try {
   const ctx = await loadCtxStep(snapshotId);
   if (!ctx) {
     return {
@@ -101,24 +133,6 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
     };
   }
 
-  let claimSig: string | null = null;
-  if (!stub) {
-    if (!platformWallet || !ctx.project.tokenMint) {
-      await auditAbort(snapshotId, "missing_wallet_or_mint");
-      return {
-        payoutId: "",
-        recipientCount: 0,
-        stub,
-        status: "skipped",
-      };
-    }
-    const claimResult = await claimFeesStep({
-      walletAddress: platformWallet,
-      tokenMint: ctx.project.tokenMint,
-    });
-    claimSig = claimResult.signature;
-  }
-
   const plan = await buildPlanStep(ctx, claim.lamports);
 
   const capCheck = await capCheckStep(plan);
@@ -137,12 +151,44 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
     projectId: ctx.project.id,
     snapshotPeriod: ctx.snapshot.snapshotPeriod,
     plan,
-    claimSignature: claimSig,
+    claimSignature: null,
     totalLamportsStr: capCheck.total,
     stub,
+    reserveClaimFirst: !stub,
   });
 
   if (!stub) {
+    if (!platformWallet || !ctx.project.tokenMint) {
+      await markPayoutFailedStep(persisted.payoutId, "missing_wallet_or_mint");
+      await auditAbort(snapshotId, "missing_wallet_or_mint");
+      return {
+        payoutId: persisted.payoutId,
+        recipientCount: persisted.recipientCount,
+        stub,
+        status: "failed",
+      };
+    }
+
+    let claimResult: { signature: string | null; txCount: number };
+    try {
+      claimResult = await claimFeesStep({
+        walletAddress: platformWallet,
+        tokenMint: ctx.project.tokenMint,
+        idempotencyKey: `payout:claim:${ctx.project.id}:${ctx.snapshot.snapshotPeriod}`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await markPayoutFailedStep(persisted.payoutId, message);
+      await auditAbort(snapshotId, `claim_failed:${message.slice(0, 200)}`);
+      return {
+        payoutId: persisted.payoutId,
+        recipientCount: persisted.recipientCount,
+        stub,
+        status: "failed",
+      };
+    }
+    await markPayoutClaimedStep(persisted.payoutId, claimResult.signature);
+
     for (const r of plan) {
       await dispatchStep({
         payoutId: persisted.payoutId,
@@ -163,6 +209,9 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
     stub,
     status: finalized.status,
   };
+  } finally {
+    await releaseLockStep(lock);
+  }
 }
 
 // ============================================================
@@ -175,6 +224,20 @@ async function assertNotKilled(): Promise<void> {
   if (await isKillSwitchEnabled()) {
     throw new FatalError("kill_switch_enabled: executePayout aborted");
   }
+}
+
+async function acquireLockStep(
+  workflowName: string,
+  scope: string,
+  ttlSeconds: number,
+): Promise<WorkflowLock> {
+  "use step";
+  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
+}
+
+async function releaseLockStep(lock: WorkflowLock): Promise<void> {
+  "use step";
+  await releaseWorkflowLock(lock);
 }
 
 async function heartbeat(name: string): Promise<void> {
@@ -242,12 +305,19 @@ async function claimableStep(args: {
 async function claimFeesStep(args: {
   walletAddress: string;
   tokenMint: string;
+  idempotencyKey: string;
 }): Promise<{ signature: string | null; txCount: number }> {
   "use step";
   const { stepId } = getStepMetadata();
-  return await withIdempotency(stepId, () => claimBagsFees(args), {
-    scope: "workflow:payout:claim",
-  });
+  return await withIdempotency(
+    `${stepId}:${args.idempotencyKey}`,
+    () =>
+      claimBagsFees({
+        walletAddress: args.walletAddress,
+        tokenMint: args.tokenMint,
+      }),
+    { scope: "workflow:payout:claim" },
+  );
 }
 
 async function buildPlanStep(
@@ -275,10 +345,31 @@ async function persistStep(args: {
   claimSignature: string | null;
   totalLamportsStr: string;
   stub: boolean;
+  reserveClaimFirst?: boolean;
 }): Promise<{ payoutId: string; recipientCount: number }> {
   "use step";
   enterDbWorkflowContext("executePayout:persist");
   return await persistPayoutPlan(args);
+}
+
+async function markPayoutClaimedStep(
+  payoutId: string,
+  claimSignature: string | null,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("executePayout:markClaimed");
+  const { markPayoutClaimed } = await import("./steps/payout-helpers");
+  await markPayoutClaimed(payoutId, claimSignature);
+}
+
+async function markPayoutFailedStep(
+  payoutId: string,
+  reason: string,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("executePayout:markFailed");
+  const { markPayoutFailed } = await import("./steps/payout-helpers");
+  await markPayoutFailed(payoutId, reason);
 }
 
 async function dispatchStep(args: {
@@ -298,7 +389,7 @@ async function dispatchStep(args: {
 }
 
 async function finalizeStep(payoutId: string): Promise<{
-  status: "completed" | "failed" | "pending" | "simulated";
+  status: "completed" | "failed" | "pending" | "simulated" | "cancelled";
   totals: { sent: number; escrow: number; failed: number; pending: number };
 }> {
   "use step";

@@ -75,7 +75,7 @@ export default async function AdminLayout({
               >
                 <Github className="size-4" />
               </SocialLink>
-              <SocialLink href="https://x.com/bagsdotfm" label="Bags on X">
+              <SocialLink href="https://x.com/GitBagsApp" label="GitBagsApp on X">
                 <Twitter className="size-4" />
               </SocialLink>
             </div>

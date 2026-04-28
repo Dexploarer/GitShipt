@@ -1,5 +1,4 @@
 import "server-only";
-import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
@@ -15,6 +14,7 @@ import { IdempotencyReplayError, withIdempotency } from "@/lib/idempotency";
 import { createApiKey, listApiKeysForProject } from "@/lib/queries/api-keys";
 import { ProjectApiKeyScopesSchema } from "@repo/shared";
 import { revalidateProjectCaches } from "@/lib/cache";
+import { privateNoStoreJson } from "@/lib/no-store-response";
 
 export const dynamic = "force-dynamic";
 
@@ -41,21 +41,21 @@ async function authorize(
   if (!hasCredentials.db()) {
     return {
       ok: false,
-      res: NextResponse.json({ error: "db_unavailable" }, { status: 503 }),
+      res: privateNoStoreJson({ error: "db_unavailable" }, { status: 503 }),
     };
   }
   const session = await auth().api.getSession({ headers: await headers() });
   if (!session?.user) {
     return {
       ok: false,
-      res: NextResponse.json({ error: "unauthenticated" }, { status: 401 }),
+      res: privateNoStoreJson({ error: "unauthenticated" }, { status: 401 }),
     };
   }
   const project = await getProjectRecord(projectId);
   if (!project) {
     return {
       ok: false,
-      res: NextResponse.json({ error: "not_found" }, { status: 404 }),
+      res: privateNoStoreJson({ error: "not_found" }, { status: 404 }),
     };
   }
   const ok = await hasPermission("project.update", {
@@ -65,7 +65,7 @@ async function authorize(
   if (!ok) {
     return {
       ok: false,
-      res: NextResponse.json({ error: "not_found" }, { status: 404 }),
+      res: privateNoStoreJson({ error: "not_found" }, { status: 404 }),
     };
   }
   try {
@@ -77,7 +77,7 @@ async function authorize(
     if (e instanceof PermissionError) {
       return {
         ok: false,
-        res: NextResponse.json({ error: "not_found" }, { status: 404 }),
+        res: privateNoStoreJson({ error: "not_found" }, { status: 404 }),
       };
     }
     throw e;
@@ -98,7 +98,7 @@ export async function POST(
   try {
     body = CreateBodySchema.parse(await req.json());
   } catch (e) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "invalid_body", details: (e as Error).message },
       { status: 400 },
     );
@@ -106,7 +106,7 @@ export async function POST(
 
   const idemKey = req.headers.get("idempotency-key");
   if (!idemKey) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "idempotency_key_required" },
       { status: 400 },
     );
@@ -155,10 +155,10 @@ export async function POST(
       },
     );
     await revalidateProjectCaches(projectId);
-    return NextResponse.json(result, { status: 201 });
+    return privateNoStoreJson(result, { status: 201 });
   } catch (e) {
     if (e instanceof IdempotencyReplayError) {
-      return NextResponse.json(
+      return privateNoStoreJson(
         {
           error: "idempotency_replay",
           message:
@@ -168,7 +168,7 @@ export async function POST(
       );
     }
     console.error("[api-keys/create] failed:", e);
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "create_failed", message: (e as Error).message },
       { status: 500 },
     );
@@ -184,7 +184,7 @@ export async function GET(
   if (!authz.ok) return authz.res;
 
   const keys = await listApiKeysForProject(projectId);
-  return NextResponse.json(
+  return privateNoStoreJson(
     {
       keys: keys.map((k) => ({
         id: k.id,

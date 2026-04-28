@@ -9,9 +9,10 @@ import { contributors } from "./contributors";
 import { createId } from "@repo/lib";
 
 /**
- * SOL/SPL holdings owed to a contributor whose wallet wasn't linked at
- * payout time. Drained on wallet link (processClaim workflow) or on the
- * daily expireEscrow sweep if past `expiresAt`.
+ * Claimable SOL/SPL liabilities owed to a contributor whose wallet wasn't
+ * linked at payout time. Drained on wallet link by `processClaim`.
+ * `expiresAt` is an admin-review signal; it is not permission to silently
+ * retire contributor rewards.
  */
 export const escrowHoldings = pgTable(
   "escrow_holdings",

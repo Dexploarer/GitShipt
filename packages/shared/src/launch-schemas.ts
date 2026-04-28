@@ -160,7 +160,7 @@ export const UpdateDraftBodySchema = z.object({
   telegram: z.string().trim().url().max(200).optional().or(z.literal("")),
   scoringConfig: ScoringConfigSchema.optional(),
   payoutConfig: PayoutConfigSchema.optional(),
-  platformFeeBps: z.number().int().min(0).max(2000).optional(),
+  platformFeeBps: z.number().int().min(200).max(10_000).optional(),
 });
 export type UpdateDraftBody = z.infer<typeof UpdateDraftBodySchema>;
 

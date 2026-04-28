@@ -62,44 +62,16 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-28 1:00pm CDT
+# [gitbags] recent context, 2026-04-28 3:31pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (19,452t read) | 2,629,272t work | 99% savings
+Stats: 50 obs (25,594t read) | 2,826,438t work | 99% savings
 
 ### Apr 28, 2026
-1548 12:16a 🟣 defaultDashboardRoute Wired Through Session Chrome to Sidebar
-1549 " 🟣 ProfilePage Two-Column Layout with Editable Form
-1550 " 🟣 Settings Page Refactored — Preferences Form + Account Areas List
-1558 12:17a 🔴 Two CI Failures Fixed — Test Type Mismatch and ESLint set-state-in-effect
-1559 " 🟣 Avatar URL Security — Server Action Validates Against GitHub Hostname Allowlist
-1560 " 🔄 ProfileEditor and AccountPreferencesForm — router.refresh() After Saves
-1566 12:18a 🟣 GitBags Account Management Full Stack — CI Green, Production Build Clean
-1570 12:23a 🔵 Missing DB Migration — user_settings Table Does Not Exist
-1572 " 🔴 Migration 0008_user_settings Applied — App 500 Crash Resolved
-1574 " 🔵 db/rls-context.ts Imports server-only — Cannot Run Outside Next.js
-1577 12:24a 🔵 user_settings Table Confirmed Exists in Neon DB
-1579 12:44a ✅ GitBags Account Pages + Sidebar Refactor — Committed and Merged
-1580 12:45a 🔵 GitBags Full Commit Scope — 130+ Files Staged on main Branch
-1582 " ✅ Commit b272da9 — "Polish authenticated UI and account settings" — 159 Files, 5842 Insertions
-1584 12:46a ✅ Commit b272da9 Pushed to origin/main — GitBags Account UI Complete
-1586 " 🔵 AGENTS.md Modified After Push — One Unstaged File Remains
-1587 12:52a ⚖️ Post-Commit — UI Quality Audit Pass Initiated Using 7 Design Skills
-1588 " 🔵 spawn_agent Rejects agent_type on Full-History Fork — API Constraint
-1590 " 🟣 4 Parallel Audit Subagents Spawned for GitBags Completion Pass
-1591 12:53a 🔵 GitBags UI/UX Audit — Scope and Constraints Defined
-1592 12:55a 🔵 Agent Thread Limit Reached at 6 — Admin and /r Subagents Blocked
-1593 " 🔵 Broken Link — RecentPayoutsFeed Links to Non-Existent /dashboard/payouts Route
-1594 " 🔵 Admin v1.1 Stubs — Treasury Top-Up, Snapshot Verification, Banner Display, Payouts Snapshot Trigger Not Wired
 1595 12:58a 🔵 GitBags Complete Route Inventory vs PRD Gap Analysis
-1596 " 🔵 GitBags Known Stubs, "Coming Soon" Features, and v0 Deferreds
-1597 " 🔵 Broken Placeholder Href in Project Docs Page
-1598 " 🔵 Dead Internal Link — /dashboard/payouts Route Does Not Exist
-1599 " 🔵 GitBags API Security Posture — All Mutation Routes Gate Auth Correctly
-1600 " 🔵 GitBags Admin Workflows Page — Full Workflow Inventory with Manual Trigger Support
 1601 1:01a ⚖️ GitBags Public Surface Deslop Pass — Scope and Constraints Defined
 1602 1:02a 🟣 PageHeader Component — New Shared Dashboard Page Header Primitive
 1603 " 🔄 Dashboard ProjectList — Rows Converted to Full-Width Clickable Links
@@ -121,6 +93,34 @@ Stats: 50 obs (19,452t read) | 2,629,272t work | 99% savings
 1646 1:40a 🟣 AI Agent Treasury Routing — Full Implementation Across Scoring, Indexer, Snapshot, and Payout Pipeline
 1649 1:41a ✅ AI Agent Treasury Routing — Quality Gate Verification: All 42 Tests Pass, Typecheck and Lint Clean
 1653 " ✅ AI Agent Treasury Routing — Production Build and E2E Suite Pass, Full Staging State
+1655 1:39p 🔵 GitBags Money-Flow Security Audit — Scope and Prior Architecture Map
+1656 1:41p 🔵 GitBags Money-Flow Architecture — Full Revenue Rails Map
+1657 " 🔵 GitBags Payout Guard Stack — Idempotency, Audit, and Permission Architecture
+1658 " 🔵 GitBags AI Agent Treasury Redirect — Policy and Implementation
+1659 " 🔵 GitBags Money-Flow Test Coverage Gaps — Flagged Risk Areas
+1661 1:58p ⚖️ elizaOS + "Mia" AI Character — Strategic Feature Exploration for GitBags
+1666 2:06p 🔵 Twitter/Social References Audit — GitBags Codebase
+1667 " ✅ Twitter/X Social Links Updated — @bagsdotfm → @GitBagsApp
+1669 2:07p 🔵 GitBags Working Tree — Broader In-Progress Changes Beyond Social Link Update
+1672 2:13p 🔵 GitBags Database Caching Audit — Session Initialization and Context Loading
+1673 " 🔵 GitBags Pre-Audit Working Tree State — In-Progress Money-Flow Changes
+1674 " 🔵 Next.js 16.2.4 Caching API Surface — Full Local Docs Inventory
+1675 " 🔵 GitBags Caching Architecture — System Design and Redis Role Confirmed from PRD
+1680 2:14p 🔵 GitBags Cache Layer Architecture — Existing unstable_cache Infrastructure Without cacheComponents Enabled
+1681 " 🔵 Multi-Agent Caching Audit — Four Parallel Subagents Spawned Successfully
+1682 " 🔵 next.config.ts — No cacheComponents, No cacheHandlers, Strict CSP with Pending Nonce Work
+1679 " ⚖️ GitBags Database Caching Audit — Two-Phase Multi-Agent Remediation Plan
+1683 2:17p 🔵 GitBags Caching Architecture — Full Audit Map
+1684 " 🔵 GitBags PRD Caching Constraints — Next.js 16.2 Cache Components API Confirmed Present
+1685 " 🔵 GitBags Caching Pain Points — Comprehensive List of Gaps and Antipatterns
+1686 " 🔵 GitBags Pre-Audit Working Tree State — 12 Modified Files with In-Progress Money-Flow Changes
+1687 2:23p 🔴 PATCH + DELETE Cache Invalidation and Idempotency Gaps Fixed — projects/[id] Route
+1696 3:18p ⚖️ Vercel Workflow SDK Adoption — GitBags Platform Architecture Pivot
+1698 " 🔵 Vercel Workflow SDK — Step Idempotency Is NOT Automatic in GitBags
+1699 3:21p 🔵 GitBags Complete Workflow Inventory — 9 Workflows, Full Architecture Map
+1700 " 🟣 workflow-locks.ts — Redis Single-Flight Lock for Cron Fanout Workflows
+1709 3:22p 🟣 Redis Single-Flight Locks Wired Into All 5 Root Workflows
+1710 3:24p 🔴 Payout + Escrow Partial Chain Success Recovery — Manual Reconciliation Error Pattern
 
-Access 2629k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 2826k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

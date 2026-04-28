@@ -26,8 +26,8 @@ GitBags is a launchpad-leaderboard hybrid where any GitHub repo can spawn a Bags
 
 This PRD has been verified against current platform docs. Material decisions and their sources:
 
-1. **Bags Token Launch v2 has native fee sharing with direct wallets and social identity lookup**. GitBags uses a direct platform pool wallet claimer for the contributor pool, while Bags can also resolve supported social identities (`github`, `twitter`, `kick`, `tiktok`, and legacy `moltbook`) to wallets when a future flow needs identity-based fee recipients. Maximum 100 fee earners per token (including creator). Source: Bags API changelog, Bags skill, and SDK examples (`@bagsfm/bags-sdk`).
-2. **Fee shares are configured at launch and post-launch edits require a Bags fee-share admin update transaction**. This is the single biggest constraint. To support a daily-changing leaderboard, we set the platform hot wallet as the pooled contributor `feeClaimer`, then redistribute off-chain via SOL transfers each day. GitBags platform revenue is a second explicit treasury `feeClaimer` in the same Bags config. Bags partner revenue is a separate partner-key rail (`partner` + `partnerConfig`) attached to the launch, not part of the 10,000 BPS claimer envelope.
+1. **Bags Token Launch v2 has native fee sharing with direct wallets and social identity lookup**. GitBags starts with a direct platform pool wallet claimer for the contributor pool, and can update future fee-share configs to route verified contributor wallets directly while routing unlinked contributors to the pool. Bags can also resolve supported social identities (`github`, `twitter`, `kick`, `tiktok`, and legacy `moltbook`) to wallets when a future flow needs identity-based fee recipients. Maximum 100 fee earners per token (including creator). Source: Bags API changelog, Bags skill, and SDK examples (`@bagsfm/bags-sdk`).
+2. **Fee shares are configured at launch and post-launch edits require a Bags fee-share admin update transaction**. This is the single biggest constraint. To support a daily-changing leaderboard, GitBags treats Bags fee-share updates as prospective accrual routing: verified wallets can become direct Bags claimers for future fees, while unlinked/overflow/rounding shares remain assigned to the platform contributor pool wallet and are paid from GitBags after verification. GitBags platform revenue is a second explicit treasury `feeClaimer` in the same Bags config. Bags partner revenue is a separate partner-key rail (`partner` + `partnerConfig`) attached to the launch, not part of the 10,000 BPS claimer envelope.
 3. **Next.js 16.2 is current** (March 18, 2026). Cache Components, React Compiler, and Turbopack are all stable. **Critical**: `middleware.ts` is renamed to `proxy.ts` in Next.js 16. Patch level must be current to mitigate React Server Components RCE (CVE-2025-66478, CVSS 10.0, December 2025) and middleware bypass (CVE-2025-29927).
 4. **Vercel Postgres is deprecated**. Use Neon Postgres via Vercel Marketplace (Vercel-Managed integration). Auto-injects `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct).
 5. **Vercel Workflows is GA, Vercel Queues is public beta** (no allowlist). Workflows is built on Queues + Fluid Compute + managed persistence. Configured via `experimentalTriggers` in `vercel.json`. Run-level limits: ~2000 events or ~1 GB storage before replay slows down. Fan out via child workflows.
@@ -333,17 +333,19 @@ export async function processProjectPayout(projectId: string) {
 
 ### Constraints to design around
 
-- **Max 100 fee claimers per token** including creator. We use just 2 (platform pool + platform fee), so no concern.
+- **Max 100 fee claimers per token** including creator. GitBags must reserve room for the treasury and contributor pool, then route any excess ranked contributors back into the pool instead of exceeding Bags limits.
 - **Bags rate limit**: 1,000 requests/hour per API key. With cron driving most calls, this is plenty. Workflows step retries don't compound (each step is idempotent).
 - **JWT tokens last 365 days, rotate if compromised**. API keys are separate from JWT tokens. We use API keys for backend, never JWTs.
 - **Token launches require fee sharing config**: the old no-share flow is no longer supported.
-- **Fee claimers support direct wallets**: GitBags registers the platform hot wallet as the direct pool claimer, then contributors receive payouts via SPL transfer from that wallet. Social identity lookup remains available for future identity-routed launches, but the MVP pool claimer does not depend on a Bags-linked GitHub account.
+- **Fee claimers support direct wallets**: GitBags registers the platform hot wallet as the initial pool claimer. For later config updates, verified contributor wallets can receive direct Bags BPS. Unlinked contributors, overflow contributors, and BPS rounding dust remain in the GitBags contributor pool so no earned fees disappear.
 
 ---
 
 ## Payout math
 
-The Bags fee-share config allocates 10000 BPS explicitly. For the default GitBags launch, 500 BPS accrues directly to the GitBags treasury wallet and 9500 BPS accrues to the platform hot wallet as the contributor pool. Separately, launches include the GitBags Bags partner key so the platform can also claim partner revenue from Bags. The daily contributor payout workflow only redistributes the contributor-pool wallet's claimable fees:
+The Bags fee-share config allocates 10000 BPS explicitly. For the default GitBags launch, 500 BPS accrues directly to the GitBags treasury wallet and 9500 BPS accrues to the platform hot wallet as the contributor pool. After a project has verified contributor wallets, a prospective Bags fee-share update may split the 9500 BPS contributor budget across direct contributor wallets and the GitBags contributor pool. The pool receives unlinked contributors' shares, max-claimer overflow, and BPS rounding dust. Separately, launches include the GitBags Bags partner key so the platform can also claim partner revenue from Bags.
+
+The daily contributor payout workflow redistributes only the contributor-pool wallet's claimable fees:
 
 ```
 poolFees       = bagsClaimablePositions(platformPoolWallet, tokenMint)
@@ -355,9 +357,9 @@ for rank r in topN:
 
 Default tier weights (top 10): `[0.30, 0.20, 0.15, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]`.
 
-If a contributor has no linked wallet at payout time, allocation lands in `escrow_holdings`. Wallet link drains escrow on next cron tick (or on-demand via `processClaim` workflow).
+If a contributor has no linked wallet at payout time, allocation lands in `escrow_holdings` as a claimable liability. Wallet link drains that liability on next cron tick (or on-demand via `processClaim` workflow). Expiry is an admin-review signal, not permission to silently retire contributor rewards.
 
-**Why platform-claims-and-redistributes** (not direct Bags routing to contributors): Bags fee claimers are set at launch and tied to a social identity. Our leaderboard changes daily, and not every contributor has a Bags-linked GitHub. By having one platform claim wallet do redistribution, we get full flexibility on scoring and wallet linkage without re-launching tokens.
+**Why hybrid Bags-direct + GitBags-pool routing**: Bags direct wallets reduce custody for verified contributors, but Bags configs are prospective and capped. The GitBags pool remains necessary for contributors who have not registered yet, contributors beyond Bags' claimer limit, and any policy-controlled fallback where GitHub verification must happen before payout.
 
 ---
 

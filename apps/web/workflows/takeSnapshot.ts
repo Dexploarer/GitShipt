@@ -1,6 +1,6 @@
 "use workflow";
 
-import { FatalError } from "workflow";
+import { FatalError, getStepMetadata } from "workflow";
 import { start } from "workflow/api";
 import { dbHttp } from "@/db";
 import { platformConfig } from "@/db/schema";
@@ -14,7 +14,19 @@ import {
 } from "./steps/snapshot-helpers";
 import { isKillSwitchEnabled } from "@/lib/payouts/safety";
 import { revalidateProjectCaches } from "@/lib/cache";
+import { withIdempotency } from "@/lib/idempotency";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
+import {
+  executeFeeShareUpdateAttempt,
+  prepareFeeShareUpdateAttempt,
+  type ExecutedFeeShareUpdate,
+  type PreparedFeeShareUpdate,
+} from "./steps/fee-share-update-helpers";
+import {
+  acquireWorkflowLock,
+  releaseWorkflowLock,
+  type WorkflowLock,
+} from "@/lib/workflow-locks";
 
 /**
  * takeSnapshot — daily root, 00:00 UTC.
@@ -23,13 +35,19 @@ import { enterDbWorkflowContext } from "@/lib/db-rls";
  * eligible (live + has ranked contributors) project.
  */
 export async function takeSnapshot(): Promise<{ count: number }> {
-  await assertNotKilled();
-  await heartbeat("snapshot");
-  const projectIds = await loadEligibleProjectIdsStep();
-  for (const id of projectIds) {
-    await start(takeProjectSnapshot, [id]);
+  const lock = await acquireLockStep("takeSnapshot", "root", 20 * 60);
+  if (!lock.acquired) return { count: 0 };
+  try {
+    await assertNotKilled();
+    await heartbeat("snapshot");
+    const projectIds = await loadEligibleProjectIdsStep();
+    for (const id of projectIds) {
+      await start(takeProjectSnapshot, [id]);
+    }
+    return { count: projectIds.length };
+  } finally {
+    await releaseLockStep(lock);
   }
-  return { count: projectIds.length };
 }
 
 /**
@@ -41,28 +59,59 @@ export async function takeProjectSnapshot(projectId: string): Promise<{
   snapshotId: string;
   count: number;
 }> {
-  const project = await loadProjectStep(projectId);
-  if (!project) return { snapshotId: "", count: 0 };
+  const lock = await acquireLockStep("takeProjectSnapshot", projectId, 20 * 60);
+  if (!lock.acquired) return { snapshotId: "", count: 0 };
+  try {
+    const project = await loadProjectStep(projectId);
+    if (!project) return { snapshotId: "", count: 0 };
 
-  const contributors = await loadContributorsStep(
-    projectId,
-    project.payoutConfig.topN,
-  );
-  if (contributors.length === 0) return { snapshotId: "", count: 0 };
+    const contributors = await loadContributorsStep(
+      projectId,
+      project.payoutConfig.topN,
+    );
+    if (contributors.length === 0) return { snapshotId: "", count: 0 };
 
-  const leaderboard = buildLeaderboardEntries(
-    contributors,
-    project.payoutConfig.tierWeights,
-  );
+    const leaderboard = buildLeaderboardEntries(
+      contributors,
+      project.payoutConfig.tierWeights,
+    );
 
-  const result = await freezeStep({
-    projectId,
-    formulaVersion: project.scoringConfig.formulaVersion,
-    leaderboard,
-  });
-  await revalidateProjectCachesStep(projectId);
+    const result = await freezeStep({
+      projectId,
+      formulaVersion: project.scoringConfig.formulaVersion,
+      leaderboard,
+    });
 
-  return { snapshotId: result.snapshotId, count: result.leaderboardCount };
+    const preparedUpdate = await prepareFeeShareUpdateStep({
+      project,
+      snapshotId: result.snapshotId,
+      snapshotPeriod: result.snapshotPeriod,
+      leaderboard,
+    });
+    if (preparedUpdate.attemptId) {
+      await executeFeeShareUpdateStep(preparedUpdate.attemptId);
+    }
+
+    await revalidateProjectCachesStep(projectId);
+
+    return { snapshotId: result.snapshotId, count: result.leaderboardCount };
+  } finally {
+    await releaseLockStep(lock);
+  }
+}
+
+async function acquireLockStep(
+  workflowName: string,
+  scope: string,
+  ttlSeconds: number,
+): Promise<WorkflowLock> {
+  "use step";
+  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
+}
+
+async function releaseLockStep(lock: WorkflowLock): Promise<void> {
+  "use step";
+  await releaseWorkflowLock(lock);
 }
 
 // ============================================================
@@ -126,6 +175,27 @@ async function freezeStep(
   "use step";
   enterDbWorkflowContext("takeSnapshot:freeze");
   return await freezeSnapshot(args);
+}
+
+async function prepareFeeShareUpdateStep(
+  args: Parameters<typeof prepareFeeShareUpdateAttempt>[0],
+): Promise<PreparedFeeShareUpdate> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:prepareFeeShareUpdate");
+  return await prepareFeeShareUpdateAttempt(args);
+}
+
+async function executeFeeShareUpdateStep(
+  attemptId: string,
+): Promise<ExecutedFeeShareUpdate> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:executeFeeShareUpdate");
+  const { stepId } = getStepMetadata();
+  return await withIdempotency(
+    `${stepId}:${attemptId}`,
+    () => executeFeeShareUpdateAttempt(attemptId),
+    { scope: "workflow:fee-share-update" },
+  );
 }
 
 async function revalidateProjectCachesStep(projectId: string): Promise<void> {

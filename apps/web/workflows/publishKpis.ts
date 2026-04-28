@@ -1,14 +1,22 @@
 "use workflow";
 
 import { getStepMetadata } from "workflow";
-import { getLiveTickerData, type LandingTicker } from "@/lib/queries/global";
+import {
+  getLiveTickerDataUncached,
+  type LandingTicker,
+} from "@/lib/queries/global";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
+import {
+  acquireWorkflowLock,
+  releaseWorkflowLock,
+  type WorkflowLock,
+} from "@/lib/workflow-locks";
 
 /**
  * publishKpis — minute-level landing ticker snapshot.
  *
  * Reads the same aggregates as `getLandingData()`'s ticker block via the
- * dedicated `getLiveTickerData()` helper, then writes a JSON snapshot to
+ * uncached ticker helper, then writes a JSON snapshot to
  * Redis at `gitbags:ticker:landing` with a 120s TTL so a single missed
  * cron beat doesn't blank the homepage. The landing page reads this cache
  * inside `getLandingData()` and merges it into the response when present.
@@ -34,8 +42,28 @@ interface CachedTickerSnapshot {
 }
 
 export async function publishKpis(): Promise<{ ok: true; key: string }> {
-  await snapshotTicker();
-  return { ok: true, key: TICKER_REDIS_KEY };
+  const lock = await acquireLockStep("publishKpis", "root", 2 * 60);
+  if (!lock.acquired) return { ok: true, key: TICKER_REDIS_KEY };
+  try {
+    await snapshotTicker();
+    return { ok: true, key: TICKER_REDIS_KEY };
+  } finally {
+    await releaseLockStep(lock);
+  }
+}
+
+async function acquireLockStep(
+  workflowName: string,
+  scope: string,
+  ttlSeconds: number,
+): Promise<WorkflowLock> {
+  "use step";
+  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
+}
+
+async function releaseLockStep(lock: WorkflowLock): Promise<void> {
+  "use step";
+  await releaseWorkflowLock(lock);
 }
 
 async function snapshotTicker(): Promise<void> {
@@ -44,7 +72,7 @@ async function snapshotTicker(): Promise<void> {
 
   const stepId = getStepMetadata().stepId;
 
-  const ticker: LandingTicker = await getLiveTickerData();
+  const ticker: LandingTicker = await getLiveTickerDataUncached();
 
   const { redis } = await import("@/lib/redis");
   const r = redis();

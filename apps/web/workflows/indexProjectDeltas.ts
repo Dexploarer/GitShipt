@@ -16,6 +16,11 @@ import {
 import type { ScoringConfig } from "@/db/schema/projects";
 import { computeLeaderboard } from "./computeLeaderboard";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
+import {
+  acquireWorkflowLock,
+  releaseWorkflowLock,
+  type WorkflowLock,
+} from "@/lib/workflow-locks";
 
 type LoadedProject = {
   id: string;
@@ -35,33 +40,55 @@ const TREASURY_ROUTED_AGENT_REASON = "treasury_routed_agent";
 export async function indexProjectDeltas(
   projectId: string,
 ): Promise<{ projectId: string; status: "ok" | "skipped"; reason?: string }> {
-  const project = await loadProject(projectId);
-  if (!project) {
-    return { projectId, status: "skipped", reason: "not_found" };
+  const lock = await acquireLockStep("indexProjectDeltas", projectId, 15 * 60);
+  if (!lock.acquired) {
+    return { projectId, status: "skipped", reason: "already_running" };
   }
-  if (!project.ghInstallationId) {
-    console.log(
-      `[indexProjectDeltas] Skipping ${projectId} (${project.ghOwner}/${project.ghRepo}) — no installation id`,
+  try {
+    const project = await loadProject(projectId);
+    if (!project) {
+      return { projectId, status: "skipped", reason: "not_found" };
+    }
+    if (!project.ghInstallationId) {
+      console.log(
+        `[indexProjectDeltas] Skipping ${projectId} (${project.ghOwner}/${project.ghRepo}) — no installation id`,
+      );
+      return { projectId, status: "skipped", reason: "no_installation" };
+    }
+
+    const sinceISO = await loadSinceCursor(projectId, project.scoringConfig);
+
+    const aggregates = await fetchAndAggregate(
+      project.ghOwner,
+      project.ghRepo,
+      project.ghInstallationId,
+      sinceISO,
+      project.scoringConfig,
     );
-    return { projectId, status: "skipped", reason: "no_installation" };
+
+    await upsertContributors(projectId, aggregates);
+    await markCursor(projectId, new Date().toISOString());
+
+    await start(computeLeaderboard, [projectId]);
+
+    return { projectId, status: "ok" };
+  } finally {
+    await releaseLockStep(lock);
   }
+}
 
-  const sinceISO = await loadSinceCursor(projectId, project.scoringConfig);
+async function acquireLockStep(
+  workflowName: string,
+  scope: string,
+  ttlSeconds: number,
+): Promise<WorkflowLock> {
+  "use step";
+  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
+}
 
-  const aggregates = await fetchAndAggregate(
-    project.ghOwner,
-    project.ghRepo,
-    project.ghInstallationId,
-    sinceISO,
-    project.scoringConfig,
-  );
-
-  await upsertContributors(projectId, aggregates);
-  await markCursor(projectId, new Date().toISOString());
-
-  await start(computeLeaderboard, [projectId]);
-
-  return { projectId, status: "ok" };
+async function releaseLockStep(lock: WorkflowLock): Promise<void> {
+  "use step";
+  await releaseWorkflowLock(lock);
 }
 
 async function loadProject(projectId: string): Promise<LoadedProject | null> {

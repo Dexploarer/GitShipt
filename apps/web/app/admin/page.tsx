@@ -172,16 +172,24 @@ async function pingGitHub(): Promise<{
   ok: boolean;
   latencyMs: number | null;
 }> {
-  const start = Date.now();
-  try {
-    const res = await fetch("https://api.github.com/octocat", {
-      method: "HEAD",
-      next: { revalidate: 30 },
-    });
-    return { ok: res.ok || res.status === 404, latencyMs: Date.now() - start };
-  } catch {
-    return { ok: false, latencyMs: null };
-  }
+  return getCachedValue<{ ok: boolean; latencyMs: number | null }>(
+    async () => {
+      const start = Date.now();
+      try {
+        const res = await fetch("https://api.github.com/octocat", {
+          method: "HEAD",
+        });
+        return {
+          ok: res.ok || res.status === 404,
+          latencyMs: Date.now() - start,
+        };
+      } catch {
+        return { ok: false, latencyMs: null };
+      }
+    },
+    ["gitbags:admin:ping-github:v1"],
+    { tags: ["gitbags:admin:health"], revalidate: 30 },
+  );
 }
 
 function HeartbeatsCard({

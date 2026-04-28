@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { redis } from "@/lib/redis";
 import { dbHttp } from "@/db";
 import { sql } from "drizzle-orm";
 import { hasCredentials, productionReadiness } from "@/lib/env";
+import { noStoreJson } from "@/lib/no-store-response";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +55,7 @@ export async function GET(): Promise<Response> {
     status.production = "ok";
   }
 
-  return NextResponse.json({
+  return noStoreJson({
     ok: !Object.values(status).some((v) => v === "fail"),
     status,
     production,

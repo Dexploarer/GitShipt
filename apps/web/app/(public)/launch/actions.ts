@@ -1,6 +1,7 @@
 "use server";
 
 import "server-only";
+import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { eq, and } from "drizzle-orm";
@@ -10,7 +11,7 @@ import { dbHttp, dbPool } from "@/db";
 import { accounts, projects, projectMemberships, users } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
-import { withIdempotency } from "@/lib/idempotency";
+import { deriveKey, withIdempotency } from "@/lib/idempotency";
 import {
   hasCredentials,
   canLaunchOnBags,
@@ -20,7 +21,7 @@ import {
 import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
-import { updateProjectCaches } from "@/lib/cache-actions";
+import { updateProjectCaches, updateUserCaches } from "@/lib/cache-actions";
 import {
   CreateProjectBodySchema,
   UpdateDraftBodySchema,
@@ -551,6 +552,7 @@ export interface SaveDraftError {
 export async function saveDraftAction(
   body: CreateProjectBody,
   existingProjectId?: string,
+  idempotencyKey?: string,
 ): Promise<SaveDraftResult | SaveDraftError> {
   if (!hasCredentials.db()) {
     return {
@@ -633,186 +635,211 @@ export async function saveDraftAction(
     };
   }
 
-  // Look up an existing draft. Priority: (a) explicit id passed in,
-  // (b) (ghOwner, ghRepo) UNIQUE match owned by this user.
-  let existing: { id: string; status: string; ownerUserId: string } | null = null;
-  if (existingProjectId) {
-    const [row] = await dbHttp
-      .select({
-        id: projects.id,
-        status: projects.status,
-        ownerUserId: projects.ownerUserId,
-      })
-      .from(projects)
-      .where(eq(projects.id, existingProjectId))
-      .limit(1);
-    existing = row ?? null;
-    if (!existing) {
-      return {
-        ok: false,
-        error: "not_found",
-        message: "Draft not found. It may have been discarded.",
-        status: 404,
-      };
-    }
-  } else {
-    const [row] = await dbHttp
-      .select({
-        id: projects.id,
-        status: projects.status,
-        ownerUserId: projects.ownerUserId,
-      })
-      .from(projects)
-      .where(
-        and(
-          eq(projects.ghOwner, validated.ghOwner),
-          eq(projects.ghRepo, validated.ghRepo),
-        ),
-      )
-      .limit(1);
-    existing = row ?? null;
-  }
+  const effectiveKey =
+    idempotencyKey ??
+    deriveKey(
+      "draft-save",
+      userId,
+      existingProjectId ?? `${validated.ghOwner}/${validated.ghRepo}`,
+      draftContentHash(validated),
+    );
 
-  // ---- UPDATE path ---------------------------------------------------
-  if (existing) {
-    if (existing.ownerUserId !== userId) {
+  try {
+    const result = await withIdempotency<SaveDraftResult>(
+      effectiveKey,
+      async () => {
+        // Look up an existing draft. Priority: (a) explicit id passed in,
+        // (b) (ghOwner, ghRepo) UNIQUE match owned by this user.
+        let existing: {
+          id: string;
+          status: string;
+          ownerUserId: string;
+        } | null = null;
+        if (existingProjectId) {
+          const [row] = await dbHttp
+            .select({
+              id: projects.id,
+              status: projects.status,
+              ownerUserId: projects.ownerUserId,
+            })
+            .from(projects)
+            .where(eq(projects.id, existingProjectId))
+            .limit(1);
+          existing = row ?? null;
+          if (!existing) {
+            throw new ActionError(
+              "not_found",
+              "Draft not found. It may have been discarded.",
+              404,
+            );
+          }
+        } else {
+          const [row] = await dbHttp
+            .select({
+              id: projects.id,
+              status: projects.status,
+              ownerUserId: projects.ownerUserId,
+            })
+            .from(projects)
+            .where(
+              and(
+                eq(projects.ghOwner, validated.ghOwner),
+                eq(projects.ghRepo, validated.ghRepo),
+              ),
+            )
+            .limit(1);
+          existing = row ?? null;
+        }
+
+        // ---- UPDATE path ---------------------------------------------------
+        if (existing) {
+          if (existing.ownerUserId !== userId) {
+            throw new ActionError(
+              "forbidden",
+              "You don't own this draft.",
+              403,
+            );
+          }
+          if (existing.status !== "draft") {
+            throw new ActionError(
+              "not_draft",
+              "This project is already launched. Edit it from the project console.",
+              409,
+            );
+          }
+          await requirePermission("project.update", {
+            userId,
+            projectId: existing.id,
+          });
+
+          const updates: UpdateDraftBody = {
+            name: validated.name,
+            symbol: validated.symbol,
+            description: validated.description,
+            imageUrl: validated.imageUrl,
+            website: validated.website ?? "",
+            twitter: validated.twitter ?? "",
+            telegram: validated.telegram ?? "",
+            scoringConfig: validated.scoringConfig,
+            payoutConfig: validated.payoutConfig,
+            platformFeeBps: validated.platformFeeBps,
+          };
+          // Sanity check the partial through the same Zod schema the PATCH uses.
+          UpdateDraftBodySchema.parse(updates);
+
+          await dbHttp
+            .update(projects)
+            .set({
+              name: updates.name!,
+              symbol: updates.symbol!,
+              description: updates.description!,
+              imageUrl: updates.imageUrl!,
+              tokenWebsiteUrl: updates.website ? updates.website : null,
+              tokenTwitterUrl: updates.twitter ? updates.twitter : null,
+              tokenTelegramUrl: updates.telegram ? updates.telegram : null,
+              scoringConfig: updates.scoringConfig!,
+              payoutConfig: updates.payoutConfig!,
+              platformFeeBps: updates.platformFeeBps!,
+              updatedAt: new Date(),
+            })
+            .where(eq(projects.id, existing.id));
+
+          await audit({
+            actorUserId: userId,
+            action: "project.update",
+            targetType: "project",
+            targetId: existing.id,
+            metadata: { phase: "draft", source: "wizard_save" },
+          });
+
+          return {
+            ok: true,
+            projectId: existing.id,
+            status: "draft",
+            created: false,
+          };
+        }
+
+        // ---- CREATE path ---------------------------------------------------
+        const dbp = dbPool();
+        const inserted = await dbp.transaction(async (tx) => {
+          await applyDbRlsContext(tx);
+          const [row] = await tx
+            .insert(projects)
+            .values({
+              ownerUserId: userId,
+              ghOwner: validated.ghOwner,
+              ghRepo: validated.ghRepo,
+              ghRepoId: validated.ghRepoId,
+              ghInstallationId: validated.ghInstallationId ?? null,
+              name: validated.name,
+              symbol: validated.symbol,
+              description: validated.description ?? null,
+              imageUrl: validated.imageUrl,
+              tokenWebsiteUrl: validated.website ?? null,
+              tokenTwitterUrl: validated.twitter ?? null,
+              tokenTelegramUrl: validated.telegram ?? null,
+              status: "draft",
+              platformFeeBps: validated.platformFeeBps,
+              scoringConfig: validated.scoringConfig,
+              payoutConfig: validated.payoutConfig,
+            })
+            .returning({ id: projects.id });
+          if (!row) throw new Error("Failed to insert draft.");
+          await tx.insert(projectMemberships).values({
+            userId,
+            projectId: row.id,
+            role: "project_owner",
+          });
+          return row;
+        });
+
+        await audit({
+          actorUserId: userId,
+          action: "project.create",
+          targetType: "project",
+          targetId: inserted.id,
+          metadata: {
+            phase: "draft",
+            source: "wizard_save",
+            ghOwner: validated.ghOwner,
+            ghRepo: validated.ghRepo,
+            ghRepoId: validated.ghRepoId,
+          },
+        });
+
+        return {
+          ok: true,
+          projectId: inserted.id,
+          status: "draft",
+          created: true,
+        };
+      },
+      { scope: `draft:save:${userId}` },
+    );
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/projects");
+    revalidatePath("/launch");
+    await updateUserCaches(userId);
+    await updateProjectCaches(
+      result.projectId,
+      `${validated.ghOwner}/${validated.ghRepo}`,
+    );
+
+    return result;
+  } catch (e) {
+    if (e instanceof ActionError) {
+      return { ok: false, error: e.code, message: e.message, status: e.status };
+    }
+    if (e instanceof PermissionError) {
       return {
         ok: false,
         error: "forbidden",
-        message: "You don't own this draft.",
+        message: e.message,
         status: 403,
       };
     }
-    if (existing.status !== "draft") {
-      return {
-        ok: false,
-        error: "not_draft",
-        message:
-          "This project is already launched. Edit it from the project console.",
-        status: 409,
-      };
-    }
-    try {
-      await requirePermission("project.update", {
-        userId,
-        projectId: existing.id,
-      });
-    } catch (e) {
-      if (e instanceof PermissionError) {
-        return {
-          ok: false,
-          error: "forbidden",
-          message: e.message,
-          status: 403,
-        };
-      }
-      throw e;
-    }
-
-    const updates: UpdateDraftBody = {
-      name: validated.name,
-      symbol: validated.symbol,
-      description: validated.description,
-      imageUrl: validated.imageUrl,
-      website: validated.website ?? "",
-      twitter: validated.twitter ?? "",
-      telegram: validated.telegram ?? "",
-      scoringConfig: validated.scoringConfig,
-      payoutConfig: validated.payoutConfig,
-      platformFeeBps: validated.platformFeeBps,
-    };
-    // Sanity check the partial through the same Zod schema the PATCH uses.
-    UpdateDraftBodySchema.parse(updates);
-
-    await dbHttp
-      .update(projects)
-      .set({
-        name: updates.name!,
-        symbol: updates.symbol!,
-        description: updates.description!,
-        imageUrl: updates.imageUrl!,
-        tokenWebsiteUrl: updates.website ? updates.website : null,
-        tokenTwitterUrl: updates.twitter ? updates.twitter : null,
-        tokenTelegramUrl: updates.telegram ? updates.telegram : null,
-        scoringConfig: updates.scoringConfig!,
-        payoutConfig: updates.payoutConfig!,
-        platformFeeBps: updates.platformFeeBps!,
-        updatedAt: new Date(),
-      })
-      .where(eq(projects.id, existing.id));
-
-    await audit({
-      actorUserId: userId,
-      action: "project.update",
-      targetType: "project",
-      targetId: existing.id,
-      metadata: { phase: "draft", source: "wizard_save" },
-    });
-
-    return {
-      ok: true,
-      projectId: existing.id,
-      status: "draft",
-      created: false,
-    };
-  }
-
-  // ---- CREATE path ---------------------------------------------------
-  try {
-    const dbp = dbPool();
-    const inserted = await dbp.transaction(async (tx) => {
-      await applyDbRlsContext(tx);
-      const [row] = await tx
-        .insert(projects)
-        .values({
-          ownerUserId: userId,
-          ghOwner: validated.ghOwner,
-          ghRepo: validated.ghRepo,
-          ghRepoId: validated.ghRepoId,
-          ghInstallationId: validated.ghInstallationId ?? null,
-          name: validated.name,
-          symbol: validated.symbol,
-          description: validated.description ?? null,
-          imageUrl: validated.imageUrl,
-          tokenWebsiteUrl: validated.website ?? null,
-          tokenTwitterUrl: validated.twitter ?? null,
-          tokenTelegramUrl: validated.telegram ?? null,
-          status: "draft",
-          platformFeeBps: validated.platformFeeBps,
-          scoringConfig: validated.scoringConfig,
-          payoutConfig: validated.payoutConfig,
-        })
-        .returning({ id: projects.id });
-      if (!row) throw new Error("Failed to insert draft.");
-      await tx.insert(projectMemberships).values({
-        userId,
-        projectId: row.id,
-        role: "project_owner",
-      });
-      return row;
-    });
-
-    await audit({
-      actorUserId: userId,
-      action: "project.create",
-      targetType: "project",
-      targetId: inserted.id,
-      metadata: {
-        phase: "draft",
-        source: "wizard_save",
-        ghOwner: validated.ghOwner,
-        ghRepo: validated.ghRepo,
-        ghRepoId: validated.ghRepoId,
-      },
-    });
-
-    return {
-      ok: true,
-      projectId: inserted.id,
-      status: "draft",
-      created: true,
-    };
-  } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to save draft.";
     if (/projects_gh_repo_uq/i.test(message)) {
       return {
@@ -838,6 +865,7 @@ export async function saveDraftAction(
  */
 export async function discardDraftAction(
   projectId: string,
+  idempotencyKey?: string,
 ): Promise<{ ok: true } | SaveDraftError> {
   if (!hasCredentials.db()) {
     return {
@@ -858,36 +886,56 @@ export async function discardDraftAction(
   }
   const userId = session.user.id;
 
-  const [project] = await dbHttp
-    .select({
-      id: projects.id,
-      status: projects.status,
-      ownerUserId: projects.ownerUserId,
-      ghOwner: projects.ghOwner,
-      ghRepo: projects.ghRepo,
-    })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-  if (!project) {
-    return {
-      ok: false,
-      error: "not_found",
-      message: "Draft not found.",
-      status: 404,
-    };
-  }
-  if (project.status !== "draft") {
-    return {
-      ok: false,
-      error: "not_draft",
-      message: "Only drafts can be discarded.",
-      status: 409,
-    };
-  }
+  let discardedSlug: string | null = null;
   try {
-    await requirePermission("project.delete", { userId, projectId });
+    const discardResult = await withIdempotency<{ ok: true; slug: string }>(
+      idempotencyKey ?? deriveKey("draft-discard", userId, projectId),
+      async () => {
+        const [project] = await dbHttp
+          .select({
+            id: projects.id,
+            status: projects.status,
+            ownerUserId: projects.ownerUserId,
+            ghOwner: projects.ghOwner,
+            ghRepo: projects.ghRepo,
+          })
+          .from(projects)
+          .where(eq(projects.id, projectId))
+          .limit(1);
+        if (!project) {
+          throw new ActionError("not_found", "Draft not found.", 404);
+        }
+        if (project.status !== "draft") {
+          throw new ActionError(
+            "not_draft",
+            "Only drafts can be discarded.",
+            409,
+          );
+        }
+        await requirePermission("project.delete", { userId, projectId });
+
+        await dbHttp.delete(projects).where(eq(projects.id, projectId));
+        await audit({
+          actorUserId: userId,
+          action: "project.delete",
+          targetType: "project",
+          targetId: projectId,
+          metadata: {
+            phase: "draft",
+            ghOwner: project.ghOwner,
+            ghRepo: project.ghRepo,
+          },
+        });
+        discardedSlug = `${project.ghOwner}/${project.ghRepo}`;
+        return { ok: true, slug: discardedSlug };
+      },
+      { scope: `draft:discard:${userId}` },
+    );
+    discardedSlug = discardResult.slug;
   } catch (e) {
+    if (e instanceof ActionError) {
+      return { ok: false, error: e.code, message: e.message, status: e.status };
+    }
     if (e instanceof PermissionError) {
       return {
         ok: false,
@@ -899,20 +947,20 @@ export async function discardDraftAction(
     throw e;
   }
 
-  await dbHttp.delete(projects).where(eq(projects.id, projectId));
-  await audit({
-    actorUserId: userId,
-    action: "project.delete",
-    targetType: "project",
-    targetId: projectId,
-    metadata: {
-      phase: "draft",
-      ghOwner: project.ghOwner,
-      ghRepo: project.ghRepo,
-    },
-  });
+  if (discardedSlug) revalidatePath(`/r/${discardedSlug}`);
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/projects");
+  revalidatePath("/launch");
+  await updateUserCaches(userId);
+  await updateProjectCaches(projectId, discardedSlug ?? undefined);
   return { ok: true };
+}
+
+function draftContentHash(body: CreateProjectBody): string {
+  return createHash("sha256")
+    .update(JSON.stringify(body))
+    .digest("hex")
+    .slice(0, 24);
 }
 
 /**

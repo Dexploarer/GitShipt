@@ -1,5 +1,4 @@
 import "server-only";
-import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -10,10 +9,17 @@ import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
-import { revalidatePublicCaches } from "@/lib/cache";
+import { privateNoStoreJson } from "@/lib/no-store-response";
+import {
+  revalidateAdminCaches,
+  revalidateProjectCaches,
+  revalidateUserCaches,
+} from "@/lib/cache";
 import { UpdateDraftBodySchema } from "@repo/shared";
 
 export const dynamic = "force-dynamic";
+
+const json = privateNoStoreJson;
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -28,7 +34,7 @@ interface RouteContext {
  */
 export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
   if (!hasCredentials.db()) {
-    return NextResponse.json(
+    return json(
       { error: "db_unavailable", message: "DB not configured." },
       { status: 503 },
     );
@@ -37,7 +43,7 @@ export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
   const params = await ctx.params;
   const projectId = params.id;
   if (!projectId) {
-    return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    return json({ error: "missing_id" }, { status: 400 });
   }
 
   const ip =
@@ -45,13 +51,13 @@ export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
 
   const session = await auth().api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return json({ error: "unauthorized" }, { status: 401 });
   }
   const userId = session.user.id;
 
   const limit = await check("default", `project-read:${userId ?? ip}`);
   if (!limit.success) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    return json({ error: "rate_limited" }, { status: 429 });
   }
 
   const [project] = await dbHttp
@@ -61,19 +67,19 @@ export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
     .limit(1);
 
   if (!project) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return json({ error: "not_found" }, { status: 404 });
   }
 
   try {
     await requirePermission("project.read", { userId, projectId });
   } catch (e) {
     if (e instanceof PermissionError) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return json({ error: "forbidden" }, { status: 403 });
     }
     throw e;
   }
 
-  return NextResponse.json({
+  return json({
     id: project.id,
     ghOwner: project.ghOwner,
     ghRepo: project.ghRepo,
@@ -109,7 +115,7 @@ export async function PATCH(
   ctx: RouteContext,
 ): Promise<Response> {
   if (!hasCredentials.db()) {
-    return NextResponse.json(
+    return json(
       { error: "db_unavailable", message: "DB not configured." },
       { status: 503 },
     );
@@ -118,7 +124,7 @@ export async function PATCH(
   const params = await ctx.params;
   const projectId = params.id;
   if (!projectId) {
-    return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    return json({ error: "missing_id" }, { status: 400 });
   }
 
   const ip =
@@ -127,26 +133,31 @@ export async function PATCH(
 
   const session = await auth().api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return json({ error: "unauthorized" }, { status: 401 });
   }
   const userId = session.user.id;
 
   const limit = await check("default", `draft-update:${userId ?? ip}`);
   if (!limit.success) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    return json({ error: "rate_limited" }, { status: 429 });
   }
 
   const [project] = await dbHttp
-    .select({ id: projects.id, status: projects.status })
+    .select({
+      id: projects.id,
+      status: projects.status,
+      ghOwner: projects.ghOwner,
+      ghRepo: projects.ghRepo,
+    })
     .from(projects)
     .where(eq(projects.id, projectId))
     .limit(1);
 
   if (!project) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return json({ error: "not_found" }, { status: 404 });
   }
   if (project.status !== "draft") {
-    return NextResponse.json(
+    return json(
       {
         error: "not_draft",
         message:
@@ -160,7 +171,7 @@ export async function PATCH(
     await requirePermission("project.update", { userId, projectId });
   } catch (e) {
     if (e instanceof PermissionError) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+      return json({ error: "forbidden" }, { status: 403 });
     }
     throw e;
   }
@@ -169,12 +180,12 @@ export async function PATCH(
   try {
     raw = await req.json();
   } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    return json({ error: "invalid_json" }, { status: 400 });
   }
 
   const parsed = UpdateDraftBodySchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json(
+    return json(
       { error: "invalid_body", issues: parsed.error.flatten() },
       { status: 400 },
     );
@@ -183,7 +194,7 @@ export async function PATCH(
 
   const idempotencyKey = req.headers.get("idempotency-key");
   if (!idempotencyKey) {
-    return NextResponse.json(
+    return json(
       { error: "idempotency_key_required" },
       { status: 400 },
     );
@@ -235,11 +246,16 @@ export async function PATCH(
       { scope: `project:patch:${userId}:${projectId}` },
     );
 
-    return NextResponse.json({ ok: true });
+    await revalidateProjectCaches(
+      projectId,
+      `${project.ghOwner}/${project.ghRepo}`,
+    );
+
+    return json({ ok: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to update draft.";
     console.error("[projects:patch] failed:", e);
-    return NextResponse.json(
+    return json(
       { error: "update_failed", message },
       { status: 500 },
     );
@@ -257,7 +273,7 @@ export async function DELETE(
   ctx: RouteContext,
 ): Promise<Response> {
   if (!hasCredentials.db()) {
-    return NextResponse.json(
+    return json(
       { error: "db_unavailable", message: "DB not configured." },
       { status: 503 },
     );
@@ -266,7 +282,7 @@ export async function DELETE(
   const params = await ctx.params;
   const projectId = params.id;
   if (!projectId) {
-    return NextResponse.json({ error: "missing_id" }, { status: 400 });
+    return json({ error: "missing_id" }, { status: 400 });
   }
 
   const ip =
@@ -275,74 +291,104 @@ export async function DELETE(
 
   const session = await auth().api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return json({ error: "unauthorized" }, { status: 401 });
   }
   const userId = session.user.id;
 
   const limit = await check("default", `draft-delete:${userId ?? ip}`);
   if (!limit.success) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    return json({ error: "rate_limited" }, { status: 429 });
   }
 
-  const [project] = await dbHttp
-    .select({
-      id: projects.id,
-      status: projects.status,
-      ghOwner: projects.ghOwner,
-      ghRepo: projects.ghRepo,
-    })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-
-  if (!project) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
-  }
-  if (project.status !== "draft") {
-    return NextResponse.json(
-      {
-        error: "not_draft",
-        message:
-          "Only drafts can be deleted. Launched projects must be paused or killed instead.",
-      },
-      { status: 409 },
+  const idempotencyKey = req.headers.get("idempotency-key");
+  if (!idempotencyKey) {
+    return json(
+      { error: "idempotency_key_required" },
+      { status: 400 },
     );
   }
 
   try {
-    // project.delete permission is owner-only; admins cannot reach in and
-    // discard a user's draft.
-    await requirePermission("project.delete", { userId, projectId });
-  } catch (e) {
-    if (e instanceof PermissionError) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
-    throw e;
-  }
+    const result = await withIdempotency(
+      idempotencyKey,
+      async () => {
+        const [project] = await dbHttp
+          .select({
+            id: projects.id,
+            status: projects.status,
+            ghOwner: projects.ghOwner,
+            ghRepo: projects.ghRepo,
+          })
+          .from(projects)
+          .where(eq(projects.id, projectId))
+          .limit(1);
 
-  try {
-    await dbHttp.delete(projects).where(eq(projects.id, projectId));
+        if (!project) {
+          return { status: 404, body: { error: "not_found" }, cacheSlug: null };
+        }
+        if (project.status !== "draft") {
+          return {
+            status: 409,
+            body: {
+              error: "not_draft",
+              message:
+                "Only drafts can be deleted. Launched projects must be paused or killed instead.",
+            },
+            cacheSlug: null,
+          };
+        }
 
-    await audit({
-      actorUserId: userId,
-      action: "project.delete",
-      targetType: "project",
-      targetId: projectId,
-      metadata: {
-        phase: "draft",
-        ghOwner: project.ghOwner,
-        ghRepo: project.ghRepo,
+        try {
+          // project.delete permission is owner-only; admins cannot reach in and
+          // discard a user's draft.
+          await requirePermission("project.delete", { userId, projectId });
+        } catch (e) {
+          if (e instanceof PermissionError) {
+            return {
+              status: 403,
+              body: { error: "forbidden" },
+              cacheSlug: null,
+            };
+          }
+          throw e;
+        }
+
+        await dbHttp.delete(projects).where(eq(projects.id, projectId));
+
+        await audit({
+          actorUserId: userId,
+          action: "project.delete",
+          targetType: "project",
+          targetId: projectId,
+          metadata: {
+            phase: "draft",
+            ghOwner: project.ghOwner,
+            ghRepo: project.ghRepo,
+          },
+          ip,
+          userAgent,
+        });
+
+        return {
+          status: 200,
+          body: { ok: true },
+          cacheSlug: `${project.ghOwner}/${project.ghRepo}`,
+        };
       },
-      ip,
-      userAgent,
-    });
+      { scope: `project:delete:${userId}:${projectId}` },
+    );
 
-    revalidatePublicCaches();
-    return NextResponse.json({ ok: true });
+    if (result.status === 200 && result.cacheSlug) {
+      await revalidateProjectCaches(projectId, result.cacheSlug);
+      revalidateUserCaches(userId);
+      revalidateAdminCaches();
+    }
+
+    return json(result.body, { status: result.status });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to discard draft.";
     console.error("[projects:delete] failed:", e);
-    return NextResponse.json(
+    return json(
       { error: "delete_failed", message },
       { status: 500 },
     );

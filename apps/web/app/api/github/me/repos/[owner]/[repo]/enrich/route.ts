@@ -1,5 +1,4 @@
 import "server-only";
-import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { Octokit } from "@octokit/rest";
 import { eq } from "drizzle-orm";
@@ -9,6 +8,7 @@ import { accounts } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
 import { hasCredentials } from "@/lib/env";
 import { redis } from "@/lib/redis";
+import { privateNoStoreJson } from "@/lib/no-store-response";
 import { RepoEnrichmentSchema, type RepoEnrichment } from "@repo/shared";
 
 export const dynamic = "force-dynamic";
@@ -33,13 +33,13 @@ export async function GET(
   { params }: { params: Promise<{ owner: string; repo: string }> },
 ): Promise<Response> {
   if (!hasCredentials.github()) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "auth_unavailable", message: "GitHub OAuth not configured." },
       { status: 503 },
     );
   }
   if (!hasCredentials.db()) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "db_unavailable", message: "DB not configured." },
       { status: 503 },
     );
@@ -47,7 +47,7 @@ export async function GET(
 
   const { owner, repo } = await params;
   if (!isSafeSegment(owner) || !isSafeSegment(repo)) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "bad_request", message: "Invalid owner/repo." },
       { status: 400 },
     );
@@ -58,7 +58,7 @@ export async function GET(
 
   const session = await auth().api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "unauthorized", message: "Sign in to enrich repo metadata." },
       { status: 401 },
     );
@@ -67,7 +67,7 @@ export async function GET(
 
   const limit = await check("default", `gh-enrich:${userId ?? ip}`);
   if (!limit.success) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    return privateNoStoreJson({ error: "rate_limited" }, { status: 429 });
   }
 
   const r = redis();
@@ -77,7 +77,7 @@ export async function GET(
     if (cached) {
       try {
         const parsed = RepoEnrichmentSchema.parse(JSON.parse(cached));
-        return NextResponse.json(parsed, { headers: { "x-cache": "HIT" } });
+        return privateNoStoreJson(parsed, { headers: { "x-cache": "HIT" } });
       } catch {
         // fall through and re-fetch
       }
@@ -91,7 +91,7 @@ export async function GET(
     .limit(1);
 
   if (!account?.accessToken) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       {
         error: "missing_github_token",
         message: "No GitHub OAuth token on file.",
@@ -146,7 +146,7 @@ export async function GET(
     await r.set(cacheKey, JSON.stringify(body), "EX", CACHE_TTL_SECONDS);
   }
 
-  return NextResponse.json(body, { headers: { "x-cache": "MISS" } });
+  return privateNoStoreJson(body, { headers: { "x-cache": "MISS" } });
 }
 
 function isSafeSegment(s: string): boolean {

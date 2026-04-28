@@ -1,5 +1,4 @@
 import "server-only";
-import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { Octokit } from "@octokit/rest";
 import { and, eq } from "drizzle-orm";
@@ -9,6 +8,7 @@ import { accounts, projects } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
 import { hasCredentials } from "@/lib/env";
 import { redis } from "@/lib/redis";
+import { privateNoStoreJson } from "@/lib/no-store-response";
 import {
   GithubReposResponseSchema,
   type GithubRepo,
@@ -51,13 +51,13 @@ interface GithubRepoApiResponse {
  */
 export async function GET(req: Request): Promise<Response> {
   if (!hasCredentials.github()) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "auth_unavailable", message: "GitHub OAuth not configured." },
       { status: 503 },
     );
   }
   if (!hasCredentials.db()) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "db_unavailable", message: "DB not configured." },
       { status: 503 },
     );
@@ -69,7 +69,7 @@ export async function GET(req: Request): Promise<Response> {
 
   const session = await auth().api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "unauthorized", message: "Sign in with GitHub to list repos." },
       { status: 401 },
     );
@@ -78,7 +78,7 @@ export async function GET(req: Request): Promise<Response> {
 
   const limit = await check("default", `gh-repos:${userId ?? ip}`);
   if (!limit.success) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    return privateNoStoreJson({ error: "rate_limited" }, { status: 429 });
   }
 
   // Cache hit?
@@ -89,7 +89,7 @@ export async function GET(req: Request): Promise<Response> {
     if (cached) {
       try {
         const parsed = GithubReposResponseSchema.parse(JSON.parse(cached));
-        return NextResponse.json(parsed, {
+        return privateNoStoreJson(parsed, {
           headers: { "x-cache": "HIT" },
         });
       } catch {
@@ -109,7 +109,7 @@ export async function GET(req: Request): Promise<Response> {
     .limit(1);
 
   if (!account?.accessToken) {
-    return NextResponse.json(
+    return privateNoStoreJson(
       {
         error: "missing_github_token",
         message:
@@ -133,7 +133,7 @@ export async function GET(req: Request): Promise<Response> {
   } catch (e) {
     const message =
       e instanceof Error ? e.message : "GitHub list-repos failed.";
-    return NextResponse.json(
+    return privateNoStoreJson(
       { error: "github_error", message },
       { status: 502 },
     );
@@ -199,7 +199,7 @@ export async function GET(req: Request): Promise<Response> {
     );
   }
 
-  return NextResponse.json(responseBody, {
+  return privateNoStoreJson(responseBody, {
     headers: { "x-cache": "MISS" },
   });
 }

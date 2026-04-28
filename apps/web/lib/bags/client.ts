@@ -77,11 +77,14 @@ import {
 import { stubBags } from "./__stubs";
 import { parseBagsRestEnvelope } from "./rest";
 import {
+  assertBagsTransactionSafeToSign,
   normalizeBagsTransaction,
+  type BagsInstructionPolicy,
   type BagsTransaction,
 } from "./transactions";
 import { solanaConnection } from "@/lib/solana/connection";
 import { assertTransactionSimulation } from "@/lib/solana/simulation";
+import { readThroughCache } from "@/lib/read-through-cache";
 
 /**
  * Typed Bags.fm client. Behavior:
@@ -265,6 +268,19 @@ function isPlaceholderTokenMint(tokenMint: string): boolean {
   return tokenMint === DEMO_TOKEN_MINT || tokenMint.endsWith(STUB_TOKEN_SUFFIX);
 }
 
+function bagsReadCache<T>(
+  key: string,
+  ttlSeconds: number,
+  loader: () => Promise<T>,
+): Promise<T> {
+  return readThroughCache({
+    key: `bags:${key}`,
+    ttlSeconds,
+    loader,
+    allowStaleOnError: true,
+  });
+}
+
 function bagsFmUrl(path = ""): string {
   return new URL(path, "https://bags.fm/").toString();
 }
@@ -403,10 +419,24 @@ function extractSubmittedSignature(raw: unknown): string {
   return typeof parsed === "string" ? parsed : parsed.response;
 }
 
-async function signAndSubmitViaBags(transaction: unknown): Promise<string> {
+async function signAndSubmitViaBags(
+  transaction: unknown,
+  options?: {
+    operation?: string;
+    allowSignerSystemTransfer?: boolean;
+    bagsInstructionPolicy?: BagsInstructionPolicy;
+  },
+): Promise<string> {
   const { Transaction, VersionedTransaction } = await import("@solana/web3.js");
   const signer = payoutSigner();
   const normalized = await normalizeBagsTransaction(transaction);
+  const operation = options?.operation ?? "Bags transaction";
+
+  await assertBagsTransactionSafeToSign(normalized, signer.publicKey, {
+    operation,
+    allowSignerSystemTransfer: options?.allowSignerSystemTransfer,
+    bagsInstructionPolicy: options?.bagsInstructionPolicy,
+  });
 
   let serialized: Uint8Array | Buffer;
   if (normalized instanceof VersionedTransaction) {
@@ -422,7 +452,7 @@ async function signAndSubmitViaBags(transaction: unknown): Promise<string> {
   await assertTransactionSimulation(
     solanaConnection("processed"),
     normalized,
-    "Bags transaction",
+    operation,
   );
 
   const raw = await bagsRestRaw("solana/send-transaction", {
@@ -761,11 +791,21 @@ export const bags = {
     const txSignatures: string[] = [];
     for (const bundle of result.bundles ?? []) {
       for (const tx of bundle) {
-        txSignatures.push(await signAndSubmitViaBags(tx));
+        txSignatures.push(
+          await signAndSubmitViaBags(tx, {
+            operation: "Bags fee-share config transaction",
+            bagsInstructionPolicy: "fee-config",
+          }),
+        );
       }
     }
     for (const tx of result.transactions ?? []) {
-      txSignatures.push(await signAndSubmitViaBags(tx));
+      txSignatures.push(
+        await signAndSubmitViaBags(tx, {
+          operation: "Bags fee-share config transaction",
+          bagsInstructionPolicy: "fee-config",
+        }),
+      );
     }
 
     return FeeShareConfigResponseSchema.parse({
@@ -801,7 +841,10 @@ export const bags = {
       initialBuyLamports: validated.initialBuyLamports,
     });
     return LaunchTransactionResultSchema.parse({
-      signature: await signAndSubmitViaBags(tx),
+      signature: await signAndSubmitViaBags(tx, {
+        operation: "Bags launch transaction",
+        allowSignerSystemTransfer: true,
+      }),
     });
   },
 
@@ -852,16 +895,18 @@ export const bags = {
     if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) {
       return LifetimeFeesSchema.parse(stubBags.lifetimeFees(tokenMint));
     }
-    const { PublicKey } = await import("@solana/web3.js");
-    const sdk = await tryGetSdk();
-    const totalLifetimeLamports = sdk
-      ? await sdk.state.getTokenLifetimeFees(new PublicKey(tokenMint))
-      : await bagsRest("token-launch/lifetime-fees", z.coerce.bigint(), {
-          query: { tokenMint },
-        });
-    return LifetimeFeesSchema.parse({
-      tokenMint,
-      totalLifetimeLamports,
+    return bagsReadCache(`lifetime-fees:${tokenMint}`, 60, async () => {
+      const { PublicKey } = await import("@solana/web3.js");
+      const sdk = await tryGetSdk();
+      const totalLifetimeLamports = sdk
+        ? await sdk.state.getTokenLifetimeFees(new PublicKey(tokenMint))
+        : await bagsRest("token-launch/lifetime-fees", z.coerce.bigint(), {
+            query: { tokenMint },
+          });
+      return LifetimeFeesSchema.parse({
+        tokenMint,
+        totalLifetimeLamports,
+      });
     });
   },
 
@@ -902,8 +947,15 @@ export const bags = {
     };
   },
 
-  async signAndSubmitTransaction(transaction: unknown): Promise<string> {
-    return signAndSubmitViaBags(transaction);
+  async signAndSubmitTransaction(
+    transaction: unknown,
+    options?: {
+      operation?: string;
+      allowSignerSystemTransfer?: boolean;
+      bagsInstructionPolicy?: BagsInstructionPolicy;
+    },
+  ): Promise<string> {
+    return signAndSubmitViaBags(transaction, options);
   },
 
   /** Build a Bags-hosted launch intent URL for user-signed handoff flows. */
@@ -952,14 +1004,18 @@ export const bags = {
 
   async getTokenCreators(tokenMint: string): Promise<TokenCreator[]> {
     if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) return [];
-    const [{ PublicKey }, sdk] = await Promise.all([
-      import("@solana/web3.js"),
-      getSdk(),
-    ]);
-    const creators = await sdk.state.getTokenCreators(new PublicKey(tokenMint));
-    return creators.map((creator) =>
-      TokenCreatorSchema.parse(normalizePublicKeyFields(creator)),
-    );
+    return bagsReadCache(`token-creators:${tokenMint}`, 300, async () => {
+      const [{ PublicKey }, sdk] = await Promise.all([
+        import("@solana/web3.js"),
+        getSdk(),
+      ]);
+      const creators = await sdk.state.getTokenCreators(
+        new PublicKey(tokenMint),
+      );
+      return creators.map((creator) =>
+        TokenCreatorSchema.parse(normalizePublicKeyFields(creator)),
+      );
+    });
   },
 
   /**
@@ -980,14 +1036,19 @@ export const bags = {
     if (toUnix < fromUnix) {
       throw new Error("toUnix must be >= fromUnix.");
     }
-    return bagsRest("fee-share/token/claim-events", ClaimEventsSchema, {
-      query: {
-        tokenMint,
-        mode: "time",
-        from: String(fromUnix),
-        to: String(toUnix),
-      },
-    });
+    return bagsReadCache(
+      `claim-events-by-time:${tokenMint}:${fromUnix}:${toUnix}`,
+      60,
+      () =>
+        bagsRest("fee-share/token/claim-events", ClaimEventsSchema, {
+          query: {
+            tokenMint,
+            mode: "time",
+            from: String(fromUnix),
+            to: String(toUnix),
+          },
+        }),
+    );
   },
 
   async getTokenClaimEvents(
@@ -995,54 +1056,66 @@ export const bags = {
     options?: { limit?: number; offset?: number },
   ): Promise<TokenClaimEvent[]> {
     if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) return [];
-    const [{ PublicKey }, sdk] = await Promise.all([
-      import("@solana/web3.js"),
-      getSdk(),
-    ]);
-    const events = await sdk.state.getTokenClaimEvents(
-      new PublicKey(tokenMint),
-      options,
-    );
-    return events.map((event) =>
-      TokenClaimEventSchema.parse(normalizePublicKeyFields(event)),
+    const limit = options?.limit ?? 100;
+    const offset = options?.offset ?? 0;
+    return bagsReadCache(
+      `token-claim-events:${tokenMint}:${limit}:${offset}`,
+      60,
+      async () => {
+        const [{ PublicKey }, sdk] = await Promise.all([
+          import("@solana/web3.js"),
+          getSdk(),
+        ]);
+        const events = await sdk.state.getTokenClaimEvents(
+          new PublicKey(tokenMint),
+          options,
+        );
+        return events.map((event) =>
+          TokenClaimEventSchema.parse(normalizePublicKeyFields(event)),
+        );
+      },
     );
   },
 
   async getTokenClaimStats(tokenMint: string): Promise<TokenClaimStats[]> {
     if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) return [];
-    const { PublicKey } = await import("@solana/web3.js");
-    const sdk = await tryGetSdk();
-    const statsResponse = sdk
-      ? await sdk.state.getTokenClaimStats(new PublicKey(tokenMint))
-      : await bagsRest(
-          "token-launch/claim-stats",
-          z.union([
-            z.array(z.unknown()),
-            z.object({
-              success: z.literal(true),
-              response: z.array(z.unknown()),
-            }),
-          ]),
-          { query: { tokenMint } },
-        );
-    const stats = Array.isArray(statsResponse)
-      ? statsResponse
-      : statsResponse.response;
-    return stats.map((stat) =>
-      TokenClaimStatsSchema.parse(normalizePublicKeyFields(stat)),
-    );
+    return bagsReadCache(`token-claim-stats:${tokenMint}`, 60, async () => {
+      const { PublicKey } = await import("@solana/web3.js");
+      const sdk = await tryGetSdk();
+      const statsResponse = sdk
+        ? await sdk.state.getTokenClaimStats(new PublicKey(tokenMint))
+        : await bagsRest(
+            "token-launch/claim-stats",
+            z.union([
+              z.array(z.unknown()),
+              z.object({
+                success: z.literal(true),
+                response: z.array(z.unknown()),
+              }),
+            ]),
+            { query: { tokenMint } },
+          );
+      const stats = Array.isArray(statsResponse)
+        ? statsResponse
+        : statsResponse.response;
+      return stats.map((stat) =>
+        TokenClaimStatsSchema.parse(normalizePublicKeyFields(stat)),
+      );
+    });
   },
 
   async getTopTokensByLifetimeFees(): Promise<TopTokenByLifetimeFees[]> {
     if (!hasCredentials.bags()) return [];
-    const sdk = await tryGetSdk();
-    if (!sdk) {
-      throw new Error(
-        "Top-tokens lookup requires the Bags SDK; no REST equivalent exists in the public API.",
-      );
-    }
-    const tokens = await sdk.state.getTopTokensByLifetimeFees();
-    return tokens.map((token) => TopTokenByLifetimeFeesSchema.parse(token));
+    return bagsReadCache("top-tokens-by-lifetime-fees", 120, async () => {
+      const sdk = await tryGetSdk();
+      if (!sdk) {
+        throw new Error(
+          "Top-tokens lookup requires the Bags SDK; no REST equivalent exists in the public API.",
+        );
+      }
+      const tokens = await sdk.state.getTopTokensByLifetimeFees();
+      return tokens.map((token) => TopTokenByLifetimeFeesSchema.parse(token));
+    });
   },
 
   /**
@@ -1053,7 +1126,9 @@ export const bags = {
     if (!hasCredentials.bags()) {
       return LaunchFeedSchema.parse(localBagsStubs.launchFeed());
     }
-    return bagsRest("token-launch/feed", LaunchFeedSchema);
+    return bagsReadCache("launch-feed", 120, () =>
+      bagsRest("token-launch/feed", LaunchFeedSchema),
+    );
   },
 
   /**
@@ -1064,36 +1139,41 @@ export const bags = {
     if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) {
       return PoolByMintSchema.parse(localBagsStubs.poolByMint(tokenMint));
     }
-    return bagsRest("solana/bags/pools/token-mint", PoolByMintSchema, {
-      query: { tokenMint },
-    });
+    return bagsReadCache(`pool-by-token-mint:${tokenMint}`, 60 * 60, () =>
+      bagsRest("solana/bags/pools/token-mint", PoolByMintSchema, {
+        query: { tokenMint },
+      }),
+    );
   },
 
   async getPoolConfigKeysByFeeClaimerVaults(
     feeClaimerVaults: string[],
   ): Promise<PoolConfigKeysResponse> {
     if (!hasCredentials.bags()) return { poolConfigKeys: [] };
-    const { PublicKey } = await import("@solana/web3.js");
-    const sdk = await tryGetSdk();
-    const poolConfigKeys = sdk
-      ? (
-          await sdk.state.getPoolConfigKeysByFeeClaimerVaults(
-            feeClaimerVaults.map((vault) => new PublicKey(vault)),
-          )
-        ).map(publicKeyToString)
-      : (
-          await bagsRest(
-            "token-launch/state/pool-config",
-            z.object({
-              poolConfigKeys: z.array(SolanaAddressSchema.nullable()),
-            }),
-            {
-              method: "POST",
-              body: JSON.stringify({ feeClaimerVaults }),
-            },
-          )
-        ).poolConfigKeys.filter((key): key is string => key !== null);
-    return PoolConfigKeysResponseSchema.parse({ poolConfigKeys });
+    const key = feeClaimerVaults.slice().sort().join(",");
+    return bagsReadCache(`pool-config-keys:${key}`, 300, async () => {
+      const { PublicKey } = await import("@solana/web3.js");
+      const sdk = await tryGetSdk();
+      const poolConfigKeys = sdk
+        ? (
+            await sdk.state.getPoolConfigKeysByFeeClaimerVaults(
+              feeClaimerVaults.map((vault) => new PublicKey(vault)),
+            )
+          ).map(publicKeyToString)
+        : (
+            await bagsRest(
+              "token-launch/state/pool-config",
+              z.object({
+                poolConfigKeys: z.array(SolanaAddressSchema.nullable()),
+              }),
+              {
+                method: "POST",
+                body: JSON.stringify({ feeClaimerVaults }),
+              },
+            )
+          ).poolConfigKeys.filter((poolKey): poolKey is string => poolKey !== null);
+      return PoolConfigKeysResponseSchema.parse({ poolConfigKeys });
+    });
   },
 
   async getPartnerConfig(
@@ -1102,12 +1182,16 @@ export const bags = {
     if (!hasCredentials.bags()) {
       throw new Error("BAGS_API_KEY is required for partner config reads.");
     }
-    const [{ PublicKey }, sdk] = await Promise.all([
-      import("@solana/web3.js"),
-      getSdk(),
-    ]);
-    const raw = await sdk.partner.getPartnerConfig(new PublicKey(partnerWallet));
-    return PartnerConfigSchema.parse(normalizePublicKeyFields(raw));
+    return bagsReadCache(`partner-config:${partnerWallet}`, 300, async () => {
+      const [{ PublicKey }, sdk] = await Promise.all([
+        import("@solana/web3.js"),
+        getSdk(),
+      ]);
+      const raw = await sdk.partner.getPartnerConfig(
+        new PublicKey(partnerWallet),
+      );
+      return PartnerConfigSchema.parse(normalizePublicKeyFields(raw));
+    });
   },
 
   async getPartnerClaimStats(
@@ -1119,16 +1203,22 @@ export const bags = {
         unclaimedFees: "0",
       });
     }
-    const { PublicKey } = await import("@solana/web3.js");
-    const sdk = await tryGetSdk();
-    const raw = sdk
-      ? await sdk.partner.getPartnerConfigClaimStats(
-          new PublicKey(partnerWallet),
-        )
-      : await bagsRest("fee-share/partner-config/stats", PartnerClaimStatsSchema, {
-          query: { partner: partnerWallet },
-        });
-    return PartnerClaimStatsSchema.parse(raw);
+    return bagsReadCache(`partner-claim-stats:${partnerWallet}`, 30, async () => {
+      const { PublicKey } = await import("@solana/web3.js");
+      const sdk = await tryGetSdk();
+      const raw = sdk
+        ? await sdk.partner.getPartnerConfigClaimStats(
+            new PublicKey(partnerWallet),
+          )
+        : await bagsRest(
+            "fee-share/partner-config/stats",
+            PartnerClaimStatsSchema,
+            {
+              query: { partner: partnerWallet },
+            },
+          );
+      return PartnerClaimStatsSchema.parse(raw);
+    });
   },
 
   async getPartnerConfigCreationTransaction(

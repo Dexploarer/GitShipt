@@ -50,6 +50,10 @@ import { executePayout } from "@/workflows/executePayout";
 import { expireEscrow } from "@/workflows/expireEscrow";
 import { publishKpis } from "@/workflows/publishKpis";
 import { computeLeaderboard as computeLeaderboardWorkflow } from "@/workflows/computeLeaderboard";
+import {
+  type AdminWorkflowName,
+  workflowRetriggerPermission,
+} from "./workflow-permissions";
 
 /**
  * Server actions for the super-admin console.
@@ -779,7 +783,7 @@ export async function claimPartnerFees(input: unknown): Promise<{
     );
   }
 
-  return await withIdempotency(
+  const result = await withIdempotency(
     parsed.idempotencyKey ??
       deriveKey("admin-partner-fees-claim", partnerWallet, ctx.userId),
     async () =>
@@ -814,12 +818,30 @@ export async function claimPartnerFees(input: unknown): Promise<{
           const conn = solanaConnection("confirmed");
           const signatures: string[] = [];
           for (const tx of txs) {
-            const signature = await bags.signAndSubmitTransaction(tx.transaction);
+            const signature = await bags.signAndSubmitTransaction(tx.transaction, {
+              operation: "Bags partner fee claim transaction",
+              bagsInstructionPolicy: "partner-claim",
+            });
             await conn.confirmTransaction(signature, "confirmed");
             signatures.push(signature);
           }
 
           const after = await bags.getPartnerClaimStats(partnerWallet);
+          await audit({
+            actorUserId: ctx.userId,
+            action: "treasury.partner_claim",
+            targetType: "partner_config",
+            targetId: partnerConfigKey,
+            metadata: {
+              partnerWallet,
+              phase: "settled",
+              signatures,
+              before,
+              after,
+            },
+            ip: ctx.ip,
+            userAgent: ctx.userAgent,
+          });
           return {
             ok: true as const,
             partnerWallet,
@@ -831,6 +853,10 @@ export async function claimPartnerFees(input: unknown): Promise<{
       ),
     { scope: `admin:partner-fees:claim:${partnerWallet}` },
   );
+
+  revalidatePath("/admin/fees");
+  await updateAdminCaches();
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -1159,13 +1185,20 @@ const TriggerWorkflowSchema = z.object({
   idempotencyKey: z.string().min(8).optional(),
 });
 
+async function requireWorkflowRetriggerPermission(
+  workflowName: AdminWorkflowName,
+  userId: string,
+): Promise<void> {
+  await requirePermission(workflowRetriggerPermission(workflowName), { userId });
+}
+
 export async function retriggerWorkflow(
   input: unknown,
 ): Promise<{ ok: true; runId?: string }> {
   const parsed = TriggerWorkflowSchema.parse(input);
   const ctx = await requireSession();
 
-  await requirePermission("admin.workflows.inspect", { userId: ctx.userId });
+  await requireWorkflowRetriggerPermission(parsed.name, ctx.userId);
 
   const run = await withIdempotency(
     parsed.idempotencyKey ??

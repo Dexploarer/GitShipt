@@ -12,25 +12,38 @@ import {
   type ExpiredEscrowRow,
 } from "./steps/escrow-helpers";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
+import {
+  acquireWorkflowLock,
+  releaseWorkflowLock,
+  type WorkflowLock,
+} from "@/lib/workflow-locks";
 
 /**
- * expireEscrow — daily root, 01:00 UTC. Sweeps holdings whose grace period
- * has elapsed. v0 retires native SOL escrow with a sentinel; token escrow
- * stays open until an SPL sweep implementation exists.
+ * expireEscrow — daily root, 01:00 UTC. Flags holdings whose grace period has
+ * elapsed for admin review. It does not silently sweep contributor rewards.
  */
-export async function expireEscrow(): Promise<{ swept: number; failed: number }> {
-  await assertNotKilled();
-  await heartbeat("escrow");
-  const expired = await loadExpiredStep();
-  let swept = 0;
-  let failed = 0;
-  for (const h of expired) {
-    const result = await sweepStep(h.id);
-    if (result.status === "drained") swept++;
-    if (result.status === "failed") failed++;
+export async function expireEscrow(): Promise<{
+  reviewed: number;
+  failed: number;
+}> {
+  const lock = await acquireLockStep("expireEscrow", "root", 20 * 60);
+  if (!lock.acquired) return { reviewed: 0, failed: 0 };
+  try {
+    await assertNotKilled();
+    await heartbeat("escrow");
+    const expired = await loadExpiredStep();
+    let reviewed = 0;
+    let failed = 0;
+    for (const h of expired) {
+      const result = await sweepStep(h.id);
+      if (result.status === "skipped") reviewed++;
+      if (result.status === "failed") failed++;
+    }
+    await auditSweep({ reviewed, failed });
+    return { reviewed, failed };
+  } finally {
+    await releaseLockStep(lock);
   }
-  await auditSweep({ swept, failed });
-  return { swept, failed };
 }
 
 // ============================================================
@@ -43,6 +56,20 @@ async function assertNotKilled(): Promise<void> {
   if (await isKillSwitchEnabled()) {
     throw new FatalError("kill_switch_enabled: expireEscrow aborted");
   }
+}
+
+async function acquireLockStep(
+  workflowName: string,
+  scope: string,
+  ttlSeconds: number,
+): Promise<WorkflowLock> {
+  "use step";
+  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
+}
+
+async function releaseLockStep(lock: WorkflowLock): Promise<void> {
+  "use step";
+  await releaseWorkflowLock(lock);
 }
 
 async function heartbeat(name: string): Promise<void> {
@@ -78,19 +105,22 @@ async function sweepStep(
   return await sweepBackToTreasury(holdingId);
 }
 
-async function auditSweep(args: { swept: number; failed: number }): Promise<void> {
+async function auditSweep(args: {
+  reviewed: number;
+  failed: number;
+}): Promise<void> {
   "use step";
   enterDbWorkflowContext("expireEscrow:auditSweep");
-  if (args.swept === 0 && args.failed === 0) return;
+  if (args.reviewed === 0 && args.failed === 0) return;
   await audit({
     actorUserId: null,
     action: "payout.cancel",
     targetType: "escrow",
     targetId: "batch",
     metadata: {
-      swept: args.swept,
+      reviewed: args.reviewed,
       failed: args.failed,
-      mode: "v0-native-mark-only",
+      mode: "liability-review-only",
     },
   });
 }
