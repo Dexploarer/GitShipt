@@ -109,9 +109,12 @@ Core variables:
 - `REDIS_URL` must be a Redis-compatible URL; production needs this for rate
   limits, idempotency, SIWS nonces, and workflow safety.
 - `BETTER_AUTH_SECRET`, `GITHUB_CLIENT_ID`, and `GITHUB_CLIENT_SECRET` enable
-  GitHub sign-in.
+  GitHub sign-in. The production GitHub OAuth callback is
+  `https://gitbags.com/api/auth/callback/github`.
 - `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET`, and
   `GITHUB_APP_SLUG` enable repo installation, webhooks, and private App reads.
+  The production GitHub App webhook URL is
+  `https://gitbags.com/api/webhooks/github`.
 - `BAGS_API_KEY` enables live Bags SDK calls.
 - `BAGS_PARTNER_WALLET`, `BAGS_PARTNER_CONFIG_KEY`, and `BAGS_CONFIG_TYPE` are
   optional Bags partner/config controls.
