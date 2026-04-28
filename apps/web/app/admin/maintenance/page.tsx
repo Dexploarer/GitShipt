@@ -70,10 +70,7 @@ export default async function AdminMaintenancePage() {
         <Card depth="raised" padding="default">
           <CardHeader>
             <CardTitle>Global banner</CardTitle>
-            <CardDescription>
-              Public banner copy. Display surface ships in v1.1; the form
-              persists value today.
-            </CardDescription>
+            <CardDescription>Public incident copy.</CardDescription>
           </CardHeader>
           <BannerForm
             initialMessage={banner?.message ?? ""}

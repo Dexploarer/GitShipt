@@ -45,7 +45,11 @@ export default async function AdminLayout({
           <AppSidebar surface={{ kind: "admin" }} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 outline-none"
+          >
             <div className="mb-3 lg:hidden">
               <MobileSidebarTrigger />
             </div>
@@ -97,7 +101,7 @@ function SocialLink({
       target="_blank"
       rel="noreferrer noopener"
       aria-label={label}
-      className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
+      className="gb-control gb-control-icon gb-control-ghost inline-flex size-11 items-center justify-center rounded-md text-fg-muted hover:text-fg lg:size-7"
     >
       {children}
     </Link>

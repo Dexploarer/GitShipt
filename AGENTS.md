@@ -62,58 +62,18 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-28 12:44am CDT
+# [gitbags] recent context, 2026-04-28 8:55am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (22,451t read) | 736,735t work | 97% savings
+Stats: 50 obs (19,452t read) | 2,629,272t work | 99% savings
 
-### Apr 27, 2026
-1436 11:26p 🔴 AppSidebar Active Item — Longest-Match Algorithm Replaces First-Match
-1437 " 🔄 Dashboard Pages — Page-Level h1 Headers Stripped from (account) Routes
-1438 11:28p 🔄 GitBags Dashboard — Full Header Strip and Breadcrumb Normalization Across All 15 Pages
-1442 11:29p 🔄 AppSidebar — Collapsed State Polish: Brand Link Hidden, SidebarFooterControls, ReturnToLink Restyled
-1443 " ✅ Dashboard Header Sweep — Quality Gate Final Confirmation: All Clean
-1447 11:34p ⚖️ GitBags — Authenticated Routes: Caching + Zustand + Zod Requirement
-1448 11:35p 🔵 GitBags Caching/Zustand/Zod Audit — Pre-Implementation State
-1449 11:36p 🔵 Next.js 16 'use cache: private' — Authenticated Route Caching Strategy
-1451 " 🔵 GitBags Dashboard Query Architecture — Full Call-Site Map for Caching Work
-1456 11:38p 🔵 GitBags Wallet API Routes — Cache Invalidation Gap Found
-1458 " ✅ GitBags Cache System — Authenticated Route Tags and Invalidation Functions Added
-1459 11:40p 🟣 GitBags Dashboard Queries — All 11 Functions Cached with getCachedValue + Zod Validation
-1460 " 🟣 GitBags Admin Queries — All Functions Cached with getCachedValue + Zod Input Validation
-1463 11:41p 🟣 GitBags Cache Invalidation Wired to All Mutation Paths for Authenticated Routes
-1467 " 🟣 GitBags New Zustand Store — Authenticated Route Chrome State (useAuthenticatedRouteStore)
-1471 11:42p ✅ GitBags Authenticated Route Caching + Zustand + Zod — Production Build Passes Clean
-1473 11:43p 🔴 GitBags Two More Cache Invalidation Gaps Fixed — Project Create and Admin Promote-from-Stub
-1477 11:49p 🟣 GitBags — Caching, Zustand, and Zod Added to All Authenticated Routes (Session Complete)
-1478 11:50p 🔵 Security Page — Direct dbHttp Query Bypasses Cache Layer
-1479 " 🔵 GitBags Working Tree — 130 Files, 3221 Insertions Across All Sessions
-1485 11:51p 🔵 GitBags Public Route Architecture — Cache Coverage Map
-1495 11:53p 🟣 GitBags Cache Layer Extended — Account, Security, Launch, and Slug-Resolution Queries Added
-1500 11:54p 🔄 GitBags Bags API and GitHub User Calls Wrapped with getCachedValue
-1507 11:55p 🟣 GitBags Dashboard Profile Page — New Route at /dashboard/profile
 ### Apr 28, 2026
-1512 12:02a 🔴 ProfilePage — formatRelativeTime TypeError: date.getTime is not a function
-1514 12:03a 🔵 ProfilePage — Exact Call Sites for formatRelativeTime with Deserialized Date Strings
-1517 " 🔵 formatRelativeTime Called in 35+ Locations — All Vulnerable to Cache-Deserialized Strings
-1518 " 🔴 formatRelativeTime and AccountProfile — Hardened Against Cache-Deserialized Date Strings
-1519 12:06a ✅ ProfilePage Date Bug — Full CI Verification Passed After Fix
-1522 " 🔵 cache.ts — getCachedValue Has Date/BigInt Serialization, But Only Works for Actual Date Instances
-1527 12:07a 🟣 getAccountProfileUncached — Self-Healing GitHub Profile Backfill via GET /user
-1529 " 🟣 Session Chrome and Profile/Settings Pages — githubConnected Field Wired Through Three Files
-1533 12:08a 🔵 GitBags Working Tree — Profile/Settings/Account Query Files Are New (Untracked) in Launch Push
-1534 " 🔴 Cache Version Bump and GitHub Account Filter Bug in /api/github/me/repos
-1536 12:09a 🔵 Accounts Table Query Audit — All 5 Call Sites Now Filter by providerId
-1540 12:11a 🔵 GitBags Dashboard (account) Route Group — Full Architecture Confirmed
-1546 12:14a 🟣 ProfileEditor Client Component — Editable Name, Avatar, and GitHub Sync
-1547 " 🟣 AccountPreferencesForm — Email Toggles, Compact Mode, and Default Route Selector
 1548 12:16a 🟣 defaultDashboardRoute Wired Through Session Chrome to Sidebar
 1549 " 🟣 ProfilePage Two-Column Layout with Editable Form
 1550 " 🟣 Settings Page Refactored — Preferences Form + Account Areas List
-1551 " 🔄 syncGitHubIdentityForUser — overwriteImage Option Added
 1558 12:17a 🔴 Two CI Failures Fixed — Test Type Mismatch and ESLint set-state-in-effect
 1559 " 🟣 Avatar URL Security — Server Action Validates Against GitHub Hostname Allowlist
 1560 " 🔄 ProfileEditor and AccountPreferencesForm — router.refresh() After Saves
@@ -122,6 +82,45 @@ Stats: 50 obs (22,451t read) | 736,735t work | 97% savings
 1572 " 🔴 Migration 0008_user_settings Applied — App 500 Crash Resolved
 1574 " 🔵 db/rls-context.ts Imports server-only — Cannot Run Outside Next.js
 1577 12:24a 🔵 user_settings Table Confirmed Exists in Neon DB
+1579 12:44a ✅ GitBags Account Pages + Sidebar Refactor — Committed and Merged
+1580 12:45a 🔵 GitBags Full Commit Scope — 130+ Files Staged on main Branch
+1582 " ✅ Commit b272da9 — "Polish authenticated UI and account settings" — 159 Files, 5842 Insertions
+1584 12:46a ✅ Commit b272da9 Pushed to origin/main — GitBags Account UI Complete
+1586 " 🔵 AGENTS.md Modified After Push — One Unstaged File Remains
+1587 12:52a ⚖️ Post-Commit — UI Quality Audit Pass Initiated Using 7 Design Skills
+1588 " 🔵 spawn_agent Rejects agent_type on Full-History Fork — API Constraint
+1590 " 🟣 4 Parallel Audit Subagents Spawned for GitBags Completion Pass
+1591 12:53a 🔵 GitBags UI/UX Audit — Scope and Constraints Defined
+1592 12:55a 🔵 Agent Thread Limit Reached at 6 — Admin and /r Subagents Blocked
+1593 " 🔵 Broken Link — RecentPayoutsFeed Links to Non-Existent /dashboard/payouts Route
+1594 " 🔵 Admin v1.1 Stubs — Treasury Top-Up, Snapshot Verification, Banner Display, Payouts Snapshot Trigger Not Wired
+1595 12:58a 🔵 GitBags Complete Route Inventory vs PRD Gap Analysis
+1596 " 🔵 GitBags Known Stubs, "Coming Soon" Features, and v0 Deferreds
+1597 " 🔵 Broken Placeholder Href in Project Docs Page
+1598 " 🔵 Dead Internal Link — /dashboard/payouts Route Does Not Exist
+1599 " 🔵 GitBags API Security Posture — All Mutation Routes Gate Auth Correctly
+1600 " 🔵 GitBags Admin Workflows Page — Full Workflow Inventory with Manual Trigger Support
+1601 1:01a ⚖️ GitBags Public Surface Deslop Pass — Scope and Constraints Defined
+1602 1:02a 🟣 PageHeader Component — New Shared Dashboard Page Header Primitive
+1603 " 🔄 Dashboard ProjectList — Rows Converted to Full-Width Clickable Links
+1604 " 🔄 OnboardingHero — Card Grid Replaced with Layout-Based Step Panel
+1605 " 🔄 Account Dashboard Pages — PageHeader Applied, Card Nesting Removed
+1606 " 🔄 Project Console Pages — PageHeader Applied Across All 10 Sub-Routes
+1607 " ✅ Dashboard Deslop — Typecheck and Lint Pass Clean After All Changes
+1608 1:06a 🟣 GitBags Public Surface Deslop Pass — Full Scope Completed
+1609 1:08a ✅ Quality Gate Passed — Typecheck, Lint, Theme:Lint All Green
+1610 " 🔴 v1.1 / "Coming Soon" Language Fully Purged from User-Facing Copy
+1611 " ⚖️ Subagent Changes Partially Reverted — Only Core Deslop Kept
+1612 " 🟣 PublicPageIntro Component Adopted for Legal and Public Content Pages
+1613 1:09a ✅ E2E Suite Green — 6/6 Playwright Tests Pass Against Production Build
+1614 " 🔵 GlobalLeaderboardTable Final State — overflow-x-auto Wrapper Retained
+1615 " 🔄 ExploreFilters — Custom Dropdown Replaced with Native Select + ARIA
+1635 1:38a ⚖️ AI Agent Fee Routing — Treasury Wallet Failsafe for Agent Contributors
+1637 " 🔵 GitBags Payout + Bot Detection Architecture — Full Map for AI Agent Treasury Routing
+1640 1:39a 🔵 GitBags Payout Pipeline — Complete Code Path for AI Agent Treasury Routing Implementation
+1646 1:40a 🟣 AI Agent Treasury Routing — Full Implementation Across Scoring, Indexer, Snapshot, and Payout Pipeline
+1649 1:41a ✅ AI Agent Treasury Routing — Quality Gate Verification: All 42 Tests Pass, Typecheck and Lint Clean
+1653 " ✅ AI Agent Treasury Routing — Production Build and E2E Suite Pass, Full Staging State
 
-Access 737k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 2629k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

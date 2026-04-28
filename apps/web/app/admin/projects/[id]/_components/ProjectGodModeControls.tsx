@@ -170,13 +170,12 @@ export function ProjectGodModeControls({
                 <span className="text-mono-sm text-fg">{feeBps}</span>
               </label>
               <input
-                type="range"
-                min={0}
-                max={2000}
+                type="number"
+                min={200}
                 step={25}
                 value={feeBps}
                 onChange={(e) => setFeeBps(Number(e.target.value))}
-                className="w-full accent-primary"
+                className="h-10 w-full rounded-md border border-border bg-surface px-3 text-mono-md text-fg outline-none focus:border-primary"
               />
             </div>
           )}

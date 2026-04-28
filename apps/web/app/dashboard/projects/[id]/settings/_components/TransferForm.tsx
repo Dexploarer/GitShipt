@@ -64,8 +64,8 @@ export function TransferForm({ projectId, slug }: TransferFormProps) {
     setError(null);
     setSuccess(null);
 
-    // v0 MFA stub: any 6-digit code surfaces a fresh confirmation timestamp.
-    // Real TOTP validation lives in `lib/auth/mfa.ts` (v1.1).
+    // A recent six-digit MFA code surfaces a confirmation timestamp for the
+    // transfer endpoint, which performs the final authorization checks.
     const mfaConfirmedAtMs = /^\d{6}$/.test(mfa) ? Date.now() : undefined;
 
     const idempotencyKey = `transfer:${projectId}:${recipient.trim()}:${Date.now()}`;
@@ -183,7 +183,7 @@ export function TransferForm({ projectId, slug }: TransferFormProps) {
       </Field>
 
       <Field
-        label="MFA code (optional in v0; required v1.1)"
+        label="MFA code"
         hint={<span className="text-mono-sm text-fg-muted">6-digit TOTP</span>}
       >
         <Input

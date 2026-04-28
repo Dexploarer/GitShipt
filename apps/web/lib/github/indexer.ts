@@ -139,6 +139,40 @@ export async function fetchMergedPRsByAuthor(
 }
 
 /**
+ * Fallback for quiet/stable repositories. GitHub's contributor list is an
+ * all-time leaderboard, so we only use it when the active scoring window has
+ * no qualifying activity at all.
+ */
+export async function fetchRepoContributorsLeaderboard(
+  octo: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Map<string, ContributorAggregate>> {
+  const out = new Map<string, ContributorAggregate>();
+  const contributors = await octo.paginate(octo.rest.repos.listContributors, {
+    owner,
+    repo,
+    anon: "false",
+    per_page: 100,
+  });
+
+  for (const c of contributors) {
+    if (!c.id || !c.login) continue;
+    const contributions = Math.max(0, c.contributions ?? 0);
+    if (contributions === 0) continue;
+    out.set(String(c.id), {
+      ghUserId: String(c.id),
+      ghUsername: c.login,
+      avatarUrl: c.avatar_url ?? null,
+      inputs: { ...emptyInputs(), commits: contributions },
+      isBot: false,
+    });
+  }
+
+  return out;
+}
+
+/**
  * Combine multiple per-source aggregate maps into a single deduped list.
  * Sums `inputs` per `ghUserId`; later maps' username/avatar override
  * earlier ones (PRs are usually fresher than commits).

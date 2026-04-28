@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@repo/ui";
-import { Button } from "@repo/ui";
 import { formatSol } from "@repo/lib";
 import type { MyProjectRow } from "@/lib/queries/dashboard";
 
@@ -9,35 +8,41 @@ export function ProjectList({ rows }: { rows: MyProjectRow[] }) {
   return (
     <ul className="divide-y divide-border">
       {rows.map((p) => (
-        <li
-          key={p.id}
-          className="grid grid-cols-[40px_minmax(0,1fr)_auto_auto_auto] items-center gap-3 px-6 py-3 transition-colors hover:bg-surface-elevated/40"
-        >
-          <Avatar src={p.imageUrl} alt={p.slug} />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="truncate text-label-md text-fg">{p.name}</span>
-              <StatusBadge status={p.status} />
+        <li key={p.id}>
+          <Link
+            href={`/dashboard/projects/${p.id}`}
+            className="group grid grid-cols-[40px_minmax(0,1fr)_auto] gap-3 px-6 py-4 transition-colors hover:bg-surface-elevated/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          >
+            <Avatar src={p.imageUrl} alt={p.slug} />
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="truncate text-label-md text-fg">{p.name}</span>
+                <StatusBadge status={p.status} />
+              </div>
+              <div className="text-mono-sm text-fg-muted truncate">
+                {p.slug}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-fg-muted">
+                <span>
+                  <span className="text-mono-sm text-fg-secondary">
+                    {p.contributorsCount}
+                  </span>{" "}
+                  ranked
+                </span>
+                <span>
+                  <span className="text-mono-sm text-fg">
+                    {formatSol(p.lifetimeFeesLamports, 4)}
+                  </span>{" "}
+                  lifetime
+                </span>
+              </div>
             </div>
-            <div className="text-mono-sm text-fg-muted truncate">{p.slug}</div>
-          </div>
-          <div className="hidden text-right sm:block">
-            <div className="text-mono-sm text-fg-secondary">
-              {p.contributorsCount}
+            <div className="flex items-center justify-end">
+              <span className="inline-flex items-center gap-1 text-label-sm text-fg-muted transition-colors group-hover:text-fg">
+                Open console <ExternalLink className="size-3.5" />
+              </span>
             </div>
-            <div className="text-caption text-fg-muted">contributors</div>
-          </div>
-          <div className="hidden text-right md:block">
-            <div className="text-mono-sm text-primary">
-              {formatSol(p.lifetimeFeesLamports, 4)}
-            </div>
-            <div className="text-caption text-fg-muted">lifetime</div>
-          </div>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/dashboard/projects/${p.id}`}>
-              Open <ExternalLink className="size-3.5" />
-            </Link>
-          </Button>
+          </Link>
         </li>
       ))}
     </ul>
@@ -65,7 +70,13 @@ function Avatar({ src, alt }: { src: string | null; alt: string }) {
 export function StatusBadge({
   status,
 }: {
-  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
+  status:
+    | "draft"
+    | "launch_configured"
+    | "live"
+    | "paused"
+    | "killed"
+    | "simulated_live";
 }) {
   const map = {
     live: { variant: "success" as const, label: "Live", dot: true },

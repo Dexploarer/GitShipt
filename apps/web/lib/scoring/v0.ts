@@ -12,7 +12,23 @@
  * `applyTimeDecay` here is the pure helper used by aggregator code.
  */
 
-export const BOT_REGEX = /^(.*-bot|dependabot|.*-ci|renovate)$/i;
+export const BOT_REGEX =
+  /(^|[-_./\[])(bot|dependabot|renovate|.*-ci|github-actions|github-copilot|copilot|coderabbit|claude|claude-code|cursor|codex|chatgpt|openai|perplexity)(\]|[-_./]|$)/i;
+
+const AUTOMATED_LOGIN_EXACT = new Set([
+  "claude",
+  "claude-code",
+  "cursor",
+  "codex",
+  "chatgpt",
+  "openai",
+  "perplexity",
+  "copilot",
+  "coderabbit",
+  "github-actions[bot]",
+  "dependabot[bot]",
+  "renovate[bot]",
+]);
 
 export type ScoreInputs = {
   mergedPRs: number;
@@ -50,6 +66,7 @@ export function isBot(
   const lower = login.toLowerCase();
   if (allowlist.some((x) => x.toLowerCase() === lower)) return false;
   if (blocklist.some((x) => x.toLowerCase() === lower)) return true;
+  if (AUTOMATED_LOGIN_EXACT.has(lower)) return true;
   return BOT_REGEX.test(lower);
 }
 

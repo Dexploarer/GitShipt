@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { cn } from "@repo/lib";
 import { Input } from "@repo/ui";
 
@@ -32,7 +32,7 @@ const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
 export function ExploreFilters() {
   const router = useRouter();
   const params = useSearchParams();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   const status = (params.get("status") as StatusKey | null) ?? "all";
   const sort = (params.get("sort") as SortKey | null) ?? "trending";
@@ -69,11 +69,8 @@ export function ExploreFilters() {
     return () => clearTimeout(t);
   }, [searchValue, q, pushParams]);
 
-  const [sortOpen, setSortOpen] = useState(false);
-
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border/60 glass surface-highlight px-3 py-3 shadow-card-elevated md:flex-row md:items-center md:gap-3">
-      {/* Search */}
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-surface/50 px-3 py-3 md:flex-row md:items-center md:gap-3">
       <Input
         variant="ghost"
         size="default"
@@ -89,7 +86,6 @@ export function ExploreFilters() {
       />
 
       <div className="flex flex-wrap items-center gap-2 md:ml-auto">
-        {/* Status segmented chips */}
         <div
           role="group"
           aria-label="Status filter"
@@ -102,6 +98,7 @@ export function ExploreFilters() {
                 key={key}
                 type="button"
                 aria-pressed={on}
+                disabled={isPending && on}
                 onClick={() =>
                   pushParams((p) => {
                     if (key === "all") p.delete("status");
@@ -121,90 +118,38 @@ export function ExploreFilters() {
           })}
         </div>
 
-        {/* Sort dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setSortOpen((v) => !v)}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setSortOpen(true);
-              }
-              if (e.key === "Escape") setSortOpen(false);
-            }}
-            onBlur={() => setTimeout(() => setSortOpen(false), 120)}
-            aria-expanded={sortOpen}
-            aria-haspopup="listbox"
-            className={cn(
-              "gb-control inline-flex h-9 items-center gap-2 rounded-md border bg-bg/40 px-3 text-label-md text-fg",
-              sortOpen
-                ? "gb-control-secondary border-border-strong"
-                : "gb-control-ghost border-border/60",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-            )}
+        <label className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-bg/40 px-3 text-label-md text-fg focus-within:border-border-strong">
+          <span className="text-fg-muted">Sort</span>
+          <span className="text-mono-sm text-fg-secondary">·</span>
+          <select
+            value={sort}
+            disabled={isPending}
+            onChange={(e) =>
+              pushParams((p) => {
+                const nextSort = e.target.value as SortKey;
+                if (nextSort === "trending") p.delete("sort");
+                else p.set("sort", nextSort);
+              })
+            }
+            className="h-9 bg-transparent pr-6 text-label-md text-fg outline-none"
+            aria-label="Sort projects"
           >
-            <span className="text-fg-muted">Sort</span>
-            <span className="text-mono-sm text-fg-secondary">·</span>
-            <span>
-              {SORT_OPTIONS.find((o) => o.key === sort)?.label ??
-                SORT_OPTIONS[0]?.label}
-            </span>
-            <ChevronDown
-              className={cn(
-                "size-4 text-fg-muted transition-transform",
-                sortOpen && "rotate-180",
-              )}
-            />
-          </button>
-          {sortOpen ? (
-            <div
-              role="listbox"
-              className="absolute right-0 z-40 mt-1 w-64 rounded-lg border border-border/60 glass surface-highlight p-1 shadow-popover"
-            >
-              {SORT_OPTIONS.map(({ key, label }) => {
-                const on = sort === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    role="option"
-                    aria-selected={on}
-                    onClick={() => {
-                      setSortOpen(false);
-                      pushParams((p) => {
-                        if (key === "trending") p.delete("sort");
-                        else p.set("sort", key);
-                      });
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setSortOpen(false);
-                        pushParams((p) => {
-                          if (key === "trending") p.delete("sort");
-                          else p.set("sort", key);
-                        });
-                      }
-                      if (e.key === "Escape") setSortOpen(false);
-                    }}
-                    className={cn(
-                      "gb-menu-item block w-full rounded-md px-3 py-2 text-left text-body-sm transition-[background-color,box-shadow,color]",
-                      on
-                        ? "bg-surface-elevated text-fg"
-                        : "text-fg-secondary hover:bg-surface-elevated/60 hover:text-fg",
-                    )}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-        </div>
+            {SORT_OPTIONS.map(({ key, label }) => (
+              <option key={key} value={key} className="bg-surface text-fg">
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {isPending ? (
+          <span
+            role="status"
+            aria-live="polite"
+            className="text-caption text-fg-muted"
+          >
+            Updating...
+          </span>
+        ) : null}
       </div>
     </div>
   );

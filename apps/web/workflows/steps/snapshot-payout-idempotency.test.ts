@@ -37,6 +37,65 @@ describe("snapshot/payout period idempotency", () => {
     );
   });
 
+  it("keeps automated contributors ranked while marking their payout route", async () => {
+    const { buildLeaderboardEntries } = await import(
+      "@/lib/payouts/distribution"
+    );
+
+    const [entry] = buildLeaderboardEntries(
+      [
+        {
+          id: "contributor_agent",
+          ghUserId: "41898282",
+          ghUsername: "github-actions[bot]",
+          rank: 1,
+          score: 10,
+          payoutRoute: "treasury",
+          payoutRouteReason: "treasury_routed_agent",
+          inputs: {
+            mergedPRs: 0,
+            commits: 10,
+            reviews: 0,
+            issues: 0,
+            netLines: 0,
+          },
+        },
+      ],
+      [1],
+    );
+
+    expect(entry).toMatchObject({
+      contributorId: "contributor_agent",
+      ghUsername: "github-actions[bot]",
+      rank: 1,
+      payoutRoute: "treasury",
+      payoutRouteReason: "treasury_routed_agent",
+      weight: 1,
+    });
+  });
+
+  it("detects common agent contributors for treasury routing", async () => {
+    const { isBot } = await import("@/lib/scoring/v0");
+    const logins = [
+      "claude",
+      "claude-code",
+      "cursor",
+      "codex",
+      "chatgpt",
+      "perplexity",
+      "github-actions[bot]",
+      "copilot",
+      "coderabbit",
+      "renovate[bot]",
+    ];
+
+    for (const login of logins) {
+      expect(isBot(login, [], [])).toBe(true);
+    }
+    expect(isBot("human-maintainer", [], [])).toBe(false);
+    expect(isBot("codex", ["codex"], [])).toBe(false);
+  });
+
   it("adds durable period columns and unique period guarantees", () => {
     expect(migration).toContain(
       'ALTER TABLE "snapshots" ADD COLUMN IF NOT EXISTS "snapshot_period" text',

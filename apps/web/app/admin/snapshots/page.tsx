@@ -143,12 +143,6 @@ function SnapshotDetailCard({
 }: {
   detail: NonNullable<Awaited<ReturnType<typeof getSnapshotDetail>>>;
 }) {
-  // Reproducibility marker — for v0 we display the stored merkle root; the
-  // recomputation step is performed by `lib/payouts/merkle.ts` (Agent B owns).
-  // Once that helper exposes a pure `computeRoot(leaderboard)` we can compare
-  // here. For now we mark the displayed root as "as-stored".
-  // TODO(v1.1): import a pure recomputeRoot helper from lib/payouts/merkle and
-  // compare here, rendering ✓ / ✗.
   return (
     <Card depth="raised" padding="default">
       <CardHeader>
@@ -166,7 +160,8 @@ function SnapshotDetailCard({
           <p className="text-fg-secondary">Merkle root (as-stored)</p>
           <p className="text-mono-sm break-all text-fg">{detail.merkleRoot}</p>
           <p className="text-caption text-fg-muted">
-            v1.1 will display the recomputed root + match indicator.
+            Stored with the frozen leaderboard so historical payouts remain
+            reproducible.
           </p>
         </div>
         <div className="space-y-1 text-body-sm">

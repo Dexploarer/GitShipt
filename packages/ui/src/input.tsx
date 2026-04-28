@@ -119,7 +119,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type="button"
             onClick={onClear}
             aria-label="Clear"
-            className="gb-control gb-control-icon gb-control-ghost absolute right-2 inline-flex size-6 items-center justify-center rounded text-fg-muted hover:text-fg"
+            className="gb-control gb-control-icon gb-control-ghost absolute right-1 inline-flex size-8 items-center justify-center rounded text-fg-muted hover:text-fg"
           >
             <span aria-hidden>×</span>
           </button>

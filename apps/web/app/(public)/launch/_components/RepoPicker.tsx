@@ -96,8 +96,8 @@ export function RepoPicker({ selectedId, onSelect }: RepoPickerProps) {
   }, [state.data, query]);
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-2">
+    <div className="grid gap-5 lg:grid-cols-[minmax(220px,0.38fr)_minmax(0,1fr)] lg:gap-8">
+      <header className="space-y-2 lg:pt-1">
         <h2 className="text-headline-sm">Pick a repository</h2>
         <p className="text-body-md text-fg-secondary">
           Choose the GitHub repo to back this token. We verify your admin
@@ -110,110 +110,117 @@ export function RepoPicker({ selectedId, onSelect }: RepoPickerProps) {
         ) : null}
       </header>
 
-      <div className="relative">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by repo name or description"
-          className={cn(
-            "h-10 w-full rounded-md border border-border-strong bg-surface px-3 pl-9",
-            "text-body-md outline-none placeholder:text-fg-muted",
-            "focus:border-primary",
-          )}
-        />
-      </div>
+      <div className="min-w-0 space-y-3">
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by repo name or description"
+            aria-label="Search repositories"
+            className={cn(
+              "h-10 w-full rounded-md border border-border-strong bg-surface px-3 pl-9",
+              "text-body-md outline-none placeholder:text-fg-muted",
+              "focus:border-primary",
+            )}
+          />
+        </div>
 
-      <div className="min-h-[280px] space-y-2">
-        {state.status === "loading" ? (
-          <div className="flex items-center gap-2 rounded-md border border-border bg-surface-elevated px-3 py-3 text-body-sm text-fg-secondary">
-            <Loader2 className="size-4 animate-spin" />
-            Loading your repositories...
-          </div>
-        ) : null}
+        <div className="min-h-[360px] space-y-2">
+          {state.status === "loading" ? (
+            <div className="flex items-center gap-2 rounded-md border border-border bg-surface-elevated px-3 py-3 text-body-sm text-fg-secondary">
+              <Loader2 className="size-4 animate-spin" />
+              Loading your repositories...
+            </div>
+          ) : null}
 
-        {state.status === "error" ? (
-          <div className="flex items-start gap-3 rounded-md border border-danger bg-danger-soft p-3 text-body-sm text-danger">
-            <AlertCircle className="mt-0.5 size-4 shrink-0" />
-            <span>{state.error}</span>
-          </div>
-        ) : null}
+          {state.status === "error" ? (
+            <div className="flex items-start gap-3 rounded-md border border-danger bg-danger-soft p-3 text-body-sm text-danger">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>{state.error}</span>
+            </div>
+          ) : null}
 
-        {state.status === "success" && filtered.length === 0 ? (
-          <div className="rounded-md border border-border bg-surface-elevated px-3 py-6 text-center text-body-sm text-fg-muted">
-            {query
-              ? "No repos match your search."
-              : "No public admin-permission repos found on your GitHub account."}
-          </div>
-        ) : null}
+          {state.status === "success" && filtered.length === 0 ? (
+            <div className="rounded-md border border-border bg-surface-elevated px-3 py-6 text-center text-body-sm text-fg-muted">
+              {query
+                ? "No repos match your search."
+                : "No public admin-permission repos found on your GitHub account."}
+            </div>
+          ) : null}
 
-        <ul className="divide-y divide-border overflow-hidden rounded-md border border-border">
-          {filtered.map((repo) => {
-            const isSelected = selectedId === repo.id;
-            const isDisabled = repo.alreadyLaunched;
-            return (
-              <li key={repo.id}>
-                <button
-                  type="button"
-                  onClick={() => !isDisabled && onSelect(repo)}
-                  disabled={isDisabled}
-                  aria-pressed={isSelected}
-                  aria-disabled={isDisabled}
-                  className={cn(
-                    "gb-control flex w-full items-start gap-3 rounded-none border-x-0 border-t-0 px-4 py-3 text-left transition-[background-color,border-color,box-shadow,color,transform]",
-                    !isDisabled && "gb-control-ghost hover:text-fg",
-                    isSelected &&
-                      "gb-control-secondary bg-surface-elevated text-fg",
-                    isDisabled && "opacity-50",
-                  )}
-                >
-                  <Image
-                    src={repo.ownerAvatarUrl}
-                    alt=""
-                    width={32}
-                    height={32}
-                    unoptimized
-                    className="size-8 shrink-0 rounded-full bg-surface"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-body-md text-fg">
-                        {repo.fullName}
-                      </span>
-                      {repo.alreadyLaunched ? (
-                        <span className="inline-flex items-center rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning">
-                          Already launched
-                        </span>
-                      ) : null}
-                    </div>
-                    {repo.description ? (
-                      <p className="mt-0.5 line-clamp-2 text-body-sm text-fg-secondary">
-                        {repo.description}
-                      </p>
-                    ) : null}
-                    <div className="mt-1 flex items-center gap-4 text-caption text-fg-muted">
-                      {repo.language ? <span>{repo.language}</span> : null}
-                      <span className="inline-flex items-center gap-1">
-                        <Star className="size-3" />
-                        <span className="text-mono-sm">
-                          {repo.stargazersCount}
-                        </span>
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <GitFork className="size-3" />
-                        <span className="text-mono-sm">{repo.forksCount}</span>
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+          {filtered.length > 0 ? (
+            <ul className="max-h-[min(58vh,34rem)] divide-y divide-border overflow-y-auto rounded-md border border-border bg-surface/60 [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent]">
+              {filtered.map((repo) => {
+                const isSelected = selectedId === repo.id;
+                const isDisabled = repo.alreadyLaunched;
+                return (
+                  <li key={repo.id}>
+                    <button
+                      type="button"
+                      onClick={() => !isDisabled && onSelect(repo)}
+                      disabled={isDisabled}
+                      aria-pressed={isSelected}
+                      aria-disabled={isDisabled}
+                      className={cn(
+                        "gb-control grid w-full grid-cols-[32px_minmax(0,1fr)] gap-3 rounded-none border-x-0 border-t-0 px-4 py-3 text-left transition-[background-color,border-color,box-shadow,color,transform]",
+                        !isDisabled && "gb-control-ghost hover:text-fg",
+                        isSelected &&
+                          "gb-control-secondary bg-surface-elevated text-fg",
+                        isDisabled && "opacity-50",
+                      )}
+                    >
+                      <Image
+                        src={repo.ownerAvatarUrl}
+                        alt=""
+                        width={32}
+                        height={32}
+                        unoptimized
+                        className="size-8 shrink-0 rounded-full bg-surface"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-body-md text-fg">
+                            {repo.fullName}
+                          </span>
+                          {repo.alreadyLaunched ? (
+                            <span className="shrink-0 rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning">
+                              Already launched
+                            </span>
+                          ) : null}
+                        </div>
+                        {repo.description ? (
+                          <p className="mt-0.5 line-clamp-2 text-body-sm text-fg-secondary">
+                            {repo.description}
+                          </p>
+                        ) : null}
+                        <div className="mt-1 flex items-center gap-4 text-caption text-fg-muted">
+                          {repo.language ? <span>{repo.language}</span> : null}
+                          <span className="inline-flex items-center gap-1">
+                            <Star className="size-3" />
+                            <span className="text-mono-sm">
+                              {repo.stargazersCount}
+                            </span>
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <GitFork className="size-3" />
+                            <span className="text-mono-sm">
+                              {repo.forksCount}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </div>
       </div>
     </div>
   );

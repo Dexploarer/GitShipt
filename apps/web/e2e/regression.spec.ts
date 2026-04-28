@@ -129,15 +129,18 @@ test.describe("audit regression coverage", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await requireOkPage(page, DEMO_PROJECT_PATH);
 
-    const poolCard = page.locator("section", { hasText: "Daily Fee Pool" });
+    const poolCard = page
+      .getByRole("heading", { name: "Daily Fee Pool", level: 2 })
+      .locator("xpath=ancestor::section[1]");
     await expect(poolCard).toBeVisible();
     await poolCard.scrollIntoViewIfNeeded();
 
     const layout = await page.evaluate(() => {
       const footer = document.querySelector("footer");
-      const pool = Array.from(document.querySelectorAll("section")).find((el) =>
-        el.textContent?.includes("Daily Fee Pool"),
+      const heading = Array.from(document.querySelectorAll("h2")).find(
+        (el) => el.textContent?.trim() === "Daily Fee Pool",
       );
+      const pool = heading?.closest("section") ?? null;
       const amount = pool
         ? Array.from(pool.querySelectorAll("div, span")).find((el) =>
             /\bSOL\b/.test(el.textContent ?? ""),

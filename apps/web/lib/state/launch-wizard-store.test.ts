@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import {
   DEFAULT_LEADERBOARD,
+  deriveSymbolFromRepo,
   useLaunchWizardStore,
 } from "@/lib/state/launch-wizard-store";
 import type { GithubRepo } from "@repo/shared";
@@ -31,10 +32,44 @@ describe("launch wizard store", () => {
     expect(state.repo?.fullName).toBe("sym/git-bags");
     expect(state.metadata).toMatchObject({
       name: "git-bags",
-      symbol: "GITBAGS",
+      symbol: "GB",
       description: repo.description,
       imageUrl: repo.ownerAvatarUrl,
     });
+  });
+
+  test("selecting a different repo refreshes token metadata defaults", () => {
+    useLaunchWizardStore.getState().selectRepo(repo);
+    useLaunchWizardStore.getState().setMetadata({
+      name: "Custom token",
+      symbol: "CUSTOM",
+      description: "Edited metadata",
+      imageUrl: repo.ownerAvatarUrl,
+    });
+
+    useLaunchWizardStore.getState().selectRepo({
+      ...repo,
+      id: "43",
+      name: "open-source-launch-kit",
+      fullName: "sym/open-source-launch-kit",
+      description: null,
+    });
+
+    const state = useLaunchWizardStore.getState();
+    expect(state.step).toBe(2);
+    expect(state.metadata).toMatchObject({
+      name: "open-source-launch-kit",
+      symbol: "OSLK",
+      description:
+        "Token for sym/open-source-launch-kit. Fees redistribute to top contributors daily.",
+      imageUrl: repo.ownerAvatarUrl,
+    });
+  });
+
+  test("derives compact ticker samples from common repo name patterns", () => {
+    expect(deriveSymbolFromRepo("git-bags")).toBe("GB");
+    expect(deriveSymbolFromRepo("repoLaunchKit")).toBe("RLK");
+    expect(deriveSymbolFromRepo("singlewordrepo")).toBe("SINGLEWORD");
   });
 
   test("reset clears user-specific launch state", () => {

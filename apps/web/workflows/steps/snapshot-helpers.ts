@@ -26,6 +26,7 @@ import { enterDbWorkflowContext } from "@/lib/db-rls";
 
 const SNAPSHOT_PERIOD_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const activeSnapshotPeriodPredicate = sql`status in ('pending', 'frozen', 'paid')`;
+const TREASURY_ROUTED_AGENT_REASON = "treasury_routed_agent";
 
 export interface LoadedProjectForSnapshot {
   id: string;
@@ -97,6 +98,7 @@ export async function loadRankedContributors(
       rank: contributors.rank,
       score: contributors.score,
       inputs: contributors.inputs,
+      excludedReason: contributors.excludedReason,
     })
     .from(contributors)
     .where(
@@ -117,6 +119,11 @@ export async function loadRankedContributors(
       ghUsername: r.ghUsername,
       rank: r.rank,
       score: r.score,
+      payoutRoute:
+        r.excludedReason === TREASURY_ROUTED_AGENT_REASON
+          ? "treasury"
+          : "contributor",
+      payoutRouteReason: r.excludedReason ?? undefined,
       inputs: r.inputs as ContributorScoreInputs,
     }));
 }

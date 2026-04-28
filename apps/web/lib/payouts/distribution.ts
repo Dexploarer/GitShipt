@@ -13,6 +13,8 @@ export interface SnapshotContributor {
   ghUsername: string;
   rank: number;
   score: number;
+  payoutRoute?: "contributor" | "treasury";
+  payoutRouteReason?: string;
   inputs: ContributorScoreInputs;
 }
 
@@ -40,6 +42,8 @@ export function buildLeaderboardEntries(
       rank: c.rank,
       score: c.score,
       weight,
+      payoutRoute: c.payoutRoute,
+      payoutRouteReason: c.payoutRouteReason,
       inputs: {
         mergedPRs: c.inputs.mergedPRs,
         commits: c.inputs.commits,

@@ -49,7 +49,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       onClick={() => setTheme(next)}
       aria-label={`Theme: ${LABEL[current]}, click to switch to ${LABEL[next]}`}
       className={cn(
-        "gb-control gb-control-icon gb-control-ghost inline-flex h-9 w-9 items-center justify-center rounded-md",
+        "gb-control gb-control-icon gb-control-ghost inline-flex size-11 items-center justify-center rounded-md lg:size-9",
         "text-fg-secondary hover:text-fg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         className,

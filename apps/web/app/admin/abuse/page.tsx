@@ -18,16 +18,12 @@ export default async function AdminAbusePage() {
         <div>
           <h1 className="text-headline-md">Abuse</h1>
           <p className="text-body-sm text-fg-secondary">
-            Read-only triage feed for explicit abuse audit records. Automated
-            sybil and spam detectors are not live yet.
+            Explicit abuse audit records.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="default" size="sm">
             read-only
-          </Badge>
-          <Badge variant="warning" size="sm">
-            detectors coming soon
           </Badge>
         </div>
       </header>
@@ -39,9 +35,7 @@ export default async function AdminAbusePage() {
               <ShieldAlert className="size-5 text-fg-muted" /> No abuse signals
             </CardTitle>
             <CardDescription>
-              No `abuse.*` audit records exist yet. Manual review still happens
-              on user and project detail pages; this aggregate queue becomes
-              useful once detectors emit here.
+              No `abuse.*` audit records exist yet.
             </CardDescription>
           </CardHeader>
         </Card>

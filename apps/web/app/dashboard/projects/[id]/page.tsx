@@ -225,7 +225,7 @@ function AlertsCard({
                   {indexer?.lastIncrementalSyncAt
                     ? `Last sync ${formatRelativeTime(indexer.lastIncrementalSyncAt)}`
                     : "Never synced"}
-                  . Check Repository &gt; Re-index in v1.1.
+                  . Open Repository to inspect link state.
                 </p>
               </li>
             ) : null}

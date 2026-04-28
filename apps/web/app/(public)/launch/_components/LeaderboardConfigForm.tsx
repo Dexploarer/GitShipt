@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Info } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@repo/lib";
 import { Button } from "@repo/ui";
 import { FormField } from "@/components/shared/FormField";
@@ -13,7 +13,8 @@ const TOP_N_MIN = 3; // server-side Zod minimum (PayoutConfigSchema.topN)
 const TOP_N_MAX = 50;
 const WINDOW_MIN = 7;
 const WINDOW_MAX = 90;
-const FEE_BPS_MAX = 2000;
+const PLATFORM_FEE_BPS_MIN = 200;
+const PLATFORM_FEE_BPS_PROTOCOL_MAX = 10_000;
 
 export interface LeaderboardConfigFormProps {
   initial: LeaderboardConfig;
@@ -39,15 +40,11 @@ export function LeaderboardConfigForm({
     [tierWeights],
   );
 
-  // Validation per the wizard polish spec:
-  //  - top-N: 1-50 inclusive (clamped to >=3 to match server schema)
-  //  - tier weights sum: must be <= 1.0
-  // We additionally guard the lower bound at 0.999 because a sum of zero
-  // would silently let Top-1 = 0 through, and downstream payout logic
-  // expects the weights to express the full distribution.
   const tierSumOk = tierSum > 0 && tierSum <= 1.0001;
 
   const platformFeePercent = (platformFeeBps / 100).toFixed(2);
+  const contributorPoolBps = Math.max(0, 10_000 - platformFeeBps);
+  const contributorPoolPercent = (contributorPoolBps / 100).toFixed(2);
   const claimThresholdLamports = Math.max(
     0,
     Math.round(thresholdSol * LAMPORTS_PER_SOL_NUMBER),
@@ -62,15 +59,17 @@ export function LeaderboardConfigForm({
       ? `Choose ${TOP_N_MIN}-${TOP_N_MAX} contributors`
       : undefined;
   const tierError = !tierSumOk
-    ? `Tier weights must sum to ≤ 1.0 (currently ${tierSum.toFixed(3)})`
+    ? `Payout split must be 100% or less (currently ${(tierSum * 100).toFixed(1)}%)`
     : undefined;
   const thresholdError =
     !Number.isFinite(thresholdSol) || thresholdSol < 0
       ? "Threshold must be 0 or greater"
       : undefined;
   const feeError =
-    platformFeeBps < 0 || platformFeeBps > FEE_BPS_MAX
-      ? "Platform fee must be 0–20%"
+    platformFeeBps < PLATFORM_FEE_BPS_MIN
+      ? "Platform fee must be at least 2%"
+      : platformFeeBps > PLATFORM_FEE_BPS_PROTOCOL_MAX
+        ? "Platform fee cannot exceed 100% of trading fees"
       : undefined;
 
   const isValid =
@@ -95,121 +94,170 @@ export function LeaderboardConfigForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <header className="space-y-2">
-        <h2 className="text-headline-sm">Leaderboard config</h2>
-        <p className="text-body-md text-fg-secondary">
-          Decide how contributions are scored, who gets paid, and how much goes
-          to the GitBags treasury.
-        </p>
+      <header>
+        <h2 className="text-headline-sm">Leaderboard</h2>
       </header>
 
-      <FormField
-        label={`Scoring window: ${windowDays} days`}
-        hint="The rolling window we score contributions over. 7-90 days."
-        error={windowError}
-      >
-        <input
-          type="range"
-          min={WINDOW_MIN}
-          max={WINDOW_MAX}
-          step={1}
-          value={windowDays}
-          onChange={(e) => setWindowDays(Number(e.target.value))}
-          className="gb-range-control w-full"
-        />
-      </FormField>
-      <div className="-mt-4 flex items-center justify-between text-caption text-fg-muted">
-        <span>{WINDOW_MIN}d</span>
-        <span className="text-mono-sm text-fg-secondary">{windowDays}d</span>
-        <span>{WINDOW_MAX}d</span>
-      </div>
+      <div className="space-y-8">
+        <section className="grid gap-4 border-t border-border/70 pt-5 md:grid-cols-[10rem_minmax(0,1fr)]">
+          <div className="text-label-md text-fg-secondary">Scoring</div>
+          <div className="space-y-2">
+            <FormField
+              label={`Scoring window: ${windowDays} days`}
+              hint="7-90 days."
+              error={windowError}
+            >
+              <input
+                type="range"
+                min={WINDOW_MIN}
+                max={WINDOW_MAX}
+                step={1}
+                value={windowDays}
+                onChange={(e) => setWindowDays(Number(e.target.value))}
+                className="gb-range-control w-full"
+              />
+            </FormField>
+            <div className="mt-2 flex items-center justify-between text-caption text-fg-muted">
+              <span>{WINDOW_MIN}d</span>
+              <span className="text-mono-sm text-fg-secondary">
+                {windowDays}d
+              </span>
+              <span>{WINDOW_MAX}d</span>
+            </div>
+          </div>
+        </section>
 
-      <FormField
-        label={`Top contributors paid: ${topN}`}
-        hint="How many ranks share the daily pool. Changing this resets tier weights to the defaults."
-        error={topNError}
-      >
-        <input
-          type="number"
-          min={TOP_N_MIN}
-          max={TOP_N_MAX}
-          step={1}
-          value={topN}
-          onChange={(e) => {
-            const v = Number(e.target.value);
-            if (Number.isFinite(v)) {
-              const nextTopN = Math.max(
-                TOP_N_MIN,
-                Math.min(TOP_N_MAX, Math.round(v)),
-              );
-              setTopN(nextTopN);
-              if (tierWeights.length !== nextTopN) {
-                setTierWeights(defaultTierWeights(nextTopN));
-              }
-            }
-          }}
-          className={inputClass}
-        />
-      </FormField>
+        <section className="grid gap-4 border-t border-border/70 pt-5 md:grid-cols-[10rem_minmax(0,1fr)]">
+          <div className="text-label-md text-fg-secondary">Payouts</div>
+          <div className="min-w-0 space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                label={`Top contributors paid: ${topN}`}
+                hint="Changing this resets tier weights to the defaults."
+                error={topNError}
+              >
+                <input
+                  type="number"
+                  min={TOP_N_MIN}
+                  max={TOP_N_MAX}
+                  step={1}
+                  value={topN}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) {
+                      const nextTopN = Math.max(
+                        TOP_N_MIN,
+                        Math.min(TOP_N_MAX, Math.round(v)),
+                      );
+                      setTopN(nextTopN);
+                      setTierWeights(defaultTierWeights(nextTopN));
+                    }
+                  }}
+                  className={inputClass}
+                />
+              </FormField>
 
-      <FormField
-        label="Tier weights"
-        hint={`Sum: ${tierSum.toFixed(3)} (must be ≤ 1.0). Edit any cell to retune.`}
-        error={tierError}
-      >
-        <TierWeightEditor tierWeights={tierWeights} onChange={setTierWeights} />
-      </FormField>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => setTierWeights(defaultTierWeights(topN))}
-        className="-mt-2"
-      >
-        Reset to defaults
-      </Button>
+              <FormField
+                label={`Min payout: ${thresholdSol.toFixed(4)} SOL`}
+                hint="Skip if daily fees are lower."
+                error={thresholdError}
+              >
+                <input
+                  type="number"
+                  min={0}
+                  step="0.001"
+                  value={thresholdSol}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v) && v >= 0) {
+                      setThresholdSol(v);
+                    }
+                  }}
+                  className={cn(inputClass, "text-mono-md")}
+                />
+              </FormField>
+            </div>
 
-      <FormField
-        label={`Min payout: ${thresholdSol.toFixed(4)} SOL`}
-        hint="If accrued fees are below this on a given day, we skip the payout and let it accumulate."
-        error={thresholdError}
-      >
-        <input
-          type="number"
-          min={0}
-          step="0.001"
-          value={thresholdSol}
-          onChange={(e) => {
-            const v = Number(e.target.value);
-            if (Number.isFinite(v) && v >= 0) {
-              setThresholdSol(v);
-            }
-          }}
-          className={cn(inputClass, "text-mono-md")}
-        />
-      </FormField>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-label-md text-fg">Rank split</div>
+                <div className="text-mono-sm text-fg-secondary">
+                  {(tierSum * 100).toFixed(1)}%
+                </div>
+              </div>
+              <PayoutSplitPreview tierWeights={tierWeights} />
+              {tierError ? (
+                <p className="text-caption text-danger">{tierError}</p>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setTierWeights(defaultTierWeights(topN))}
+                >
+                  Reset split
+                </Button>
+                <details className="group rounded-md border border-border/70 bg-surface/50">
+                  <summary className="gb-control gb-control-secondary flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2 text-label-md text-fg">
+                    Edit rank split
+                    <span className="text-mono-sm text-fg-muted">
+                      {topN} ranks
+                    </span>
+                  </summary>
+                  <div className="border-t border-border/70 p-3">
+                    <TierWeightEditor
+                      tierWeights={tierWeights}
+                      onChange={setTierWeights}
+                    />
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <FormField
-        label={`Platform fee: ${platformFeePercent}%`}
-        hint="Of every trade, this percentage flows to the GitBags treasury (max 20%). The remainder accrues to the contributor pool."
-        error={feeError}
-      >
-        <input
-          type="range"
-          min={0}
-          max={FEE_BPS_MAX}
-          step={25}
-          value={platformFeeBps}
-          onChange={(e) => setPlatformFeeBps(Number(e.target.value))}
-          className="gb-range-control w-full"
-        />
-      </FormField>
-      <div className="-mt-4 flex items-center justify-between text-caption text-fg-muted">
-        <span>0%</span>
-        <span className="text-mono-sm text-fg-secondary">
-          {platformFeeBps} bps
-        </span>
-        <span>20%</span>
+        <section className="grid gap-4 border-t border-border/70 pt-5 md:grid-cols-[10rem_minmax(0,1fr)]">
+          <div className="text-label-md text-fg-secondary">Fees</div>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+            <FormField
+              label={`Platform fee: ${platformFeePercent}%`}
+              hint="Minimum 2%."
+              error={feeError}
+            >
+              <input
+                type="number"
+                min={2}
+                step={0.25}
+                value={platformFeeBps / 100}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (Number.isFinite(v)) {
+                    setPlatformFeeBps(Math.round(v * 100));
+                  }
+                }}
+                className={cn(inputClass, "text-mono-md")}
+              />
+            </FormField>
+
+            <div className="space-y-2 rounded-md border border-border/70 bg-surface/50 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-body-sm text-fg-muted">
+                  Contributor pool
+                </span>
+                <span className="text-mono-sm text-fg">
+                  {contributorPoolPercent}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-body-sm text-fg-muted">GitBags fee</span>
+                <span className="text-mono-sm text-fg">
+                  {platformFeePercent}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <div className="flex items-center justify-between gap-3 pt-2">
@@ -234,49 +282,66 @@ function TierWeightEditor({
   onChange: (next: number[]) => void;
 }) {
   return (
-    <div className="rounded-md border border-border-strong bg-surface-elevated p-3">
-      <ul className="grid max-h-[280px] grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
-        {tierWeights.map((w, idx) => {
-          const rank = idx + 1;
-          return (
-            <li
-              key={rank}
-              className="flex items-center gap-2 rounded-md bg-surface px-2 py-1.5"
-            >
-              <span className="w-12 text-label-sm text-fg-muted">
-                Top {rank}
-              </span>
-              <input
-                type="number"
-                min={0}
-                max={1}
-                step={0.01}
-                value={Number(w.toFixed(4))}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  if (!Number.isFinite(v)) return;
-                  const next = [...tierWeights];
-                  next[idx] = Math.max(0, Math.min(1, v));
-                  onChange(next);
-                }}
-                className={cn(
-                  "h-8 w-full min-w-0 rounded-md border border-border-strong bg-surface px-2",
-                  "text-mono-sm outline-none focus:border-primary",
-                )}
-                aria-label={`Top ${rank} weight`}
-              />
-              <span className="text-mono-sm text-fg-muted">
-                {(w * 100).toFixed(1)}%
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      <p className="mt-2 flex items-start gap-2 text-caption text-fg-muted">
-        <Info className="mt-0.5 size-3.5 shrink-0" />
-        Tip: you can leave the defaults and contributors will see the published
-        Top-1=30%, Top-2=20%, Top-3=15%, then 5% across the rest.
-      </p>
+    <ul className="grid max-h-[280px] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+      {tierWeights.map((w, idx) => {
+        const rank = idx + 1;
+        return (
+          <li
+            key={rank}
+            className="flex items-center gap-2 rounded-md bg-surface px-2 py-1.5"
+          >
+            <span className="w-10 text-label-sm text-fg-muted">#{rank}</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.5}
+              value={Number((w * 100).toFixed(2))}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (!Number.isFinite(v)) return;
+                const next = [...tierWeights];
+                next[idx] = Math.max(0, Math.min(100, v)) / 100;
+                onChange(next);
+              }}
+              className={cn(
+                "h-8 w-full min-w-0 rounded-md border border-border-strong bg-surface px-2",
+                "text-mono-sm outline-none focus:border-primary",
+              )}
+              aria-label={`Rank ${rank} payout percentage`}
+            />
+            <span className="text-mono-sm text-fg-muted">%</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function PayoutSplitPreview({ tierWeights }: { tierWeights: number[] }) {
+  const topWeights = tierWeights.slice(0, 3);
+  const remainingWeight = tierWeights.slice(3).reduce((a, b) => a + b, 0);
+  const blocks = topWeights.map((weight, idx) => ({
+    label: `#${idx + 1}`,
+    value: weight,
+  }));
+  if (tierWeights.length > 3) {
+    blocks.push({ label: `#4-${tierWeights.length}`, value: remainingWeight });
+  }
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-4">
+      {blocks.map((block) => (
+        <div
+          key={block.label}
+          className="rounded-md border border-border/70 bg-surface/50 p-3"
+        >
+          <div className="text-label-sm text-fg-muted">{block.label}</div>
+          <div className="mt-1 text-mono-md text-fg">
+            {(block.value * 100).toFixed(1)}%
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

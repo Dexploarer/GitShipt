@@ -119,8 +119,7 @@ export function DirectLaunchForm() {
               name="platformFeeBps"
               type="number"
               defaultValue={DEFAULT_PLATFORM_FEE_BPS}
-              min={0}
-              max={2000}
+              min={200}
               required
             />
             <Field

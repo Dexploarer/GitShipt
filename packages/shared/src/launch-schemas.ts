@@ -125,7 +125,7 @@ export const CreateProjectBodySchema = z.object({
   telegram: z.string().trim().url().max(200).optional(),
   scoringConfig: ScoringConfigSchema,
   payoutConfig: PayoutConfigSchema,
-  platformFeeBps: z.number().int().min(0).max(2000),
+  platformFeeBps: z.number().int().min(200).max(10_000),
 });
 export type CreateProjectBody = z.infer<typeof CreateProjectBodySchema>;
 

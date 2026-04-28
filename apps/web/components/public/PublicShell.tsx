@@ -16,7 +16,11 @@ export function PublicShell({
   return (
     <div className="flex min-h-screen flex-col bg-bg text-fg">
       <PublicNav active={active} />
-      <main className="mx-auto w-full max-w-content flex-1 px-margin py-12">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-content flex-1 px-margin py-12 outline-none"
+      >
         {children}
       </main>
       <PublicFooter />

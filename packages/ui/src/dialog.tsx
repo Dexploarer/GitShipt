@@ -69,7 +69,7 @@ function DialogContent({
           <DialogPrimitive.Close
             data-slot="dialog-close"
             className={cn(
-              "gb-control gb-control-icon gb-control-ghost absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-md text-fg-muted",
+              "gb-control gb-control-icon gb-control-ghost absolute right-3 top-3 inline-flex size-11 items-center justify-center rounded-md text-fg-muted lg:right-4 lg:top-4 lg:size-8",
               "hover:text-fg",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
               "disabled:pointer-events-none",

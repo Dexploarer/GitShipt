@@ -6,7 +6,8 @@
  * keyboard and screen-reader users can jump past the sidebar / header into
  * the page's primary content region.
  *
- * Targets the `#main-content` wrapper rendered by the root layout.
+ * Targets the route shell's actual `<main id="main-content">` so keyboard
+ * users skip sidebar/header chrome, not just the root wrapper.
  *
  * Tokens-only (no raw hex). Uses the `bg-primary / text-primary-fg` pairing for the
  * highest-contrast affordance once focused.

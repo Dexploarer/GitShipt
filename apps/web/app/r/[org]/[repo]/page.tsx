@@ -82,7 +82,10 @@ export default async function ProjectPage({
         >
           <NextPayoutCountdown targetIso={nextPayoutAt.toISOString()} />
           <PoolOverviewCard pool={pool} projectStatus={header.status} />
-          <RecentPayoutsFeed payouts={recentPayouts} />
+          <RecentPayoutsFeed
+            payouts={recentPayouts}
+            projectSlug={header.slug}
+          />
         </aside>
 
         {/* Row 3 col 1: leaderboard fills the remaining vertical space */}

@@ -15,7 +15,6 @@ const TOC: Array<{ id: string; title: string }> = [
   { id: "wallet-linking", title: "Linking your wallet (SIWS)" },
   { id: "embedding", title: "Embedding the token widget" },
   { id: "security", title: "Security baseline" },
-  { id: "roadmap", title: "Roadmap (v1.1+)" },
 ];
 
 const EMBED_SNIPPET = `<iframe
@@ -213,20 +212,6 @@ export default async function DocsPage() {
           </ul>
         </DocSection>
 
-        <DocSection id="roadmap" title="Roadmap (v1.1+)">
-          <p>
-            The MVP scope is intentionally tight: GitHub repos only, fixed
-            scoring formula, daily cadence, single chain (Solana). Items
-            explicitly out of scope for v1.0 — multi-chain, non-GitHub sources,
-            weekly/monthly cadences, custom payout schedules, governance tokens
-            — are tracked in the PRD&apos;s &ldquo;Out of scope&rdquo; section
-            and will land in v1.1+.
-          </p>
-          <p>
-            Want to influence what ships next? Open an issue on the GitBags repo
-            or DM the team on X.
-          </p>
-        </DocSection>
       </article>
     </div>
   );

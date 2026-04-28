@@ -8,6 +8,7 @@ import { installationOctokit } from "@/lib/github/app";
 import {
   fetchCommitsByAuthor,
   fetchMergedPRsByAuthor,
+  fetchRepoContributorsLeaderboard,
   mergeAggregates,
   applyBotFlags,
   type ContributorAggregate,
@@ -23,6 +24,8 @@ type LoadedProject = {
   ghInstallationId: string | null;
   scoringConfig: ScoringConfig;
 };
+
+const TREASURY_ROUTED_AGENT_REASON = "treasury_routed_agent";
 
 /**
  * Per-project indexer. Fetches commits + merged PRs since the last
@@ -120,7 +123,15 @@ async function fetchAndAggregate(
     fetchMergedPRsByAuthor(octo, ghOwner, ghRepo, sinceISO),
   ]);
 
-  const merged = mergeAggregates(commitsMap, prsMap);
+  let merged = mergeAggregates(commitsMap, prsMap);
+  if (merged.length === 0) {
+    const fallbackMap = await fetchRepoContributorsLeaderboard(
+      octo,
+      ghOwner,
+      ghRepo,
+    );
+    merged = mergeAggregates(fallbackMap);
+  }
   return applyBotFlags(
     merged,
     scoringConfig.botAllowlist,
@@ -143,8 +154,8 @@ async function upsertContributors(
     ghUsername: a.ghUsername,
     avatarUrl: a.avatarUrl,
     inputs: a.inputs,
-    excluded: a.isBot ? "true" : "false",
-    excludedReason: a.isBot ? "bot_detected" : null,
+    excluded: "false",
+    excludedReason: a.isBot ? TREASURY_ROUTED_AGENT_REASON : null,
     lastIndexedAt: now,
   }));
 
@@ -157,6 +168,8 @@ async function upsertContributors(
         ghUsername: sql`excluded.gh_username`,
         avatarUrl: sql`excluded.avatar_url`,
         inputs: sql`excluded.inputs`,
+        excluded: sql`excluded.excluded`,
+        excludedReason: sql`excluded.excluded_reason`,
         lastIndexedAt: sql`excluded.last_indexed_at`,
       },
     });

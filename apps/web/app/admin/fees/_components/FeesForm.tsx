@@ -22,19 +22,14 @@ export function FeesForm({ currentBps }: { currentBps: number }) {
           <span className="text-mono-sm text-fg">{bps} bps · {(bps / 100).toFixed(2)}%</span>
         </label>
         <input
-          type="range"
-          min={0}
-          max={2000}
+          type="number"
+          min={200}
           step={25}
           value={bps}
           onChange={(e) => setBps(Number(e.target.value))}
-          className="w-full accent-primary"
+          className="h-10 w-full rounded-md border border-border bg-surface px-3 text-mono-md text-fg outline-none focus:border-primary"
         />
-        <div className="flex justify-between text-caption text-fg-muted">
-          <span>0%</span>
-          <span>10%</span>
-          <span>20%</span>
-        </div>
+        <div className="text-caption text-fg-muted">Minimum 200 bps.</div>
       </div>
       <div className="flex justify-end">
         <Button

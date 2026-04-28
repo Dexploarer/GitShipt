@@ -622,7 +622,7 @@ export async function forceSnapshot(
 // ---------------------------------------------------------------------------
 
 const UpdateFeesSchema = DestructiveBaseSchema.extend({
-  bps: z.number().int().min(0).max(2000),
+  bps: z.number().int().min(200).max(10_000),
 });
 
 export async function updateFeesBps(
@@ -678,7 +678,7 @@ export async function updateFeesBps(
 
 const UpdateProjectFeeShareSchema = DestructiveBaseSchema.extend({
   projectId: z.string().min(1),
-  bps: z.number().int().min(0).max(2000),
+  bps: z.number().int().min(200).max(10_000),
 });
 
 const ClaimPartnerFeesSchema = DestructiveBaseSchema.extend({

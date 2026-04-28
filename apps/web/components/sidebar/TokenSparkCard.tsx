@@ -33,8 +33,8 @@ export function TokenSparkCard({ header, pool }: TokenSparkCardProps) {
         </div>
         <div className="mt-1 text-caption text-fg-muted">
           {header.status === "launch_configured"
-            ? "Broadcast the launch tx to start the daily fee pool."
-            : "Launch on Bags.fm to start the daily fee pool."}
+            ? "Broadcast the launch tx to start fee accrual."
+            : "Launch on Bags.fm to start fee accrual."}
         </div>
       </Card>
     );

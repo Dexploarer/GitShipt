@@ -24,7 +24,7 @@ export function MobileSidebarTrigger({ className }: { className?: string }) {
       aria-expanded={mobileOpen}
       className={cn(
         "lg:hidden",
-        "gb-control gb-control-icon gb-control-secondary inline-flex size-9 items-center justify-center rounded-md",
+        "gb-control gb-control-icon gb-control-secondary inline-flex size-11 items-center justify-center rounded-md",
         "border border-border/60",
         "glass surface-highlight",
         "text-fg-secondary hover:text-fg",

@@ -57,7 +57,7 @@ export const FeeShareConfigInputSchema = z.object({
    * creating the Bags config. Bags partner revenue is configured separately
    * with BAGS_PARTNER_WALLET + BAGS_PARTNER_CONFIG_KEY.
    */
-  shareFee: z.number().int().min(0).max(2000),
+  shareFee: z.number().int().min(200).max(10_000),
   platformFeeWallet: z.string().min(32).optional(),
   partner: z.string().min(32).optional(),
   partnerConfig: z.string().min(32).optional(),

@@ -66,4 +66,27 @@ describe("Bags launch schemas", () => {
       }).success,
     ).toBe(true);
   });
+
+  it("enforces a 2% platform fee floor without the old 20% cap", () => {
+    expect(
+      CreateProjectBodySchema.safeParse({
+        ...validBody,
+        platformFeeBps: 199,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      CreateProjectBodySchema.safeParse({
+        ...validBody,
+        platformFeeBps: 200,
+      }).success,
+    ).toBe(true);
+
+    expect(
+      CreateProjectBodySchema.safeParse({
+        ...validBody,
+        platformFeeBps: 2500,
+      }).success,
+    ).toBe(true);
+  });
 });

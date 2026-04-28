@@ -39,7 +39,11 @@ export function PublicAppShell({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <main className="min-w-0 flex-1 overflow-y-auto bg-app-gradient px-4 pt-4 pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:px-10 lg:pb-3">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="min-w-0 flex-1 overflow-y-auto bg-app-gradient px-4 pt-4 pb-[calc(4.25rem+env(safe-area-inset-bottom))] outline-none lg:px-10 lg:pb-3"
+          >
             <div className="mx-auto w-full max-w-content">
               <div className="mb-3 lg:hidden">
                 <MobileSidebarTrigger />
@@ -94,7 +98,7 @@ function SocialLink({
       target="_blank"
       rel="noreferrer noopener"
       aria-label={label}
-      className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
+      className="gb-control gb-control-icon gb-control-ghost inline-flex size-11 items-center justify-center rounded-md text-fg-muted hover:text-fg lg:size-7"
     >
       {children}
     </Link>

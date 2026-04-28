@@ -26,6 +26,8 @@ export interface LeaderboardEntry {
   rank: number;
   score: number;
   weight: number; // tierWeights[rank-1]
+  payoutRoute?: "contributor" | "treasury";
+  payoutRouteReason?: string;
   inputs: {
     mergedPRs: number;
     commits: number;

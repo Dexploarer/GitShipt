@@ -68,7 +68,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <SessionChromeProvider user={user}>
             <SolanaWalletProvider>
-              <div id="main-content">{children}</div>
+              <div>{children}</div>
             </SolanaWalletProvider>
           </SessionChromeProvider>
         </ThemeProvider>

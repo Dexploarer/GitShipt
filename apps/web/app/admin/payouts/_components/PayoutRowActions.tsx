@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Ban, Play, RotateCcw } from "lucide-react";
+import { Ban, RotateCcw } from "lucide-react";
 import { Button } from "@repo/ui";
 import { DestructiveConfirmModal } from "@/components/admin/DestructiveConfirmModal";
 import { cancelPayout, retryPayout } from "@/app/admin/actions";
@@ -60,14 +60,6 @@ export function PayoutRowActions({
         }
       >
         <Ban className="size-3.5" /> Cancel
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled
-        title="Manual snapshot trigger ships in v1.1 once Agent B's processSnapshotPayout workflow is wired."
-      >
-        <Play className="size-3.5" /> Snap → pay
       </Button>
       <span className="sr-only">Snapshot {snapshotId}</span>
       <DestructiveConfirmModal

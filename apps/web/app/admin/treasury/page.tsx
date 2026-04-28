@@ -2,8 +2,6 @@ import Link from "next/link";
 import { ArrowUpRight, Vault, Wallet } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
-import { Button } from "@repo/ui";
-import { Badge } from "@repo/ui";
 import { StatTile } from "@/components/shared/StatTile";
 import { hasCredentials, serverEnv, clientEnv } from "@/lib/env";
 import { hasSolanaConnection, solanaConnection } from "@/lib/solana/connection";
@@ -29,8 +27,7 @@ export default async function AdminTreasuryPage() {
       <header>
         <h1 className="text-headline-md">Treasury</h1>
         <p className="text-body-sm text-fg-secondary">
-          Read-only. Top-ups go cold-treasury → hot-wallet under MFA (manual,
-          v1.1).
+          Read-only balances and explorer links.
         </p>
       </header>
 
@@ -71,10 +68,7 @@ export default async function AdminTreasuryPage() {
       <Card depth="raised" padding="default">
         <CardHeader>
           <CardTitle>Hot wallet</CardTitle>
-          <CardDescription>
-            Signer pubkey + Solscan link. Recent transactions land here once
-            Helius RPC is configured (live tx fetch v1.1; for now use Solscan).
-          </CardDescription>
+          <CardDescription>Signer pubkey and Solscan link.</CardDescription>
         </CardHeader>
         <ul className="mt-3 space-y-2 text-body-sm">
           <li className="flex items-center justify-between">
@@ -99,19 +93,6 @@ export default async function AdminTreasuryPage() {
             </span>
           </li>
         </ul>
-        <div className="mt-3 flex items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            disabled
-            title="Top-up flow ships in v1.1"
-          >
-            Top up hot wallet
-          </Button>
-          <Badge variant="warning" size="sm">
-            v1.1
-          </Badge>
-        </div>
       </Card>
 
       <Card depth="flat" padding="default">

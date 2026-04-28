@@ -11,13 +11,19 @@ import { solscanTxUrl } from "@/lib/solana/explorer";
  * the failure state with a danger dot so users see "this didn't ship" before
  * they wonder why their wallet is empty.
  */
-export function RecentPayoutsFeed({ payouts }: { payouts: RecentPayoutRow[] }) {
+export function RecentPayoutsFeed({
+  payouts,
+  projectSlug,
+}: {
+  payouts: RecentPayoutRow[];
+  projectSlug: string;
+}) {
   return (
-    <section className="rounded-lg border border-border bg-surface p-6">
+    <section className="rounded-lg border border-border/70 bg-surface/70 p-4">
       <header className="flex items-center justify-between">
-        <h2 className="text-headline-sm text-fg">Recent Payouts</h2>
+        <h2 className="text-headline-sm text-fg">Recent payouts</h2>
         <Link
-          href="/dashboard/payouts"
+          href={`/r/${projectSlug}/payouts`}
           className="text-label-sm text-fg-secondary transition-colors hover:text-fg"
         >
           View all

@@ -142,7 +142,7 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
 
   if (success) {
     return (
-      <div className="mx-auto w-full max-w-2xl py-12">
+      <div className="mx-auto w-full max-w-4xl py-8 lg:py-10">
         <h1 className="sr-only">Launch a repo token</h1>
         <LaunchResult result={success} onViewProject={handleViewProject} />
       </div>
@@ -150,13 +150,13 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl py-12">
+    <div className="mx-auto w-full max-w-5xl py-8 lg:py-10">
       <h1 className="sr-only">Launch a repo token</h1>
       <StepIndicator current={step} />
 
       <section
         className={cn(
-          "mt-6 rounded-xl border border-border bg-surface p-8",
+          "mt-6 rounded-xl border border-border bg-surface p-5 sm:p-6 lg:p-8",
           "shadow-popover",
         )}
       >

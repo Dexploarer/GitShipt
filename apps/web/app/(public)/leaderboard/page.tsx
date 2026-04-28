@@ -1,8 +1,11 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { cn } from "@repo/lib";
 import { getGlobalLeaderboard } from "@/lib/queries/global";
 import { GlobalLeaderboardTable } from "./_components/GlobalLeaderboardTable";
+import { LeaderboardFilters } from "./_components/LeaderboardFilters";
+import type {
+  GlobalLeaderboardEntry,
+  GlobalProjectEntry,
+} from "@/lib/queries/global";
 
 export const metadata: Metadata = {
   title: "Global leaderboard",
@@ -15,6 +18,11 @@ type Mode = "contributor" | "project";
 function parseMode(value: string | string[] | undefined): Mode {
   const v = Array.isArray(value) ? value[0] : value;
   return v === "project" ? "project" : "contributor";
+}
+
+function parseQuery(value: string | string[] | undefined): string {
+  const v = Array.isArray(value) ? value[0] : value;
+  return v?.trim().toLowerCase() ?? "";
 }
 
 /**
@@ -32,62 +40,54 @@ export default async function LeaderboardPage({
 }) {
   const params = await searchParams;
   const mode = parseMode(params.mode);
+  const query = parseQuery(params.q);
   const data = await getGlobalLeaderboard();
+  const contributorRows = filterContributors(data.byContributor, query);
+  const projectRows = filterProjects(data.byProject, query);
+  const emptyMessage = query
+    ? "No matches."
+    : "No payouts have been confirmed yet.";
 
   return (
     <div className="flex flex-col gap-6 lg:gap-8">
       <h1 className="sr-only">Global leaderboard</h1>
-      <ModeToggle mode={mode} />
+      <LeaderboardFilters mode={mode} />
 
       {mode === "contributor" ? (
-        <GlobalLeaderboardTable mode="contributor" rows={data.byContributor} />
+        <GlobalLeaderboardTable
+          mode="contributor"
+          rows={contributorRows}
+          emptyMessage={emptyMessage}
+        />
       ) : (
-        <GlobalLeaderboardTable mode="project" rows={data.byProject} />
+        <GlobalLeaderboardTable
+          mode="project"
+          rows={projectRows}
+          emptyMessage={emptyMessage}
+        />
       )}
     </div>
   );
 }
 
-/**
- * Server-rendered toggle. Each option is a `<Link>` whose href flips the
- * `mode` search param. Active option uses `surface-elevated` + `inset-light`
- * shadow to match the sidebar item active treatment.
- */
-function ModeToggle({ mode }: { mode: Mode }) {
-  const options: Array<{ value: Mode; label: string; href: string }> = [
-    { value: "contributor", label: "By contributor", href: "/leaderboard" },
-    {
-      value: "project",
-      label: "By project",
-      href: "/leaderboard?mode=project",
-    },
-  ];
+function filterContributors(
+  rows: GlobalLeaderboardEntry[],
+  query: string,
+): GlobalLeaderboardEntry[] {
+  if (!query) return rows;
+  return rows.filter((row) =>
+    [row.ghUsername, row.topProjectSlug ?? ""].some((value) =>
+      value.toLowerCase().includes(query),
+    ),
+  );
+}
 
-  return (
-    <div
-      role="tablist"
-      aria-label="Leaderboard view"
-      className="gb-control-cluster inline-flex w-fit items-center gap-0.5 rounded-md border border-border/60 bg-bg/40 p-0.5"
-    >
-      {options.map(({ value, label, href }) => {
-        const on = mode === value;
-        return (
-          <Link
-            key={value}
-            href={href}
-            role="tab"
-            aria-selected={on}
-            className={cn(
-              "rounded-md border px-3 py-1.5 text-label-md transition-[background-color,border-color,box-shadow,color,transform]",
-              on
-                ? "gb-control gb-control-secondary border-border-strong bg-surface-elevated text-fg"
-                : "gb-route-link gb-route-link-inactive text-fg-secondary hover:text-fg",
-            )}
-          >
-            {label}
-          </Link>
-        );
-      })}
-    </div>
+function filterProjects(
+  rows: GlobalProjectEntry[],
+  query: string,
+): GlobalProjectEntry[] {
+  if (!query) return rows;
+  return rows.filter((row) =>
+    [row.name, row.slug].some((value) => value.toLowerCase().includes(query)),
   );
 }

@@ -225,17 +225,13 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
                 so historical payouts are reproducible.
               </li>
               <li>
-                <strong>Where do I see my earnings?</strong> Visit your{" "}
+                <strong>Where do I see my earnings?</strong>{" "}
                 <Link
-                  href="/u/{your-github-username}"
+                  href="/dashboard/earnings"
                   className="text-fg underline-offset-4 hover:underline"
                 >
-                  contributor profile
-                </Link>{" "}
-                at{" "}
-                <span className="text-mono-sm">
-                  /u/{`<your-github-username>`}
-                </span>
+                  Open your earnings dashboard
+                </Link>
                 .
               </li>
               <li>

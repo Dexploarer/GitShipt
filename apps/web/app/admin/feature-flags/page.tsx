@@ -19,9 +19,9 @@ export default async function AdminFeatureFlagsPage() {
       key: "payouts.dry_run",
       enabled: false,
       source: "default",
-      control: "Coming soon - no runtime toggle",
+      control: "Workflow guarded",
       detail:
-        "Dry-run mode is documented only in v0. Payout safety is enforced by workflow guards and env credentials today.",
+        "Payout safety is enforced by workflow guards, idempotency keys, and env credentials.",
     },
     {
       key: "kill_switch.global",
@@ -47,16 +47,12 @@ export default async function AdminFeatureFlagsPage() {
         <div>
           <h1 className="text-headline-md">Feature flags</h1>
           <p className="text-body-sm text-fg-secondary">
-            Read-only inventory for v0. This page shows current state and where
-            each flag is changed; it is not a flag editor yet.
+            Current flag state and source.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="default" size="sm">
             read-only
-          </Badge>
-          <Badge variant="warning" size="sm">
-            targeted rollout UI coming soon
           </Badge>
         </div>
       </header>

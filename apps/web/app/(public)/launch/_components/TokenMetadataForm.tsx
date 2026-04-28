@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import Image from "next/image";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { z } from "zod";
@@ -14,6 +15,10 @@ import {
   type TokenMetadataInput,
   type GithubRepo,
 } from "@repo/shared";
+import {
+  deriveSymbolFromRepo,
+  deriveTokenMetadataDefaults,
+} from "@/lib/state/launch-wizard-store";
 
 /**
  * Client-side schema layered on top of the shared Zod contract.
@@ -51,17 +56,15 @@ export function TokenMetadataForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isValid },
   } = useForm<TokenMetadataInput>({
     resolver: zodResolver(ClientTokenSchema),
     mode: "onBlur",
-    defaultValues: initial ?? {
-      name: repo.name.slice(0, 32),
-      symbol: deriveSymbol(repo.name),
-      description: defaultDescription(repo),
-      imageUrl: repo.ownerAvatarUrl,
-    },
+    defaultValues: initial ?? deriveTokenMetadataDefaults(repo),
   });
+  const preview = useWatch({ control });
+  const previewImage = safeImageUrl(preview.imageUrl, repo.ownerAvatarUrl);
 
   return (
     <form
@@ -76,88 +79,120 @@ export function TokenMetadataForm({
         </p>
       </header>
 
-      <FormField
-        label="Name"
-        hint="Up to 32 characters."
-        error={errors.name?.message}
-        required
-      >
-        <Input
-          type="text"
-          maxLength={32}
-          autoComplete="off"
-          {...register("name")}
-        />
-      </FormField>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="min-w-0 space-y-5">
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
+            <FormField
+              label="Name"
+              hint="Up to 32 characters."
+              error={errors.name?.message}
+              required
+            >
+              <Input
+                type="text"
+                maxLength={32}
+                autoComplete="off"
+                {...register("name")}
+              />
+            </FormField>
 
-      <FormField
-        label="Symbol"
-        hint="A-Z, 0-9 only. 2-10 characters."
-        error={errors.symbol?.message}
-        required
-      >
-        <Input
-          type="text"
-          maxLength={10}
-          autoComplete="off"
-          className="text-mono-md uppercase"
-          {...register("symbol", {
-            setValueAs: (v: string) => (v ?? "").toUpperCase(),
-          })}
-        />
-      </FormField>
+            <FormField
+              label="Symbol"
+              hint="A-Z, 0-9 only. 2-10 characters."
+              error={errors.symbol?.message}
+              required
+            >
+              <Input
+                type="text"
+                maxLength={10}
+                autoComplete="off"
+                className="text-mono-md uppercase"
+                {...register("symbol", {
+                  setValueAs: (v: string) => (v ?? "").toUpperCase(),
+                })}
+              />
+            </FormField>
+          </div>
 
-      <FormField
-        label="Description"
-        hint="Required. Up to 1000 characters. Shows on Bags.fm and your project page."
-        error={errors.description?.message}
-        required
-      >
-        <textarea
-          rows={4}
-          maxLength={1000}
-          {...register("description")}
-          className={cn(
-            "w-full rounded-md border border-border-strong bg-surface px-3 py-2",
-            "text-body-md text-fg outline-none placeholder:text-fg-muted",
-            "transition-[border-color,box-shadow] duration-150",
-            "focus-visible:outline-none focus-visible:border-primary focus-visible:shadow-inset-light",
-            "aria-[invalid=true]:border-danger",
-          )}
-        />
-      </FormField>
+          <FormField
+            label="Description"
+            hint="Required. Up to 1000 characters. Shows on Bags.fm and your project page."
+            error={errors.description?.message}
+            required
+          >
+            <textarea
+              rows={7}
+              maxLength={1000}
+              {...register("description")}
+              className={cn(
+                "w-full resize-none rounded-md border border-border-strong bg-surface px-3 py-2",
+                "text-body-md text-fg outline-none placeholder:text-fg-muted",
+                "transition-[border-color,box-shadow] duration-150",
+                "focus-visible:outline-none focus-visible:border-primary focus-visible:shadow-inset-light",
+                "aria-[invalid=true]:border-danger",
+              )}
+            />
+          </FormField>
 
-      <FormField
-        label="Image URL"
-        hint="Square image works best. Defaults to your GitHub avatar."
-        error={errors.imageUrl?.message}
-        required
-      >
-        <Input type="url" autoComplete="off" {...register("imageUrl")} />
-      </FormField>
+          <FormField
+            label="Image URL"
+            hint="Square image works best. Defaults to your GitHub avatar."
+            error={errors.imageUrl?.message}
+            required
+          >
+            <Input type="url" autoComplete="off" {...register("imageUrl")} />
+          </FormField>
+        </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <FormField
-          label="Website"
-          hint="Optional."
-          error={errors.website?.message}
-        >
-          <Input type="url" autoComplete="off" {...register("website")} />
-        </FormField>
-        <FormField
-          label="X / Twitter"
-          hint="Optional full URL."
-          error={errors.twitter?.message}
-        >
-          <Input type="url" autoComplete="off" {...register("twitter")} />
-        </FormField>
-        <FormField
-          label="Telegram"
-          hint="Optional full URL."
-          error={errors.telegram?.message}
-        >
-          <Input type="url" autoComplete="off" {...register("telegram")} />
-        </FormField>
+        <aside className="space-y-4 lg:sticky lg:top-4">
+          <div className="rounded-lg border border-border bg-surface-elevated/40 p-4">
+            <div className="flex items-start gap-3">
+              <Image
+                src={previewImage}
+                alt=""
+                width={48}
+                height={48}
+                unoptimized
+                className="size-12 shrink-0 rounded-lg bg-surface object-cover"
+              />
+              <div className="min-w-0">
+                <p className="truncate text-label-md text-fg">
+                  {preview.name || repo.name}
+                </p>
+                <p className="text-mono-sm text-fg-muted">
+                  ${preview.symbol || deriveSymbolFromRepo(repo.name)}
+                </p>
+                <p className="mt-2 line-clamp-4 text-body-sm text-fg-secondary">
+                  {preview.description || defaultDescription(repo)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            <FormField
+              label="Website"
+              hint="Optional."
+              error={errors.website?.message}
+            >
+              <Input type="url" autoComplete="off" {...register("website")} />
+            </FormField>
+            <FormField
+              label="X / Twitter"
+              hint="Optional full URL."
+              error={errors.twitter?.message}
+            >
+              <Input type="url" autoComplete="off" {...register("twitter")} />
+            </FormField>
+            <FormField
+              label="Telegram"
+              hint="Optional full URL."
+              error={errors.telegram?.message}
+            >
+              <Input type="url" autoComplete="off" {...register("telegram")} />
+            </FormField>
+          </div>
+        </aside>
       </div>
 
       <div className="flex items-center justify-between gap-3 pt-2">
@@ -174,13 +209,20 @@ export function TokenMetadataForm({
   );
 }
 
-function deriveSymbol(repoName: string): string {
-  const cleaned = repoName.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  return cleaned.slice(0, 10) || "GBAGS";
-}
-
 function defaultDescription(repo: GithubRepo): string {
   const description = repo.description?.trim();
   if (description) return description.slice(0, 1000);
   return `Token for ${repo.owner}/${repo.name}. Fees redistribute to top contributors daily.`;
+}
+
+function safeImageUrl(value: string | undefined, fallback: string): string {
+  if (!value) return fallback;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? value
+      : fallback;
+  } catch {
+    return fallback;
+  }
 }

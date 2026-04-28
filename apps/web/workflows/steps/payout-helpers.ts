@@ -16,7 +16,12 @@ import type { LeaderboardEntry } from "@/db/schema/snapshots";
 import type { PayoutConfig, ScoringConfig } from "@/db/schema/projects";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { bags } from "@/lib/bags/client";
-import { hasCredentials, canLaunchOnBags, stubsAllowed } from "@/lib/env";
+import {
+  hasCredentials,
+  canLaunchOnBags,
+  stubsAllowed,
+  serverEnv,
+} from "@/lib/env";
 import { computeMerkleRoot } from "@/lib/payouts/merkle";
 import { computeDistributionPlan } from "@/lib/payouts/distribution";
 import { loadContributorWallets } from "./snapshot-helpers";
@@ -296,11 +301,22 @@ export async function buildPlan(
     (e) => e.contributorId,
   );
   const wallets = await loadContributorWallets(contributorIds);
+  const treasuryWallet = serverEnv().SOLANA_TREASURY_ADDRESS ?? null;
+  const walletRoutes = { ...wallets };
+  for (const entry of ctxJson.snapshot.leaderboard) {
+    if (entry.payoutRoute !== "treasury") continue;
+    if (!treasuryWallet) {
+      throw new Error(
+        `treasury_wallet_missing_for_automated_contributor:${entry.ghUsername}`,
+      );
+    }
+    walletRoutes[entry.contributorId] = treasuryWallet;
+  }
   const plan = computeDistributionPlan(
     ctxJson.snapshot.leaderboard,
     claimedLamports,
     ctxJson.project.payoutConfig,
-    wallets,
+    walletRoutes,
   );
 
   return plan.map((row) => ({

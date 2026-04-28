@@ -71,8 +71,8 @@ export default async function AdminProjectsPage({
             <Layers className="size-4 text-fg-muted" /> {rows.length} projects
           </CardTitle>
           <CardDescription>
-            Bulk pause / kill is wired through the per-project page;
-            multi-select here is v1.1.
+            Use a project row to open controls for pause, kill, and fee-share
+            changes.
           </CardDescription>
         </CardHeader>
         <div className="overflow-x-auto">

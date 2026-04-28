@@ -1,7 +1,6 @@
-import { Database, Terminal } from "lucide-react";
+import { Database } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
-import { Button } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { getTableRowCounts } from "@/lib/queries/admin";
 
@@ -18,48 +17,15 @@ export default async function AdminDbPage() {
         <div>
           <h1 className="text-headline-md">Database</h1>
           <p className="text-body-sm text-fg-secondary">
-            Live read-only inventory. No SQL is executed from this page in v0.
+            Live read-only inventory.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="success" size="sm" dot>
             row counts live
           </Badge>
-          <Badge variant="warning" size="sm">
-            sandbox coming soon
-          </Badge>
         </div>
       </header>
-
-      <Card
-        depth="raised"
-        padding="default"
-        className="flex items-center justify-between gap-3"
-      >
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <Terminal className="size-4 text-fg-muted" /> SQL sandbox
-          </CardTitle>
-          <p className="mt-1 text-body-sm text-fg-secondary">
-            Planned operator tool: allowlisted, parameterized read-only queries
-            through a separate DB role. Until that ships, use Neon/Drizzle
-            tooling outside the admin app.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="warning" size="sm">
-            not wired
-          </Badge>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled
-            title="Coming soon: allowlisted read-only sandbox"
-          >
-            Open sandbox
-          </Button>
-        </div>
-      </Card>
 
       <Card depth="flat" padding="none" className="overflow-hidden">
         <CardHeader className="px-4 pt-4">

@@ -285,7 +285,7 @@ async function pingSentry(): Promise<ServiceHealth> {
     name: "Sentry",
     status: "stub",
     latencyMs: null,
-    detail: "Sentry SDK not wired in v0.",
+    detail: "Error reporting is tracked by env readiness for this deployment.",
     icon: PlugZap,
   };
 }

@@ -78,13 +78,9 @@ export const useLaunchWizardStore = create<LaunchWizardState>((set) => ({
     set((state) => ({
       repo,
       metadata:
-        state.metadata ??
-        ({
-          name: repo.name.slice(0, 32),
-          symbol: deriveSymbolFromRepo(repo.name),
-          description: defaultDescription(repo),
-          imageUrl: repo.ownerAvatarUrl,
-        } satisfies TokenMetadataInput),
+        state.repo?.id === repo.id && state.metadata
+          ? state.metadata
+          : deriveTokenMetadataDefaults(repo),
       step: 2,
       errorMessage: null,
     })),
@@ -106,9 +102,29 @@ export function resetLaunchWizardStore(): void {
   useLaunchWizardStore.getState().reset();
 }
 
-function deriveSymbolFromRepo(repoName: string): string {
-  const cleaned = repoName.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  return cleaned.slice(0, 10) || "GBAGS";
+export function deriveTokenMetadataDefaults(
+  repo: GithubRepo,
+): TokenMetadataInput {
+  return {
+    name: repo.name.slice(0, 32),
+    symbol: deriveSymbolFromRepo(repo.name),
+    description: defaultDescription(repo),
+    imageUrl: repo.ownerAvatarUrl,
+  };
+}
+
+export function deriveSymbolFromRepo(repoName: string): string {
+  const parts = repoName
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean);
+  const acronym =
+    parts.length > 1
+      ? parts.map((part) => part[0]).join("")
+      : (parts[0] ?? repoName);
+  const cleaned = acronym.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const fallback = repoName.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return (cleaned || fallback).slice(0, 10) || "GBAGS";
 }
 
 function defaultDescription(repo: GithubRepo): string {
