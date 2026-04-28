@@ -1,7 +1,6 @@
 "use workflow";
 
 import { getStepMetadata } from "workflow";
-import { redis } from "@/lib/redis";
 import { getLiveTickerData, type LandingTicker } from "@/lib/queries/global";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
 
@@ -19,10 +18,10 @@ import { enterDbWorkflowContext } from "@/lib/db-rls";
  * payload so duplicate runs are observable in the snapshot itself.
  */
 
-export const TICKER_REDIS_KEY = "gitbags:ticker:landing";
-export const TICKER_TTL_SECONDS = 120;
+const TICKER_REDIS_KEY = "gitbags:ticker:landing";
+const TICKER_TTL_SECONDS = 120;
 
-export interface CachedTickerSnapshot {
+interface CachedTickerSnapshot {
   ticker: {
     volume24hUsd: number;
     /** Serialized as string because JSON has no bigint. */
@@ -47,6 +46,7 @@ async function snapshotTicker(): Promise<void> {
 
   const ticker: LandingTicker = await getLiveTickerData();
 
+  const { redis } = await import("@/lib/redis");
   const r = redis();
   if (!r) {
     // No Redis configured — caller falls back to live DB read.

@@ -14,6 +14,7 @@ import {
   Flag,
   FlaskConical,
   FolderGit2,
+  GitCompare,
   Github,
   History,
   Home,
@@ -405,6 +406,12 @@ function adminGroups(): NavGroup[] {
           label: "Projects",
           icon: FolderGit2,
           href: "/admin/projects",
+        },
+        {
+          key: "reconciliation",
+          label: "Reconciliation",
+          icon: GitCompare,
+          href: "/admin/projects/reconciliation",
         },
         {
           key: "payouts",

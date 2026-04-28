@@ -20,20 +20,20 @@ describe("snapshot/payout period idempotency", () => {
   it("keys recipients by project and snapshot period, not snapshot id", async () => {
     const { recipientIdempotencyKey } = await import("./payout-helpers");
 
-    const key = recipientIdempotencyKey(
+    const key = await recipientIdempotencyKey(
       "project_1",
       "2026-04-27",
       "contributor_1",
     );
 
     expect(key).toBe(
-      recipientIdempotencyKey("project_1", "2026-04-27", "contributor_1"),
+      await recipientIdempotencyKey("project_1", "2026-04-27", "contributor_1"),
     );
     expect(key).not.toBe(
-      recipientIdempotencyKey("project_1", "2026-04-28", "contributor_1"),
+      await recipientIdempotencyKey("project_1", "2026-04-28", "contributor_1"),
     );
     expect(key).not.toBe(
-      recipientIdempotencyKey("project_2", "2026-04-27", "contributor_1"),
+      await recipientIdempotencyKey("project_2", "2026-04-27", "contributor_1"),
     );
   });
 
