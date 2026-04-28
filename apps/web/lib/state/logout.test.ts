@@ -15,6 +15,10 @@ const repo: GithubRepo = {
   forksCount: 3,
   ownerAvatarUrl: "https://avatars.githubusercontent.com/u/42?v=4",
   alreadyLaunched: false,
+  homepage: null,
+  topics: [],
+  license: null,
+  defaultBranch: null,
 };
 
 describe("logout client state reset", () => {

@@ -42,6 +42,13 @@ export const DEFAULT_LEADERBOARD: LeaderboardConfig = {
   platformFeeBps: DEFAULT_PLATFORM_FEE_BPS,
 };
 
+export interface DraftHydrationInput {
+  projectId: string;
+  repo: GithubRepo;
+  metadata: TokenMetadataInput;
+  leaderboard: LeaderboardConfig;
+}
+
 interface LaunchWizardState {
   step: LaunchWizardStep;
   repo: GithubRepo | null;
@@ -50,6 +57,8 @@ interface LaunchWizardState {
   status: LaunchStatus;
   errorMessage: string | null;
   success: LaunchSuccess | null;
+  /** Active draft DB id. Set when the user saves or resumes a draft. */
+  draftProjectId: string | null;
   goToStep: (step: LaunchWizardStep) => void;
   selectRepo: (repo: GithubRepo) => void;
   setMetadata: (metadata: TokenMetadataInput) => void;
@@ -57,6 +66,8 @@ interface LaunchWizardState {
   startSubmit: () => void;
   failSubmit: (message: string) => void;
   succeedSubmit: (success: LaunchSuccess) => void;
+  setDraftProjectId: (id: string | null) => void;
+  hydrateFromDraft: (input: DraftHydrationInput) => void;
   clearError: () => void;
   reset: () => void;
 }
@@ -69,6 +80,7 @@ const initialState = {
   status: "idle" as LaunchStatus,
   errorMessage: null,
   success: null,
+  draftProjectId: null,
 };
 
 export const useLaunchWizardStore = create<LaunchWizardState>((set) => ({
@@ -84,6 +96,7 @@ export const useLaunchWizardStore = create<LaunchWizardState>((set) => ({
           symbol: deriveSymbolFromRepo(repo.name),
           description: defaultDescription(repo),
           imageUrl: repo.ownerAvatarUrl,
+          website: validUrlOrUndefined(repo.homepage),
         } satisfies TokenMetadataInput),
       step: 2,
       errorMessage: null,
@@ -92,12 +105,34 @@ export const useLaunchWizardStore = create<LaunchWizardState>((set) => ({
     set({ metadata, step: 3, errorMessage: null }),
   setLeaderboard: (leaderboard) =>
     set({ leaderboard, step: 4, errorMessage: null }),
+  setDraftProjectId: (id) => set({ draftProjectId: id }),
+  hydrateFromDraft: ({ projectId, repo, metadata, leaderboard }) =>
+    set({
+      draftProjectId: projectId,
+      repo,
+      metadata,
+      leaderboard,
+      // Land on step 4 (Review) — every previous step has data to edit if the
+      // user wants to change anything, but the default is "you can launch now".
+      step: 4,
+      errorMessage: null,
+      status: "idle",
+      success: null,
+    }),
   startSubmit: () =>
     set({ status: "submitting", errorMessage: null, success: null }),
   failSubmit: (message) =>
     set({ status: "idle", errorMessage: message }),
   succeedSubmit: (success) =>
-    set({ status: "idle", success, errorMessage: null }),
+    set({
+      status: "idle",
+      success,
+      errorMessage: null,
+      // The draft has been promoted to live/launch_configured; clear the id so
+      // any stray "Save draft" click after success doesn't try to PATCH a
+      // non-draft row.
+      draftProjectId: null,
+    }),
   clearError: () => set({ errorMessage: null }),
   reset: () => set(initialState),
 }));
@@ -115,4 +150,19 @@ function defaultDescription(repo: GithubRepo): string {
   const description = repo.description?.trim();
   if (description) return description.slice(0, 1000);
   return `Token for ${repo.owner}/${repo.name}. Fees redistribute to top contributors daily.`;
+}
+
+function validUrlOrUndefined(raw: string | null | undefined): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  // GitHub homepage is often "example.com" without a scheme. The Bags
+  // schema requires a full URL, so prepend https:// when missing.
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    new URL(candidate);
+    return candidate;
+  } catch {
+    return undefined;
+  }
 }

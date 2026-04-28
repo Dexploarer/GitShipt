@@ -10,7 +10,9 @@ import { Button } from "@repo/ui";
 import { Input } from "@repo/ui";
 import { FormField } from "@/components/shared/FormField";
 import {
+  RepoEnrichmentSchema,
   TokenMetadataSchema,
+  type RepoEnrichment,
   type TokenMetadataInput,
   type GithubRepo,
 } from "@repo/shared";
@@ -51,6 +53,8 @@ export function TokenMetadataForm({
   const {
     register,
     handleSubmit,
+    setValue,
+    getValues,
     formState: { errors, isValid },
   } = useForm<TokenMetadataInput>({
     resolver: zodResolver(ClientTokenSchema),
@@ -60,8 +64,74 @@ export function TokenMetadataForm({
       symbol: deriveSymbol(repo.name),
       description: defaultDescription(repo),
       imageUrl: repo.ownerAvatarUrl,
+      website: normalizeUrlOrEmpty(repo.homepage),
     },
   });
+
+  const [enrichment, setEnrichment] = React.useState<RepoEnrichment | null>(
+    null,
+  );
+
+  // Lazily fetch owner socials + README excerpt + OG banner. Auto-fills only
+  // empty/template fields so we never overwrite a value the user already
+  // edited or that the store seeded from the cheap list payload.
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/github/me/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/enrich`,
+          { credentials: "include", cache: "no-store" },
+        );
+        if (!res.ok || cancelled) return;
+        const parsed = RepoEnrichmentSchema.safeParse(await res.json());
+        if (!parsed.success || cancelled) return;
+        setEnrichment(parsed.data);
+
+        const current = getValues();
+        const fallbackDescription = templateDescription(repo);
+
+        if (
+          parsed.data.readmeExcerpt &&
+          (!current.description || current.description === fallbackDescription)
+        ) {
+          setValue("description", parsed.data.readmeExcerpt.slice(0, 1000), {
+            shouldValidate: true,
+          });
+        }
+
+        if (!current.website && parsed.data.ownerTwitterUsername === null) {
+          // Fall back to owner blog if no homepage and no twitter (rare combo,
+          // but blog is real owner-curated metadata when present).
+          const blog = normalizeUrlOrEmpty(parsed.data.ownerBlog);
+          if (blog) setValue("website", blog, { shouldValidate: true });
+        }
+
+        if (!current.twitter && parsed.data.ownerTwitterUsername) {
+          setValue(
+            "twitter",
+            `https://x.com/${parsed.data.ownerTwitterUsername}`,
+            { shouldValidate: true },
+          );
+        }
+      } catch {
+        // Enrichment is best-effort; the user can fill these fields manually.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [repo, setValue, getValues]);
+
+  function useBannerImage() {
+    if (enrichment?.ogImageUrl) {
+      setValue("imageUrl", enrichment.ogImageUrl, { shouldValidate: true });
+    }
+  }
+
+  function useOwnerAvatar() {
+    setValue("imageUrl", repo.ownerAvatarUrl, { shouldValidate: true });
+  }
 
   return (
     <form
@@ -74,6 +144,7 @@ export function TokenMetadataForm({
           These appear on Bags.fm and your project page. Symbol is uppercase
           letters and numbers only — pick something traders can type.
         </p>
+        <RepoTagStrip repo={repo} />
       </header>
 
       <FormField
@@ -134,6 +205,25 @@ export function TokenMetadataForm({
         required
       >
         <Input type="url" autoComplete="off" {...register("imageUrl")} />
+        {enrichment?.ogImageUrl ? (
+          <div className="mt-2 flex items-center gap-3 text-caption text-fg-muted">
+            <button
+              type="button"
+              onClick={useBannerImage}
+              className="text-primary hover:underline"
+            >
+              Use repo social banner (1280×640)
+            </button>
+            <span aria-hidden>·</span>
+            <button
+              type="button"
+              onClick={useOwnerAvatar}
+              className="hover:text-fg hover:underline"
+            >
+              Use {repo.owner} avatar
+            </button>
+          </div>
+        ) : null}
       </FormField>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -182,5 +272,45 @@ function deriveSymbol(repoName: string): string {
 function defaultDescription(repo: GithubRepo): string {
   const description = repo.description?.trim();
   if (description) return description.slice(0, 1000);
+  return templateDescription(repo);
+}
+
+function templateDescription(repo: GithubRepo): string {
   return `Token for ${repo.owner}/${repo.name}. Fees redistribute to top contributors daily.`;
+}
+
+// GitHub `homepage` is often "example.com" without a scheme; the Zod URL check
+// rejects that. Prepend https when missing, and return "" instead of null so
+// react-hook-form's optional-or-empty-string handling stays happy.
+function normalizeUrlOrEmpty(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    new URL(candidate);
+    return candidate;
+  } catch {
+    return "";
+  }
+}
+
+function RepoTagStrip({ repo }: { repo: GithubRepo }) {
+  const tags: string[] = [];
+  if (repo.language) tags.push(repo.language);
+  for (const t of repo.topics.slice(0, 4)) tags.push(t);
+  if (repo.license) tags.push(repo.license.toUpperCase());
+  if (tags.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-1">
+      {tags.map((tag) => (
+        <span
+          key={tag}
+          className="rounded-full border border-border bg-surface-elevated px-2 py-0.5 text-caption text-fg-secondary"
+        >
+          {tag}
+        </span>
+      ))}
+    </div>
+  );
 }
