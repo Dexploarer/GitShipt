@@ -41,7 +41,9 @@ export const dbHttp: DbHttp = httpUrl
     ? drizzleHttp(createRlsNeonClient(neon(httpUrl)), { schema })
     : ((): DbHttp => {
         warnNonNeonRlsOnce();
-        return drizzlePg(postgres(httpUrl, { prepare: false }), {
+        // Cap connections so dev hot-reloads + parallel requests stay
+        // under Supabase's session-pooler limit (free tier: 15).
+        return drizzlePg(postgres(httpUrl, { prepare: false, max: 5 }), {
           schema,
         }) as unknown as DbHttp;
       })()
@@ -72,7 +74,11 @@ export function dbPool(): DbPool {
     _dbPool = drizzleServerless(pool, { schema });
   } else {
     warnNonNeonRlsOnce();
-    const sql = postgres(connectionString);
+    // Cap to stay under Supabase's session-pooler limit (free tier: 15
+    // concurrent clients). dbPool serves multi-statement transactions
+    // and is hit harder than dbHttp; cap is intentionally generous but
+    // bounded so hot-reload churn doesn't exhaust the pooler.
+    const sql = postgres(connectionString, { max: 5 });
     _dbPool = drizzlePg(sql, { schema }) as unknown as DbPool;
   }
   return _dbPool;

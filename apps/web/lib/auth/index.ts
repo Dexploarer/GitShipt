@@ -62,7 +62,10 @@ function buildOptions(): BetterAuthOptions {
           github: {
             clientId: env.GITHUB_CLIENT_ID!,
             clientSecret: env.GITHUB_CLIENT_SECRET!,
-            scope: ["read:user", "user:email"],
+            // `read:org` is required for `apps.listInstallationsForAuthenticatedUser`
+            // to enumerate org installations the user is a member of.
+            // Personal-account installations work without it; org ones don't.
+            scope: ["read:user", "user:email", "read:org"],
           },
         }
       : {},

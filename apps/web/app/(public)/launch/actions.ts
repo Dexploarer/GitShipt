@@ -18,6 +18,7 @@ import {
   stubsAllowed,
 } from "@/lib/env";
 import { bags } from "@/lib/bags/client";
+import { appOctokit } from "@/lib/github/app";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
 import { updateProjectCaches } from "@/lib/cache-actions";
@@ -500,7 +501,6 @@ async function verifyRepoAdmin(args: {
         status: 403,
       };
     }
-    return { ok: true };
   } catch (e) {
     const message =
       e instanceof Error ? e.message : "GitHub repo lookup failed.";
@@ -511,6 +511,31 @@ async function verifyRepoAdmin(args: {
       status: 502,
     };
   }
+
+  // Confirm the GitHub App is installed on the repo's owner. Without it the
+  // indexer + payout cron cannot operate regardless of the user's repo admin
+  // permission, so refuse early with a pointer to the install URL.
+  if (hasCredentials.githubApp()) {
+    try {
+      await appOctokit().rest.apps.getRepoInstallation({
+        owner: args.ghOwner,
+        repo: args.ghRepo,
+      });
+    } catch {
+      const slug = serverEnv().GITHUB_APP_SLUG;
+      const installUrl = slug
+        ? `https://github.com/apps/${slug}/installations/new`
+        : "the GitBags GitHub App install page";
+      return {
+        ok: false,
+        code: "app_not_installed",
+        message: `Install the GitBags GitHub App on '${args.ghOwner}' before launching: ${installUrl}`,
+        status: 409,
+      };
+    }
+  }
+
+  return { ok: true };
 }
 
 /**

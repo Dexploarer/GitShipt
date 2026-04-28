@@ -1,54 +1,59 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { Octokit } from "@octokit/rest";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { dbHttp } from "@/db";
 import { accounts, projects } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
-import { hasCredentials } from "@/lib/env";
+import { hasCredentials, serverEnv } from "@/lib/env";
 import { redis } from "@/lib/redis";
+import { listInstallationsWithReposForUser } from "@/lib/github/installations";
 import {
   GithubReposResponseSchema,
   type GithubRepo,
+  type GithubInstallationSummary,
 } from "@repo/shared";
 
 export const dynamic = "force-dynamic";
 
 const CACHE_TTL_SECONDS = 30;
 
-interface GithubRepoApiResponse {
-  id: number;
-  name: string;
-  full_name: string;
-  description: string | null;
-  language: string | null;
-  stargazers_count: number;
-  forks_count: number;
-  permissions?: { admin?: boolean; push?: boolean; pull?: boolean };
-  owner: {
-    login: string;
-    avatar_url: string;
-  };
-}
-
 /**
- * List the authed user's admin-permission GitHub repos for the launch wizard.
+ * List the authed user's launchable repos for the wizard, sourced from
+ * GitHub App installations rather than OAuth `GET /user/repos`.
  *
- * Reads the GitHub OAuth access token from `accounts.access_token` (better-auth
- * persists it there during OAuth callback). Calls Octokit user-context
- * `GET /user/repos`. Filters to repos where `permissions.admin === true`.
+ * Why installations are the source of truth:
+ *  - We can only index commits, run cron payouts, and react to webhooks for
+ *    repos where the App is installed. OAuth-listed repos that lack an
+ *    installation cannot launch.
+ *  - Installation-scoped lists already filter to repos the user has access
+ *    to via that installation, and respect the App's permission grants.
  *
- * Marks repos that already exist in `projects` (any status) as
- * `alreadyLaunched: true` so the UI can disable them.
+ * Reads the user's OAuth access token from `accounts.access_token` and uses
+ * it as the auth identity for `apps.listInstallationsForAuthenticatedUser`
+ * + `apps.listInstallationReposForAuthenticatedUser`. The App itself does
+ * not authenticate this endpoint — we want to see the user's installations,
+ * not all installations of the App.
  *
- * Cached 30s in Redis under `gitbags:gh:me:repos:{userId}`.
+ * Marks repos that already exist in `projects` as `alreadyLaunched: true`.
+ *
+ * Cached 30s in Redis under `gitbags:gh:me:installations:{userId}`.
  */
 export async function GET(req: Request): Promise<Response> {
   if (!hasCredentials.github()) {
     return NextResponse.json(
       { error: "auth_unavailable", message: "GitHub OAuth not configured." },
+      { status: 503 },
+    );
+  }
+  if (!hasCredentials.githubApp()) {
+    return NextResponse.json(
+      {
+        error: "github_app_unavailable",
+        message:
+          "GitBags GitHub App is not configured on this environment. Set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_APP_WEBHOOK_SECRET, GITHUB_APP_SLUG.",
+      },
       { status: 503 },
     );
   }
@@ -59,7 +64,19 @@ export async function GET(req: Request): Promise<Response> {
     );
   }
 
-  // Rate-limit GET reads with the default limiter (60/min/user).
+  const env = serverEnv();
+  const appSlug = env.GITHUB_APP_SLUG;
+  if (!appSlug) {
+    return NextResponse.json(
+      {
+        error: "github_app_unavailable",
+        message:
+          "GITHUB_APP_SLUG is required so the wizard can link to the install URL.",
+      },
+      { status: 503 },
+    );
+  }
+
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
@@ -79,7 +96,7 @@ export async function GET(req: Request): Promise<Response> {
 
   // Cache hit?
   const r = redis();
-  const cacheKey = `gitbags:gh:me:repos:${userId}`;
+  const cacheKey = `gitbags:gh:me:installations:${userId}`;
   if (r) {
     const cached = await r.get(cacheKey);
     if (cached) {
@@ -115,71 +132,81 @@ export async function GET(req: Request): Promise<Response> {
     );
   }
 
-  const octokit = new Octokit({ auth: account.accessToken });
-
-  let raw: GithubRepoApiResponse[];
+  let groups: Awaited<ReturnType<typeof listInstallationsWithReposForUser>>;
   try {
-    const resp = await octokit.request("GET /user/repos", {
-      per_page: 100,
-      affiliation: "owner",
-      visibility: "public",
-      sort: "updated",
-    });
-    raw = resp.data as GithubRepoApiResponse[];
+    groups = await listInstallationsWithReposForUser(account.accessToken);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "GitHub list-repos failed.";
+      e instanceof Error ? e.message : "GitHub list-installations failed.";
     return NextResponse.json(
       { error: "github_error", message },
       { status: 502 },
     );
   }
 
-  const adminRepos = raw.filter((r) => r.permissions?.admin === true);
-
-  // Look up which of these repos already have a project.
-  const ownerRepoPairs = adminRepos.map((r) => ({
-    owner: r.owner.login,
-    name: r.name,
-  }));
+  // Compute alreadyLaunched flags. Owners list is bounded by the union of
+  // installation account logins, so the projects scan is cheap.
+  const ownerLogins = Array.from(
+    new Set(groups.map((g) => g.installation.accountLogin)),
+  );
   const launchedSet = new Set<string>();
-  if (ownerRepoPairs.length > 0) {
-    // Single round-trip: pull every project for these owners and filter
-    // by repo names client-side. Owners list is bounded by GitHub's 100
-    // per_page, so this is cheap.
-    const ownerLogins = Array.from(new Set(ownerRepoPairs.map((p) => p.owner)));
-    if (ownerLogins.length > 0) {
-      const existing = await dbHttp
-        .select({
-          ghOwner: projects.ghOwner,
-          ghRepo: projects.ghRepo,
-        })
-        .from(projects);
-      for (const row of existing) {
-        if (ownerLogins.includes(row.ghOwner)) {
-          launchedSet.add(`${row.ghOwner}/${row.ghRepo}`);
-        }
+  if (ownerLogins.length > 0) {
+    const existing = await dbHttp
+      .select({
+        ghOwner: projects.ghOwner,
+        ghRepo: projects.ghRepo,
+      })
+      .from(projects);
+    for (const row of existing) {
+      if (ownerLogins.includes(row.ghOwner)) {
+        launchedSet.add(`${row.ghOwner}/${row.ghRepo}`);
       }
     }
   }
 
-  const repos: GithubRepo[] = adminRepos.map((r) => ({
-    id: String(r.id),
-    owner: r.owner.login,
-    name: r.name,
-    fullName: r.full_name,
-    description: r.description,
-    language: r.language,
-    stargazersCount: r.stargazers_count,
-    forksCount: r.forks_count,
-    ownerAvatarUrl: r.owner.avatar_url,
-    alreadyLaunched: launchedSet.has(r.full_name),
-  }));
+  const repos: GithubRepo[] = [];
+  const installations: GithubInstallationSummary[] = [];
+
+  for (const { installation, repos: instRepos } of groups) {
+    installations.push({
+      installationId: installation.installationId,
+      accountLogin: installation.accountLogin,
+      accountAvatarUrl: installation.accountAvatarUrl,
+      accountType: installation.accountType,
+      repoCount: instRepos.length,
+    });
+    for (const repo of instRepos) {
+      const owner =
+        repo.fullName.split("/")[0] ?? installation.accountLogin;
+      repos.push({
+        id: String(repo.id),
+        owner,
+        name: repo.name,
+        fullName: repo.fullName,
+        description: repo.description,
+        language: repo.language,
+        stargazersCount: repo.stargazers,
+        forksCount: repo.forks,
+        ownerAvatarUrl: installation.accountAvatarUrl,
+        alreadyLaunched: launchedSet.has(repo.fullName),
+        installationId: installation.installationId,
+        accountLogin: installation.accountLogin,
+        accountAvatarUrl: installation.accountAvatarUrl,
+        accountType: installation.accountType,
+        permissionAdmin: repo.permissionAdmin,
+        permissionMaintain: repo.permissionMaintain,
+      });
+    }
+  }
 
   const responseBody = GithubReposResponseSchema.parse({
     repos,
+    installations,
+    appSlug,
     visibilityNote:
-      "Showing public repos you administer. Grant the `repo` scope to also list private repos.",
+      installations.length === 0
+        ? "Install the GitBags GitHub App on the account or org that owns your repo. Only installed accounts appear here."
+        : undefined,
   });
 
   if (r) {

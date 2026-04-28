@@ -154,6 +154,20 @@ export type LaunchProjectResponse = z.infer<typeof LaunchProjectResponseSchema>;
 // GET /api/github/me/repos response
 // ============================================================
 
+/**
+ * Account that owns a GitHub App installation visible to the user.
+ * One per user account or org where the GitBags App is installed.
+ */
+export const GithubInstallationAccountSchema = z.object({
+  installationId: z.number().int().positive(),
+  accountLogin: z.string().min(1),
+  accountAvatarUrl: z.string().url(),
+  accountType: z.enum(["User", "Organization"]),
+});
+export type GithubInstallationAccount = z.infer<
+  typeof GithubInstallationAccountSchema
+>;
+
 export const GithubRepoSchema = z.object({
   id: z.string(),
   owner: z.string(),
@@ -165,11 +179,30 @@ export const GithubRepoSchema = z.object({
   forksCount: z.number().int(),
   ownerAvatarUrl: z.string().url(),
   alreadyLaunched: z.boolean().default(false),
+  // Installation-driven fields. Optional for back-compat with any persisted
+  // shape from the previous OAuth-only flow; new responses always populate
+  // them.
+  installationId: z.number().int().positive().optional(),
+  accountLogin: z.string().min(1).optional(),
+  accountAvatarUrl: z.string().url().optional(),
+  accountType: z.enum(["User", "Organization"]).optional(),
+  permissionAdmin: z.boolean().optional(),
+  permissionMaintain: z.boolean().optional(),
 });
 export type GithubRepo = z.infer<typeof GithubRepoSchema>;
 
+export const GithubInstallationSummarySchema =
+  GithubInstallationAccountSchema.extend({
+    repoCount: z.number().int().nonnegative(),
+  });
+export type GithubInstallationSummary = z.infer<
+  typeof GithubInstallationSummarySchema
+>;
+
 export const GithubReposResponseSchema = z.object({
   repos: z.array(GithubRepoSchema),
+  installations: z.array(GithubInstallationSummarySchema).default([]),
+  appSlug: z.string().min(1).optional(),
   visibilityNote: z.string().optional(),
 });
 export type GithubReposResponse = z.infer<typeof GithubReposResponseSchema>;
