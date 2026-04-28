@@ -198,15 +198,17 @@ export function TokenMetadataForm({
         />
       </FormField>
 
-      <FormField
-        label="Image URL"
-        hint="Square image works best. Defaults to your GitHub avatar."
-        error={errors.imageUrl?.message}
-        required
-      >
-        <Input type="url" autoComplete="off" {...register("imageUrl")} />
+      <div className="space-y-2">
+        <FormField
+          label="Image URL"
+          hint="Square image works best. Defaults to your GitHub avatar."
+          error={errors.imageUrl?.message}
+          required
+        >
+          <Input type="url" autoComplete="off" {...register("imageUrl")} />
+        </FormField>
         {enrichment?.ogImageUrl ? (
-          <div className="mt-2 flex items-center gap-3 text-caption text-fg-muted">
+          <div className="flex items-center gap-3 text-caption text-fg-muted">
             <button
               type="button"
               onClick={useBannerImage}
@@ -224,7 +226,7 @@ export function TokenMetadataForm({
             </button>
           </div>
         ) : null}
-      </FormField>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <FormField
