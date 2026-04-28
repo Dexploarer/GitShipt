@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SolanaWalletProvider } from "@/components/providers/SolanaWalletProvider";
 import { SessionChromeProvider } from "@/components/auth/SessionChromeProvider";
@@ -72,6 +73,7 @@ export default async function RootLayout({
             </SolanaWalletProvider>
           </SessionChromeProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
