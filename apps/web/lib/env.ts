@@ -4,43 +4,73 @@ export const DEFAULT_BAGS_PARTNER_WALLET =
   "HXs58Qa6YtgJfWVkQVnpFmw6WoEdFEL4LLD1ArZjMvTH";
 export const DEFAULT_BAGS_REF_CODE = "symbiex";
 
+const optionalUrl = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().url().optional(),
+);
+
+const optionalString = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().min(1).optional(),
+);
+
 const serverEnvSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
 
   // Database
-  DATABASE_URL: z.string().url().optional(),
-  DATABASE_URL_UNPOOLED: z.string().url().optional(),
+  DATABASE_URL: optionalUrl,
+  DATABASE_URL_UNPOOLED: optionalUrl,
+  DATABASE_POSTGRES_URL: optionalUrl,
+  DATABASE_POSTGRES_PRISMA_URL: optionalUrl,
+  DATABASE_POSTGRES_URL_NON_POOLING: optionalUrl,
+  POSTGRES_URL: optionalUrl,
+  POSTGRES_URL_NON_POOLING: optionalUrl,
+  POSTGRES_PRISMA_URL: optionalUrl,
+  SUPABASE_URL: optionalUrl,
+  SUPABASE_SECRET_KEY: optionalString,
+  SUPABASE_SERVICE_ROLE_KEY: optionalString,
 
   // Redis (any provider speaking standard Redis protocol — Redis Cloud,
   // Upstash, Dragonfly, self-hosted). Format: redis://[user]:[pass]@host:port
-  REDIS_URL: z.string().optional(),
+  REDIS_URL: optionalString,
+  UPSTASH_REDIS_REST_REDIS_URL: optionalString,
 
   // Auth
-  BETTER_AUTH_SECRET: z.string().min(32).optional(),
-  BETTER_AUTH_URL: z.string().url().optional(),
-  GITHUB_CLIENT_ID: z.string().min(1).optional(),
-  GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
-  GITHUB_APP_ID: z.string().min(1).optional(),
-  GITHUB_APP_PRIVATE_KEY: z.string().min(1).optional(),
-  GITHUB_APP_WEBHOOK_SECRET: z.string().min(1).optional(),
-  GITHUB_APP_SLUG: z.string().min(1).optional(),
+  BETTER_AUTH_SECRET: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.string().min(32).optional(),
+  ),
+  BETTER_AUTH_URL: optionalUrl,
+  GITHUB_CLIENT_ID: optionalString,
+  GITHUB_CLIENT_SECRET: optionalString,
+  GITHUB_APP_ID: optionalString,
+  GITHUB_APP_PRIVATE_KEY: optionalString,
+  GITHUB_APP_WEBHOOK_SECRET: optionalString,
+  GITHUB_APP_SLUG: optionalString,
 
   // Bags.fm
-  BAGS_API_KEY: z.string().min(1).optional(),
+  BAGS_API_KEY: optionalString,
   BAGS_API_BASE_URL: z
     .string()
     .url()
     .default("https://public-api-v2.bags.fm/api/v1/"),
-  BAGS_WEBHOOK_SECRET: z.string().min(1).optional(),
+  BAGS_WEBHOOK_SECRET: optionalString,
   BAGS_PARTNER_WALLET: z.string().min(32).default(DEFAULT_BAGS_PARTNER_WALLET),
-  BAGS_PARTNER_CONFIG_KEY: z.string().min(32).optional(),
+  BAGS_PARTNER_CONFIG_KEY: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.string().min(32).optional(),
+  ),
   BAGS_REF_CODE: z
     .string()
     .regex(/^[A-Za-z0-9_-]{1,64}$/)
     .default(DEFAULT_BAGS_REF_CODE),
-  BAGS_CONFIG_TYPE: z.string().min(1).optional(),
+  BAGS_CONFIG_TYPE: optionalString,
   BAGS_INITIAL_BUY_LAMPORTS: z.coerce.number().int().min(0).default(0),
   // Safety guard: refuse real launch txns when devnet cluster + prod key
   // unless explicitly opted in. Read-only Bags calls always work.
@@ -48,12 +78,20 @@ const serverEnvSchema = z.object({
   ALLOW_STUBS_IN_PROD: z.coerce.boolean().default(false),
 
   // Solana
-  HELIUS_RPC_URL: z.string().url().optional(),
-  SOLANA_PAYOUT_KEYPAIR: z.string().min(1).optional(),
-  SOLANA_TREASURY_ADDRESS: z.string().min(32).optional(),
+  HELIUS_RPC_URL: optionalUrl,
+  SOLANA_PAYOUT_KEYPAIR: optionalString,
+  SOLANA_TREASURY_ADDRESS: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.string().min(32).optional(),
+  ),
 
   // Cron
-  CRON_SECRET: z.string().min(16).optional(),
+  CRON_SECRET: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.string().min(16).optional(),
+  ),
 
   // Platform
   PLATFORM_FEE_BPS_DEFAULT: z.coerce
@@ -67,7 +105,7 @@ const serverEnvSchema = z.object({
 });
 
 const clientEnvSchema = z.object({
-  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  NEXT_PUBLIC_APP_URL: optionalUrl.default("http://localhost:3000"),
   NEXT_PUBLIC_SOLANA_CLUSTER: z
     .enum(["devnet", "testnet", "mainnet-beta"])
     .default("devnet"),
@@ -111,8 +149,8 @@ export function clientEnv(): ClientEnv {
 }
 
 export const hasCredentials = {
-  db: () => Boolean(serverEnv().DATABASE_URL),
-  redis: () => Boolean(serverEnv().REDIS_URL),
+  db: () => Boolean(databaseUrl()),
+  redis: () => Boolean(redisUrl()),
   github: () =>
     Boolean(serverEnv().GITHUB_CLIENT_ID && serverEnv().GITHUB_CLIENT_SECRET),
   githubApp: () =>
@@ -128,6 +166,71 @@ export const hasCredentials = {
   payoutKey: () => Boolean(serverEnv().SOLANA_PAYOUT_KEYPAIR),
   cron: () => Boolean(serverEnv().CRON_SECRET),
 };
+
+export function databaseUrl(): string | undefined {
+  const env = serverEnv();
+  const url =
+    env.DATABASE_URL ??
+    env.DATABASE_POSTGRES_URL ??
+    env.DATABASE_POSTGRES_PRISMA_URL ??
+    env.POSTGRES_URL ??
+    env.POSTGRES_PRISMA_URL;
+  return normalizeDatabaseUrl(url);
+}
+
+export function databaseUrlUnpooled(): string | undefined {
+  const env = serverEnv();
+  const url =
+    env.DATABASE_URL_UNPOOLED ??
+    env.DATABASE_POSTGRES_URL_NON_POOLING ??
+    env.DATABASE_POSTGRES_URL ??
+    env.DATABASE_POSTGRES_PRISMA_URL ??
+    env.POSTGRES_URL_NON_POOLING ??
+    env.POSTGRES_URL ??
+    env.POSTGRES_PRISMA_URL ??
+    env.DATABASE_URL;
+  return normalizeDatabaseUrl(url);
+}
+
+export function normalizeDatabaseUrl(
+  url: string | undefined,
+): string | undefined {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    if (
+      parsed.hostname.endsWith(".neon.tech") &&
+      (!parsed.searchParams.has("sslmode") ||
+        ["prefer", "require", "verify-ca"].includes(
+          parsed.searchParams.get("sslmode") ?? "",
+        ))
+    ) {
+      parsed.searchParams.set("sslmode", "verify-full");
+      return parsed.toString();
+    }
+  } catch {
+    return url;
+  }
+  return url;
+}
+
+export function databaseProvider(): "supabase" | "neon" | "postgres" | "none" {
+  const url = databaseUrl();
+  if (!url) return "none";
+  try {
+    const hostname = new URL(url).hostname;
+    if (hostname.includes("supabase.")) return "supabase";
+    if (hostname.endsWith(".neon.tech")) return "neon";
+    return "postgres";
+  } catch {
+    return "postgres";
+  }
+}
+
+export function redisUrl(): string | undefined {
+  const env = serverEnv();
+  return env.REDIS_URL ?? env.UPSTASH_REDIS_REST_REDIS_URL;
+}
 
 export function stubsAllowed(): boolean {
   const env = serverEnv();
@@ -194,8 +297,8 @@ export function productionReadiness(): ProductionReadiness {
   }
 
   const requiredServer: Array<[string, unknown]> = [
-    ["DATABASE_URL", env.DATABASE_URL],
-    ["REDIS_URL", env.REDIS_URL],
+    ["DATABASE_URL or POSTGRES_URL", databaseUrl()],
+    ["REDIS_URL or UPSTASH_REDIS_REST_REDIS_URL", redisUrl()],
     ["BETTER_AUTH_SECRET", env.BETTER_AUTH_SECRET],
     ["BETTER_AUTH_URL", env.BETTER_AUTH_URL],
     ["GITHUB_CLIENT_ID", env.GITHUB_CLIENT_ID],
@@ -214,6 +317,18 @@ export function productionReadiness(): ProductionReadiness {
 
   for (const [name, value] of requiredServer) {
     if (!value) missing.push(name);
+  }
+
+  const publicDatabaseVars = Object.keys(process.env).filter(
+    (name) =>
+      name === "NEXT_PUBLIC_DATABASE_URL" ||
+      name.startsWith("NEXT_PUBLIC_DATABASE_URL_"),
+  );
+  if (publicDatabaseVars.length > 0) {
+    missing.push("Remove NEXT_PUBLIC_DATABASE_URL*");
+    warnings.push(
+      "NEXT_PUBLIC_DATABASE_URL* is an unsafe/misleading public env prefix. Use POSTGRES_URL or DATABASE_URL server-side only, and NEXT_PUBLIC_SUPABASE_* only for Supabase browser client values.",
+    );
   }
 
   if (!process.env.NEXT_PUBLIC_APP_URL) {

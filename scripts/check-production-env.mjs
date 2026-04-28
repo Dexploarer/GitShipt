@@ -20,13 +20,21 @@ const REQUIRED = [
     note: "Must be mainnet-beta for production/live Bags launches.",
   },
   {
-    name: "DATABASE_URL",
+    name: "DATABASE_URL or POSTGRES_URL",
+    names: [
+      "DATABASE_URL",
+      "DATABASE_POSTGRES_URL",
+      "DATABASE_POSTGRES_PRISMA_URL",
+      "POSTGRES_URL",
+      "POSTGRES_PRISMA_URL",
+    ],
     scope: "Database",
     sensitive: true,
-    note: "Neon pooled/runtime Postgres URL.",
+    note: "Server-only Neon/Postgres pooled runtime URL.",
   },
   {
-    name: "REDIS_URL",
+    name: "REDIS_URL or UPSTASH_REDIS_REST_REDIS_URL",
+    names: ["REDIS_URL", "UPSTASH_REDIS_REST_REDIS_URL"],
     scope: "Redis",
     sensitive: true,
     note: "Required for rate limits, idempotency, SIWS nonces, and workflows.",
@@ -131,7 +139,12 @@ const REQUIRED = [
 
 const RECOMMENDED = [
   {
-    name: "DATABASE_URL_UNPOOLED",
+    name: "DATABASE_URL_UNPOOLED or POSTGRES_URL_NON_POOLING",
+    names: [
+      "DATABASE_URL_UNPOOLED",
+      "DATABASE_POSTGRES_URL_NON_POOLING",
+      "POSTGRES_URL_NON_POOLING",
+    ],
     scope: "Database",
     sensitive: true,
     note: "Useful for migrations and direct administrative DB work.",
@@ -186,6 +199,14 @@ function valueOf(env, name) {
   return env[name]?.trim() ?? "";
 }
 
+function valueOfAny(env, names) {
+  for (const name of names) {
+    const value = valueOf(env, name);
+    if (!isPlaceholder(value)) return value;
+  }
+  return "";
+}
+
 function isPlaceholder(value) {
   return (
     value === "" ||
@@ -213,7 +234,9 @@ function validate(env) {
   }
 
   for (const item of REQUIRED) {
-    const value = valueOf(env, item.name);
+    const value = item.names
+      ? valueOfAny(env, item.names)
+      : valueOf(env, item.name);
     if (isPlaceholder(value)) {
       addMissing(item);
       continue;
@@ -238,6 +261,18 @@ function validate(env) {
     warnings.push("BETTER_AUTH_URL should match NEXT_PUBLIC_APP_URL.");
   }
 
+  const publicDatabaseVars = Object.keys(env).filter((name) =>
+    /^NEXT_PUBLIC_DATABASE_URL($|_)/.test(name),
+  );
+  if (publicDatabaseVars.length > 0) {
+    addMissing({
+      name: "Remove NEXT_PUBLIC_DATABASE_URL*",
+      scope: "Database",
+      sensitive: true,
+      note: "Do not use DATABASE_URL as a public env prefix. Keep Postgres URLs server-only.",
+    });
+  }
+
   const helius = valueOf(env, "HELIUS_RPC_URL");
   if (
     valueOf(env, "NEXT_PUBLIC_SOLANA_CLUSTER") === "mainnet-beta" &&
@@ -252,7 +287,10 @@ function validate(env) {
   }
 
   const platformBps = Number(valueOf(env, "PLATFORM_FEE_BPS_DEFAULT") || "500");
-  if (platformBps > 0 && isPlaceholder(valueOf(env, "SOLANA_TREASURY_ADDRESS"))) {
+  if (
+    platformBps > 0 &&
+    isPlaceholder(valueOf(env, "SOLANA_TREASURY_ADDRESS"))
+  ) {
     addMissing({
       name: "SOLANA_TREASURY_ADDRESS",
       scope: "Solana",
@@ -262,7 +300,10 @@ function validate(env) {
   }
 
   for (const item of RECOMMENDED) {
-    if (isPlaceholder(valueOf(env, item.name))) {
+    const value = item.names
+      ? valueOfAny(env, item.names)
+      : valueOf(env, item.name);
+    if (isPlaceholder(value)) {
       warnings.push(`${item.name} is not set. ${item.note}`);
     }
   }
@@ -282,7 +323,9 @@ function printTemplate() {
 function printReport({ envFile, exists, missing, warnings }) {
   console.log("GitBags production env check");
   console.log("============================");
-  console.log(`Env file: ${envFile}${exists ? "" : " (not found, using process env only)"}`);
+  console.log(
+    `Env file: ${envFile}${exists ? "" : " (not found, using process env only)"}`,
+  );
   console.log("");
 
   if (missing.length === 0 && warnings.length === 0) {
@@ -294,7 +337,9 @@ function printReport({ envFile, exists, missing, warnings }) {
     console.log("Missing or invalid required variables:");
     for (const item of missing) {
       const visibility = item.sensitive ? "Sensitive" : "Plain";
-      console.log(`- ${item.name} [${visibility}] (${item.scope}): ${item.note}`);
+      console.log(
+        `- ${item.name} [${visibility}] (${item.scope}): ${item.note}`,
+      );
     }
     console.log("");
   }
@@ -307,7 +352,9 @@ function printReport({ envFile, exists, missing, warnings }) {
     console.log("");
   }
 
-  console.log("Tip: run `bun run env:template` for the full variable input list.");
+  console.log(
+    "Tip: run `bun run env:template` for the full variable input list.",
+  );
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -326,4 +373,6 @@ printReport({
   ...result,
 });
 
-process.exit(result.missing.length === 0 && result.warnings.length === 0 ? 0 : 1);
+process.exit(
+  result.missing.length === 0 && result.warnings.length === 0 ? 0 : 1,
+);

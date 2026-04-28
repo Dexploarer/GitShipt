@@ -1,13 +1,30 @@
 // Pure-JS seeder so we don't need a TS bundler in the script path.
-// Mirrors lib/queries/seed.ts but talks directly to Neon via @neondatabase/serverless.
-import { neon } from "@neondatabase/serverless";
+// Mirrors lib/queries/seed.ts but talks directly to Postgres.
+import postgres from "postgres";
 
-const sql = neon(process.env.DATABASE_URL);
+const connectionString =
+  process.env.DATABASE_URL ??
+  process.env.DATABASE_POSTGRES_URL ??
+  process.env.DATABASE_POSTGRES_PRISMA_URL ??
+  process.env.POSTGRES_URL ??
+  process.env.POSTGRES_PRISMA_URL;
+
+if (!connectionString) {
+  throw new Error("Set DATABASE_URL or POSTGRES_URL before running seed-demo.");
+}
+
+const sql = postgres(connectionString, { prepare: false, max: 1 });
 
 const DEFAULT_SCORING = {
   formulaVersion: "v0",
   windowDays: 30,
-  weights: { mergedPRs: 3.0, commits: 1.0, reviews: 1.5, issues: 0.5, netLines: 0.2 },
+  weights: {
+    mergedPRs: 3.0,
+    commits: 1.0,
+    reviews: 1.5,
+    issues: 0.5,
+    netLines: 0.2,
+  },
   decay: "linear",
   botBlocklist: ["dependabot", "renovate-bot", "github-actions"],
   botAllowlist: [],
@@ -32,9 +49,11 @@ const DEMO_CONTRIBUTORS = [
 ];
 
 function genId() {
-  const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  const alphabet =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   let id = "";
-  for (let i = 0; i < 21; i++) id += alphabet[Math.floor(Math.random() * alphabet.length)];
+  for (let i = 0; i < 21; i++)
+    id += alphabet[Math.floor(Math.random() * alphabet.length)];
   return id;
 }
 
@@ -117,6 +136,9 @@ for (let i = 0; i < DEMO_CONTRIBUTORS.length; i++) {
   `;
 }
 
-const [{ count }] = await sql`select count(*)::int as count from contributors where project_id = ${project.id}`;
+const [{ count }] =
+  await sql`select count(*)::int as count from contributors where project_id = ${project.id}`;
 console.log(`Seeded ${count} contributors for project ${project.id}`);
 console.log(`Visit: http://localhost:3000/r/SYMBaiEX/gitbags`);
+
+await sql.end();

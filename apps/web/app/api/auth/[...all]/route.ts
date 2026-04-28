@@ -5,8 +5,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * better-auth catch-all handler. Constructed lazily so the build can succeed
- * without DATABASE_URL configured. When credentials are missing, all auth
- * routes return 503 with a hint to provision Neon Postgres.
+ * without a Postgres URL configured. When credentials are missing, all auth
+ * routes return 503 with a hint to provision Postgres.
  */
 async function getHandler() {
   if (!hasCredentials.db()) {
@@ -14,8 +14,7 @@ async function getHandler() {
       NextResponse.json(
         {
           error: "auth_unavailable",
-          message:
-            "Auth requires Neon Postgres. Set DATABASE_URL and DATABASE_URL_UNPOOLED.",
+          message: "Auth requires Postgres. Set DATABASE_URL or POSTGRES_URL.",
         },
         { status: 503 },
       );

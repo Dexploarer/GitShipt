@@ -44,15 +44,48 @@ const sharedSecurityHeaders = [
  *    /embed/* needs frame-ancestors '*' to be embeddable.
  */
 const isDev = process.env.NODE_ENV !== "production";
+const scriptSrc = [
+  "'self'",
+  "'unsafe-inline'",
+  "https://va.vercel-scripts.com",
+  "https://vitals.vercel-insights.com",
+  ...(isDev ? ["'unsafe-eval'"] : []),
+].join(" ");
+const reportOnlyScriptSrc = [
+  "'self'",
+  "https://va.vercel-scripts.com",
+  "https://vitals.vercel-insights.com",
+  ...(isDev ? ["'unsafe-eval'"] : []),
+].join(" ");
+const connectSrc = [
+  "'self'",
+  "https://api.github.com",
+  "https://github.com",
+  "https://*.bags.fm",
+  "https://public-api-v2.bags.fm",
+  "https://api.devnet.solana.com",
+  "https://api.testnet.solana.com",
+  "https://api.mainnet-beta.solana.com",
+  "https://*.helius-rpc.com",
+  "https://*.helius.xyz",
+  "https://*.upstash.io",
+  "https://*.redislabs.com",
+  "https://*.supabase.co",
+  "https://*.neon.tech",
+  "https://*.vercel.app",
+  "https://vitals.vercel-insights.com",
+  "https://va.vercel-scripts.com",
+  "wss:",
+].join(" ");
 
 const cspStrict = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src ${scriptSrc}`,
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://github.com https://*.githubusercontent.com https://avatars.githubusercontent.com https://opengraph.githubassets.com https://*.bags.fm https://*.solana.com https://arweave.net https://*.arweave.net https://ipfs.io https://*.ipfscdn.io https://shdw-drive.genesysgo.net",
   "font-src 'self' data:",
-  "connect-src 'self' https://api.github.com https://github.com https://*.bags.fm https://public-api-v2.bags.fm https://api.devnet.solana.com https://api.testnet.solana.com https://api.mainnet-beta.solana.com https://*.helius-rpc.com https://*.helius.xyz https://*.upstash.io https://*.redislabs.com https://*.neon.tech https://*.vercel.app https://vitals.vercel-insights.com wss:",
+  `connect-src ${connectSrc}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -62,12 +95,12 @@ const cspStrict = [
 
 const cspReportOnly = [
   "default-src 'self'",
-  `script-src 'self'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src ${reportOnlyScriptSrc}`,
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://github.com https://*.githubusercontent.com https://avatars.githubusercontent.com https://opengraph.githubassets.com https://*.bags.fm https://*.solana.com https://arweave.net https://*.arweave.net https://ipfs.io https://*.ipfscdn.io https://shdw-drive.genesysgo.net",
   "font-src 'self' data:",
-  "connect-src 'self' https://api.github.com https://github.com https://*.bags.fm https://public-api-v2.bags.fm https://api.devnet.solana.com https://api.testnet.solana.com https://api.mainnet-beta.solana.com https://*.helius-rpc.com https://*.helius.xyz https://*.upstash.io https://*.redislabs.com https://*.neon.tech https://*.vercel.app https://vitals.vercel-insights.com wss:",
+  `connect-src ${connectSrc}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

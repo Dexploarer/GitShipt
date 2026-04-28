@@ -3,7 +3,7 @@ import { drizzle as drizzleServerless } from "drizzle-orm/neon-serverless";
 import { drizzle as drizzlePg } from "drizzle-orm/postgres-js";
 import { neon, Pool } from "@neondatabase/serverless";
 import postgres from "postgres";
-import { serverEnv } from "@/lib/env";
+import { databaseUrl, databaseUrlUnpooled } from "@/lib/env";
 import * as schema from "./schema";
 import { createRlsNeonClient, pgServiceOptions } from "./rls-context";
 
@@ -12,9 +12,10 @@ type DbPool = ReturnType<typeof drizzleServerless<typeof schema>>;
 
 /**
  * Neon's serverless drivers (`neon-http`, `neon-serverless`) only speak Neon's
- * protocol. For any other Postgres host (Supabase pooler, local Postgres,
- * etc.) we fall back to `drizzle-orm/postgres-js`. RLS context wrapping is
- * Neon-only — non-Neon paths rely on `requirePermission` checks alone.
+ * protocol. Supabase/Vercel Marketplace and generic Postgres use postgres-js.
+ * Those server connections are privileged application connections; RLS is a
+ * defense-in-depth layer and route/server-action authorization remains the
+ * primary boundary.
  */
 function isNeonUrl(url: string): boolean {
   try {
@@ -29,12 +30,11 @@ function warnNonNeonRlsOnce(): void {
   if (warnedNonNeonRls) return;
   warnedNonNeonRls = true;
   console.warn(
-    "[db] Non-Neon DATABASE_URL detected — RLS context wrapping is disabled; relying on requirePermission for authorization.",
+    "[db] Supabase/generic Postgres connection detected — using postgres-js with app-level authorization.",
   );
 }
 
-const httpEnv = serverEnv();
-const httpUrl = httpEnv.DATABASE_URL;
+const httpUrl = databaseUrl();
 
 export const dbHttp: DbHttp = httpUrl
   ? isNeonUrl(httpUrl)
@@ -50,7 +50,7 @@ export const dbHttp: DbHttp = httpUrl
   : (new Proxy({} as DbHttp, {
       get() {
         throw new Error(
-          "DATABASE_URL is not configured. Provision Neon Postgres via Vercel Marketplace, or set DATABASE_URL to any Postgres connection string.",
+          "DATABASE_URL or POSTGRES_URL is not configured. Provision Supabase via Vercel Marketplace, or set a Postgres connection string.",
         );
       },
     }) as DbHttp);
@@ -59,11 +59,10 @@ let _dbPool: DbPool | null = null;
 
 export function dbPool(): DbPool {
   if (_dbPool) return _dbPool;
-  const env = serverEnv();
-  const connectionString = env.DATABASE_URL_UNPOOLED ?? env.DATABASE_URL;
+  const connectionString = databaseUrlUnpooled();
   if (!connectionString) {
     throw new Error(
-      "DATABASE_URL_UNPOOLED (or DATABASE_URL) is not configured.",
+      "DATABASE_URL_UNPOOLED, POSTGRES_URL_NON_POOLING, DATABASE_URL, or POSTGRES_URL is not configured.",
     );
   }
   if (isNeonUrl(connectionString)) {

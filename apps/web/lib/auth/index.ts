@@ -22,8 +22,8 @@ function adminEmailAllowlist(): Set<string> {
  * without GitHub OAuth credentials configured.
  *
  * Notes:
- *  - We use the pool driver (drizzle-orm/neon-serverless) here so multi-step
- *    auth flows (e.g. account-linking + session) run inside one transaction.
+ *  - We use the pool driver here so multi-step auth flows (for example,
+ *    account-linking + session) run inside one transaction.
  *  - Session cookies are HttpOnly + Secure + SameSite=Lax (better-auth defaults).
  *  - GitHub access tokens are persisted in `accounts.access_token` for use
  *    by Octokit when the user-context API surface is needed.

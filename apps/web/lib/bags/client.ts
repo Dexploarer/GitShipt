@@ -1196,6 +1196,7 @@ export const bags = {
 
   async getPartnerClaimStats(
     partnerWallet = serverEnv().BAGS_PARTNER_WALLET,
+    options?: { cache?: boolean },
   ): Promise<PartnerClaimStats> {
     if (!hasCredentials.bags()) {
       return PartnerClaimStatsSchema.parse({
@@ -1203,7 +1204,7 @@ export const bags = {
         unclaimedFees: "0",
       });
     }
-    return bagsReadCache(`partner-claim-stats:${partnerWallet}`, 30, async () => {
+    const read = async () => {
       const { PublicKey } = await import("@solana/web3.js");
       const sdk = await tryGetSdk();
       const raw = sdk
@@ -1218,7 +1219,9 @@ export const bags = {
             },
           );
       return PartnerClaimStatsSchema.parse(raw);
-    });
+    };
+    if (options?.cache === false) return read();
+    return bagsReadCache(`partner-claim-stats:${partnerWallet}`, 30, read);
   },
 
   async getPartnerConfigCreationTransaction(

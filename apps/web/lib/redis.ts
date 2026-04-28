@@ -2,7 +2,7 @@ import IORedis, {
   type Redis as IORedisClient,
   type RedisOptions,
 } from "ioredis";
-import { serverEnv, hasCredentials } from "@/lib/env";
+import { hasCredentials, redisUrl } from "@/lib/env";
 
 let _client: IORedisClient | null = null;
 
@@ -63,15 +63,16 @@ export function redisOptionsFromUrl(redisUrl: string): RedisOptions {
  *   redis://default:PASSWORD@host:port
  *   rediss://default:PASSWORD@host:port  (TLS)
  *
- * Returns null when REDIS_URL is absent — callers must guard so the app
- * keeps booting in stubbed mode.
+ * Returns null when no Redis URL is configured — callers must guard so the
+ * app keeps booting in stubbed mode.
  */
 export function redis(): IORedisClient | null {
   if (!hasCredentials.redis()) return null;
   if (_client) return _client;
-  const env = serverEnv();
+  const url = redisUrl();
+  if (!url) return null;
   _client = new IORedis({
-    ...redisOptionsFromUrl(env.REDIS_URL!),
+    ...redisOptionsFromUrl(url),
     // Vercel Fluid Compute supports persistent connections, but we still want
     // resilient cold-start behavior.
     maxRetriesPerRequest: 3,

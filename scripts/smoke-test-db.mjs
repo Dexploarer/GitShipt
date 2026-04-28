@@ -1,6 +1,19 @@
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 
-const sql = neon(process.env.DATABASE_URL);
+const connectionString =
+  process.env.DATABASE_URL ??
+  process.env.DATABASE_POSTGRES_URL ??
+  process.env.DATABASE_POSTGRES_PRISMA_URL ??
+  process.env.POSTGRES_URL ??
+  process.env.POSTGRES_PRISMA_URL;
+
+if (!connectionString) {
+  throw new Error(
+    "Set DATABASE_URL or POSTGRES_URL before running smoke-test-db.",
+  );
+}
+
+const sql = postgres(connectionString, { prepare: false, max: 1 });
 
 const tables = await sql`
   select table_name
@@ -19,3 +32,5 @@ const enums = await sql`
 `;
 console.log(`\nEnums (${enums.length}):`);
 for (const e of enums) console.log(`  - ${e.typname}`);
+
+await sql.end();
