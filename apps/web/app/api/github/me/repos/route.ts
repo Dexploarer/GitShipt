@@ -26,6 +26,10 @@ interface GithubRepoApiResponse {
   language: string | null;
   stargazers_count: number;
   forks_count: number;
+  homepage: string | null;
+  topics?: string[];
+  default_branch: string | null;
+  license: { spdx_id: string | null; key: string | null; name: string | null } | null;
   permissions?: { admin?: boolean; push?: boolean; pull?: boolean };
   owner: {
     login: string;
@@ -174,6 +178,10 @@ export async function GET(req: Request): Promise<Response> {
     forksCount: r.forks_count,
     ownerAvatarUrl: r.owner.avatar_url,
     alreadyLaunched: launchedSet.has(r.full_name),
+    homepage: normalizeHomepage(r.homepage),
+    topics: r.topics ?? [],
+    license: r.license?.spdx_id ?? null,
+    defaultBranch: r.default_branch,
   }));
 
   const responseBody = GithubReposResponseSchema.parse({
@@ -194,4 +202,13 @@ export async function GET(req: Request): Promise<Response> {
   return NextResponse.json(responseBody, {
     headers: { "x-cache": "MISS" },
   });
+}
+
+// GitHub returns "" or null for repos with no homepage. Treat both as absent.
+// Don't validate URL shape here — the wizard form runs Zod URL validation
+// before submit, so junk values just won't auto-fill the website field.
+function normalizeHomepage(raw: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }

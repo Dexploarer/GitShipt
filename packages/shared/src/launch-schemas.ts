@@ -136,6 +136,74 @@ export const CreateProjectResponseSchema = z.object({
 export type CreateProjectResponse = z.infer<typeof CreateProjectResponseSchema>;
 
 // ============================================================
+// PATCH /api/projects/[id] body — partial draft update
+// ============================================================
+
+/**
+ * Whitelisted fields the wizard's "Save draft" action can update on an
+ * existing draft. Repo identity (ghOwner/ghRepo/ghRepoId) is intentionally
+ * locked once the draft is created — to change repo, discard and start over.
+ */
+export const UpdateDraftBodySchema = z.object({
+  name: z.string().trim().min(1).max(32).optional(),
+  symbol: z
+    .string()
+    .trim()
+    .min(1)
+    .max(10)
+    .regex(/^[A-Z0-9]+$/)
+    .optional(),
+  description: z.string().trim().min(1).max(1000).optional(),
+  imageUrl: z.string().url().optional(),
+  website: z.string().url().max(500).optional().or(z.literal("")),
+  twitter: z.string().trim().url().max(200).optional().or(z.literal("")),
+  telegram: z.string().trim().url().max(200).optional().or(z.literal("")),
+  scoringConfig: ScoringConfigSchema.optional(),
+  payoutConfig: PayoutConfigSchema.optional(),
+  platformFeeBps: z.number().int().min(0).max(2000).optional(),
+});
+export type UpdateDraftBody = z.infer<typeof UpdateDraftBodySchema>;
+
+// ============================================================
+// GET /api/projects/[id] response — minimum needed to rehydrate the wizard.
+// Mirrors the projects table; the API endpoint already returns this shape
+// (see apps/web/app/api/projects/[id]/route.ts), schema added here so the
+// wizard hydration path can validate it on the client.
+// ============================================================
+
+export const DraftProjectRecordSchema = z.object({
+  id: z.string(),
+  ghOwner: z.string(),
+  ghRepo: z.string(),
+  ghRepoId: z.string(),
+  ghInstallationId: z.string().nullable(),
+  name: z.string(),
+  symbol: z.string().nullable(),
+  description: z.string().nullable(),
+  imageUrl: z.string().nullable(),
+  tokenWebsiteUrl: z.string().nullable(),
+  tokenTwitterUrl: z.string().nullable(),
+  tokenTelegramUrl: z.string().nullable(),
+  tokenMint: z.string().nullable(),
+  bagsLaunchId: z.string().nullable(),
+  bagsConfigKey: z.string().nullable(),
+  status: z.enum([
+    "draft",
+    "launch_configured",
+    "live",
+    "paused",
+    "killed",
+    "simulated_live",
+  ]),
+  platformFeeBps: z.number().int(),
+  scoringConfig: ScoringConfigSchema,
+  payoutConfig: PayoutConfigSchema,
+  createdAt: z.union([z.string(), z.date()]),
+  updatedAt: z.union([z.string(), z.date()]),
+});
+export type DraftProjectRecord = z.infer<typeof DraftProjectRecordSchema>;
+
+// ============================================================
 // POST /api/projects/[id]/launch response
 // ============================================================
 
@@ -165,6 +233,10 @@ export const GithubRepoSchema = z.object({
   forksCount: z.number().int(),
   ownerAvatarUrl: z.string().url(),
   alreadyLaunched: z.boolean().default(false),
+  homepage: z.string().nullable().default(null),
+  topics: z.array(z.string()).default([]),
+  license: z.string().nullable().default(null),
+  defaultBranch: z.string().nullable().default(null),
 });
 export type GithubRepo = z.infer<typeof GithubRepoSchema>;
 
@@ -173,6 +245,18 @@ export const GithubReposResponseSchema = z.object({
   visibilityNote: z.string().optional(),
 });
 export type GithubReposResponse = z.infer<typeof GithubReposResponseSchema>;
+
+// GET /api/github/me/repos/[owner]/[repo]/enrich — slow per-repo enrichment
+// pulled lazily after the user picks a repo. The list endpoint already returns
+// the cheap fields above; enrichment adds owner social links + a cleaned
+// README excerpt + the GitHub-generated OG banner image URL.
+export const RepoEnrichmentSchema = z.object({
+  ownerTwitterUsername: z.string().nullable(),
+  ownerBlog: z.string().nullable(),
+  readmeExcerpt: z.string().nullable(),
+  ogImageUrl: z.string().url().nullable(),
+});
+export type RepoEnrichment = z.infer<typeof RepoEnrichmentSchema>;
 
 // ============================================================
 // Defaults — mirrored on client + server so the wizard renders

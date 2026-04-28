@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, CheckCircle2, FlaskConical, Rocket } from "lucide-react";
+import {
+  ArrowUpRight,
+  BookmarkPlus,
+  CheckCircle2,
+  FlaskConical,
+  Rocket,
+} from "lucide-react";
 import { cn } from "@repo/lib";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
@@ -14,13 +20,39 @@ import { RepoPicker } from "./RepoPicker";
 import { TokenMetadataForm } from "./TokenMetadataForm";
 import { LeaderboardConfigForm } from "./LeaderboardConfigForm";
 import { ReviewAndSign } from "./ReviewAndSign";
-import { createAndLaunchAction } from "../actions";
-import { DEFAULT_SCORING_CONFIG, type CreateProjectBody } from "@repo/shared";
+import { createAndLaunchAction, saveDraftAction } from "../actions";
+import {
+  DEFAULT_SCORING_CONFIG,
+  defaultTierWeights,
+  type CreateProjectBody,
+  type ScoringConfigInput,
+  type PayoutConfigInput,
+  type GithubRepo,
+} from "@repo/shared";
 import {
   useLaunchWizardStore,
   type LaunchSuccess,
   type LaunchWizardStep,
+  type LeaderboardConfig,
 } from "@/lib/state/launch-wizard-store";
+
+export interface DraftHydration {
+  projectId: string;
+  ghOwner: string;
+  ghRepo: string;
+  ghRepoId: string;
+  ghInstallationId: string | null;
+  name: string;
+  symbol: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  website: string | null;
+  twitter: string | null;
+  telegram: string | null;
+  platformFeeBps: number;
+  scoringConfig: ScoringConfigInput;
+  payoutConfig: PayoutConfigInput;
+}
 
 /**
  * The wizard tracks two real states during submit:
@@ -35,11 +67,19 @@ export interface WizardShellProps {
   signedIn: boolean;
   /** Server-rendered: true when BAGS_API_KEY is missing (stub mode). */
   isStubMode: boolean;
+  /** Server-loaded draft to resume. Null for a fresh wizard run. */
+  draft: DraftHydration | null;
 }
 
-export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
+export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const [saveState, setSaveState] = useState<
+    | { status: "idle" }
+    | { status: "saving" }
+    | { status: "saved"; createdNew: boolean }
+    | { status: "error"; message: string }
+  >({ status: "idle" });
   const step = useLaunchWizardStore((state) => state.step);
   const repo = useLaunchWizardStore((state) => state.repo);
   const metadata = useLaunchWizardStore((state) => state.metadata);
@@ -47,6 +87,7 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
   const status = useLaunchWizardStore((state) => state.status);
   const errorMessage = useLaunchWizardStore((state) => state.errorMessage);
   const success = useLaunchWizardStore((state) => state.success);
+  const draftProjectId = useLaunchWizardStore((state) => state.draftProjectId);
   const goToStep = useLaunchWizardStore((state) => state.goToStep);
   const selectRepo = useLaunchWizardStore((state) => state.selectRepo);
   const setMetadata = useLaunchWizardStore((state) => state.setMetadata);
@@ -54,12 +95,38 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
   const startSubmit = useLaunchWizardStore((state) => state.startSubmit);
   const failSubmit = useLaunchWizardStore((state) => state.failSubmit);
   const succeedSubmit = useLaunchWizardStore((state) => state.succeedSubmit);
+  const setDraftProjectId = useLaunchWizardStore(
+    (state) => state.setDraftProjectId,
+  );
+  const hydrateFromDraft = useLaunchWizardStore(
+    (state) => state.hydrateFromDraft,
+  );
   const clearError = useLaunchWizardStore((state) => state.clearError);
   const reset = useLaunchWizardStore((state) => state.reset);
 
   useEffect(() => {
     if (!signedIn) reset();
   }, [reset, signedIn]);
+
+  // One-shot hydration when arriving with ?draftId=...
+  useEffect(() => {
+    if (!draft) return;
+    if (draftProjectId === draft.projectId) return;
+    hydrateFromDraft({
+      projectId: draft.projectId,
+      repo: draftRepoShim(draft),
+      metadata: {
+        name: draft.name,
+        symbol: draft.symbol ?? "",
+        description: draft.description ?? "",
+        imageUrl: draft.imageUrl ?? "",
+        website: draft.website ?? "",
+        twitter: draft.twitter ?? "",
+        telegram: draft.telegram ?? "",
+      },
+      leaderboard: leaderboardFromConfig(draft.scoringConfig, draft.payoutConfig, draft.platformFeeBps),
+    });
+  }, [draft, draftProjectId, hydrateFromDraft]);
 
   async function handleLaunch() {
     if (!repo || !metadata) {
@@ -127,6 +194,64 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
     });
   }
 
+  /**
+   * Persist current wizard state as a draft project. The button is only
+   * surfaced once we have enough data to satisfy the create body — repo +
+   * metadata at minimum. Leaderboard falls back to defaults when the user
+   * hasn't visited step 3 yet.
+   */
+  async function handleSaveDraft() {
+    if (!repo || !metadata) {
+      setSaveState({
+        status: "error",
+        message: "Pick a repo and fill the token metadata before saving.",
+      });
+      return;
+    }
+    setSaveState({ status: "saving" });
+    const body: CreateProjectBody = {
+      ghRepoId: repo.id,
+      ghOwner: repo.owner,
+      ghRepo: repo.name,
+      name: metadata.name,
+      symbol: metadata.symbol,
+      description: metadata.description,
+      imageUrl: metadata.imageUrl,
+      website: metadata.website || undefined,
+      twitter: metadata.twitter || undefined,
+      telegram: metadata.telegram || undefined,
+      scoringConfig: {
+        ...DEFAULT_SCORING_CONFIG,
+        windowDays: leaderboard.windowDays,
+      },
+      payoutConfig: {
+        topN: leaderboard.topN,
+        tierWeights: leaderboard.tierWeights,
+        claimThresholdLamports: leaderboard.claimThresholdLamports,
+      },
+      platformFeeBps: leaderboard.platformFeeBps,
+    };
+
+    try {
+      const result = await saveDraftAction(body, draftProjectId ?? undefined);
+      if (!result.ok) {
+        setSaveState({ status: "error", message: result.message });
+        return;
+      }
+      setDraftProjectId(result.projectId);
+      // Reflect the active draft in the URL so a refresh resumes correctly.
+      const url = new URL(window.location.href);
+      url.searchParams.set("draftId", result.projectId);
+      window.history.replaceState({}, "", url.toString());
+      setSaveState({ status: "saved", createdNew: result.created });
+    } catch (e) {
+      setSaveState({
+        status: "error",
+        message: e instanceof Error ? e.message : "Save failed.",
+      });
+    }
+  }
+
   function handleRetry() {
     clearError();
   }
@@ -153,6 +278,10 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
     <div className="mx-auto w-full max-w-2xl py-12">
       <h1 className="sr-only">Launch a repo token</h1>
       <StepIndicator current={step} />
+
+      {draft ? (
+        <DraftResumeBanner ghOwner={draft.ghOwner} ghRepo={draft.ghRepo} />
+      ) : null}
 
       <section
         className={cn(
@@ -223,8 +352,134 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
           </p>
         )}
       </section>
+
+      {signedIn && step >= 2 && repo && metadata ? (
+        <SaveDraftBar
+          state={saveState}
+          draftProjectId={draftProjectId}
+          isSubmitting={status === "submitting"}
+          onSave={handleSaveDraft}
+        />
+      ) : null}
     </div>
   );
+}
+
+function DraftResumeBanner({
+  ghOwner,
+  ghRepo,
+}: {
+  ghOwner: string;
+  ghRepo: string;
+}) {
+  return (
+    <Card depth="flat" padding="default" className="mt-6 bg-info-soft/40">
+      <div className="flex items-start gap-3">
+        <Badge variant="info" size="sm" dot>
+          Resuming draft
+        </Badge>
+        <p className="flex-1 text-body-sm text-fg-secondary">
+          Picking up where you left off on{" "}
+          <span className="text-mono-sm text-fg">
+            {ghOwner}/{ghRepo}
+          </span>
+          . Edit any step or hit launch when you&rsquo;re ready.
+        </p>
+      </div>
+    </Card>
+  );
+}
+
+function SaveDraftBar({
+  state,
+  draftProjectId,
+  isSubmitting,
+  onSave,
+}: {
+  state:
+    | { status: "idle" }
+    | { status: "saving" }
+    | { status: "saved"; createdNew: boolean }
+    | { status: "error"; message: string };
+  draftProjectId: string | null;
+  isSubmitting: boolean;
+  onSave: () => void;
+}) {
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
+      {state.status === "error" ? (
+        <span className="text-body-sm text-danger">{state.message}</span>
+      ) : null}
+      {state.status === "saved" ? (
+        <span className="text-body-sm text-fg-muted">
+          {state.createdNew ? "Draft saved." : "Draft updated."}
+        </span>
+      ) : null}
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onSave}
+        disabled={state.status === "saving" || isSubmitting}
+      >
+        {state.status === "saving" ? (
+          <Spinner size="default" color="inherit" />
+        ) : (
+          <BookmarkPlus className="size-4" />
+        )}
+        {draftProjectId ? "Save draft" : "Save as draft"}
+      </Button>
+    </div>
+  );
+}
+
+// ============================================================
+// Hydration helpers
+// ============================================================
+
+function draftRepoShim(draft: DraftHydration): GithubRepo {
+  // The wizard's GithubRepo shape is richer than the projects table; for
+  // resumed drafts we synthesize a minimal version from stored columns plus
+  // GitHub's stable per-user avatar redirect. Step 1 isn't shown after
+  // hydration so the missing rich fields (stars/topics/language) are not
+  // load-bearing — they only feed badges in the metadata form, and the
+  // metadata form itself is already populated from the draft.
+  return {
+    id: draft.ghRepoId,
+    owner: draft.ghOwner,
+    name: draft.ghRepo,
+    fullName: `${draft.ghOwner}/${draft.ghRepo}`,
+    description: draft.description,
+    language: null,
+    stargazersCount: 0,
+    forksCount: 0,
+    ownerAvatarUrl: `https://github.com/${draft.ghOwner}.png`,
+    alreadyLaunched: false,
+    homepage: null,
+    topics: [],
+    license: null,
+    defaultBranch: null,
+  };
+}
+
+function leaderboardFromConfig(
+  scoring: ScoringConfigInput,
+  payout: PayoutConfigInput,
+  platformFeeBps: number,
+): LeaderboardConfig {
+  // Defensive: payoutConfig.tierWeights should already match topN, but if a
+  // legacy draft drifted we regenerate from the canonical defaults.
+  const tierWeights =
+    payout.tierWeights.length === payout.topN
+      ? payout.tierWeights
+      : defaultTierWeights(payout.topN);
+  return {
+    windowDays: scoring.windowDays,
+    topN: payout.topN,
+    tierWeights,
+    claimThresholdLamports: payout.claimThresholdLamports,
+    platformFeeBps,
+  };
 }
 
 // ============================================================

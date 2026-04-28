@@ -140,6 +140,7 @@ export async function POST(req: Request): Promise<Response> {
               ghRepoId: body.ghRepoId,
               ghInstallationId: body.ghInstallationId ?? null,
               name: body.name,
+              symbol: body.symbol,
               description: body.description ?? null,
               imageUrl: body.imageUrl,
               tokenWebsiteUrl: body.website ?? null,

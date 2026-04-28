@@ -16,6 +16,10 @@ const repo: GithubRepo = {
   forksCount: 3,
   ownerAvatarUrl: "https://avatars.githubusercontent.com/u/42?v=4",
   alreadyLaunched: false,
+  homepage: "https://gitbags.dev",
+  topics: ["solana", "bags"],
+  license: "MIT",
+  defaultBranch: "main",
 };
 
 describe("launch wizard store", () => {
@@ -34,7 +38,26 @@ describe("launch wizard store", () => {
       symbol: "GITBAGS",
       description: repo.description,
       imageUrl: repo.ownerAvatarUrl,
+      website: "https://gitbags.dev",
     });
+  });
+
+  test("repo homepage missing a scheme is upgraded to https before becoming the default website", () => {
+    useLaunchWizardStore.getState().selectRepo({
+      ...repo,
+      homepage: "example.com",
+    });
+    expect(useLaunchWizardStore.getState().metadata?.website).toBe(
+      "https://example.com",
+    );
+  });
+
+  test("repo with no homepage leaves the website field undefined", () => {
+    useLaunchWizardStore.getState().selectRepo({
+      ...repo,
+      homepage: null,
+    });
+    expect(useLaunchWizardStore.getState().metadata?.website).toBeUndefined();
   });
 
   test("reset clears user-specific launch state", () => {
@@ -52,7 +75,44 @@ describe("launch wizard store", () => {
       status: "idle",
       errorMessage: null,
       success: null,
+      draftProjectId: null,
     });
+  });
+
+  test("hydrating from a draft seeds repo + metadata + leaderboard and lands on review", () => {
+    const seed = useLaunchWizardStore.getState();
+    seed.hydrateFromDraft({
+      projectId: "proj_abc",
+      repo,
+      metadata: {
+        name: "git-bags",
+        symbol: "GITBAGS",
+        description: "Resumed",
+        imageUrl: repo.ownerAvatarUrl,
+      },
+      leaderboard: DEFAULT_LEADERBOARD,
+    });
+
+    const state = useLaunchWizardStore.getState();
+    expect(state.draftProjectId).toBe("proj_abc");
+    expect(state.step).toBe(4);
+    expect(state.repo?.fullName).toBe("sym/git-bags");
+    expect(state.metadata?.description).toBe("Resumed");
+  });
+
+  test("succeedSubmit clears draftProjectId so post-launch saves don't target a stale draft", () => {
+    useLaunchWizardStore.getState().selectRepo(repo);
+    useLaunchWizardStore.getState().setDraftProjectId("proj_old");
+    useLaunchWizardStore.getState().succeedSubmit({
+      projectId: "proj_old",
+      tokenMint: "Mint11111111111111111111111111111111111111",
+      status: "live",
+      txSig: null,
+      stub: false,
+      ghOwner: "sym",
+      ghRepo: "git-bags",
+    });
+    expect(useLaunchWizardStore.getState().draftProjectId).toBeNull();
   });
 
   test("records a stub-mode launch success without losing project routing data", () => {

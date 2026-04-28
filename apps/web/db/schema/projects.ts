@@ -70,6 +70,9 @@ export const projects = pgTable(
 
     // Display
     name: text("name").notNull(),
+    /** Token ticker. Captured during draft so resume preserves it; written to
+     *  Bags metadata at launch time. */
+    symbol: text("symbol"),
     description: text("description"),
     imageUrl: text("image_url"),
 

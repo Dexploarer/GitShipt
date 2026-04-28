@@ -1,12 +1,17 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { dbHttp } from "@/db";
-import { projects, projectMemberships, users } from "@/db/schema";
+import { projects } from "@/db/schema";
 import { hasCredentials } from "@/lib/env";
 import { check } from "@/lib/rate-limit";
+import { audit } from "@/lib/audit";
+import { withIdempotency } from "@/lib/idempotency";
+import { requirePermission, PermissionError } from "@/lib/auth/permissions";
+import { revalidatePublicCaches } from "@/lib/cache";
+import { UpdateDraftBodySchema } from "@repo/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +20,11 @@ interface RouteContext {
 }
 
 /**
- * GET /api/projects/{id} — read draft state for the wizard's ReviewAndSign step.
+ * GET /api/projects/{id} — read draft state for the wizard's hydration path
+ * and the project console.
  *
- * Auth: caller must be a member of the project (project_owner or
- * project_moderator) OR a global super_admin/admin/moderator.
+ * Auth: caller must hold `project.read` for the project (project_owner /
+ * project_moderator membership, or a global staff role).
  */
 export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
   if (!hasCredentials.db()) {
@@ -58,32 +64,13 @@ export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  // Membership check.
-  const [membership] = await dbHttp
-    .select({ role: projectMemberships.role })
-    .from(projectMemberships)
-    .where(
-      and(
-        eq(projectMemberships.userId, userId),
-        eq(projectMemberships.projectId, projectId),
-      ),
-    )
-    .limit(1);
-
-  if (!membership) {
-    // Maybe a global staff role can still read.
-    const [user] = await dbHttp
-      .select({ role: users.role })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    const isStaff =
-      user?.role === "moderator" ||
-      user?.role === "admin" ||
-      user?.role === "super_admin";
-    if (!isStaff) {
+  try {
+    await requirePermission("project.read", { userId, projectId });
+  } catch (e) {
+    if (e instanceof PermissionError) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
+    throw e;
   }
 
   return NextResponse.json({
@@ -93,8 +80,12 @@ export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
     ghRepoId: project.ghRepoId,
     ghInstallationId: project.ghInstallationId,
     name: project.name,
+    symbol: project.symbol,
     description: project.description,
     imageUrl: project.imageUrl,
+    tokenWebsiteUrl: project.tokenWebsiteUrl,
+    tokenTwitterUrl: project.tokenTwitterUrl,
+    tokenTelegramUrl: project.tokenTelegramUrl,
     tokenMint: project.tokenMint,
     bagsLaunchId: project.bagsLaunchId,
     bagsConfigKey: project.bagsConfigKey,
@@ -105,4 +96,255 @@ export async function GET(req: Request, ctx: RouteContext): Promise<Response> {
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
   });
+}
+
+/**
+ * PATCH /api/projects/{id} — update a draft.
+ *
+ * Drafts only — once a project leaves draft status the wizard no longer owns
+ * its config. Repo identity is locked at create time.
+ */
+export async function PATCH(
+  req: Request,
+  ctx: RouteContext,
+): Promise<Response> {
+  if (!hasCredentials.db()) {
+    return NextResponse.json(
+      { error: "db_unavailable", message: "DB not configured." },
+      { status: 503 },
+    );
+  }
+
+  const params = await ctx.params;
+  const projectId = params.id;
+  if (!projectId) {
+    return NextResponse.json({ error: "missing_id" }, { status: 400 });
+  }
+
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const userAgent = req.headers.get("user-agent");
+
+  const session = await auth().api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
+  const limit = await check("default", `draft-update:${userId ?? ip}`);
+  if (!limit.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
+  const [project] = await dbHttp
+    .select({ id: projects.id, status: projects.status })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  if (project.status !== "draft") {
+    return NextResponse.json(
+      {
+        error: "not_draft",
+        message:
+          "This project has already left draft status. Use the project console to edit settings.",
+      },
+      { status: 409 },
+    );
+  }
+
+  try {
+    await requirePermission("project.update", { userId, projectId });
+  } catch (e) {
+    if (e instanceof PermissionError) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+    throw e;
+  }
+
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
+
+  const parsed = UpdateDraftBodySchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "invalid_body", issues: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+  const body = parsed.data;
+
+  const idempotencyKey = req.headers.get("idempotency-key");
+  if (!idempotencyKey) {
+    return NextResponse.json(
+      { error: "idempotency_key_required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    await withIdempotency(
+      idempotencyKey,
+      async () => {
+        const updates: Record<string, unknown> = { updatedAt: new Date() };
+        if (body.name !== undefined) updates.name = body.name;
+        if (body.symbol !== undefined) updates.symbol = body.symbol;
+        if (body.description !== undefined)
+          updates.description = body.description;
+        if (body.imageUrl !== undefined) updates.imageUrl = body.imageUrl;
+        if (body.website !== undefined)
+          updates.tokenWebsiteUrl = body.website || null;
+        if (body.twitter !== undefined)
+          updates.tokenTwitterUrl = body.twitter || null;
+        if (body.telegram !== undefined)
+          updates.tokenTelegramUrl = body.telegram || null;
+        if (body.platformFeeBps !== undefined)
+          updates.platformFeeBps = body.platformFeeBps;
+        if (body.scoringConfig !== undefined)
+          updates.scoringConfig = body.scoringConfig;
+        if (body.payoutConfig !== undefined)
+          updates.payoutConfig = body.payoutConfig;
+
+        await dbHttp
+          .update(projects)
+          .set(updates)
+          .where(eq(projects.id, projectId));
+
+        await audit({
+          actorUserId: userId,
+          action: "project.update",
+          targetType: "project",
+          targetId: projectId,
+          metadata: {
+            phase: "draft",
+            fields: Object.keys(updates).filter((k) => k !== "updatedAt"),
+          },
+          ip,
+          userAgent,
+        });
+
+        return { ok: true };
+      },
+      { scope: `project:patch:${userId}:${projectId}` },
+    );
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to update draft.";
+    console.error("[projects:patch] failed:", e);
+    return NextResponse.json(
+      { error: "update_failed", message },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * DELETE /api/projects/{id} — discard a draft.
+ *
+ * Drafts only. Frees the (ghOwner, ghRepo) UNIQUE slot so the user can pick
+ * a different repo. Launched projects are never deleted via this route.
+ */
+export async function DELETE(
+  req: Request,
+  ctx: RouteContext,
+): Promise<Response> {
+  if (!hasCredentials.db()) {
+    return NextResponse.json(
+      { error: "db_unavailable", message: "DB not configured." },
+      { status: 503 },
+    );
+  }
+
+  const params = await ctx.params;
+  const projectId = params.id;
+  if (!projectId) {
+    return NextResponse.json({ error: "missing_id" }, { status: 400 });
+  }
+
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const userAgent = req.headers.get("user-agent");
+
+  const session = await auth().api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
+  const limit = await check("default", `draft-delete:${userId ?? ip}`);
+  if (!limit.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
+  const [project] = await dbHttp
+    .select({
+      id: projects.id,
+      status: projects.status,
+      ghOwner: projects.ghOwner,
+      ghRepo: projects.ghRepo,
+    })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  if (project.status !== "draft") {
+    return NextResponse.json(
+      {
+        error: "not_draft",
+        message:
+          "Only drafts can be deleted. Launched projects must be paused or killed instead.",
+      },
+      { status: 409 },
+    );
+  }
+
+  try {
+    // project.delete permission is owner-only; admins cannot reach in and
+    // discard a user's draft.
+    await requirePermission("project.delete", { userId, projectId });
+  } catch (e) {
+    if (e instanceof PermissionError) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+    throw e;
+  }
+
+  try {
+    await dbHttp.delete(projects).where(eq(projects.id, projectId));
+
+    await audit({
+      actorUserId: userId,
+      action: "project.delete",
+      targetType: "project",
+      targetId: projectId,
+      metadata: {
+        phase: "draft",
+        ghOwner: project.ghOwner,
+        ghRepo: project.ghRepo,
+      },
+      ip,
+      userAgent,
+    });
+
+    revalidatePublicCaches();
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to discard draft.";
+    console.error("[projects:delete] failed:", e);
+    return NextResponse.json(
+      { error: "delete_failed", message },
+      { status: 500 },
+    );
+  }
 }

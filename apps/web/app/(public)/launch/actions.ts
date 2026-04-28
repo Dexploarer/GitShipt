@@ -21,7 +21,12 @@ import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
 import { updateProjectCaches } from "@/lib/cache-actions";
-import { CreateProjectBodySchema, type CreateProjectBody } from "@repo/shared";
+import {
+  CreateProjectBodySchema,
+  UpdateDraftBodySchema,
+  type CreateProjectBody,
+  type UpdateDraftBody,
+} from "@repo/shared";
 import { applyDbRlsContext } from "@/lib/db-rls";
 
 /**
@@ -180,6 +185,7 @@ export async function createAndLaunchAction(
                 ghRepoId: validated.ghRepoId,
                 ghInstallationId: validated.ghInstallationId ?? null,
                 name: validated.name,
+                symbol: validated.symbol,
                 description: validated.description ?? null,
                 imageUrl: validated.imageUrl,
                 tokenWebsiteUrl: validated.website ?? null,
@@ -511,6 +517,402 @@ async function verifyRepoAdmin(args: {
       status: 502,
     };
   }
+}
+
+// ============================================================
+// Save-draft action — wizard "Save draft" button
+// ============================================================
+
+export interface SaveDraftResult {
+  ok: true;
+  projectId: string;
+  status: "draft";
+  created: boolean;
+}
+
+export interface SaveDraftError {
+  ok: false;
+  error: string;
+  message: string;
+  status: number;
+}
+
+/**
+ * Persist the wizard's current state as a draft project. Idempotent on
+ * `(userId, ghRepoId)` — if a draft already exists for this repo we update it
+ * in place; otherwise we create a new one.
+ *
+ * Never touches Bags. Drafts can be resumed via /launch?draftId=... and
+ * launched later via the existing createAndLaunchAction.
+ *
+ * Caller passes `existingProjectId` if the wizard is editing a known draft;
+ * if omitted we look up by (ghOwner, ghRepo) and update the row when found.
+ */
+export async function saveDraftAction(
+  body: CreateProjectBody,
+  existingProjectId?: string,
+): Promise<SaveDraftResult | SaveDraftError> {
+  if (!hasCredentials.db()) {
+    return {
+      ok: false,
+      error: "db_unavailable",
+      message: "DB not configured.",
+      status: 503,
+    };
+  }
+
+  const session = await auth().api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
+    return {
+      ok: false,
+      error: "unauthorized",
+      message: "Sign in with GitHub to save a draft.",
+      status: 401,
+    };
+  }
+  const userId = session.user.id;
+
+  const limit = await check("default", `draft-save:${userId}`);
+  if (!limit.success) {
+    return {
+      ok: false,
+      error: "rate_limited",
+      message: "Save-draft limit reached. Try again in a minute.",
+      status: 429,
+    };
+  }
+
+  const parsed = CreateProjectBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "invalid_body",
+      message: parsed.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("; "),
+      status: 400,
+    };
+  }
+  const validated = parsed.data;
+
+  // Repo-admin re-verification — never trust the client's claim, even on save.
+  if (hasCredentials.github()) {
+    const verifyResult = await verifyRepoAdmin({
+      userId,
+      ghOwner: validated.ghOwner,
+      ghRepo: validated.ghRepo,
+    });
+    if (!verifyResult.ok) {
+      return {
+        ok: false,
+        error: verifyResult.code,
+        message: verifyResult.message,
+        status: verifyResult.status,
+      };
+    }
+  } else if (!stubsAllowed()) {
+    return {
+      ok: false,
+      error: "github_credentials_required",
+      message: "GitHub credentials are required to verify repo ownership.",
+      status: 503,
+    };
+  }
+
+  const userRow = await dbHttp
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (userRow.length === 0) {
+    return {
+      ok: false,
+      error: "user_missing",
+      message: "Auth user not found in DB.",
+      status: 401,
+    };
+  }
+
+  // Look up an existing draft. Priority: (a) explicit id passed in,
+  // (b) (ghOwner, ghRepo) UNIQUE match owned by this user.
+  let existing: { id: string; status: string; ownerUserId: string } | null = null;
+  if (existingProjectId) {
+    const [row] = await dbHttp
+      .select({
+        id: projects.id,
+        status: projects.status,
+        ownerUserId: projects.ownerUserId,
+      })
+      .from(projects)
+      .where(eq(projects.id, existingProjectId))
+      .limit(1);
+    existing = row ?? null;
+    if (!existing) {
+      return {
+        ok: false,
+        error: "not_found",
+        message: "Draft not found. It may have been discarded.",
+        status: 404,
+      };
+    }
+  } else {
+    const [row] = await dbHttp
+      .select({
+        id: projects.id,
+        status: projects.status,
+        ownerUserId: projects.ownerUserId,
+      })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.ghOwner, validated.ghOwner),
+          eq(projects.ghRepo, validated.ghRepo),
+        ),
+      )
+      .limit(1);
+    existing = row ?? null;
+  }
+
+  // ---- UPDATE path ---------------------------------------------------
+  if (existing) {
+    if (existing.ownerUserId !== userId) {
+      return {
+        ok: false,
+        error: "forbidden",
+        message: "You don't own this draft.",
+        status: 403,
+      };
+    }
+    if (existing.status !== "draft") {
+      return {
+        ok: false,
+        error: "not_draft",
+        message:
+          "This project is already launched. Edit it from the project console.",
+        status: 409,
+      };
+    }
+    try {
+      await requirePermission("project.update", {
+        userId,
+        projectId: existing.id,
+      });
+    } catch (e) {
+      if (e instanceof PermissionError) {
+        return {
+          ok: false,
+          error: "forbidden",
+          message: e.message,
+          status: 403,
+        };
+      }
+      throw e;
+    }
+
+    const updates: UpdateDraftBody = {
+      name: validated.name,
+      symbol: validated.symbol,
+      description: validated.description,
+      imageUrl: validated.imageUrl,
+      website: validated.website ?? "",
+      twitter: validated.twitter ?? "",
+      telegram: validated.telegram ?? "",
+      scoringConfig: validated.scoringConfig,
+      payoutConfig: validated.payoutConfig,
+      platformFeeBps: validated.platformFeeBps,
+    };
+    // Sanity check the partial through the same Zod schema the PATCH uses.
+    UpdateDraftBodySchema.parse(updates);
+
+    await dbHttp
+      .update(projects)
+      .set({
+        name: updates.name!,
+        symbol: updates.symbol!,
+        description: updates.description!,
+        imageUrl: updates.imageUrl!,
+        tokenWebsiteUrl: updates.website ? updates.website : null,
+        tokenTwitterUrl: updates.twitter ? updates.twitter : null,
+        tokenTelegramUrl: updates.telegram ? updates.telegram : null,
+        scoringConfig: updates.scoringConfig!,
+        payoutConfig: updates.payoutConfig!,
+        platformFeeBps: updates.platformFeeBps!,
+        updatedAt: new Date(),
+      })
+      .where(eq(projects.id, existing.id));
+
+    await audit({
+      actorUserId: userId,
+      action: "project.update",
+      targetType: "project",
+      targetId: existing.id,
+      metadata: { phase: "draft", source: "wizard_save" },
+    });
+
+    return {
+      ok: true,
+      projectId: existing.id,
+      status: "draft",
+      created: false,
+    };
+  }
+
+  // ---- CREATE path ---------------------------------------------------
+  try {
+    const dbp = dbPool();
+    const inserted = await dbp.transaction(async (tx) => {
+      await applyDbRlsContext(tx);
+      const [row] = await tx
+        .insert(projects)
+        .values({
+          ownerUserId: userId,
+          ghOwner: validated.ghOwner,
+          ghRepo: validated.ghRepo,
+          ghRepoId: validated.ghRepoId,
+          ghInstallationId: validated.ghInstallationId ?? null,
+          name: validated.name,
+          symbol: validated.symbol,
+          description: validated.description ?? null,
+          imageUrl: validated.imageUrl,
+          tokenWebsiteUrl: validated.website ?? null,
+          tokenTwitterUrl: validated.twitter ?? null,
+          tokenTelegramUrl: validated.telegram ?? null,
+          status: "draft",
+          platformFeeBps: validated.platformFeeBps,
+          scoringConfig: validated.scoringConfig,
+          payoutConfig: validated.payoutConfig,
+        })
+        .returning({ id: projects.id });
+      if (!row) throw new Error("Failed to insert draft.");
+      await tx.insert(projectMemberships).values({
+        userId,
+        projectId: row.id,
+        role: "project_owner",
+      });
+      return row;
+    });
+
+    await audit({
+      actorUserId: userId,
+      action: "project.create",
+      targetType: "project",
+      targetId: inserted.id,
+      metadata: {
+        phase: "draft",
+        source: "wizard_save",
+        ghOwner: validated.ghOwner,
+        ghRepo: validated.ghRepo,
+        ghRepoId: validated.ghRepoId,
+      },
+    });
+
+    return {
+      ok: true,
+      projectId: inserted.id,
+      status: "draft",
+      created: true,
+    };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to save draft.";
+    if (/projects_gh_repo_uq/i.test(message)) {
+      return {
+        ok: false,
+        error: "already_exists",
+        message: `${validated.ghOwner}/${validated.ghRepo} is already a project.`,
+        status: 409,
+      };
+    }
+    console.error("[draft:save] failed:", e);
+    return {
+      ok: false,
+      error: "save_failed",
+      message,
+      status: 500,
+    };
+  }
+}
+
+/**
+ * Discard a draft project. Frees the (ghOwner, ghRepo) UNIQUE slot. Owner-
+ * only. Same guarantees as DELETE /api/projects/[id] — drafts only.
+ */
+export async function discardDraftAction(
+  projectId: string,
+): Promise<{ ok: true } | SaveDraftError> {
+  if (!hasCredentials.db()) {
+    return {
+      ok: false,
+      error: "db_unavailable",
+      message: "DB not configured.",
+      status: 503,
+    };
+  }
+  const session = await auth().api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
+    return {
+      ok: false,
+      error: "unauthorized",
+      message: "Sign in to discard a draft.",
+      status: 401,
+    };
+  }
+  const userId = session.user.id;
+
+  const [project] = await dbHttp
+    .select({
+      id: projects.id,
+      status: projects.status,
+      ownerUserId: projects.ownerUserId,
+      ghOwner: projects.ghOwner,
+      ghRepo: projects.ghRepo,
+    })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  if (!project) {
+    return {
+      ok: false,
+      error: "not_found",
+      message: "Draft not found.",
+      status: 404,
+    };
+  }
+  if (project.status !== "draft") {
+    return {
+      ok: false,
+      error: "not_draft",
+      message: "Only drafts can be discarded.",
+      status: 409,
+    };
+  }
+  try {
+    await requirePermission("project.delete", { userId, projectId });
+  } catch (e) {
+    if (e instanceof PermissionError) {
+      return {
+        ok: false,
+        error: "forbidden",
+        message: e.message,
+        status: 403,
+      };
+    }
+    throw e;
+  }
+
+  await dbHttp.delete(projects).where(eq(projects.id, projectId));
+  await audit({
+    actorUserId: userId,
+    action: "project.delete",
+    targetType: "project",
+    targetId: projectId,
+    metadata: {
+      phase: "draft",
+      ghOwner: project.ghOwner,
+      ghRepo: project.ghRepo,
+    },
+  });
+  revalidatePath("/dashboard/projects");
+  return { ok: true };
 }
 
 /**
