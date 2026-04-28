@@ -421,6 +421,36 @@ async function signAndSubmitViaBags(transaction: unknown): Promise<string> {
   return extractSubmittedSignature(raw);
 }
 
+function readHeaderCaseInsensitive(
+  headers: Headers,
+  name: string,
+): string | null {
+  const target = name.toLowerCase();
+  const direct = headers.get(target);
+  if (direct !== null) return direct;
+  for (const [key, value] of headers.entries()) {
+    if (key.toLowerCase() === target) return value;
+  }
+  return null;
+}
+
+function parseResetTimeFromBody(body: string): number | null {
+  try {
+    const parsed = JSON.parse(body) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "resetTime" in parsed &&
+      typeof (parsed as { resetTime: unknown }).resetTime === "number"
+    ) {
+      return (parsed as { resetTime: number }).resetTime;
+    }
+  } catch {
+    // Not JSON, fall through.
+  }
+  return null;
+}
+
 async function bagsRestRaw(
   path: string,
   init?: RequestInit & { query?: Record<string, string> },
@@ -433,21 +463,73 @@ async function bagsRestRaw(
   if (init?.query) {
     for (const [k, v] of Object.entries(init.query)) url.searchParams.set(k, v);
   }
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      "x-api-key": env.BAGS_API_KEY,
-      "content-type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(
-      `Bags ${res.status} ${res.statusText}: ${body.slice(0, 500)}`,
+
+  let retryCount = 0;
+  const maxRetries = 1;
+
+  for (;;) {
+    const res = await fetch(url, {
+      ...init,
+      headers: {
+        "x-api-key": env.BAGS_API_KEY,
+        "content-type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+    });
+
+    const remainingHeader = readHeaderCaseInsensitive(
+      res.headers,
+      "X-RateLimit-Remaining",
     );
+    if (remainingHeader !== null) {
+      const remaining = Number(remainingHeader);
+      if (Number.isFinite(remaining) && remaining < 50) {
+        console.warn(
+          `Bags API rate limit low: ${remaining} requests remaining (path=${path}).`,
+        );
+      }
+    }
+
+    if (res.status === 429) {
+      const body = await res.text();
+      const resetFromBody = parseResetTimeFromBody(body);
+      const resetHeader = readHeaderCaseInsensitive(
+        res.headers,
+        "X-RateLimit-Reset",
+      );
+      const resetFromHeader =
+        resetHeader !== null && Number.isFinite(Number(resetHeader))
+          ? Number(resetHeader)
+          : null;
+      const resetTime =
+        resetFromBody ?? resetFromHeader ?? Math.floor(Date.now() / 1000) + 1;
+
+      if (retryCount >= maxRetries) {
+        throw new Error(
+          `Bags API rate limit exhausted; resets at ${new Date(
+            resetTime * 1000,
+          ).toISOString()}`,
+        );
+      }
+
+      const nowSec = Math.floor(Date.now() / 1000);
+      const waitMs = Math.max(
+        1000,
+        Math.min(60_000, (resetTime - nowSec) * 1000),
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      retryCount += 1;
+      continue;
+    }
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(
+        `Bags ${res.status} ${res.statusText}: ${body.slice(0, 500)}`,
+      );
+    }
+    return await res.json();
   }
-  return await res.json();
 }
 
 async function bagsRest<TSchema extends z.ZodType>(
@@ -458,8 +540,93 @@ async function bagsRest<TSchema extends z.ZodType>(
   return parseBagsRestEnvelope(await bagsRestRaw(path, init), responseSchema);
 }
 
+const AuthMeSchema = z.object({
+  user: z
+    .object({
+      uuid: z.string(),
+      type: z.string().optional(),
+      ticker: z.string().optional(),
+      username: z.string().optional(),
+      status: z.string().optional(),
+      pref_name: z.string().optional(),
+      picture: z.string().optional(),
+      points: z.number().optional(),
+      rank: z.number().optional(),
+      referral_count: z.number().optional(),
+    })
+    .loose(),
+});
+type AuthMe = z.infer<typeof AuthMeSchema>;
+
+const ClaimEventSchema = z.object({
+  wallet: z.string(),
+  isCreator: z.boolean(),
+  amount: z.coerce.bigint(),
+  signature: z.string(),
+  timestamp: z.string(),
+});
+const ClaimEventsSchema = z.object({
+  events: z.array(ClaimEventSchema),
+});
+type ClaimEvents = z.infer<typeof ClaimEventsSchema>;
+
+const PoolByMintSchema = z.object({
+  tokenMint: z.string(),
+  dbcConfigKey: z.string(),
+  dbcPoolKey: z.string(),
+  dammV2PoolKey: z.string().nullable(),
+});
+type PoolByMint = z.infer<typeof PoolByMintSchema>;
+
+const LaunchFeedItemSchema = z.object({
+  name: z.string(),
+  symbol: z.string(),
+  description: z.string().nullable().optional(),
+  image: z.string().nullable().optional(),
+  tokenMint: z.string(),
+  status: z.enum(["PRE_LAUNCH", "PRE_GRAD", "MIGRATING", "MIGRATED"]),
+  twitter: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
+  launchSignature: z.string().nullable().optional(),
+  accountKeys: z.array(z.string()).optional(),
+  numRequiredSigners: z.number().nullable().optional(),
+  uri: z.string().nullable().optional(),
+  dbcPoolKey: z.string().nullable().optional(),
+  dbcConfigKey: z.string().nullable().optional(),
+});
+const LaunchFeedSchema = z.array(LaunchFeedItemSchema);
+type LaunchFeed = z.infer<typeof LaunchFeedSchema>;
+
+/**
+ * Local stub additions for the new methods in this file. Lives here (not in
+ * `./__stubs.ts`) because Wave 1 of this change set scopes additions to
+ * `client.ts` only — Wave 2 may relocate these alongside the canonical
+ * `stubBags` once consumers land. Names mirror the pattern in `__stubs.ts`.
+ */
+const localBagsStubs = {
+  claimEvents: (_mint: string): ClaimEvents => ({ events: [] }),
+  poolByMint: (mint: string): PoolByMint => ({
+    tokenMint: mint,
+    dbcConfigKey: "STUB" + "1".repeat(40),
+    dbcPoolKey: "STUB" + "2".repeat(40),
+    dammV2PoolKey: null,
+  }),
+  launchFeed: (): LaunchFeed => [],
+};
+
 export const bags = {
   hasCredentials: hasCredentials.bags,
+
+  /**
+   * Identify the API key holder via the public REST `auth/me` endpoint. No
+   * SDK alternative — REST-only. Idempotent GET.
+   */
+  async authMe(): Promise<AuthMe> {
+    if (!hasCredentials.bags()) {
+      throw new Error("BAGS_API_KEY required for authMe.");
+    }
+    return bagsRest("auth/me", AuthMeSchema);
+  },
 
   /** Step 1 of launch: upload metadata, get tokenMint + metadata URL. */
   async createTokenInfo(input: TokenInfoInput): Promise<TokenInfoResponse> {
@@ -704,7 +871,7 @@ export const bags = {
         )
       : await bagsRest(
           "token-launch/claim-txs/v3",
-          z.array(z.object({ tx: z.unknown() }).passthrough()),
+          z.array(z.object({ tx: z.unknown() }).loose()),
           {
             method: "POST",
             body: JSON.stringify({
@@ -776,6 +943,34 @@ export const bags = {
     );
   },
 
+  /**
+   * Time-windowed fee-share claim events for a token. Inclusive `[from, to]`
+   * Unix seconds. No pagination — Bags caps at ~100 events upstream.
+   */
+  async getClaimEventsByTime(
+    tokenMint: string,
+    fromUnix: number,
+    toUnix: number,
+  ): Promise<ClaimEvents> {
+    if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) {
+      return ClaimEventsSchema.parse(localBagsStubs.claimEvents(tokenMint));
+    }
+    if (!Number.isInteger(fromUnix) || !Number.isInteger(toUnix)) {
+      throw new Error("fromUnix and toUnix must be integer Unix-second values.");
+    }
+    if (toUnix < fromUnix) {
+      throw new Error("toUnix must be >= fromUnix.");
+    }
+    return bagsRest("fee-share/token/claim-events", ClaimEventsSchema, {
+      query: {
+        tokenMint,
+        mode: "time",
+        from: String(fromUnix),
+        to: String(toUnix),
+      },
+    });
+  },
+
   async getTokenClaimEvents(
     tokenMint: string,
     options?: { limit?: number; offset?: number },
@@ -822,13 +1017,37 @@ export const bags = {
   async getTopTokensByLifetimeFees(): Promise<TopTokenByLifetimeFees[]> {
     if (!hasCredentials.bags()) return [];
     const sdk = await tryGetSdk();
-    const tokens = sdk
-      ? await sdk.state.getTopTokensByLifetimeFees()
-      : await bagsRest(
-          "token-launch/top-tokens/lifetime-fees",
-          z.array(z.unknown()),
-        );
+    if (!sdk) {
+      throw new Error(
+        "Top-tokens lookup requires the Bags SDK; no REST equivalent exists in the public API.",
+      );
+    }
+    const tokens = await sdk.state.getTopTokensByLifetimeFees();
     return tokens.map((token) => TopTokenByLifetimeFeesSchema.parse(token));
+  },
+
+  /**
+   * Full token launch feed via REST. No filters or pagination upstream — the
+   * caller is expected to join against our DB and paginate client-side.
+   */
+  async getLaunchFeed(): Promise<LaunchFeed> {
+    if (!hasCredentials.bags()) {
+      return LaunchFeedSchema.parse(localBagsStubs.launchFeed());
+    }
+    return bagsRest("token-launch/feed", LaunchFeedSchema);
+  },
+
+  /**
+   * Resolve the DBC + DAMM v2 pool keys for a given token mint via REST.
+   * `tokenMint` is a query param, NOT a path param.
+   */
+  async getPoolByTokenMint(tokenMint: string): Promise<PoolByMint> {
+    if (!hasCredentials.bags() || isPlaceholderTokenMint(tokenMint)) {
+      return PoolByMintSchema.parse(localBagsStubs.poolByMint(tokenMint));
+    }
+    return bagsRest("solana/bags/pools/token-mint", PoolByMintSchema, {
+      query: { tokenMint },
+    });
   },
 
   async getPoolConfigKeysByFeeClaimerVaults(
@@ -992,7 +1211,7 @@ export const bags = {
               lastValidBlockHeight: z.number().int().positive(),
               prioritizationFeeLamports: z.number().int().min(0),
             })
-            .passthrough(),
+            .loose(),
           {
             method: "POST",
             body: JSON.stringify(validated),

@@ -23,6 +23,7 @@ import {
 import { solanaConnection, hasSolanaConnection } from "@/lib/solana/connection";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { hasCredentials } from "@/lib/env";
+import { getCachedValue } from "@/lib/cache";
 import { bags } from "@/lib/bags/client";
 import { formatRelativeTime, formatSol } from "@repo/lib";
 import { cn } from "@repo/lib";
@@ -183,16 +184,21 @@ function SurfaceStatusBucket({
 
 async function fetchHotWalletLamports(): Promise<number | null> {
   if (!hasSolanaConnection() || !hasCredentials.payoutKey()) return null;
-  try {
-    const pk = payoutSignerPublicKey();
-    if (!pk) return null;
-    const { PublicKey } = await import("@solana/web3.js");
-    const conn = solanaConnection("confirmed");
-    const lamports = await conn.getBalance(new PublicKey(pk));
-    return lamports;
-  } catch {
-    return null;
-  }
+  const pk = payoutSignerPublicKey();
+  if (!pk) return null;
+  return getCachedValue<number | null>(
+    async () => {
+      try {
+        const { PublicKey } = await import("@solana/web3.js");
+        const conn = solanaConnection("confirmed");
+        return await conn.getBalance(new PublicKey(pk));
+      } catch {
+        return null;
+      }
+    },
+    ["gitbags:admin:hot-wallet-lamports:v1", pk],
+    { tags: ["gitbags:admin:hot-wallet"], revalidate: 30 },
+  );
 }
 
 interface HealthSummary {
@@ -206,15 +212,23 @@ async function fetchHealthSummary(): Promise<HealthSummary> {
 }
 
 async function pingBags(): Promise<{ ok: boolean; latencyMs: number | null }> {
-  // Even when creds are absent, the typed client falls back to stubs and
-  // returns deterministic data — that still validates the client surface.
-  const start = Date.now();
-  try {
-    await bags.getLifetimeFees("So11111111111111111111111111111111111111112");
-    return { ok: true, latencyMs: Date.now() - start };
-  } catch {
-    return { ok: false, latencyMs: null };
-  }
+  // Validates Bags REST API key via GET /auth/me. No Solana RPC, unlike the
+  // legacy bags.getLifetimeFees(SOL_MINT) probe which derived an on-chain
+  // PDA and burned Helius credits. Cached 60s so /admin renders are cheap.
+  if (!hasCredentials.bags()) return { ok: false, latencyMs: null };
+  return getCachedValue<{ ok: boolean; latencyMs: number | null }>(
+    async () => {
+      const start = Date.now();
+      try {
+        await bags.authMe();
+        return { ok: true, latencyMs: Date.now() - start };
+      } catch {
+        return { ok: false, latencyMs: null };
+      }
+    },
+    ["gitbags:admin:ping-bags:v2"],
+    { tags: ["gitbags:admin:health"], revalidate: 60 },
+  );
 }
 
 async function pingGitHub(): Promise<{

@@ -19,6 +19,7 @@ import { dbHttp } from "@/db";
 import { sql } from "drizzle-orm";
 import { redis } from "@/lib/redis";
 import { bags } from "@/lib/bags/client";
+import { getCachedValue } from "@/lib/cache";
 import { hasSolanaConnection, solanaConnection } from "@/lib/solana/connection";
 import { cn } from "@repo/lib";
 
@@ -175,25 +176,42 @@ async function pingBags(): Promise<ServiceHealth> {
       icon: Sparkles,
     };
   }
-  const t = Date.now();
-  try {
-    await bags.getLifetimeFees("So11111111111111111111111111111111111111112");
+  // GET /auth/me validates the API key directly against the Bags REST API.
+  // No Solana RPC, unlike the legacy getLifetimeFees(SOL_MINT) probe which
+  // derived an on-chain PDA and burned Helius credits per /admin/integrations
+  // render. Cached 60s; throw on probe failure carries the error message.
+  const probe = await getCachedValue<
+    | { ok: true; latencyMs: number }
+    | { ok: false; latencyMs: null; error: string }
+  >(
+    async () => {
+      const start = Date.now();
+      try {
+        await bags.authMe();
+        return { ok: true, latencyMs: Date.now() - start };
+      } catch (e) {
+        return { ok: false, latencyMs: null, error: (e as Error).message };
+      }
+    },
+    ["gitbags:admin:integrations:ping-bags:v2"],
+    { tags: ["gitbags:admin:integrations:health"], revalidate: 60 },
+  );
+  if (probe.ok) {
     return {
       name: "Bags.fm",
       status: "ok",
-      latencyMs: Date.now() - t,
-      detail: `Lifetime fees probe ok. ${partnerDetail}`,
-      icon: Sparkles,
-    };
-  } catch (e) {
-    return {
-      name: "Bags.fm",
-      status: "fail",
-      latencyMs: null,
-      detail: (e as Error).message,
+      latencyMs: probe.latencyMs,
+      detail: `Auth probe ok. ${partnerDetail}`,
       icon: Sparkles,
     };
   }
+  return {
+    name: "Bags.fm",
+    status: "fail",
+    latencyMs: null,
+    detail: probe.error,
+    icon: Sparkles,
+  };
 }
 
 async function pingGithubApp(): Promise<ServiceHealth> {
