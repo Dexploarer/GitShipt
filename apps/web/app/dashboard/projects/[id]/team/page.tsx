@@ -129,7 +129,7 @@ function Stub() {
       <EmptyState
         icon={Sparkles}
         title="Stub mode"
-        description="Set DATABASE_URL to view team members."
+        description="Set DATABASE_URL or POSTGRES_URL to view team members."
       />
     </div>
   );

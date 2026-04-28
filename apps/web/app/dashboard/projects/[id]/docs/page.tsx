@@ -46,7 +46,7 @@ function Stub() {
       <EmptyState
         icon={Sparkles}
         title="Stub mode"
-        description="Set DATABASE_URL to manage docs."
+        description="Set DATABASE_URL or POSTGRES_URL to manage docs."
       />
     </div>
   );

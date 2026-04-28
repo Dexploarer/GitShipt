@@ -26,7 +26,7 @@ export default async function WalletsPage() {
         <EmptyState
           icon={Sparkles}
           title="Stub mode"
-          description="Set DATABASE_URL to view linked wallets."
+          description="Set DATABASE_URL or POSTGRES_URL to view linked wallets."
         />
       </div>
     );
@@ -104,12 +104,7 @@ export default async function WalletsPage() {
                     <span className="text-caption text-fg-muted">—</span>
                   )}
                   <span className="inline-flex items-center gap-2">
-                    <Badge
-                      variant="success"
-                      size="sm"
-                      dot
-                      dotColor="success"
-                    >
+                    <Badge variant="success" size="sm" dot dotColor="success">
                       verified
                     </Badge>
                     <span className="text-caption text-fg-muted">

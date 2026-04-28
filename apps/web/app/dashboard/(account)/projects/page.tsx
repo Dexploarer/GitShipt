@@ -28,7 +28,7 @@ export default async function ProjectsPage() {
         <EmptyState
           icon={FolderGit2}
           title="Stub mode"
-          description="Set DATABASE_URL to view your projects."
+          description="Set DATABASE_URL or POSTGRES_URL to view your projects."
           cta={{ label: "Sign in", href: "/auth/signin" }}
         />
       </div>

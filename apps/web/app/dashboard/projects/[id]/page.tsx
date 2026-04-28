@@ -249,7 +249,7 @@ function StubShell() {
       <EmptyState
         icon={Sparkles}
         title="Stub mode"
-        description="DATABASE_URL is not configured. Per-project console comes online when Postgres is provisioned."
+        description="DATABASE_URL or POSTGRES_URL is not configured. Per-project console comes online when Postgres is provisioned."
       />
     </div>
   );

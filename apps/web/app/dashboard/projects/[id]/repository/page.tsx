@@ -200,7 +200,7 @@ function Stub() {
       <EmptyState
         icon={Sparkles}
         title="Stub mode"
-        description="Set DATABASE_URL to view repository state."
+        description="Set DATABASE_URL or POSTGRES_URL to view repository state."
       />
     </div>
   );

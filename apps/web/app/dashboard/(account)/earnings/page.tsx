@@ -30,7 +30,7 @@ export default async function EarningsPage() {
         <EmptyState
           icon={Sparkles}
           title="Stub mode"
-          description="Set DATABASE_URL to view earnings."
+          description="Set DATABASE_URL or POSTGRES_URL to view earnings."
         />
       </div>
     );
@@ -48,9 +48,7 @@ export default async function EarningsPage() {
   // the API (the earnings query returns slugs only).
   const slugs = earnings.byProject.map((p) => p.projectSlug);
   const rows = await getProjectIdsBySlug(slugs);
-  const projectIdBySlug = new Map(
-    rows.map((row) => [row.slug, row.projectId]),
-  );
+  const projectIdBySlug = new Map(rows.map((row) => [row.slug, row.projectId]));
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">

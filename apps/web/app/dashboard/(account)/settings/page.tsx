@@ -38,7 +38,7 @@ export default async function SettingsPage() {
         <EmptyState
           icon={Settings}
           title="Stub mode"
-          description="Set DATABASE_URL to manage account settings."
+          description="Set DATABASE_URL or POSTGRES_URL to manage account settings."
         />
       </div>
     );

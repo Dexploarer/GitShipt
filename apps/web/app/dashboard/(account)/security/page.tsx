@@ -23,7 +23,7 @@ export default async function SecurityPage() {
           <CardHeader>
             <CardTitle>Stub mode</CardTitle>
             <CardDescription>
-              Set DATABASE_URL to manage security settings.
+              Set DATABASE_URL or POSTGRES_URL to manage security settings.
             </CardDescription>
           </CardHeader>
         </Card>

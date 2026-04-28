@@ -1,12 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType } from "react";
-import {
-  Calendar,
-  Github,
-  ShieldCheck,
-  UserRound,
-} from "lucide-react";
+import { Calendar, Github, ShieldCheck, UserRound } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
 import { getAccountProfile } from "@/lib/queries/account";
@@ -31,7 +26,7 @@ export default async function ProfilePage() {
         <EmptyState
           icon={UserRound}
           title="Stub mode"
-          description="Set DATABASE_URL to view your profile."
+          description="Set DATABASE_URL or POSTGRES_URL to view your profile."
         />
       </div>
     );
@@ -65,9 +60,7 @@ export default async function ProfilePage() {
                 {profile.name}
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-body-sm text-fg-secondary">
-                {handle ? (
-                  <span className="text-mono-sm">{handle}</span>
-                ) : null}
+                {handle ? <span className="text-mono-sm">{handle}</span> : null}
                 <span>{profile.email}</span>
               </div>
             </div>

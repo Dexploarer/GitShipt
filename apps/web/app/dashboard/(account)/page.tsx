@@ -106,7 +106,7 @@ export default async function DashboardPage() {
 }
 
 /**
- * Stub-mode page — DB unavailable, no real data. Shown when DATABASE_URL is
+ * Stub-mode page — DB unavailable, no real data. Shown when DATABASE_URL or POSTGRES_URL is
  * unset.
  */
 function DashboardStub() {
@@ -115,7 +115,7 @@ function DashboardStub() {
       <EmptyState
         icon={Sparkles}
         title="Stub mode"
-        description="Set DATABASE_URL to bring the dashboard online. Once Neon Postgres + GitHub OAuth are configured, your projects, earnings, and wallets will populate here."
+        description="Set DATABASE_URL or POSTGRES_URL to bring the dashboard online. Once Neon Postgres and GitHub OAuth are configured, your projects, earnings, and wallets will populate here."
         cta={{ label: "Sign in", href: "/auth/signin" }}
       />
     </div>
