@@ -29,12 +29,12 @@ This PRD has been verified against current platform docs. Material decisions and
 1. **Bags Token Launch v2 has native fee sharing with direct wallets and social identity lookup**. GitBags starts with a direct platform pool wallet claimer for the contributor pool, and can update future fee-share configs to route verified contributor wallets directly while routing unlinked contributors to the pool. Bags can also resolve supported social identities (`github`, `twitter`, `kick`, `tiktok`, and legacy `moltbook`) to wallets when a future flow needs identity-based fee recipients. Maximum 100 fee earners per token (including creator). Source: Bags API changelog, Bags skill, and SDK examples (`@bagsfm/bags-sdk`).
 2. **Fee shares are configured at launch and post-launch edits require a Bags fee-share admin update transaction**. This is the single biggest constraint. To support a daily-changing leaderboard, GitBags treats Bags fee-share updates as prospective accrual routing: verified wallets can become direct Bags claimers for future fees, while unlinked/overflow/rounding shares remain assigned to the platform contributor pool wallet and are paid from GitBags after verification. GitBags platform revenue is a second explicit treasury `feeClaimer` in the same Bags config. Bags partner revenue is a separate partner-key rail (`partner` + `partnerConfig`) attached to the launch, not part of the 10,000 BPS claimer envelope.
 3. **Next.js 16.2 is current** (March 18, 2026). Cache Components, React Compiler, and Turbopack are all stable. **Critical**: `middleware.ts` is renamed to `proxy.ts` in Next.js 16. Patch level must be current to mitigate React Server Components RCE (CVE-2025-66478, CVSS 10.0, December 2025) and middleware bypass (CVE-2025-29927).
-4. **Vercel Postgres is deprecated**. Use Neon Postgres via Vercel Marketplace (Vercel-Managed integration). Auto-injects `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct).
+4. **Vercel Postgres is deprecated**. Use Neon Postgres via Vercel Marketplace. The app prefers Neon's server-only `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) variables, with `POSTGRES_URL` aliases accepted for generic Postgres compatibility.
 5. **Vercel Workflows is GA, Vercel Queues is public beta** (no allowlist). Workflows is built on Queues + Fluid Compute + managed persistence. Configured via `experimentalTriggers` in `vercel.json`. Run-level limits: ~2000 events or ~1 GB storage before replay slows down. Fan out via child workflows.
 6. **Vercel security incident, April 19, 2026**. Compromised AI tool's OAuth token gave attackers access to Vercel internal systems. Non-sensitive env vars were readable. **All secrets must be flagged Sensitive in the dashboard or via API (`type: "sensitive"`).** Crypto teams are particularly exposed; cold treasury keys never touch Vercel.
 7. **Solana SDK**: stay on `@solana/web3.js@^1.98` (v1 line). The Bags SDK uses v1-style imports (`Connection`, `Keypair`, `PublicKey`, `VersionedTransaction`). v2 (`@solana/kit`) is GA but ecosystem migration is incomplete.
 8. **Auth**: `better-auth` for GitHub OAuth, with a custom plugin for Sign-In With Solana. SIWS standard is published by Phantom (`@phantom/sign-in-with-solana`). `Credentials`-style provider on Auth.js v5 is the fallback if better-auth's plugin model doesn't fit.
-9. **Postgres driver**: `drizzle-orm/neon-http` for serverless workflow steps (single-shot HTTP queries are fastest). `drizzle-orm/neon-serverless` (WebSocket) only where transactions span multiple statements.
+9. **Postgres driver**: `drizzle-orm/neon-http` for Neon runtime queries, `drizzle-orm/neon-serverless` where Neon transactions span multiple statements, and `drizzle-orm/postgres-js` only for generic Postgres compatibility.
 10. **UI**: Tailwind v4 + shadcn/ui (CSS-first config, `@theme` directive, no `tailwind.config.js`). Confirmed standard 2026 stack.
 
 ## Assumptions to confirm with team
@@ -104,7 +104,7 @@ This PRD has been verified against current platform docs. Material decisions and
 [Vercel Edge Network]
    │
    ▼
-[Next.js 16 on Fluid Compute] ── RSC + Server Actions ──▶ [Vercel Postgres (Neon)]
+[Next.js 16 on Fluid Compute] ── RSC + Server Actions ──▶ [Neon Postgres]
    │                                                          ▲
    │                                                          │
    ├── enqueue ──▶ [Vercel Queues] ──▶ [Workflow Runs] ───────┤
@@ -461,24 +461,24 @@ All background work runs as **Vercel Workflows** triggered by **Vercel Cron Jobs
 
 ## Stack and infra
 
-| Layer          | Choice                                                                                                                               | Reason                                                                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Web            | Next.js 16.2 (App Router, RSC, Server Actions, Turbopack) on **Vercel Fluid Compute**                                                | Stack constraint, latest features, up to 14min execution. Patched against CVE-2025-66478 and CVE-2025-29927.                              |
-| Lang           | TypeScript strict                                                                                                                    | Non-negotiable                                                                                                                            |
-| UI             | Tailwind v4 (`@theme` directive, no `tailwind.config.js`) + shadcn/ui + Tremor (admin charts) + Lucide                               | Standard 2026 stack                                                                                                                       |
-| Design system  | **DESIGN.md** at project root (Google Labs spec, Apache 2.0)                                                                         | Persistent design context for all coding agents (Claude Code, Cursor, Copilot). See companion `DESIGN.md` file.                           |
-| DB             | **Neon Postgres** via Vercel Marketplace (Vercel-Managed integration)                                                                | Auto-injects `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED`. Per-PR preview branches included.                                       |
-| ORM            | Drizzle (`drizzle-orm/neon-http` for serverless steps, `neon-serverless` for transactional flows) + drizzle-kit                      | Type-safe, fast, no overhead, native Neon HTTP driver                                                                                     |
-| Background     | **Vercel Workflows + Vercel Queues** (`'use workflow'` / `'use step'`, `experimentalTriggers` config)                                | Durable steps, automatic retries, survives deploys, no separate worker service. Workflow SDK is open-source so portable if we ever leave. |
-| Cache / nonces | **Upstash Redis (via Vercel Marketplace)**                                                                                           | One-click integration. Used only for cache, SIWS nonces, rate limit, idempotency keys.                                                    |
-| Cron           | **Vercel Cron Jobs** (Pro plan required for sub-daily)                                                                               | Native, secured via `CRON_SECRET`                                                                                                         |
-| Auth           | **better-auth** with GitHub OAuth + custom SIWS plugin (`@phantom/sign-in-with-solana`)                                              | Modern, declarative, extensible. Auth.js v5 fallback if SIWS plugin model proves friction.                                                |
-| Solana         | `@solana/web3.js@^1.98.x` (v1 line, locked post-Dec-2024 supply chain incident), `@solana/spl-token`, Helius RPC, `@bagsfm/bags-sdk` | Bags SDK uses v1-style imports. Don't move to v2/`@solana/kit` until Bags ports.                                                          |
-| Observability  | Vercel Workflows dashboard, Vercel Observability, Sentry                                                                             | Built-in for workflows, Sentry for app errors                                                                                             |
-| CI/CD          | GitHub Actions, preview envs on Vercel                                                                                               | Per-PR preview                                                                                                                            |
-| Testing        | Vitest (unit), Playwright (e2e launch flow)                                                                                          | Realistic coverage                                                                                                                        |
-| Local dev      | Bun for scripts/build tooling, Workflow Local World for offline workflow testing                                                     | Fast, runs same workflow code locally                                                                                                     |
-| Secrets        | Vercel env vars, **all flagged Sensitive**                                                                                           | Single source of truth post-April-2026 incident. Cold treasury key never enters Vercel.                                                   |
+| Layer          | Choice                                                                                                                                           | Reason                                                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web            | Next.js 16.2 (App Router, RSC, Server Actions, Turbopack) on **Vercel Fluid Compute**                                                            | Stack constraint, latest features, up to 14min execution. Patched against CVE-2025-66478 and CVE-2025-29927.                                               |
+| Lang           | TypeScript strict                                                                                                                                | Non-negotiable                                                                                                                                             |
+| UI             | Tailwind v4 (`@theme` directive, no `tailwind.config.js`) + shadcn/ui + Tremor (admin charts) + Lucide                                           | Standard 2026 stack                                                                                                                                        |
+| Design system  | **DESIGN.md** at project root (Google Labs spec, Apache 2.0)                                                                                     | Persistent design context for all coding agents (Claude Code, Cursor, Copilot). See companion `DESIGN.md` file.                                            |
+| DB             | **Neon Postgres** via Vercel Marketplace                                                                                                         | Injects server-only Postgres connection strings; use `DATABASE_URL` for runtime queries and `DATABASE_URL_UNPOOLED` for direct migration/transaction work. |
+| ORM            | Drizzle (`drizzle-orm/neon-http` for Neon runtime reads/writes, `neon-serverless` for transactional flows, `postgres-js` fallback) + drizzle-kit | Type-safe SQL and portable Postgres access while preserving generic Postgres compatibility.                                                                |
+| Background     | **Vercel Workflows + Vercel Queues** (`'use workflow'` / `'use step'`, `experimentalTriggers` config)                                            | Durable steps, automatic retries, survives deploys, no separate worker service. Workflow SDK is open-source so portable if we ever leave.                  |
+| Cache / nonces | **Upstash Redis (via Vercel Marketplace)**                                                                                                       | One-click integration. Used only for cache, SIWS nonces, rate limit, idempotency keys.                                                                     |
+| Cron           | **Vercel Cron Jobs** (Pro plan required for sub-daily)                                                                                           | Native, secured via `CRON_SECRET`                                                                                                                          |
+| Auth           | **better-auth** with GitHub OAuth + custom SIWS plugin (`@phantom/sign-in-with-solana`)                                                          | Modern, declarative, extensible. Auth.js v5 fallback if SIWS plugin model proves friction.                                                                 |
+| Solana         | `@solana/web3.js@^1.98.x` (v1 line, locked post-Dec-2024 supply chain incident), `@solana/spl-token`, Helius RPC, `@bagsfm/bags-sdk`             | Bags SDK uses v1-style imports. Don't move to v2/`@solana/kit` until Bags ports.                                                                           |
+| Observability  | Vercel Workflows dashboard, Vercel Observability, Sentry                                                                                         | Built-in for workflows, Sentry for app errors                                                                                                              |
+| CI/CD          | GitHub Actions, preview envs on Vercel                                                                                                           | Per-PR preview                                                                                                                                             |
+| Testing        | Vitest (unit), Playwright (e2e launch flow)                                                                                                      | Realistic coverage                                                                                                                                         |
+| Local dev      | Bun for scripts/build tooling, Workflow Local World for offline workflow testing                                                                 | Fast, runs same workflow code locally                                                                                                                      |
+| Secrets        | Vercel env vars, **all flagged Sensitive**                                                                                                       | Single source of truth post-April-2026 incident. Cold treasury key never enters Vercel.                                                                    |
 
 ---
 
@@ -959,7 +959,7 @@ Example `vercel.json`:
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "bunVersion": "1.3.12",
+  "bunVersion": "1.x",
   "installCommand": "bun install --frozen-lockfile",
   "buildCommand": "bun run build",
   "devCommand": "bun run dev -- --port $PORT",
@@ -987,7 +987,7 @@ Each cron route is a thin handler that verifies `CRON_SECRET` and triggers the c
 
 ### Marketplace integrations (one-click from Vercel dashboard)
 
-- Vercel Postgres (Neon)
+- Neon Postgres
 - Upstash Redis
 - Sentry (optional, error tracking)
 
@@ -1000,10 +1000,10 @@ Each cron route is a thin handler that verifies `CRON_SECRET` and triggers the c
 Configured in Vercel dashboard, scoped per environment (Production / Preview / Development). All marked `Sensitive` where applicable.
 
 ```
-# Database (auto-injected by Vercel Postgres)
-POSTGRES_URL
-POSTGRES_PRISMA_URL
-POSTGRES_URL_NON_POOLING
+# Database (auto-injected by the Neon Vercel integration)
+DATABASE_URL
+DATABASE_URL_UNPOOLED
+PGHOST / PGUSER / PGPASSWORD / PGDATABASE
 
 # Cache (auto-injected by Upstash)
 UPSTASH_REDIS_REST_URL

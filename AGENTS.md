@@ -17,8 +17,9 @@ If anything in these files conflicts with your training data, the file wins.
 
 ## Stack pins (verified April 2026)
 
-- **Runtime**: Bun workspace monorepo, Next.js 16.2 (App Router, Server Actions, Turbopack, React Compiler), React 19.2, Node 22.
-- **DB**: Neon Postgres via `drizzle-orm/neon-http` for workflow steps; `neon-serverless` for multi-statement transactions. Non-Neon `DATABASE_URL`s (Supabase pooler, local Postgres) fall back to `drizzle-orm/postgres-js` — RLS context wrapping is Neon-only, so non-Neon paths rely on `requirePermission` for authorization.
+- **Runtime**: Bun 1.3.13 workspace monorepo, Next.js 16.2 (App Router, Server Actions, Turbopack, React Compiler), React 19.2, Node 22.
+- **Bun HTTP/3**: Bun's `h3: true` / `protocol: "http3"` APIs landed after the 1.3.13 stable release. Use canary only for local experiments; keep production Next/Vercel and money-moving paths on stable Bun until Bun publishes HTTP/3 in a stable release.
+- **DB**: Neon Postgres via Vercel Marketplace. The app accepts `DATABASE_URL` / `DATABASE_URL_UNPOOLED` from the Neon integration, plus `POSTGRES_URL` / `POSTGRES_URL_NON_POOLING` aliases for generic Postgres compatibility. Runtime DB access uses Drizzle; Neon URLs use the Neon serverless driver path and generic Postgres uses `postgres-js`.
 - **Cache / nonces / rate-limit**: Upstash Redis.
 - **Background**: Vercel Workflows (`workflow` package, `'use workflow'` / `'use step'` directives). **Step idempotency is NOT automatic** — pass `getStepMetadata().stepId` as the key for any external API call.
 - **Auth**: `better-auth` with GitHub OAuth + custom SIWS plugin (`@phantom/sign-in-with-solana`).
@@ -62,65 +63,65 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-28 3:31pm CDT
+# [gitbags] recent context, 2026-04-28 6:35pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (25,594t read) | 2,826,438t work | 99% savings
+Stats: 50 obs (23,411t read) | 1,654,440t work | 99% savings
 
 ### Apr 28, 2026
-1595 12:58a 🔵 GitBags Complete Route Inventory vs PRD Gap Analysis
-1601 1:01a ⚖️ GitBags Public Surface Deslop Pass — Scope and Constraints Defined
-1602 1:02a 🟣 PageHeader Component — New Shared Dashboard Page Header Primitive
-1603 " 🔄 Dashboard ProjectList — Rows Converted to Full-Width Clickable Links
-1604 " 🔄 OnboardingHero — Card Grid Replaced with Layout-Based Step Panel
-1605 " 🔄 Account Dashboard Pages — PageHeader Applied, Card Nesting Removed
-1606 " 🔄 Project Console Pages — PageHeader Applied Across All 10 Sub-Routes
-1607 " ✅ Dashboard Deslop — Typecheck and Lint Pass Clean After All Changes
-1608 1:06a 🟣 GitBags Public Surface Deslop Pass — Full Scope Completed
-1609 1:08a ✅ Quality Gate Passed — Typecheck, Lint, Theme:Lint All Green
-1610 " 🔴 v1.1 / "Coming Soon" Language Fully Purged from User-Facing Copy
-1611 " ⚖️ Subagent Changes Partially Reverted — Only Core Deslop Kept
-1612 " 🟣 PublicPageIntro Component Adopted for Legal and Public Content Pages
-1613 1:09a ✅ E2E Suite Green — 6/6 Playwright Tests Pass Against Production Build
-1614 " 🔵 GlobalLeaderboardTable Final State — overflow-x-auto Wrapper Retained
-1615 " 🔄 ExploreFilters — Custom Dropdown Replaced with Native Select + ARIA
-1635 1:38a ⚖️ AI Agent Fee Routing — Treasury Wallet Failsafe for Agent Contributors
-1637 " 🔵 GitBags Payout + Bot Detection Architecture — Full Map for AI Agent Treasury Routing
-1640 1:39a 🔵 GitBags Payout Pipeline — Complete Code Path for AI Agent Treasury Routing Implementation
-1646 1:40a 🟣 AI Agent Treasury Routing — Full Implementation Across Scoring, Indexer, Snapshot, and Payout Pipeline
-1649 1:41a ✅ AI Agent Treasury Routing — Quality Gate Verification: All 42 Tests Pass, Typecheck and Lint Clean
-1653 " ✅ AI Agent Treasury Routing — Production Build and E2E Suite Pass, Full Staging State
-1655 1:39p 🔵 GitBags Money-Flow Security Audit — Scope and Prior Architecture Map
-1656 1:41p 🔵 GitBags Money-Flow Architecture — Full Revenue Rails Map
-1657 " 🔵 GitBags Payout Guard Stack — Idempotency, Audit, and Permission Architecture
-1658 " 🔵 GitBags AI Agent Treasury Redirect — Policy and Implementation
-1659 " 🔵 GitBags Money-Flow Test Coverage Gaps — Flagged Risk Areas
-1661 1:58p ⚖️ elizaOS + "Mia" AI Character — Strategic Feature Exploration for GitBags
-1666 2:06p 🔵 Twitter/Social References Audit — GitBags Codebase
-1667 " ✅ Twitter/X Social Links Updated — @bagsdotfm → @GitBagsApp
-1669 2:07p 🔵 GitBags Working Tree — Broader In-Progress Changes Beyond Social Link Update
-1672 2:13p 🔵 GitBags Database Caching Audit — Session Initialization and Context Loading
-1673 " 🔵 GitBags Pre-Audit Working Tree State — In-Progress Money-Flow Changes
-1674 " 🔵 Next.js 16.2.4 Caching API Surface — Full Local Docs Inventory
-1675 " 🔵 GitBags Caching Architecture — System Design and Redis Role Confirmed from PRD
-1680 2:14p 🔵 GitBags Cache Layer Architecture — Existing unstable_cache Infrastructure Without cacheComponents Enabled
-1681 " 🔵 Multi-Agent Caching Audit — Four Parallel Subagents Spawned Successfully
-1682 " 🔵 next.config.ts — No cacheComponents, No cacheHandlers, Strict CSP with Pending Nonce Work
-1679 " ⚖️ GitBags Database Caching Audit — Two-Phase Multi-Agent Remediation Plan
-1683 2:17p 🔵 GitBags Caching Architecture — Full Audit Map
-1684 " 🔵 GitBags PRD Caching Constraints — Next.js 16.2 Cache Components API Confirmed Present
-1685 " 🔵 GitBags Caching Pain Points — Comprehensive List of Gaps and Antipatterns
-1686 " 🔵 GitBags Pre-Audit Working Tree State — 12 Modified Files with In-Progress Money-Flow Changes
-1687 2:23p 🔴 PATCH + DELETE Cache Invalidation and Idempotency Gaps Fixed — projects/[id] Route
-1696 3:18p ⚖️ Vercel Workflow SDK Adoption — GitBags Platform Architecture Pivot
-1698 " 🔵 Vercel Workflow SDK — Step Idempotency Is NOT Automatic in GitBags
-1699 3:21p 🔵 GitBags Complete Workflow Inventory — 9 Workflows, Full Architecture Map
-1700 " 🟣 workflow-locks.ts — Redis Single-Flight Lock for Cron Fanout Workflows
-1709 3:22p 🟣 Redis Single-Flight Locks Wired Into All 5 Root Workflows
-1710 3:24p 🔴 Payout + Escrow Partial Chain Success Recovery — Manual Reconciliation Error Pattern
+1724 3:32p 🟣 workflow-locks.ts — Redis Single-Flight Distributed Locks for All Cron Workflows
+1725 " 🟣 Payout/Escrow Partial-Success Recovery — MANUAL_RECONCILIATION_ERROR Sentinel + Retry Loops
+1726 " 🟣 read-through-cache.ts — Central Redis Read-Through Cache with BigInt/Date Serialization
+1727 " 🟣 github/http-cache.ts — ETag Conditional-Fetch Layer for GitHub API Calls
+1728 " 🔄 GitHub contributors.ts and users.ts — Octokit Removed, Migrated to ETag HTTP Cache
+1732 5:16p 🔵 Solana Dev Skill Loaded for Money-Flow Security Audit
+1733 5:17p 🔵 GitBags Money-Flow Audit — Working Tree Has In-Progress Fund Reconciliation System
+1734 " 🔵 GitBags SPL Escrow Drain — Not Yet Implemented at v0
+1735 " 🔵 GitBags Money-Flow Full File Inventory — Comprehensive Audit Surface
+1736 " 🔵 GitBags PRD Money-Flow Contract — Authoritative Design Reference
+1749 5:27p 🔵 GitBags Money-Flow Security Audit — Session S129 Initiated
+1750 5:28p 🔵 GitBags Money-Flow Audit — Pre-Audit Working Tree State (S129)
+1751 " 🔵 Bags API v3.0.0 Fee Claim Surface — Confirmed for Audit
+1758 " 🟣 4 Parallel Money-Flow Fix Agents Dispatched — Finding 1–4 Coverage
+1759 " 🔵 GitBags Money-Flow Code Map — Manual Reconciliation Sentinel Pattern
+1755 5:29p 🔵 GitBags Admin Direct Launch — Double-Spend Risk from Post-Chain DB Failure
+1756 " 🔴 retryPayout Does Not Resume Payout Pipeline — executePayout Skips Existing Rows
+1757 " ⚖️ Worker C File Boundary Discipline — Payout/Reconciliation Helpers Off-Limits
+1764 5:31p 🔵 Finding 4 Confirmed — retryPayout Cannot Resume Execution
+1765 " 🔵 Finding 2 Confirmed — Launch Double-Spend: Chain Tx Before DB Persistence
+1766 " 🔵 Finding 3 Confirmed — Fee-Share Update Loses Partial Signatures on Failure
+1767 " 🔵 GitBags Tech Stack Confirmed — Bun 1.3.12, Next.js 16.2.4, workflow@4.2.4, Vitest
+1760 5:32p 🔵 executePayout Workflow Only Processes Snapshots With No Payout Row — Failed Rows Are Dead Ends
+1761 " 🔵 API Route launch/route.ts Has launch_configured Resume Path — Admin directLaunchProject Does Not
+1762 " 🔵 Manual Reconciliation Sentinel Exists in payout-helpers.ts — retryPayout Must Guard Against It
+1763 " 🔵 GitBags Payout Retry Fix Direction — Trigger processSnapshotPayout for Existing Snapshot ID
+1768 5:33p 🔴 fee-share-update partial-success signature loss — hardening plan dispatched
+1769 " ⚖️ Incremental signature persistence + manual-reconciliation sentinel pattern chosen for fee-share retry safety
+1770 5:34p ⚖️ GitBags Launch Double-Spend Fix — Worker B Scope Assignment
+1771 5:36p 🔵 GitBags Money-Flow Security Audit — Scope Definition and Research Plan
+1772 5:37p 🔴 Admin Direct Launch — Durable launch_configured Checkpoint Before Final On-Chain Transaction
+1773 " 🔴 retryPayout — Both Admin and Dashboard Actions Now Actually Trigger Payout Workflow Instead of Flipping Status to Pending
+1774 " 🔄 claimPartnerFees Migrated to reservePartnerFeeClaimAttempt + executePartnerFeeClaimAttempt Helper Pattern
+1775 5:40p 🔴 Payout Claim Ambiguity — Manual Reconciliation Sentinel + Signature Preservation
+1776 " 🔴 Launch Double-Spend Prevention — pending: Sentinel + launch_configured Checkpoint
+1777 " 🔴 retryPayout — Blocks Ambiguous Cases, Starts Workflow at claiming State
+1778 " 🔴 Fee-Share Update Partial-Success Hardening — Per-Tx Signature Persistence + Retry Guard
+1779 " ✅ Money-Flow Hardening — Full Quality Gate: 22/22 Tests, Typecheck, Lint All Green
+1780 " 🔵 GitBags Money-Flow Residual Risk Registry — Post-Audit Known Gaps
+1781 6:24p 🔵 Latest Bun Release — v1.3.13
+1782 6:25p 🔵 Bun v1.3.13 Release Notes Contain No HTTP/3 Feature
+1784 " 🔵 Bun HTTP/3 API Surface — `protocol: "http3"` for fetch, `h3: true` for Bun.serve
+1788 6:27p 🔵 Bun HTTP/3 Merged to Main Post-1.3.13 — Requires Canary 1.3.14 or Next Stable
+1789 " ✅ GitBags Bun Version Bumped 1.3.12 → 1.3.13 Across All Pin Locations
+1790 " 🟣 New scripts/check-bun-http3.mjs — HTTP/3 Canary Availability Checker
+1793 6:28p ✅ GitBags Bun 1.3.12 → 1.3.13 Upgrade — All 6 Pin Locations Updated and Verified Clean
+1797 6:29p 🔵 check-bun-http3.mjs Correctly Detects Local Bun 1.3.12 as Below Minimum — Developer Must Run `bun upgrade`
+1798 " ✅ gitbags-prd.md + vercel.json Doc Pass — Neon Terminology, Env Var Canonicalization, Missing Cron Added
+1799 " ✅ apps/web dev/build/start Scripts Changed to `bun run --bun next` — Opt Into Bun Runtime for Next.js
+1806 6:34p 🔵 GitBags Post-Upgrade Quality Gate — All Green (S133 Final Verification)
 
-Access 2826k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 1654k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

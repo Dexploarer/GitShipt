@@ -22,14 +22,15 @@ If this README disagrees with those files, the spec wins.
 
 ## Stack
 
-- Bun workspace monorepo with `bun.lock`
+- Bun 1.3.13 workspace monorepo with `bun.lock`
 - Next.js 16.2 App Router, React 19.2, React Compiler, Turbopack, Node 22
 - TypeScript strict with `noUncheckedIndexedAccess`
 - Tailwind v4 with `@theme inline`, shadcn-style primitives in `@repo/ui`,
   Lucide, Geist, Geist Mono
 - `better-auth` with GitHub OAuth plus custom SIWS wallet linking
-- Neon Postgres through Drizzle, using HTTP for normal queries and pooled
-  serverless connections for transactions/workflows
+- Neon Postgres through Drizzle, using `DATABASE_URL` for runtime queries and
+  `DATABASE_URL_UNPOOLED` for migrations and multi-statement workflow
+  transactions
 - Redis for rate limits, idempotency, nonce storage, MFA confirmation, and cache
   coordination
 - Vercel Workflows for indexing, snapshots, payouts, escrow expiry, and KPI
@@ -105,9 +106,14 @@ Core variables:
   validate a local production env file without printing secret values.
 - `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` should point at the deployed app
   origin. Production uses `https://gitbags.com`.
-- `DATABASE_URL` and `DATABASE_URL_UNPOOLED` are Neon Postgres connection URLs.
-- `REDIS_URL` must be a Redis-compatible URL; production needs this for rate
-  limits, idempotency, SIWS nonces, and workflow safety.
+- `DATABASE_URL` and `DATABASE_URL_UNPOOLED` are the preferred server-only Neon
+  Postgres connection URLs. `POSTGRES_URL` and `POSTGRES_URL_NON_POOLING` remain
+  accepted aliases for generic Postgres compatibility.
+- Never use `NEXT_PUBLIC_DATABASE_URL` or `NEXT_PUBLIC_DATABASE_URL_*`; any
+  `NEXT_PUBLIC_*` value is exposed to browser code.
+- `REDIS_URL` or Vercel Upstash's `UPSTASH_REDIS_REST_REDIS_URL` must be a
+  Redis-compatible URL; production needs this for rate limits, idempotency,
+  SIWS nonces, and workflow safety.
 - `BETTER_AUTH_SECRET`, `GITHUB_CLIENT_ID`, and `GITHUB_CLIENT_SECRET` enable
   GitHub sign-in. The production GitHub OAuth callback is
   `https://gitbags.com/api/auth/callback/github`.
@@ -294,10 +300,22 @@ Important deployment settings:
 - Build command: `bun run build`
 - Development command: `bun run dev -- --port $PORT`
 - Output directory: `apps/web/.next`
-- Bun version: `1.3.12`
+- Local Bun pin: `1.3.13`
+- Vercel Bun runtime: `1.x` in `vercel.json`, so Vercel uses its latest
+  supported Bun 1.x runtime while package metadata keeps local installs pinned.
 - Function region: `iad1`, colocated with the current US East Neon/Redis setup.
 - Fluid Compute: enabled for workflow and cron-heavy routes.
 - Cron paths stay unchanged because the Next app still owns `/api/cron/*`.
+
+### Bun HTTP/3
+
+Bun HTTP/3 support (`Bun.serve({ h3: true })` and experimental
+`fetch(..., { protocol: "http3" })`) landed on Bun `main` after the 1.3.13
+stable release. GitBags stays on stable Bun for production Next/Vercel builds;
+use `bun upgrade --canary` locally and run `bun run bun:http3:check` before
+testing those APIs. Do not wire HTTP/3-only behavior into money-moving Bags or
+Solana paths until Bun ships the feature in a stable release and the target API
+origin is verified to support it.
 
 The Vercel project must have the Marketplace Neon/Postgres and Redis variables,
 GitHub OAuth/App variables, Bags variables, Solana variables, and `CRON_SECRET`
