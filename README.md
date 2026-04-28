@@ -104,7 +104,7 @@ Core variables:
 - Run `bun run env:check -- --env-file=.env.production.local` before launch to
   validate a local production env file without printing secret values.
 - `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` should point at the deployed app
-  origin.
+  origin. Production uses `https://gitbags.com`.
 - `DATABASE_URL` and `DATABASE_URL_UNPOOLED` are Neon Postgres connection URLs.
 - `REDIS_URL` must be a Redis-compatible URL; production needs this for rate
   limits, idempotency, SIWS nonces, and workflow safety.
@@ -127,8 +127,8 @@ Production readiness checks require the deployed environment to use the live
 cluster and canonical origin:
 
 - `NEXT_PUBLIC_SOLANA_CLUSTER=mainnet-beta`.
-- `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` set to the canonical deployed
-  HTTPS origin, not localhost or a preview URL.
+- `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` set to `https://gitbags.com`, not
+  localhost or a preview URL.
 - `BAGS_PARTNER_WALLET` and `BAGS_PARTNER_CONFIG_KEY` configured as a matching
   Bags partner pair. Keep the real config key out of the repo and set it only
   in the deployment environment, marked Sensitive under the repo policy above.

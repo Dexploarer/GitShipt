@@ -61,7 +61,7 @@ export function TokenActionsMenu({
     const origin =
       typeof window !== "undefined"
         ? window.location.origin
-        : "https://gitbags.xyz";
+        : "https://gitbags.com";
     const src = `${origin}/embed/r/${ghOwner}/${ghRepo}`;
     const snippet = `<iframe src="${src}" width="380" height="360" style="border:0;border-radius:12px;color-scheme:light dark" loading="lazy" title="GitBags · ${ghOwner}/${ghRepo}"></iframe>`;
     try {

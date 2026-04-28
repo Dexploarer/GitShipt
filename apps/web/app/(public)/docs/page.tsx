@@ -18,7 +18,7 @@ const TOC: Array<{ id: string; title: string }> = [
 ];
 
 const EMBED_SNIPPET = `<iframe
-  src="https://gitbags.xyz/embed/r/{org}/{repo}"
+  src="https://gitbags.com/embed/r/{org}/{repo}"
   width="380"
   height="360"
   style="border:0;border-radius:12px;color-scheme:light dark"

@@ -246,7 +246,7 @@ const tokenInfo = await sdk.tokenLaunch.createTokenInfoAndMetadata({
   symbol: "GBAGS",
   description:
     "Token for the gitbags repo. Fees redistribute to top contributors daily.",
-  imageUrl: "https://gitbags.xyz/og/gbags.png",
+  imageUrl: "https://gitbags.com/og/gbags.png",
 });
 
 // Step 2: create fee share config
@@ -1035,7 +1035,7 @@ SOLANA_TREASURY_ADDRESS
 CRON_SECRET               # 32+ random chars, marked Sensitive
 
 # App
-NEXT_PUBLIC_APP_URL
+NEXT_PUBLIC_APP_URL=https://gitbags.com
 PLATFORM_FEE_BPS_DEFAULT=500
 ADMIN_EMAIL_ALLOWLIST
 ```

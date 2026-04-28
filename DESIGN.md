@@ -804,7 +804,7 @@ The TokenInfoCard at `app/r/[org]/[repo]/_components/TokenInfoCard.tsx` doubles 
 
 ```html
 <iframe
-  src="https://gitbags.xyz/embed/r/{org}/{repo}"
+  src="https://gitbags.com/embed/r/{org}/{repo}"
   width="380"
   height="360"
   style="border:0;border-radius:12px;color-scheme:light dark"

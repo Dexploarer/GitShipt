@@ -8,7 +8,7 @@ const validBody = {
   name: "GitBags",
   symbol: "GBAGS",
   description: "Token for sym/gitbags. Fees redistribute to contributors.",
-  imageUrl: "https://gitbags.fm/og.png",
+  imageUrl: "https://gitbags.com/og.png",
   scoringConfig: {
     formulaVersion: "v0",
     windowDays: 30,
@@ -38,7 +38,7 @@ describe("Bags launch schemas", () => {
         name: "GitBags",
         symbol: "GBAGS",
         description: "",
-        imageUrl: "https://gitbags.fm/og.png",
+        imageUrl: "https://gitbags.com/og.png",
       }).success,
     ).toBe(false);
 

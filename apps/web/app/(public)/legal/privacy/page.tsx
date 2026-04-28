@@ -38,7 +38,7 @@ export default async function PrivacyPage() {
         <LegalSection index={1} title="Scope">
           <p>
             This policy covers personal data processed by the GitBags service at
-            gitbags.fm and its subdomains, including the public site, the
+            gitbags.com and its subdomains, including the public site, the
             dashboard, the admin console, and any GitBags-operated webhook
             receivers or background workflows.
           </p>
@@ -204,10 +204,10 @@ export default async function PrivacyPage() {
           <p>
             Privacy requests, deletion requests, and security reports:{" "}
             <a
-              href="mailto:privacy@gitbags.fm"
+              href="mailto:privacy@gitbags.com"
               className="text-fg underline-offset-4 hover:underline"
             >
-              privacy@gitbags.fm
+              privacy@gitbags.com
             </a>
             . Public discussion and code-level issues:{" "}
             <Link

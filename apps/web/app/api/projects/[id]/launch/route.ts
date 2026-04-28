@@ -271,7 +271,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
           description:
             project.description?.trim() ||
             defaultTokenDescription(project.ghOwner, project.ghRepo),
-          imageUrl: project.imageUrl ?? "https://gitbags.xyz/og/default.png",
+          imageUrl: project.imageUrl ?? "https://gitbags.com/og/default.png",
           website: project.tokenWebsiteUrl ?? undefined,
           twitter: project.tokenTwitterUrl ?? undefined,
           telegram: project.tokenTelegramUrl ?? undefined,

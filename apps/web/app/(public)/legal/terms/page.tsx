@@ -43,7 +43,7 @@ export default async function TermsPage() {
           <p>
             GitBags is provided strictly on an &ldquo;as is&rdquo; and &ldquo;as
             available&rdquo; basis with no warranty of any kind. These Terms
-            apply to the website at gitbags.fm, all subdomains, and any
+            apply to the website at gitbags.com, all subdomains, and any
             associated APIs or webhooks operated by the GitBags team.
           </p>
         </LegalSection>
@@ -234,10 +234,10 @@ export default async function TermsPage() {
           <p>
             Questions, security reports, and abuse complaints:{" "}
             <a
-              href="mailto:legal@gitbags.fm"
+              href="mailto:legal@gitbags.com"
               className="text-fg underline-offset-4 hover:underline"
             >
-              legal@gitbags.fm
+              legal@gitbags.com
             </a>
             . Bugs, feature requests, and source-level discussion happen in the
             public repository at{" "}
