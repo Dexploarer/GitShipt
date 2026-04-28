@@ -5,7 +5,10 @@
     "": {
       "name": "gitbags",
       "devDependencies": {
+        "next": "16.2.4",
         "prettier": "^3.4.2",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
         "typescript": "^5",
       },
     },

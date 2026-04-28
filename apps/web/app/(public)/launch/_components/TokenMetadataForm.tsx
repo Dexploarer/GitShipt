@@ -138,19 +138,15 @@ export function TokenMetadataForm({
   return (
     <form
       onSubmit={handleSubmit((data) => onSubmit(data))}
-      className="space-y-6"
+      className="space-y-5"
     >
       <header className="space-y-2">
         <h2 className="text-headline-sm">Token metadata</h2>
-        <p className="text-body-md text-fg-secondary">
-          These appear on Bags.fm and your project page. Symbol is uppercase
-          letters and numbers only — pick something traders can type.
-        </p>
         <RepoTagStrip repo={repo} />
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <div className="min-w-0 space-y-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+        <div className="min-w-0 space-y-4">
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
             <FormField
               label="Name"
@@ -191,7 +187,7 @@ export function TokenMetadataForm({
             required
           >
             <textarea
-              rows={7}
+              rows={5}
               maxLength={1000}
               {...register("description")}
               className={cn(
@@ -233,8 +229,8 @@ export function TokenMetadataForm({
           ) : null}
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-4">
-          <div className="rounded-lg border border-border bg-surface-elevated/40 p-4">
+        <aside className="space-y-3 lg:sticky lg:top-4">
+          <div className="rounded-lg border border-border bg-surface-elevated/40 p-3">
             <div className="flex items-start gap-3">
               <Image
                 src={previewImage}
@@ -242,7 +238,7 @@ export function TokenMetadataForm({
                 width={48}
                 height={48}
                 unoptimized
-                className="size-12 shrink-0 rounded-lg bg-surface object-cover"
+                className="size-10 shrink-0 rounded-lg bg-surface object-cover"
               />
               <div className="min-w-0">
                 <p className="truncate text-label-md text-fg">
@@ -251,40 +247,57 @@ export function TokenMetadataForm({
                 <p className="text-mono-sm text-fg-muted">
                   ${preview.symbol || deriveSymbolFromRepo(repo.name)}
                 </p>
-                <p className="mt-2 line-clamp-4 text-body-sm text-fg-secondary">
+                <p className="mt-2 line-clamp-3 text-body-sm text-fg-secondary">
                   {preview.description || defaultDescription(repo)}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="grid gap-4">
-            <FormField
-              label="Website"
-              hint="Optional."
-              error={errors.website?.message}
-            >
-              <Input type="url" autoComplete="off" {...register("website")} />
-            </FormField>
-            <FormField
-              label="X / Twitter"
-              hint="Optional full URL."
-              error={errors.twitter?.message}
-            >
-              <Input type="url" autoComplete="off" {...register("twitter")} />
-            </FormField>
-            <FormField
-              label="Telegram"
-              hint="Optional full URL."
-              error={errors.telegram?.message}
-            >
-              <Input type="url" autoComplete="off" {...register("telegram")} />
-            </FormField>
-          </div>
+          <details className="group rounded-lg border border-border bg-surface-elevated/40">
+            <summary className="gb-control gb-control-ghost flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-label-md text-fg">
+              Optional links
+              <span className="text-caption text-fg-muted">
+                {
+                  [preview.website, preview.twitter, preview.telegram].filter(
+                    Boolean,
+                  ).length
+                }
+                /3
+              </span>
+            </summary>
+            <div className="grid gap-3 border-t border-border p-3">
+              <FormField
+                label="Website"
+                hint="Optional."
+                error={errors.website?.message}
+              >
+                <Input type="url" autoComplete="off" {...register("website")} />
+              </FormField>
+              <FormField
+                label="X / Twitter"
+                hint="Optional full URL."
+                error={errors.twitter?.message}
+              >
+                <Input type="url" autoComplete="off" {...register("twitter")} />
+              </FormField>
+              <FormField
+                label="Telegram"
+                hint="Optional full URL."
+                error={errors.telegram?.message}
+              >
+                <Input
+                  type="url"
+                  autoComplete="off"
+                  {...register("telegram")}
+                />
+              </FormField>
+            </div>
+          </details>
         </aside>
       </div>
 
-      <div className="flex items-center justify-between gap-3 pt-2">
+      <div className="flex items-center justify-between gap-3">
         <Button type="button" variant="secondary" onClick={onBack}>
           <ArrowLeft className="size-4" />
           Back
@@ -327,7 +340,9 @@ function normalizeUrlOrEmpty(raw: string | null | undefined): string {
   if (!raw) return "";
   const trimmed = raw.trim();
   if (!trimmed) return "";
-  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const candidate = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
   try {
     new URL(candidate);
     return candidate;

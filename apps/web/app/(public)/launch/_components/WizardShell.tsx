@@ -124,7 +124,11 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
         twitter: draft.twitter ?? "",
         telegram: draft.telegram ?? "",
       },
-      leaderboard: leaderboardFromConfig(draft.scoringConfig, draft.payoutConfig, draft.platformFeeBps),
+      leaderboard: leaderboardFromConfig(
+        draft.scoringConfig,
+        draft.payoutConfig,
+        draft.platformFeeBps,
+      ),
     });
   }, [draft, draftProjectId, hydrateFromDraft]);
 
@@ -267,7 +271,7 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
 
   if (success) {
     return (
-      <div className="mx-auto w-full max-w-4xl py-8 lg:py-10">
+      <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-6">
         <h1 className="sr-only">Launch a repo token</h1>
         <LaunchResult result={success} onViewProject={handleViewProject} />
       </div>
@@ -275,7 +279,7 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl py-8 lg:py-10">
+    <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 lg:py-6">
       <h1 className="sr-only">Launch a repo token</h1>
       <StepIndicator current={step} />
 
@@ -285,8 +289,7 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
 
       <section
         className={cn(
-          "mt-6 rounded-xl border border-border bg-surface p-5 sm:p-6 lg:p-8",
-          "shadow-popover",
+          "mt-3 rounded-lg border border-border bg-surface/70 p-4 lg:p-5",
         )}
       >
         {!signedIn ? (
@@ -328,7 +331,7 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
           </>
         ) : step === 4 && repo && metadata ? (
           <>
-            {isStubMode ? <TestModeBanner className="mb-5" /> : null}
+            {isStubMode ? <TestModeBanner className="mb-4" /> : null}
             {errorMessage ? (
               <FormError
                 message={errorMessage}
@@ -341,6 +344,9 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
               metadata={metadata}
               leaderboard={leaderboard}
               onBack={() => goToStep(3)}
+              onEditRepo={() => goToStep(1)}
+              onEditToken={() => goToStep(2)}
+              onEditLeaderboard={() => goToStep(3)}
               onLaunch={handleLaunch}
               isPending={false}
               isStubMode={isStubMode}
@@ -373,7 +379,7 @@ function DraftResumeBanner({
   ghRepo: string;
 }) {
   return (
-    <Card depth="flat" padding="default" className="mt-6 bg-info-soft/40">
+    <Card depth="flat" padding="sm" className="mt-4 bg-info-soft/40">
       <div className="flex items-start gap-3">
         <Badge variant="info" size="sm" dot>
           Resuming draft
@@ -406,7 +412,7 @@ function SaveDraftBar({
   onSave: () => void;
 }) {
   return (
-    <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
+    <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
       {state.status === "error" ? (
         <span className="text-body-sm text-danger">{state.message}</span>
       ) : null}
@@ -492,7 +498,7 @@ function SubmittingState() {
       role="status"
       aria-live="polite"
       aria-busy="true"
-      className="flex flex-col items-center justify-center gap-4 py-12 text-center"
+      className="flex flex-col items-center justify-center gap-4 py-10 text-center"
     >
       <Spinner size="lg" color="primary" label="Creating project" />
       <div className="space-y-1">
@@ -647,7 +653,7 @@ export function TestModeBanner({ className }: { className?: string }) {
   return (
     <Card
       depth="flat"
-      padding="default"
+      padding="sm"
       className={cn(
         "flex items-start gap-3 border-warning/40 bg-warning-soft/40",
         className,
@@ -690,20 +696,21 @@ function StepIndicator({ current }: { current: LaunchWizardStep }) {
   };
   return (
     <ol
-      className="flex items-center justify-between gap-3"
+      className="flex items-center gap-1 overflow-x-auto pb-1 [scrollbar-width:none]"
       aria-label="Wizard steps"
     >
       {steps.map((s) => {
         const state =
           s < current ? "done" : s === current ? "current" : "future";
         return (
-          <li key={s} className="flex flex-1 items-center gap-2">
+          <li key={s} className="flex shrink-0 items-center gap-1.5">
             <span
               className={cn(
-                "grid size-7 place-items-center rounded-full text-mono-sm font-medium",
-                state === "current" && "bg-primary text-primary-fg",
+                "grid size-5 place-items-center rounded-full text-mono-sm font-medium",
+                state === "current" &&
+                  "bg-primary text-primary-fg shadow-inset-light",
                 state === "done" &&
-                  "bg-success-soft text-success border border-success",
+                  "border border-success bg-success-soft text-success",
                 state === "future" &&
                   "border border-border-strong text-fg-muted",
               )}
@@ -713,7 +720,7 @@ function StepIndicator({ current }: { current: LaunchWizardStep }) {
             </span>
             <span
               className={cn(
-                "text-label-sm",
+                "text-label-sm whitespace-nowrap",
                 state === "current" && "text-fg",
                 state === "done" && "text-fg-secondary",
                 state === "future" && "text-fg-muted",
@@ -724,7 +731,7 @@ function StepIndicator({ current }: { current: LaunchWizardStep }) {
             {s < 4 ? (
               <span
                 className={cn(
-                  "ml-1 hidden h-px flex-1 sm:block",
+                  "mx-1 h-px w-6 sm:w-12",
                   state === "done" ? "bg-success" : "bg-border",
                 )}
                 aria-hidden
