@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isNotNull } from "drizzle-orm";
+import { desc, isNotNull } from "drizzle-orm";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,7 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { StatTile } from "@/components/shared/StatTile";
 import { dbHttp } from "@/db";
-import { projects } from "@/db/schema";
+import { fundReconciliationRuns, projects } from "@/db/schema";
 import { bags } from "@/lib/bags/client";
 import { getCachedValue } from "@/lib/cache";
 import { formatRelativeTime } from "@repo/lib";
@@ -106,6 +106,23 @@ export default async function AdminReconciliationPage() {
       .from(projects)
       .where(isNotNull(projects.tokenMint)),
   ]);
+  const [latestFundRun] = await dbHttp
+    .select({
+      status: fundReconciliationRuns.status,
+      hotWalletBalanceLamports:
+        fundReconciliationRuns.hotWalletBalanceLamports,
+      escrowLiabilityLamports: fundReconciliationRuns.escrowLiabilityLamports,
+      unsettledRecipientLamports:
+        fundReconciliationRuns.unsettledRecipientLamports,
+      manualReviewCount: fundReconciliationRuns.manualReviewCount,
+      finalizedSignatureCount:
+        fundReconciliationRuns.finalizedSignatureCount,
+      staleSignatureCount: fundReconciliationRuns.staleSignatureCount,
+      checkedAt: fundReconciliationRuns.checkedAt,
+    })
+    .from(fundReconciliationRuns)
+    .orderBy(desc(fundReconciliationRuns.checkedAt))
+    .limit(1);
 
   const dbByMint = new Map<string, DbProjectRow>();
   for (const r of dbRows) {
@@ -195,6 +212,44 @@ export default async function AdminReconciliationPage() {
         />
       </section>
 
+      {latestFundRun ? (
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTile
+            label="Fund status"
+            value={latestFundRun.status}
+            icon={GitCompare}
+            accent={
+              latestFundRun.status === "critical"
+                ? "danger"
+                : latestFundRun.status === "warning"
+                  ? "warning"
+                  : "success"
+            }
+          />
+          <StatTile
+            label="Recorded liabilities"
+            value={formatSol(
+              latestFundRun.escrowLiabilityLamports +
+                latestFundRun.unsettledRecipientLamports,
+            )}
+            icon={Database}
+            accent="neutral"
+          />
+          <StatTile
+            label="Manual review"
+            value={latestFundRun.manualReviewCount.toString()}
+            icon={AlertTriangle}
+            accent={latestFundRun.manualReviewCount > 0 ? "danger" : "neutral"}
+          />
+          <StatTile
+            label="Last check"
+            value={formatRelativeTime(latestFundRun.checkedAt)}
+            icon={CheckCircle2}
+            accent={latestFundRun.staleSignatureCount > 0 ? "warning" : "neutral"}
+          />
+        </section>
+      ) : null}
+
       <MismatchedCard rows={mismatched} />
       <DbOnlyCard rows={dbOnly} />
       <BagsOnlyCard rows={bagsOnly} />
@@ -233,6 +288,12 @@ function isMismatch(db: DbProjectStatus, bags: BagsStatus): boolean {
 function shortMint(mint: string): string {
   if (mint.length <= 12) return mint;
   return `${mint.slice(0, 6)}...${mint.slice(-4)}`;
+}
+
+function formatSol(lamports: bigint): string {
+  const whole = lamports / 1_000_000_000n;
+  const fractional = (lamports % 1_000_000_000n).toString().padStart(9, "0");
+  return `${whole}.${fractional.slice(0, 3)} SOL`;
 }
 
 function DbStatusBadge({ status }: { status: DbProjectStatus }) {

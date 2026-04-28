@@ -9,6 +9,9 @@ describe("workflowRetriggerPermission", () => {
     expect(workflowRetriggerPermission("expireEscrow")).toBe(
       "platform.maintenance",
     );
+    expect(workflowRetriggerPermission("reconcileFunds")).toBe(
+      "platform.maintenance",
+    );
   });
 
   it("does not let inspect-only workflow access force snapshots", () => {

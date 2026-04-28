@@ -17,6 +17,7 @@ type WorkflowName =
   | "takeSnapshot"
   | "executePayout"
   | "expireEscrow"
+  | "reconcileFunds"
   | "processClaim"
   | "publishKpis";
 
@@ -124,6 +125,18 @@ const WORKFLOWS: WorkflowDef[] = [
       detail: "Queues the escrow expiry sweep.",
     },
     description: "Sweep expired escrow back to platform.",
+  },
+  {
+    name: "reconcileFunds",
+    heartbeatKey: "fund_reconciliation",
+    cronPath: "/api/cron/reconcile-funds",
+    fallbackSchedule: "*/15 * * * *",
+    manual: {
+      kind: "enabled",
+      label: "No args",
+      detail: "Promotes finalized signatures and records liability checks.",
+    },
+    description: "Reconcile hot-wallet balance, escrow, payouts, and claim attempts.",
   },
   {
     name: "publishKpis",

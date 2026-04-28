@@ -78,6 +78,13 @@
       "when": 1777400000000,
       "tag": "0010_fee_share_update_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1777405000000,
+      "tag": "0011_fund_reconciliation",
+      "breakpoints": true
     }
   ]
 }

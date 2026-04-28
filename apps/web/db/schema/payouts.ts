@@ -64,6 +64,7 @@ export const payouts = pgTable(
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
     startedAt: timestamp("started_at", { withTimezone: true }),
     executedAt: timestamp("executed_at", { withTimezone: true }),
+    claimFinalizedAt: timestamp("claim_finalized_at", { withTimezone: true }),
     /** Set when payout finished in stub mode (no on-chain side effects). */
     simulatedAt: timestamp("simulated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -111,6 +112,7 @@ export const payoutRecipients = pgTable(
     sendingAt: timestamp("sending_at", { withTimezone: true }),
     sentAt: timestamp("sent_at", { withTimezone: true }),
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

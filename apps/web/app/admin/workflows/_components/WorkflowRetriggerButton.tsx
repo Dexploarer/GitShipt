@@ -12,6 +12,7 @@ type WorkflowName =
   | "takeSnapshot"
   | "executePayout"
   | "expireEscrow"
+  | "reconcileFunds"
   | "processClaim"
   | "publishKpis";
 

@@ -29,6 +29,7 @@ export const escrowHoldings = pgTable(
     drainError: text("drain_error"),
     drainedAt: timestamp("drained_at", { withTimezone: true }),
     drainSignature: text("drain_signature"),
+    drainFinalizedAt: timestamp("drain_finalized_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

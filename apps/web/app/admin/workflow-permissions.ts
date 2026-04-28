@@ -6,13 +6,16 @@ export type AdminWorkflowName =
   | "takeSnapshot"
   | "executePayout"
   | "expireEscrow"
+  | "reconcileFunds"
   | "publishKpis";
 
 export function workflowRetriggerPermission(
   workflowName: AdminWorkflowName,
 ): Permission {
   if (workflowName === "executePayout") return "payouts.trigger";
-  if (workflowName === "expireEscrow") return "platform.maintenance";
+  if (workflowName === "expireEscrow" || workflowName === "reconcileFunds") {
+    return "platform.maintenance";
+  }
   if (workflowName === "takeSnapshot") return "snapshot.force";
   return "admin.workflows.inspect";
 }

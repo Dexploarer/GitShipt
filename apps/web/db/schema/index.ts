@@ -7,6 +7,7 @@ export * from "./snapshots";
 export * from "./payouts";
 export * from "./escrow";
 export * from "./fee-share-updates";
+export * from "./fund-reconciliation";
 export * from "./audit";
 export * from "./webhooks";
 export * from "./gh_state";
