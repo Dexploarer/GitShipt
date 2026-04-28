@@ -15,7 +15,7 @@ export function DocSection({
 }) {
   return (
     <section id={id} className="scroll-mt-24 flex flex-col gap-4">
-      <h2 className="group flex items-baseline gap-2 text-headline-md tracking-tight text-fg">
+      <h2 className="group flex items-baseline gap-2 text-headline-md text-fg">
         <a
           href={`#${id}`}
           className="transition-colors hover:text-primary"

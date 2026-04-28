@@ -31,7 +31,7 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h1 className="truncate text-[28px] font-semibold leading-tight tracking-[-0.02em] text-fg sm:text-[36px] lg:text-[44px]">
+          <h1 className="truncate text-[1.75rem] font-semibold leading-tight text-fg sm:text-[2.25rem] lg:text-[2.75rem]">
             {header.name}
           </h1>
           <Link
@@ -49,7 +49,7 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
         {ticker ? (
           <div className="mt-1 text-body-sm text-fg-secondary lg:text-body-md">
             Ticker:{" "}
-            <span className="text-mono-md text-fg lg:text-[15px]">
+            <span className="text-mono-md text-fg lg:text-[0.9375rem]">
               ${ticker}
             </span>
           </div>

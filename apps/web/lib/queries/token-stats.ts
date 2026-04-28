@@ -1,5 +1,7 @@
 import "server-only";
 import { bags } from "@/lib/bags/client";
+import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import type { TokenClaimEvent, TokenCreator } from "@/lib/bags/types";
 import type { ProjectHeader } from "./project-page";
 
 export interface TokenStats {
@@ -31,7 +33,7 @@ export interface TokenStats {
  *
  * Returns null until the token is actually live on Bags.
  */
-export async function getTokenStats(
+async function getTokenStatsUncached(
   header: ProjectHeader,
 ): Promise<TokenStats | null> {
   if (!header.tokenMint || header.status !== "live") return null;
@@ -77,4 +79,72 @@ export async function getTokenStats(
     tokenMint: header.tokenMint,
     isStub,
   };
+}
+
+export async function getTokenStats(
+  header: ProjectHeader,
+): Promise<TokenStats | null> {
+  return getCachedValue(
+    () => getTokenStatsUncached(header),
+    [
+      "gitbags:token-stats:v1",
+      header.id,
+      header.tokenMint ?? "no-token",
+      header.status,
+    ],
+    {
+      tags: [
+        cacheTags.public,
+        cacheTags.project(header.id),
+        cacheTags.projectPayouts(header.id),
+      ],
+      revalidate: CACHE_SECONDS.live,
+    },
+  );
+}
+
+async function getTokenCreatorsUncached(
+  tokenMint: string,
+): Promise<TokenCreator[]> {
+  return bags.getTokenCreators(tokenMint).catch(() => []);
+}
+
+export async function getTokenCreators(
+  projectId: string,
+  tokenMint: string,
+): Promise<TokenCreator[]> {
+  return getCachedValue(
+    () => getTokenCreatorsUncached(tokenMint),
+    ["gitbags:token-creators:v1", projectId, tokenMint],
+    {
+      tags: [cacheTags.public, cacheTags.project(projectId)],
+      revalidate: CACHE_SECONDS.profile,
+    },
+  );
+}
+
+async function getTokenClaimEventsUncached(
+  tokenMint: string,
+  limit: number,
+): Promise<TokenClaimEvent[]> {
+  return bags.getTokenClaimEvents(tokenMint, { limit }).catch(() => []);
+}
+
+export async function getTokenClaimEvents(
+  projectId: string,
+  tokenMint: string,
+  limit = 5,
+): Promise<TokenClaimEvent[]> {
+  return getCachedValue(
+    () => getTokenClaimEventsUncached(tokenMint, limit),
+    ["gitbags:token-claim-events:v1", projectId, tokenMint, String(limit)],
+    {
+      tags: [
+        cacheTags.public,
+        cacheTags.project(projectId),
+        cacheTags.projectPayouts(projectId),
+      ],
+      revalidate: CACHE_SECONDS.live,
+    },
+  );
 }

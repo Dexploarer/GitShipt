@@ -7,6 +7,8 @@ export type GlobalRole = "user" | "moderator" | "admin" | "super_admin";
 export type ProjectRole = "project_owner" | "project_moderator";
 
 export type Permission =
+  // Account resource
+  | "account.update"
   // Project resource
   | "project.read"
   | "project.update"
@@ -46,6 +48,8 @@ const PERMISSIONS: Record<
   Permission,
   ReadonlyArray<GlobalRole | ProjectRole>
 > = {
+  "account.update": ["user", "moderator", "admin", "super_admin"],
+
   "project.read": [
     "project_moderator",
     "project_owner",

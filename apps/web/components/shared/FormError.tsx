@@ -31,7 +31,7 @@ export function FormError({ message, onDismiss, className }: FormErrorProps) {
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss error"
-          className="rounded-sm text-danger/80 transition-colors hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/60"
+          className="gb-control gb-control-icon gb-control-ghost rounded-sm text-danger/80 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/60"
         >
           <X className="size-4" aria-hidden />
         </button>

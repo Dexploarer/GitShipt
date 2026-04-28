@@ -24,11 +24,10 @@ export function MobileSidebarTrigger({ className }: { className?: string }) {
       aria-expanded={mobileOpen}
       className={cn(
         "lg:hidden",
-        "inline-flex size-9 items-center justify-center rounded-md",
+        "gb-control gb-control-icon gb-control-secondary inline-flex size-9 items-center justify-center rounded-md",
         "border border-border/60",
-        "glass surface-highlight shadow-card-elevated",
-        "text-fg-secondary hover:text-fg hover:bg-surface-elevated/60",
-        "transition-colors",
+        "glass surface-highlight",
+        "text-fg-secondary hover:text-fg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         className,
       )}

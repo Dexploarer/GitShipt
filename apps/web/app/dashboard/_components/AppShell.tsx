@@ -27,7 +27,9 @@ export function AppShell({
 }) {
   return (
     <div className="flex h-screen overflow-hidden bg-bg text-fg">
-      <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">{sidebar}</div>
+      <div className="contents lg:block lg:shrink-0 lg:p-3 lg:pr-0">
+        {sidebar}
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 lg:overflow-y-auto">
@@ -50,7 +52,10 @@ export function AppShell({
             {footerLeft ?? `GitBags Console · ${clusterLabel()} · BAGS.fm`}
           </span>
           <div className="flex items-center gap-1">
-            <SocialLink href="https://github.com/SYMBaiEX/gitbags" label="GitBags repo">
+            <SocialLink
+              href="https://github.com/SYMBaiEX/gitbags"
+              label="GitBags repo"
+            >
               <Github className="size-4" />
             </SocialLink>
             <SocialLink href="https://x.com/bagsdotfm" label="Bags on X">
@@ -78,7 +83,7 @@ function SocialLink({
       target="_blank"
       rel="noreferrer noopener"
       aria-label={label}
-      className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-surface-elevated hover:text-fg"
+      className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
     >
       {children}
     </Link>

@@ -31,7 +31,7 @@ If anything in these files conflicts with your training data, the file wins.
 
 - **No raw hex in components.** Ever. Use design tokens via Tailwind utilities: `bg-surface`, `text-fg`, `text-fg-secondary`, `border-border-strong`, `text-rank-gold`. Both palettes resolve automatically.
 - **Mono for money.** Every SOL amount, USD price, score, BPS value, timestamp, and tx signature uses `text-mono-md` or `text-mono-sm`. Body copy is never mono.
-- **One primary per viewport.** Stacking purple buttons + purple sparklines + purple pills in the same fold is the most common drift. Pick one.
+- **One primary per viewport.** Stacking primary-green buttons + green sparklines + green pills in the same fold is the most common drift. Pick one.
 - **Components never call `useTheme()`** except `theme-toggle.tsx`. Theming is automatic via CSS variables.
 - **`proxy.ts` is redirects only.** Auth must be revalidated inside every protected route handler and Server Component (CVE-2025-29927 mitigation).
 - **TypeScript strict.** `noUncheckedIndexedAccess` is on. No `any` outside justified, commented type holes.
@@ -62,66 +62,66 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-27 1:20am CDT
+# [gitbags] recent context, 2026-04-28 12:44am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (22,328t read) | 3,333,547t work | 99% savings
+Stats: 50 obs (22,451t read) | 736,735t work | 97% savings
 
-### Apr 26, 2026
-954 10:59p 🔴 Audit Updated: M9 Hydration Mismatch on /explore + L5 Next Image Aspect-Ratio Warning
-1005 11:36p 🔵 GitBags Full System Audit — 2 Critical, 7 High, 9 Medium, 5 Low Issues Found
-1006 11:37p 🔵 GitBags AUDIT-2026-04-27.md — Full Audit Findings Map for Admin Worker D
-1007 " 🔵 GitBags vercel.json Cron Schedule Ground Truth — M4 Discrepancy Confirmed
-1008 " 🔵 GitBags Admin Directory Structure — 31 Files Across 15 Admin Route Segments
-1009 " 🔵 GitBags AUDIT-2026-04-27 Full Issue Inventory — Worker E Regression Coverage Session
-1010 " 🔵 GitBags Test Infrastructure Baseline — Existing Coverage Map Before Worker E Additions
-1011 11:39p 🔵 GitBags Admin Workflow Architecture: retriggerWorkflow Action + 8 Workflow Files
-1012 " 🔵 GitBags Admin Project Detail Page: God-Mode Controls and Status Badge Architecture
-1013 " 🔵 GitBags UI Design System: Badge and Button Primitive Variants Confirmed
-1014 11:45p 🟣 GitBags Admin Workflows Page: vercel.json-Aligned Schedule Display + ManualTrigger Discriminated Union
-1015 " 🟣 GitBags WorkflowRetriggerButton: Queued/Failed Result State + disabledReason Prop
-1016 " ✅ GitBags Admin Pages: Honest Completeness Badges on DB, Feature Flags, Abuse, and Ops Dashboard
-1017 11:46p ⚖️ GitBags Audit C2 — Snapshot/Payout Idempotency Remediation Scope Defined
-1018 11:48p 🟣 GitBags Playwright Regression Suite Added — 5 New E2E Tests for Audit Findings H6/L2/M9
-1019 " 🟣 GitBags SIWS Unit Test Suite Added — Nonce Issuance and Single-Use Verification
-1020 " 🟣 GitBags destructiveAction Test Coverage Extended — Confirmation Mismatch and Stale MFA Cases
-1021 " 🟣 GitBags Launch Wizard Stub-Mode Test Added to launch-wizard-store.test.ts
-1022 " 🔴 snapshot-payout-idempotency.test.ts: server-only Import Crash Fixed via Dynamic Imports
-1023 " 🔵 GitBags E2E: Light Theme Axe Contrast Test Fails — Real Color-Contrast Violations in /explore Light Mode
-1024 " 🔵 GitBags E2E: public-routes.spec.ts Flaky Under Parallel Workers Due to next.config.ts Hot Reload
-1025 " 🔵 GitBags Worker E Final Quality Gates — All Unit Tests Green, Build Clean, Axe Contrast Blocker Outstanding
-1030 11:55p 🔴 SPL Escrow Drain: Token Holdings No Longer Falsely Marked "Drained"
-1031 " 🔴 Snapshot Period Idempotency: Duplicate Payout Risk Eliminated via UNIQUE Index + Upsert
-1032 " 🔴 Payout Dispatch Race Condition Fixed: Compare-and-Swap on Recipient Status
-1033 " 🔴 Dependency Audit: Package Overrides + Vulnerable Packages Removed to Reduce vuln Count
-1034 " 🟣 CSP Report-Only Header Added for Production Violation Detection
-1035 " 🔴 Mobile Footer Occlusion Fixed with Safe Area Inset Padding
-1036 " 🟣 Homepage Hero Replaced: Mascot Image Removed, ProductRailVisual Terminal Added
-1037 " 🔴 Light Theme Contrast Tokens Darkened for WCAG AA Compliance
-1038 " 🔴 Explore Page h1 Added — Semantic Heading Fixed
-1039 " 🟣 Admin Console: Surface Status Card + Coming-Soon Badges on Placeholder Pages
-1040 " 🔴 Admin Workflow Page: Schedule Sourced from vercel.json Instead of Hardcoded Strings
-1041 " 🟣 Test Coverage: destructiveAction MFA + Launch Wizard Store Stub-Mode Cases Added
 ### Apr 27, 2026
-1053 12:07a 🔵 GitBags Audit Pass — Full Quality Gate Results Confirmed
-1054 " 🔄 BentoTickerCell: Client Component Eliminated, Simulated Drift Removed
-1055 " 🔵 GitBags Landing Page Data Architecture: Redis-First with DB Fallback
-1056 " ✅ GitBags Audit Remediation: 60-File Commit Pending with Full Audit Coverage
-1058 12:08a 🟣 ProductRailVisual: Static Terminal Card → Live Data Settlement Board
-1059 12:21a 🟣 ProductRailVisual Skeuomorphic Polish Pass Designed (Patch Pending)
-1060 12:22a 🟣 ProductRailVisual Skeuomorphic Polish: Build Passes + Screenshot Captured
-1067 12:29a 🔄 GitBags ProductRailVisual: Skeuomorphic PCB Aesthetic Replaced with Open Spacious Layout
-1069 12:34a ✅ GitBags Landing: Tokenized Repo Panel Removed from ProductRailVisual
-1071 12:36a 🔵 GitBags Production Build Green — 84 Dynamic Routes, Dev Server on Port 3000
-1074 " 🔵 GitBags Landing Two-Column Layout: Screenshot Confirmed, Height Re-Tuned
-1079 12:41a 🟣 GitBags Landing: ProductRailVisual Replaced with /mia.png Mascot Hero Image
-1101 12:52a 🔴 GitBags Landing Hero: Space Restored Between Two-Column Grid and KPI Strip
-1108 1:15a ✅ GitBags Sidebar Header: Logo Added Left of Brand Name
-1109 1:16a 🔵 GitBags AppSidebar Header Structure — CollapsibleBrand Component, No Logo
-1111 " ✅ GitBags Sidebar Header: logo.png Added Left of Brand Name
+1436 11:26p 🔴 AppSidebar Active Item — Longest-Match Algorithm Replaces First-Match
+1437 " 🔄 Dashboard Pages — Page-Level h1 Headers Stripped from (account) Routes
+1438 11:28p 🔄 GitBags Dashboard — Full Header Strip and Breadcrumb Normalization Across All 15 Pages
+1442 11:29p 🔄 AppSidebar — Collapsed State Polish: Brand Link Hidden, SidebarFooterControls, ReturnToLink Restyled
+1443 " ✅ Dashboard Header Sweep — Quality Gate Final Confirmation: All Clean
+1447 11:34p ⚖️ GitBags — Authenticated Routes: Caching + Zustand + Zod Requirement
+1448 11:35p 🔵 GitBags Caching/Zustand/Zod Audit — Pre-Implementation State
+1449 11:36p 🔵 Next.js 16 'use cache: private' — Authenticated Route Caching Strategy
+1451 " 🔵 GitBags Dashboard Query Architecture — Full Call-Site Map for Caching Work
+1456 11:38p 🔵 GitBags Wallet API Routes — Cache Invalidation Gap Found
+1458 " ✅ GitBags Cache System — Authenticated Route Tags and Invalidation Functions Added
+1459 11:40p 🟣 GitBags Dashboard Queries — All 11 Functions Cached with getCachedValue + Zod Validation
+1460 " 🟣 GitBags Admin Queries — All Functions Cached with getCachedValue + Zod Input Validation
+1463 11:41p 🟣 GitBags Cache Invalidation Wired to All Mutation Paths for Authenticated Routes
+1467 " 🟣 GitBags New Zustand Store — Authenticated Route Chrome State (useAuthenticatedRouteStore)
+1471 11:42p ✅ GitBags Authenticated Route Caching + Zustand + Zod — Production Build Passes Clean
+1473 11:43p 🔴 GitBags Two More Cache Invalidation Gaps Fixed — Project Create and Admin Promote-from-Stub
+1477 11:49p 🟣 GitBags — Caching, Zustand, and Zod Added to All Authenticated Routes (Session Complete)
+1478 11:50p 🔵 Security Page — Direct dbHttp Query Bypasses Cache Layer
+1479 " 🔵 GitBags Working Tree — 130 Files, 3221 Insertions Across All Sessions
+1485 11:51p 🔵 GitBags Public Route Architecture — Cache Coverage Map
+1495 11:53p 🟣 GitBags Cache Layer Extended — Account, Security, Launch, and Slug-Resolution Queries Added
+1500 11:54p 🔄 GitBags Bags API and GitHub User Calls Wrapped with getCachedValue
+1507 11:55p 🟣 GitBags Dashboard Profile Page — New Route at /dashboard/profile
+### Apr 28, 2026
+1512 12:02a 🔴 ProfilePage — formatRelativeTime TypeError: date.getTime is not a function
+1514 12:03a 🔵 ProfilePage — Exact Call Sites for formatRelativeTime with Deserialized Date Strings
+1517 " 🔵 formatRelativeTime Called in 35+ Locations — All Vulnerable to Cache-Deserialized Strings
+1518 " 🔴 formatRelativeTime and AccountProfile — Hardened Against Cache-Deserialized Date Strings
+1519 12:06a ✅ ProfilePage Date Bug — Full CI Verification Passed After Fix
+1522 " 🔵 cache.ts — getCachedValue Has Date/BigInt Serialization, But Only Works for Actual Date Instances
+1527 12:07a 🟣 getAccountProfileUncached — Self-Healing GitHub Profile Backfill via GET /user
+1529 " 🟣 Session Chrome and Profile/Settings Pages — githubConnected Field Wired Through Three Files
+1533 12:08a 🔵 GitBags Working Tree — Profile/Settings/Account Query Files Are New (Untracked) in Launch Push
+1534 " 🔴 Cache Version Bump and GitHub Account Filter Bug in /api/github/me/repos
+1536 12:09a 🔵 Accounts Table Query Audit — All 5 Call Sites Now Filter by providerId
+1540 12:11a 🔵 GitBags Dashboard (account) Route Group — Full Architecture Confirmed
+1546 12:14a 🟣 ProfileEditor Client Component — Editable Name, Avatar, and GitHub Sync
+1547 " 🟣 AccountPreferencesForm — Email Toggles, Compact Mode, and Default Route Selector
+1548 12:16a 🟣 defaultDashboardRoute Wired Through Session Chrome to Sidebar
+1549 " 🟣 ProfilePage Two-Column Layout with Editable Form
+1550 " 🟣 Settings Page Refactored — Preferences Form + Account Areas List
+1551 " 🔄 syncGitHubIdentityForUser — overwriteImage Option Added
+1558 12:17a 🔴 Two CI Failures Fixed — Test Type Mismatch and ESLint set-state-in-effect
+1559 " 🟣 Avatar URL Security — Server Action Validates Against GitHub Hostname Allowlist
+1560 " 🔄 ProfileEditor and AccountPreferencesForm — router.refresh() After Saves
+1566 12:18a 🟣 GitBags Account Management Full Stack — CI Green, Production Build Clean
+1570 12:23a 🔵 Missing DB Migration — user_settings Table Does Not Exist
+1572 " 🔴 Migration 0008_user_settings Applied — App 500 Crash Resolved
+1574 " 🔵 db/rls-context.ts Imports server-only — Cannot Run Outside Next.js
+1577 12:24a 🔵 user_settings Table Confirmed Exists in Neon DB
 
-Access 3334k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 737k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

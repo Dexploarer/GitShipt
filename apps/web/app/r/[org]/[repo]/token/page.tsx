@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, Coins, Sparkles } from "lucide-react";
+import { ArrowUpRight, Coins } from "lucide-react";
 import { getProjectPageData } from "@/lib/queries/project-page";
-import { getTokenStats } from "@/lib/queries/token-stats";
-import { bags } from "@/lib/bags/client";
+import {
+  getTokenClaimEvents,
+  getTokenCreators,
+  getTokenStats,
+} from "@/lib/queries/token-stats";
 import { BagsAnalyticsCard } from "@/components/bags/BagsAnalyticsCard";
 import { TradingPanel } from "@/components/bags/TradingPanel";
 import {
@@ -51,10 +54,8 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
   const [creators, claimEvents] =
     header.tokenMint && header.status === "live"
       ? await Promise.all([
-          bags.getTokenCreators(header.tokenMint).catch(() => []),
-          bags
-            .getTokenClaimEvents(header.tokenMint, { limit: 5 })
-            .catch(() => []),
+          getTokenCreators(header.id, header.tokenMint),
+          getTokenClaimEvents(header.id, header.tokenMint, 5),
         ])
       : [[], []];
   const platformFeePct = (header.platformFeeBps / 100).toFixed(1);
@@ -64,30 +65,16 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-col gap-2">
-        <Breadcrumbs
-          items={[
-            { label: "Projects", href: "/explore" },
-            {
-              label: header.name,
-              href: `/r/${header.ghOwner}/${header.ghRepo}`,
-            },
-            { label: "Token" },
-          ]}
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-headline-lg leading-tight text-fg">Token</h1>
-          {stats ? (
-            <Badge variant="primary" size="sm">
-              ${stats.symbol}
-            </Badge>
-          ) : null}
-        </div>
-        <p className="text-body-md text-fg-secondary">
-          On-chain token tied to this repository. Trading fees flow to the
-          platform pool wallet and are redistributed to top contributors daily.
-        </p>
-      </header>
+      <Breadcrumbs
+        items={[
+          { label: "Projects", href: "/explore" },
+          {
+            label: header.name,
+            href: `/r/${header.ghOwner}/${header.ghRepo}`,
+          },
+          { label: "Token" },
+        ]}
+      />
 
       {!header.tokenMint || header.status !== "live" || !stats ? (
         <Card depth="raised" padding="default" className="text-center">
@@ -108,43 +95,7 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
-          <div className="flex flex-col gap-4 min-w-0">
-            {/* Fee structure */}
-            <Card depth="raised" padding="default">
-              <CardHeader>
-                <CardTitle>Fee structure</CardTitle>
-                <CardDescription>
-                  How trading fees split between the platform and contributors.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <FeeStat
-                  label="Platform fee"
-                  value={`${platformFeePct}%`}
-                  sub={`${header.platformFeeBps} bps`}
-                />
-                <FeeStat
-                  label="Contributor pool"
-                  value={`${contributorPoolPct}%`}
-                  sub={`${10_000 - header.platformFeeBps} bps`}
-                  accent
-                />
-                <FeeStat
-                  label="Top-N"
-                  value={String(header.payoutConfig.topN)}
-                  sub="contributors paid"
-                />
-                <FeeStat
-                  label="Min payout"
-                  value={formatSol(
-                    BigInt(header.payoutConfig.claimThresholdLamports),
-                    2,
-                  )}
-                  sub="threshold"
-                />
-              </CardContent>
-            </Card>
-
+          <div className="flex min-w-0 flex-col gap-4">
             <BagsAnalyticsCard
               stats={stats}
               pool={data.pool}
@@ -153,120 +104,112 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
               claimEvents={claimEvents}
             />
 
-            {/* Tier weights */}
             <Card depth="raised" padding="default">
               <CardHeader>
-                <CardTitle>Tier weights</CardTitle>
-                <CardDescription>
-                  Share of each cycle&apos;s contributor pool by leaderboard
-                  rank.
-                </CardDescription>
+                <CardTitle>Token economics</CardTitle>
               </CardHeader>
-              <CardContent className="mt-4">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                  {header.payoutConfig.tierWeights.map((w, i) => (
-                    <div
-                      key={i}
-                      className="rounded-lg border border-border/60 bg-surface/40 px-3 py-2.5"
-                    >
-                      <div className="text-caption text-fg-muted">
-                        Rank {i + 1}
-                      </div>
-                      <div className="mt-1 text-mono-md text-fg">
-                        {(w * 100).toFixed(1)}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Bags integration */}
-            <Card depth="raised" padding="default">
-              <CardHeader className="flex-row items-center justify-between">
-                <CardTitle>Bags.fm integration</CardTitle>
-                <Button asChild variant="ghost" size="sm">
-                  <Link
-                    href={data.pool.bagsUrl ?? "#"}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                  >
-                    View on Bags.fm <ArrowUpRight className="size-3.5" />
-                  </Link>
-                </Button>
-              </CardHeader>
-              <CardContent className="mt-4 flex flex-col gap-2">
-                <Row label="Token mint">
-                  <span
-                    className="text-mono-sm text-fg"
-                    title={header.tokenMint}
-                  >
-                    {formatAddress(header.tokenMint, 6, 6)}
-                  </span>
-                  <CopyButton
-                    value={header.tokenMint}
-                    label="Copy contract address"
+              <CardContent className="mt-4 flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <Metric
+                    label="Platform fee"
+                    value={`${platformFeePct}%`}
+                    detail={`${header.platformFeeBps} bps`}
                   />
-                  <Link
-                    href={solscanTokenUrl(header.tokenMint)}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    aria-label="View on Solscan"
-                    className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-surface-elevated hover:text-fg"
-                  >
-                    <ArrowUpRight className="size-3.5" />
-                  </Link>
-                </Row>
-                {header.bagsLaunchId ? (
-                  <Row label="Launch ID">
+                  <Metric
+                    label="Contributor pool"
+                    value={`${contributorPoolPct}%`}
+                    detail={`${10_000 - header.platformFeeBps} bps`}
+                    accent
+                  />
+                  <Metric
+                    label="Top-N"
+                    value={String(header.payoutConfig.topN)}
+                    detail="paid"
+                  />
+                  <Metric
+                    label="Min payout"
+                    value={formatSol(
+                      BigInt(header.payoutConfig.claimThresholdLamports),
+                      2,
+                    )}
+                    detail="threshold"
+                  />
+                </div>
+
+                <div className="border-t border-border pt-4">
+                  <div className="mb-2 text-label-sm text-fg-secondary">
+                    Payout weights
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                    {header.payoutConfig.tierWeights.map((w, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between gap-2 rounded-md border border-border/50 bg-surface/40 px-3 py-2"
+                      >
+                        <span className="text-caption text-fg-muted">
+                          #{i + 1}
+                        </span>
+                        <span className="text-mono-sm text-fg">
+                          {(w * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-2 border-t border-border pt-4 md:grid-cols-3">
+                  <TokenMeta label="Mint">
                     <span
-                      className="text-mono-sm text-fg-secondary"
-                      title={header.bagsLaunchId}
+                      className="truncate text-mono-sm text-fg"
+                      title={header.tokenMint}
                     >
-                      {formatAddress(header.bagsLaunchId, 8, 4)}
+                      {formatAddress(header.tokenMint, 6, 6)}
                     </span>
-                  </Row>
-                ) : null}
-                <Row label="Cluster">
-                  <Badge variant="warning" size="sm">
-                    {clusterLabel()}
-                  </Badge>
-                </Row>
-                <Row label="Lifetime fees">
-                  <span className="text-mono-md text-fg">
-                    {formatSol(stats.lifetimeFeesLamports, 4)}
-                  </span>
-                </Row>
+                    <CopyButton
+                      value={header.tokenMint}
+                      label="Copy contract address"
+                    />
+                    <Link
+                      href={solscanTokenUrl(header.tokenMint)}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      aria-label="View on Solscan"
+                      className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
+                    >
+                      <ArrowUpRight className="size-3.5" />
+                    </Link>
+                  </TokenMeta>
+                  {header.bagsLaunchId ? (
+                    <TokenMeta label="Launch">
+                      <span
+                        className="truncate text-mono-sm text-fg-secondary"
+                        title={header.bagsLaunchId}
+                      >
+                        {formatAddress(header.bagsLaunchId, 8, 4)}
+                      </span>
+                    </TokenMeta>
+                  ) : null}
+                  <TokenMeta label="Cluster">
+                    <Badge variant="warning" size="sm">
+                      {clusterLabel()}
+                    </Badge>
+                  </TokenMeta>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right: TokenInfoCard preview (the embed widget) */}
-          <aside className="flex flex-col gap-3 min-w-0">
+          <aside className="flex min-w-0 flex-col gap-4">
             <TradingPanel
               projectId={header.id}
               symbol={stats.symbol}
               tokenMint={header.tokenMint}
             />
-            <div className="text-label-sm text-fg-muted">
-              <Sparkles className="mr-1 inline size-3.5" /> Embed preview
-            </div>
             <TokenInfoCard
               stats={stats}
               ghOwner={header.ghOwner}
               ghRepo={header.ghRepo}
             />
-            <p className="text-caption text-fg-muted">
-              This is the widget anyone can embed via{" "}
-              <Link
-                href={`/embed/r/${header.ghOwner}/${header.ghRepo}`}
-                className="text-fg-secondary underline-offset-4 hover:text-fg hover:underline"
-              >
-                /embed/r/{header.ghOwner}/{header.ghRepo}
-              </Link>
-              . Use the <strong>Share</strong> menu on the leaderboard page to
-              copy the iframe snippet.
-            </p>
           </aside>
         </div>
       )}
@@ -274,15 +217,15 @@ export default async function ProjectTokenPage({ params }: { params: Params }) {
   );
 }
 
-function FeeStat({
+function Metric({
   label,
   value,
-  sub,
+  detail,
   accent = false,
 }: {
   label: string;
   value: string;
-  sub: string;
+  detail: string;
   accent?: boolean;
 }) {
   return (
@@ -293,12 +236,12 @@ function FeeStat({
       >
         {value}
       </div>
-      <div className="text-caption text-fg-muted">{sub}</div>
+      <div className="text-caption text-fg-muted">{detail}</div>
     </div>
   );
 }
 
-function Row({
+function TokenMeta({
   label,
   children,
 }: {
@@ -306,9 +249,9 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-border/40 bg-surface-elevated/40 px-3 py-2">
-      <span className="text-body-sm text-fg-secondary">{label}</span>
-      <div className="flex min-w-0 items-center gap-1.5">{children}</div>
+    <div className="min-w-0 rounded-md border border-border/40 bg-surface-elevated/40 px-3 py-2">
+      <div className="text-caption text-fg-muted">{label}</div>
+      <div className="mt-1 flex min-w-0 items-center gap-1.5">{children}</div>
     </div>
   );
 }

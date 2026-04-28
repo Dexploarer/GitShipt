@@ -164,9 +164,10 @@ export function RepoPicker({ selectedId, onSelect }: RepoPickerProps) {
                   aria-pressed={isSelected}
                   aria-disabled={isDisabled}
                   className={cn(
-                    "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors",
-                    !isDisabled && "hover:bg-surface-elevated",
-                    isSelected && "bg-surface-elevated",
+                    "gb-control flex w-full items-start gap-3 rounded-none border-x-0 border-t-0 px-4 py-3 text-left transition-[background-color,border-color,box-shadow,color,transform]",
+                    !isDisabled && "gb-control-ghost hover:text-fg",
+                    isSelected &&
+                      "gb-control-secondary bg-surface-elevated text-fg",
                     isDisabled && "opacity-50",
                   )}
                 >

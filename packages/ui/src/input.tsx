@@ -16,7 +16,7 @@ import { cn } from "@repo/lib";
 
 const inputVariants = cva(
   cn(
-    "w-full rounded-md text-body-md text-fg",
+    "gb-field-control w-full rounded-md text-body-md text-fg",
     "placeholder:text-fg-muted",
     "transition-[border-color,background-color,box-shadow] duration-150",
     "focus-visible:outline-none focus-visible:border-primary focus-visible:shadow-inset-light",
@@ -119,7 +119,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type="button"
             onClick={onClear}
             aria-label="Clear"
-            className="absolute right-2 inline-flex size-6 items-center justify-center rounded text-fg-muted hover:bg-surface-elevated hover:text-fg"
+            className="gb-control gb-control-icon gb-control-ghost absolute right-2 inline-flex size-6 items-center justify-center rounded text-fg-muted hover:text-fg"
           >
             <span aria-hidden>×</span>
           </button>

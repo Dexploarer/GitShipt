@@ -1,16 +1,6 @@
-import { hasCredentials } from "@/lib/env";
 import { getAuthSession } from "@/lib/auth/session";
+import { getLaunchWizardConfig } from "@/lib/queries/launch";
 import { WizardShell } from "./_components/WizardShell";
-
-function isStubMode(): boolean {
-  // Stub mode = no Bags API key configured. Surface a "test mode" banner in
-  // the wizard so users know the launch will be a fake mint.
-  try {
-    return !hasCredentials.bags();
-  } catch {
-    return true;
-  }
-}
 
 export const metadata = {
   title: "Launch a token",
@@ -32,8 +22,11 @@ export const dynamic = "force-dynamic";
  * server-side so the shell knows whether to render the sign-in CTA.
  */
 export default async function LaunchPage() {
-  const session = await getAuthSession();
+  const [session, config] = await Promise.all([
+    getAuthSession(),
+    getLaunchWizardConfig(),
+  ]);
   const signedIn = Boolean(session?.user);
 
-  return <WizardShell signedIn={signedIn} isStubMode={isStubMode()} />;
+  return <WizardShell signedIn={signedIn} isStubMode={config.isStubMode} />;
 }

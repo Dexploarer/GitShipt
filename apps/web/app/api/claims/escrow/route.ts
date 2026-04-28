@@ -19,6 +19,7 @@ import { hasCredentials } from "@/lib/env";
 import {
   revalidateContributorCaches,
   revalidateProjectCaches,
+  revalidateUserCaches,
 } from "@/lib/cache";
 import { ClaimEscrowRequestSchema } from "@repo/shared";
 
@@ -217,6 +218,7 @@ export async function POST(req: Request): Promise<Response> {
         revalidateProjectCaches(projectId, slug),
       ),
     );
+    revalidateUserCaches(userId);
     revalidateContributorCaches(invalidatedContributors);
 
     return { status: 200, body: { ok: true, drained } };

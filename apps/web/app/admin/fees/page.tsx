@@ -28,7 +28,8 @@ export default async function AdminFeesPage() {
   const envDefault = env.PLATFORM_FEE_BPS_DEFAULT;
   const currentBps = stored?.value ?? envDefault;
   const readiness = productionReadiness();
-  let partnerStats: { claimedFees: string; unclaimedFees: string } | null = null;
+  let partnerStats: { claimedFees: string; unclaimedFees: string } | null =
+    null;
   let partnerStatsError: string | null = null;
   if (hasCredentials.bags() && env.BAGS_PARTNER_CONFIG_KEY) {
     try {
@@ -71,7 +72,7 @@ export default async function AdminFeesPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-headline-md tracking-tight">Platform fees</h1>
+        <h1 className="text-headline-md">Platform fees</h1>
         <p className="text-body-sm text-fg-secondary">
           Operator view for GitBags fee share, Bags partner attribution, and
           API-key security posture.
@@ -142,7 +143,9 @@ export default async function AdminFeesPage() {
             partnerConfigSet={Boolean(env.BAGS_PARTNER_CONFIG_KEY)}
             stats={partnerStats}
             statsError={partnerStatsError}
-            serverClaimAvailable={payoutSignerWallet === env.BAGS_PARTNER_WALLET}
+            serverClaimAvailable={
+              payoutSignerWallet === env.BAGS_PARTNER_WALLET
+            }
             unavailableReason={partnerClaimUnavailableReason}
           />
         </Card>
@@ -202,7 +205,7 @@ export default async function AdminFeesPage() {
         <div className="flex items-center gap-2 px-1.5">
           <ShieldCheck className="size-4 text-fg-muted" />
           <div>
-            <h2 className="text-headline-sm tracking-tight">
+            <h2 className="text-headline-sm">
               Fee, partner, and security audit
             </h2>
             <p className="text-body-sm text-fg-secondary">

@@ -11,9 +11,14 @@ import {
   ghIndexerState,
   projectMemberships,
   users,
+  type ScoringConfig,
+  type PayoutConfig,
 } from "@/db/schema";
 import type { ProjectRole } from "@/lib/auth/permissions";
+import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
 import { and, desc, eq, sql, isNotNull, or, inArray } from "drizzle-orm";
+import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
+import { z } from "zod";
 
 /**
  * Query helpers for the project admin console (`/dashboard/**`).
@@ -22,6 +27,32 @@ import { and, desc, eq, sql, isNotNull, or, inArray } from "drizzle-orm";
  * are scoped to `userId` so a leaked or compromised session cannot enumerate
  * other people's projects.
  */
+
+const LimitSchema = z.number().int().min(1).max(500);
+const ProjectStatusSchema = z.enum([
+  "draft",
+  "launch_configured",
+  "live",
+  "paused",
+  "killed",
+  "simulated_live",
+]);
+
+function safeLimit(limit: number, fallback: number): number {
+  return LimitSchema.catch(fallback).parse(limit);
+}
+
+function parseProjectStatus(status: unknown): MyProjectRow["status"] {
+  return ProjectStatusSchema.parse(status);
+}
+
+function parseScoringConfig(value: unknown): ScoringConfig {
+  return ScoringConfigSchema.parse(value) satisfies ScoringConfig;
+}
+
+function parsePayoutConfig(value: unknown): PayoutConfig {
+  return PayoutConfigSchema.parse(value) satisfies PayoutConfig;
+}
 
 export interface MyProjectRow {
   id: string;
@@ -50,7 +81,7 @@ export interface MyProjectRow {
  * Counts contributors and sums confirmed payout lamports per project in two
  * follow-up queries (avoids N+1 by batching with `inArray`).
  */
-export async function getMyProjects(userId: string): Promise<MyProjectRow[]> {
+async function getMyProjectsUncached(userId: string): Promise<MyProjectRow[]> {
   // 1. Find project IDs the user is owner or member of.
   const ownedRows = await dbHttp
     .select({ id: projects.id })
@@ -112,7 +143,7 @@ export async function getMyProjects(userId: string): Promise<MyProjectRow[]> {
       name: r.name,
       description: r.description,
       imageUrl: r.imageUrl,
-      status: r.status,
+      status: parseProjectStatus(r.status),
       tokenMint: r.tokenMint,
       contributorsCount: countMap.get(r.id) ?? 0,
       lifetimeFeesLamports: agg?.lifetime ?? 0n,
@@ -120,6 +151,21 @@ export async function getMyProjects(userId: string): Promise<MyProjectRow[]> {
       createdAt: r.createdAt,
     };
   });
+}
+
+export async function getMyProjects(userId: string): Promise<MyProjectRow[]> {
+  return getCachedValue(
+    () => getMyProjectsUncached(userId),
+    ["gitbags:dashboard:my-projects:v1", userId],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.user(userId),
+        cacheTags.dashboardUser(userId),
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
 }
 
 export interface ProjectKPIs {
@@ -140,7 +186,7 @@ function nextPayoutAt(now: Date = new Date()): Date {
   return next;
 }
 
-export async function getProjectKPIs(projectId: string): Promise<ProjectKPIs> {
+async function getProjectKPIsUncached(projectId: string): Promise<ProjectKPIs> {
   const [contribCountRows, payoutAggRows, escrowRows, lastSnapRows] =
     await Promise.all([
       dbHttp
@@ -195,6 +241,22 @@ export async function getProjectKPIs(projectId: string): Promise<ProjectKPIs> {
   };
 }
 
+export async function getProjectKPIs(projectId: string): Promise<ProjectKPIs> {
+  return getCachedValue(
+    () => getProjectKPIsUncached(projectId),
+    ["gitbags:dashboard:project-kpis:v1", projectId],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.dashboardProject(projectId),
+        cacheTags.project(projectId),
+        cacheTags.projectPayouts(projectId),
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
+}
+
 export interface PayoutHistoryRow {
   id: string;
   executedAt: Date | null;
@@ -213,10 +275,11 @@ export interface PayoutHistoryRow {
   attemptCount: number;
 }
 
-export async function getProjectPayoutHistory(
+async function getProjectPayoutHistoryUncached(
   projectId: string,
   limit = 50,
 ): Promise<PayoutHistoryRow[]> {
+  const safe = safeLimit(limit, 50);
   const rows = await dbHttp
     .select({
       id: payouts.id,
@@ -233,7 +296,7 @@ export async function getProjectPayoutHistory(
     .where(eq(payouts.projectId, projectId))
     .groupBy(payouts.id)
     .orderBy(desc(payouts.scheduledAt))
-    .limit(limit);
+    .limit(safe);
 
   return rows.map((r) => ({
     id: r.id,
@@ -245,6 +308,26 @@ export async function getProjectPayoutHistory(
     snapshotId: r.snapshotId,
     attemptCount: r.attemptCount,
   }));
+}
+
+export async function getProjectPayoutHistory(
+  projectId: string,
+  limit = 50,
+): Promise<PayoutHistoryRow[]> {
+  const safe = safeLimit(limit, 50);
+  return getCachedValue(
+    () => getProjectPayoutHistoryUncached(projectId, safe),
+    ["gitbags:dashboard:payout-history:v1", projectId, String(safe)],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.dashboardProject(projectId),
+        cacheTags.project(projectId),
+        cacheTags.projectPayouts(projectId),
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
 }
 
 export interface MyEarnings {
@@ -262,7 +345,7 @@ export interface MyEarnings {
  * many contributors (one per repo they've contributed to under their GitHub
  * identity).
  */
-export async function getMyEarnings(userId: string): Promise<MyEarnings> {
+async function getMyEarningsUncached(userId: string): Promise<MyEarnings> {
   // Find contributor IDs claimed by this user.
   const claims = await dbHttp
     .select({ contributorId: contributorClaims.contributorId })
@@ -336,6 +419,62 @@ export async function getMyEarnings(userId: string): Promise<MyEarnings> {
   };
 }
 
+export async function getMyEarnings(userId: string): Promise<MyEarnings> {
+  return getCachedValue(
+    () => getMyEarningsUncached(userId),
+    ["gitbags:dashboard:my-earnings:v1", userId],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.user(userId),
+        cacheTags.dashboardUser(userId),
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
+}
+
+async function getProjectIdsBySlugUncached(
+  slugs: string[],
+): Promise<Array<{ slug: string; projectId: string }>> {
+  if (slugs.length === 0) return [];
+
+  const slugLiterals = sql.join(
+    slugs.map((slug) => sql`${slug}`),
+    sql`, `,
+  );
+  const rows = await dbHttp
+    .select({
+      projectId: projects.id,
+      slug: sql<string>`${projects.ghOwner} || '/' || ${projects.ghRepo}`,
+    })
+    .from(projects)
+    .where(
+      sql`(${projects.ghOwner} || '/' || ${projects.ghRepo}) in (${slugLiterals})`,
+    );
+
+  return rows;
+}
+
+export async function getProjectIdsBySlug(
+  slugs: string[],
+): Promise<Array<{ slug: string; projectId: string }>> {
+  const normalized = [...new Set(slugs.map((slug) => slug.trim()))]
+    .filter(Boolean)
+    .sort();
+
+  if (normalized.length === 0) return [];
+
+  return getCachedValue(
+    () => getProjectIdsBySlugUncached(normalized),
+    ["gitbags:dashboard:project-ids-by-slug:v1", normalized.join(",")],
+    {
+      tags: [cacheTags.dashboard],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
+}
+
 export interface LinkedWallet {
   id: string;
   address: string;
@@ -345,7 +484,7 @@ export interface LinkedWallet {
   verifiedAt: Date;
 }
 
-export async function getMyLinkedWallets(
+async function getMyLinkedWalletsUncached(
   userId: string,
 ): Promise<LinkedWallet[]> {
   const rows = await dbHttp
@@ -361,6 +500,23 @@ export async function getMyLinkedWallets(
     isPrimary: r.isPrimary === "true",
     verifiedAt: r.verifiedAt,
   }));
+}
+
+export async function getMyLinkedWallets(
+  userId: string,
+): Promise<LinkedWallet[]> {
+  return getCachedValue(
+    () => getMyLinkedWalletsUncached(userId),
+    ["gitbags:dashboard:linked-wallets:v1", userId],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.user(userId),
+        cacheTags.dashboardUser(userId),
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
 }
 
 /**
@@ -411,15 +567,15 @@ export interface ProjectRecord {
   ghInstallationId: string | null;
   platformFeeBps: number;
   ownerUserId: string;
-  scoringConfig: import("@/db/schema").ScoringConfig;
-  payoutConfig: import("@/db/schema").PayoutConfig;
+  scoringConfig: ScoringConfig;
+  payoutConfig: PayoutConfig;
   pausedAt: Date | null;
   pausedReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export async function getProjectRecord(
+async function getProjectRecordUncached(
   projectId: string,
 ): Promise<ProjectRecord | null> {
   const [r] = await dbHttp
@@ -436,19 +592,36 @@ export async function getProjectRecord(
     name: r.name,
     description: r.description,
     imageUrl: r.imageUrl,
-    status: r.status,
+    status: parseProjectStatus(r.status),
     tokenMint: r.tokenMint,
     bagsLaunchId: r.bagsLaunchId,
     ghInstallationId: r.ghInstallationId,
     platformFeeBps: r.platformFeeBps,
     ownerUserId: r.ownerUserId,
-    scoringConfig: r.scoringConfig,
-    payoutConfig: r.payoutConfig,
+    scoringConfig: parseScoringConfig(r.scoringConfig),
+    payoutConfig: parsePayoutConfig(r.payoutConfig),
     pausedAt: r.pausedAt,
     pausedReason: r.pausedReason,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   };
+}
+
+export async function getProjectRecord(
+  projectId: string,
+): Promise<ProjectRecord | null> {
+  return getCachedValue(
+    () => getProjectRecordUncached(projectId),
+    ["gitbags:dashboard:project-record:v1", projectId],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.dashboardProject(projectId),
+        cacheTags.project(projectId),
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
 }
 
 export interface RecentAuditEntry {
@@ -460,10 +633,11 @@ export interface RecentAuditEntry {
   createdAt: Date;
 }
 
-export async function getRecentProjectAudit(
+async function getRecentProjectAuditUncached(
   projectId: string,
   limit = 10,
 ): Promise<RecentAuditEntry[]> {
+  const safe = safeLimit(limit, 10);
   const rows = await dbHttp
     .select({
       id: sql<string>`al.id`,
@@ -477,7 +651,7 @@ export async function getRecentProjectAudit(
     .leftJoin(users, sql`u.id = al.actor_user_id`)
     .where(sql`al.target_type = 'project' and al.target_id = ${projectId}`)
     .orderBy(sql`al.created_at desc`)
-    .limit(limit);
+    .limit(safe);
   return rows.map((r) => ({
     id: r.id,
     action: r.action,
@@ -488,14 +662,35 @@ export async function getRecentProjectAudit(
   }));
 }
 
+export async function getRecentProjectAudit(
+  projectId: string,
+  limit = 10,
+): Promise<RecentAuditEntry[]> {
+  const safe = safeLimit(limit, 10);
+  return getCachedValue(
+    () => getRecentProjectAuditUncached(projectId, safe),
+    ["gitbags:dashboard:project-audit:v1", projectId, String(safe)],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.dashboardProject(projectId),
+        cacheTags.project(projectId),
+        cacheTags.adminAudit,
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
+}
+
 export interface IndexerState {
   lastFullSyncAt: Date | null;
   lastIncrementalSyncAt: Date | null;
+  lastCommitSha: string | null;
   lastError: string | null;
   isStale: boolean; // > 1h since last incremental
 }
 
-export async function getIndexerState(
+async function getIndexerStateUncached(
   projectId: string,
 ): Promise<IndexerState | null> {
   const [r] = await dbHttp
@@ -509,9 +704,27 @@ export async function getIndexerState(
   return {
     lastFullSyncAt: r.lastFullSyncAt,
     lastIncrementalSyncAt: r.lastIncrementalSyncAt,
+    lastCommitSha: r.lastCommitSha,
     lastError: r.lastError,
     isStale,
   };
+}
+
+export async function getIndexerState(
+  projectId: string,
+): Promise<IndexerState | null> {
+  return getCachedValue(
+    () => getIndexerStateUncached(projectId),
+    ["gitbags:dashboard:indexer-state:v1", projectId],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.dashboardProject(projectId),
+        cacheTags.project(projectId),
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
 }
 
 export interface FailedPayoutAlert {
@@ -521,10 +734,11 @@ export interface FailedPayoutAlert {
   lastError: string | null;
 }
 
-export async function getFailedPayoutsForProject(
+async function getFailedPayoutsForProjectUncached(
   projectId: string,
   limit = 5,
 ): Promise<FailedPayoutAlert[]> {
+  const safe = safeLimit(limit, 5);
   const rows = await dbHttp
     .select({
       id: payouts.id,
@@ -535,8 +749,28 @@ export async function getFailedPayoutsForProject(
     .from(payouts)
     .where(and(eq(payouts.projectId, projectId), eq(payouts.status, "failed")))
     .orderBy(desc(payouts.scheduledAt))
-    .limit(limit);
+    .limit(safe);
   return rows;
+}
+
+export async function getFailedPayoutsForProject(
+  projectId: string,
+  limit = 5,
+): Promise<FailedPayoutAlert[]> {
+  const safe = safeLimit(limit, 5);
+  return getCachedValue(
+    () => getFailedPayoutsForProjectUncached(projectId, safe),
+    ["gitbags:dashboard:failed-payouts:v1", projectId, String(safe)],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.dashboardProject(projectId),
+        cacheTags.project(projectId),
+        cacheTags.projectPayouts(projectId),
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
 }
 
 export interface ProjectMemberRow {
@@ -548,7 +782,7 @@ export interface ProjectMemberRow {
   createdAt: Date;
 }
 
-export async function getProjectMembers(
+async function getProjectMembersUncached(
   projectId: string,
 ): Promise<ProjectMemberRow[]> {
   const rows = await dbHttp
@@ -565,6 +799,23 @@ export async function getProjectMembers(
     .where(eq(projectMemberships.projectId, projectId))
     .orderBy(desc(projectMemberships.createdAt));
   return rows;
+}
+
+export async function getProjectMembers(
+  projectId: string,
+): Promise<ProjectMemberRow[]> {
+  return getCachedValue(
+    () => getProjectMembersUncached(projectId),
+    ["gitbags:dashboard:project-members:v1", projectId],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.dashboardProject(projectId),
+        cacheTags.project(projectId),
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
 }
 
 // Re-export so callers don't have to dual-import.

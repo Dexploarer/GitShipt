@@ -29,7 +29,11 @@ import {
   serverEnv,
   stubsAllowed,
 } from "@/lib/env";
-import { updateProjectCaches } from "@/lib/cache-actions";
+import {
+  updateAdminCaches,
+  updateProjectCaches,
+  updateUserCaches,
+} from "@/lib/cache-actions";
 import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { solanaConnection } from "@/lib/solana/connection";
@@ -668,6 +672,7 @@ export async function updateFeesBps(
   );
 
   revalidatePath("/admin/fees");
+  await updateAdminCaches();
   return { ok: true, bps: parsed.bps };
 }
 
@@ -896,6 +901,7 @@ export async function toggleKillSwitch(
   );
 
   revalidatePath("/admin/maintenance");
+  await updateAdminCaches();
   return { ok: true, enabled: parsed.enabled };
 }
 
@@ -942,6 +948,7 @@ export async function updateBanner(input: unknown): Promise<{ ok: true }> {
   );
 
   revalidatePath("/admin/maintenance");
+  await updateAdminCaches();
   return { ok: true };
 }
 
@@ -999,6 +1006,8 @@ export async function grantRole(input: unknown): Promise<{ ok: true }> {
   );
 
   revalidatePath("/admin/users");
+  await updateAdminCaches();
+  await updateUserCaches(target.id);
   return { ok: true };
 }
 
@@ -1051,6 +1060,8 @@ export async function resetUserMfa(input: unknown): Promise<{ ok: true }> {
   );
 
   revalidatePath("/admin/users");
+  await updateAdminCaches();
+  await updateUserCaches(target.id);
   return { ok: true };
 }
 
@@ -1086,6 +1097,8 @@ export async function sybilFlagUser(input: unknown): Promise<{ ok: true }> {
 
   revalidatePath("/admin/users");
   revalidatePath("/admin/abuse");
+  await updateAdminCaches();
+  await updateUserCaches(parsed.userId);
   return { ok: true };
 }
 

@@ -37,19 +37,13 @@ export default async function WalletsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-headline-lg leading-tight text-fg">Wallets</h1>
-          <p className="text-body-md text-fg-secondary">
-            Solana wallets you&apos;ve linked via Sign-In With Solana.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <Button asChild variant="primary">
           <Link href="/auth/wallet">
             <Plus className="size-4" /> Link a wallet
           </Link>
         </Button>
-      </header>
+      </div>
 
       <Card depth="flat" padding="none">
         <CardHeader className="border-b border-border px-6 py-4">

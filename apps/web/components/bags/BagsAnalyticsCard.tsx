@@ -9,7 +9,6 @@ import {
   Badge,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@repo/ui";
@@ -39,9 +38,6 @@ export function BagsAnalyticsCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>Bags analytics</CardTitle>
-            <CardDescription>
-              Market, fee, and claim signals for this token.
-            </CardDescription>
           </div>
           {stats.isStub || pool.isStub ? (
             <Badge variant="warning" size="sm">

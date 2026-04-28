@@ -43,21 +43,13 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-headline-lg leading-tight text-fg">
-            Welcome back, {session.user.name ?? session.user.email}
-          </h1>
-          <p className="text-body-md text-fg-secondary">
-            Your projects, earnings, and linked wallets — all in one place.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <Button asChild variant="primary" size="default">
           <Link href="/launch">
             <Rocket className="size-4" /> Launch a token
           </Link>
         </Button>
-      </header>
+      </div>
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile

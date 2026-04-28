@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { Layers } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Pill } from "@repo/ui";
 import { getAllProjects } from "@/lib/queries/admin";
@@ -38,7 +33,7 @@ export default async function AdminProjectsPage({
     <div className="space-y-4">
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-headline-md tracking-tight">Projects</h1>
+          <h1 className="text-headline-md">Projects</h1>
           <p className="text-body-sm text-fg-secondary">
             Every project on the platform. Click a row to open the god-mode
             view.
@@ -164,7 +159,13 @@ export default async function AdminProjectsPage({
 function StatusBadge({
   status,
 }: {
-  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
+  status:
+    | "draft"
+    | "launch_configured"
+    | "live"
+    | "paused"
+    | "killed"
+    | "simulated_live";
 }) {
   switch (status) {
     case "live":

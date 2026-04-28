@@ -32,17 +32,11 @@ export default async function SettingsPage({
       <Breadcrumbs
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Projects", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
           { label: project.name, href: `/dashboard/projects/${id}` },
           { label: "Settings" },
         ]}
       />
-      <header>
-        <h1 className="text-headline-lg leading-tight text-fg">Settings</h1>
-        <p className="text-body-md text-fg-secondary">
-          Project metadata, pause controls, ownership transfer, and deletion.
-        </p>
-      </header>
 
       <Card depth="flat" padding="none">
         <CardHeader className="border-b border-border px-6 py-4">

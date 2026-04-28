@@ -80,7 +80,7 @@ export default async function LandingPage() {
       <div className="grid grid-cols-1 gap-4 lg:mb-8 lg:min-h-0 lg:grid-cols-[minmax(0,520px)_minmax(0,760px)] lg:justify-center lg:gap-8">
         <div className="contents lg:flex lg:flex-col lg:min-h-0 lg:justify-center lg:gap-10">
           <section className="order-1 flex flex-col items-start gap-4 lg:order-none lg:gap-5">
-            <h1 className="text-[28px] font-semibold leading-[1.02] text-fg sm:text-[36px] lg:whitespace-nowrap lg:text-[52px]">
+            <h1 className="text-[1.75rem] font-semibold leading-[1.02] text-fg sm:text-[2.25rem] lg:whitespace-nowrap lg:text-[3.25rem]">
               Your repo, <span className="text-fg-muted">tokenized.</span>
             </h1>
 
@@ -213,7 +213,7 @@ function FeaturedProjectCard({
       <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
         <div className="inline-flex items-center gap-2">
           <Trophy className="size-4 text-fg-secondary" aria-hidden />
-          <h2 className="text-label-sm uppercase tracking-wider text-fg-muted">
+          <h2 className="text-label-sm uppercase text-fg-muted">
             Featured project
           </h2>
         </div>
@@ -261,7 +261,7 @@ function FeaturedProjectCard({
       </div>
 
       <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1.5">
-        <span className="text-label-sm uppercase tracking-wider text-fg-muted">
+        <span className="text-label-sm uppercase text-fg-muted">
           Top contributors
         </span>
         <Link

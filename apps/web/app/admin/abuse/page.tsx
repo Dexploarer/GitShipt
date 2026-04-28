@@ -16,7 +16,7 @@ export default async function AdminAbusePage() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-headline-md tracking-tight">Abuse</h1>
+          <h1 className="text-headline-md">Abuse</h1>
           <p className="text-body-sm text-fg-secondary">
             Read-only triage feed for explicit abuse audit records. Automated
             sybil and spam detectors are not live yet.

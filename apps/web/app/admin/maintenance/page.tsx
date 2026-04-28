@@ -1,11 +1,6 @@
 import { Power } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { getPlatformConfigValue } from "@/lib/queries/admin";
 import { KillSwitchPanel } from "./_components/KillSwitchPanel";
@@ -29,7 +24,7 @@ export default async function AdminMaintenancePage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-headline-md tracking-tight">Maintenance</h1>
+        <h1 className="text-headline-md">Maintenance</h1>
         <p className="text-body-sm text-fg-secondary">
           Kill switch + banner. The switch is checked at the top of every cron
           entry-point.

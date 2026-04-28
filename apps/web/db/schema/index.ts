@@ -1,4 +1,5 @@
 export * from "./users";
+export * from "./user-settings";
 export * from "./wallets";
 export * from "./projects";
 export * from "./contributors";

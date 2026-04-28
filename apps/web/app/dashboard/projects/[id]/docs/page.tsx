@@ -24,18 +24,11 @@ export default async function DocsPage({
       <Breadcrumbs
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Projects", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
           { label: project.name, href: `/dashboard/projects/${id}` },
           { label: "Docs" },
         ]}
       />
-      <header>
-        <h1 className="text-headline-lg leading-tight text-fg">Docs</h1>
-        <p className="text-body-md text-fg-secondary">
-          Author project-specific contributor docs and publish them to the
-          public project page.
-        </p>
-      </header>
 
       <ProjectDocsEditor
         projectId={id}

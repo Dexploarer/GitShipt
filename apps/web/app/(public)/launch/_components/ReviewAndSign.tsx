@@ -61,9 +61,7 @@ export function ReviewAndSign({
       </header>
 
       <Card depth="flat" padding="default" className="bg-surface-elevated">
-        <h3 className="text-label-sm uppercase tracking-wide text-fg-muted">
-          Repository
-        </h3>
+        <h3 className="text-label-sm uppercase text-fg-muted">Repository</h3>
         <div className="mt-3 flex items-center gap-3">
           <Image
             src={repo.ownerAvatarUrl}
@@ -85,9 +83,7 @@ export function ReviewAndSign({
       </Card>
 
       <Card depth="flat" padding="default" className="bg-surface-elevated">
-        <h3 className="text-label-sm uppercase tracking-wide text-fg-muted">
-          Token
-        </h3>
+        <h3 className="text-label-sm uppercase text-fg-muted">Token</h3>
         <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
           <Row k="Name" v={metadata.name} />
           <Row k="Symbol" v={metadata.symbol} mono />
@@ -108,9 +104,7 @@ export function ReviewAndSign({
       </Card>
 
       <Card depth="flat" padding="default" className="bg-surface-elevated">
-        <h3 className="text-label-sm uppercase tracking-wide text-fg-muted">
-          Leaderboard
-        </h3>
+        <h3 className="text-label-sm uppercase text-fg-muted">Leaderboard</h3>
         <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
           <Row k="Window" v={`${leaderboard.windowDays} days`} mono />
           <Row k="Top N paid" v={String(leaderboard.topN)} mono />
@@ -126,7 +120,7 @@ export function ReviewAndSign({
       </Card>
 
       <Card depth="flat" padding="default" className="bg-surface-elevated">
-        <h3 className="text-label-sm uppercase tracking-wide text-fg-muted">
+        <h3 className="text-label-sm uppercase text-fg-muted">
           Estimated launch cost
         </h3>
         <p className="mt-2 text-mono-md text-fg">~0.05 SOL</p>

@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { Octokit } from "@octokit/rest";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { dbHttp } from "@/db";
 import { accounts, projects } from "@/db/schema";
@@ -101,7 +101,7 @@ export async function GET(req: Request): Promise<Response> {
       scope: accounts.scope,
     })
     .from(accounts)
-    .where(eq(accounts.userId, userId))
+    .where(and(eq(accounts.userId, userId), eq(accounts.providerId, "github")))
     .limit(1);
 
   if (!account?.accessToken) {

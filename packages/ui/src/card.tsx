@@ -14,36 +14,34 @@ import { cn } from "@repo/lib";
  *   - none  : opaque surface fill
  *   - glass : translucent + backdrop-blur (use on top of the page bg)
  */
-const cardVariants = cva(
-  "relative rounded-lg border border-border text-fg",
-  {
-    variants: {
-      depth: {
-        flat: "bg-surface",
-        raised: "bg-surface shadow-card-elevated",
-        floating: "shadow-floating",
-      },
-      glass: {
-        none: "",
-        glass: "glass",
-      },
-      padding: {
-        none: "",
-        sm: "p-4",
-        default: "p-6",
-        lg: "p-8",
-      },
+const cardVariants = cva("relative rounded-lg border border-border text-fg", {
+  variants: {
+    depth: {
+      flat: "bg-surface",
+      raised: "gb-panel-raised bg-surface shadow-card-elevated",
+      floating: "gb-panel-floating shadow-floating",
     },
-    defaultVariants: { depth: "flat", glass: "none", padding: "default" },
-    compoundVariants: [
-      // When using glass, surface fill must come from the @utility, not bg-surface.
-      { glass: "glass", depth: "flat", className: "" },
-    ],
+    glass: {
+      none: "",
+      glass: "glass",
+    },
+    padding: {
+      none: "",
+      sm: "p-4",
+      default: "p-6",
+      lg: "p-8",
+    },
   },
-);
+  defaultVariants: { depth: "flat", glass: "none", padding: "default" },
+  compoundVariants: [
+    // When using glass, surface fill must come from the @utility, not bg-surface.
+    { glass: "glass", depth: "flat", className: "" },
+  ],
+});
 
 export interface CardProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof cardVariants> {}
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(function Card(
@@ -59,26 +57,40 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(function Card(
   );
 });
 
-export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function CardHeader({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex flex-col gap-1.5", className)} {...props} />;
 }
 
-export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-headline-sm tracking-tight", className)} {...props} />;
+export function CardTitle({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h3 className={cn("text-headline-sm", className)} {...props} />;
 }
 
 export function CardDescription({
   className,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-body-sm text-fg-secondary", className)} {...props} />;
+  return (
+    <p className={cn("text-body-sm text-fg-secondary", className)} {...props} />
+  );
 }
 
-export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function CardContent({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("", className)} {...props} />;
 }
 
-export function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function CardFooter({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex items-center", className)} {...props} />;
 }
 

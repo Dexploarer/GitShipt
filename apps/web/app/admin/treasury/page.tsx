@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Vault, Wallet } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { StatTile } from "@/components/shared/StatTile";
@@ -32,7 +27,7 @@ export default async function AdminTreasuryPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-headline-md tracking-tight">Treasury</h1>
+        <h1 className="text-headline-md">Treasury</h1>
         <p className="text-body-sm text-fg-secondary">
           Read-only. Top-ups go cold-treasury → hot-wallet under MFA (manual,
           v1.1).

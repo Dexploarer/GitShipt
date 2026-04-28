@@ -17,7 +17,7 @@ function Toaster({ className, toastOptions, ...props }: ToasterProps) {
             "group toast group-[.toaster]:bg-surface-overlay group-[.toaster]:text-fg group-[.toaster]:border-border group-[.toaster]:shadow-popover",
           description: "group-[.toast]:text-fg-secondary",
           actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-fg group-[.toast]:hover:bg-primary-hover",
+            "gb-control gb-control-primary group-[.toast]:bg-primary group-[.toast]:text-primary-fg",
           cancelButton:
             "group-[.toast]:bg-surface-elevated group-[.toast]:text-fg-secondary",
           ...toastOptions?.classNames,

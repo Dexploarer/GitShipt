@@ -38,14 +38,14 @@ export default async function DocsPage() {
     <div className="grid grid-cols-1 gap-12 lg:grid-cols-[200px_minmax(0,1fr)]">
       <aside className="lg:sticky lg:top-24 lg:self-start">
         <nav aria-label="Docs sections" className="flex flex-col gap-1">
-          <span className="px-2 pb-2 text-label-sm uppercase tracking-wide text-fg-muted">
+          <span className="px-2 pb-2 text-label-sm uppercase text-fg-muted">
             Contents
           </span>
           {TOC.map(({ id, title }) => (
             <a
               key={id}
               href={`#${id}`}
-              className="rounded-md px-2 py-1.5 text-label-md text-fg-secondary transition-colors hover:bg-surface-elevated hover:text-fg"
+              className="gb-route-link gb-route-link-inactive rounded-md border px-2 py-1.5 text-label-md text-fg-secondary hover:text-fg"
             >
               {title}
             </a>
@@ -55,9 +55,7 @@ export default async function DocsPage() {
 
       <article className="flex max-w-prose flex-col gap-12">
         <header className="flex flex-col gap-3">
-          <h1 className="text-headline-lg tracking-tight text-fg">
-            GitBags documentation
-          </h1>
+          <h1 className="text-headline-lg text-fg">GitBags documentation</h1>
           <p className="text-body-lg text-fg-secondary">
             The mechanics behind the launchpad. How contributions become tokens,
             how tokens become payouts, and how to embed the widget anywhere.

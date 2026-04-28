@@ -12,6 +12,7 @@ import { decryptSecret, markMfaConfirmed, verifyTotp } from "@/lib/auth/mfa";
 import { check } from "@/lib/rate-limit";
 import { withIdempotency } from "@/lib/idempotency";
 import { MfaVerifyResponseSchema } from "@repo/shared";
+import { revalidateUserCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,8 @@ export async function POST(req: Request): Promise<Response> {
     },
     { scope: `auth:mfa-verify:${userId}` },
   );
+
+  revalidateUserCaches(userId);
 
   return NextResponse.json(result, { status: 200 });
 }

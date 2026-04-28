@@ -4,6 +4,9 @@ import { auditLogs } from "@/db/schema";
 export type AuditAction =
   | "auth.signin"
   | "auth.wallet_link"
+  | "user.profile_update"
+  | "user.settings_update"
+  | "user.github_sync"
   | "project.create"
   | "project.launch"
   | "project.launch_complete"

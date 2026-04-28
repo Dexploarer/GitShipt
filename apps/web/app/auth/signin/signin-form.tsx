@@ -34,10 +34,10 @@ export function SignInForm() {
           href="/"
           className="mb-6 inline-flex items-center gap-3 transition-opacity hover:opacity-80"
         >
-          <span className="grid size-8 place-items-center rounded-md bg-primary text-bg">
+          <span className="grid size-8 place-items-center rounded-md bg-primary text-primary-fg">
             <Sparkles className="size-4" />
           </span>
-          <span className="text-headline-sm tracking-tight">GitBags</span>
+          <span className="text-headline-sm">GitBags</span>
         </Link>
 
         <h1 className="text-headline-md">Sign in</h1>

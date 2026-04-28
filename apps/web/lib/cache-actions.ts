@@ -19,6 +19,24 @@ export async function updatePublicCaches(): Promise<void> {
     cacheTags.explore,
     cacheTags.globalLeaderboard,
     cacheTags.liveTicker,
+    cacheTags.launch,
+  ]);
+}
+
+export async function updateAdminCaches(): Promise<void> {
+  updateCacheTags([
+    cacheTags.admin,
+    cacheTags.adminAudit,
+    cacheTags.adminUsers,
+    cacheTags.platformConfig,
+  ]);
+}
+
+export async function updateUserCaches(userId: string): Promise<void> {
+  updateCacheTags([
+    cacheTags.dashboard,
+    cacheTags.user(userId),
+    cacheTags.dashboardUser(userId),
   ]);
 }
 
@@ -38,7 +56,10 @@ export async function updateProjectCaches(
 
   await updatePublicCaches();
   updateCacheTags([
+    cacheTags.dashboard,
+    cacheTags.admin,
     cacheTags.project(projectId),
+    cacheTags.dashboardProject(projectId),
     cacheTags.projectPayouts(projectId),
     cacheTags.projectSnapshots(projectId),
     ...(resolvedSlug ? [cacheTags.projectSlug(resolvedSlug)] : []),

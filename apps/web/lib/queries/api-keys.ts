@@ -4,6 +4,7 @@ import bs58 from "bs58";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { dbHttp } from "@/db";
 import { apiKeys, type ApiKeyRow } from "@/db/schema";
+import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
 import {
   ProjectApiKeyScopesSchema,
   type ProjectApiKeyScope,
@@ -91,7 +92,7 @@ export async function createApiKey(
  * List all non-revoked API keys for a project, newest first. The raw key
  * is never available here.
  */
-export async function listApiKeysForProject(
+async function listApiKeysForProjectUncached(
   projectId: string,
 ): Promise<ApiKeyListItem[]> {
   const rows = await dbHttp
@@ -112,6 +113,24 @@ export async function listApiKeysForProject(
     ...row,
     scopes: normalizeStoredScopes(row.scopes),
   }));
+}
+
+export async function listApiKeysForProject(
+  projectId: string,
+): Promise<ApiKeyListItem[]> {
+  return getCachedValue(
+    () => listApiKeysForProjectUncached(projectId),
+    ["gitbags:dashboard:api-keys:v1", projectId],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.dashboardProject(projectId),
+        cacheTags.project(projectId),
+        cacheTags.admin,
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
 }
 
 /**

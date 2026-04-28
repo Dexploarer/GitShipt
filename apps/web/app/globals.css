@@ -28,10 +28,11 @@
   --border-strong: #33333f;
 
   /* Brand */
-  --primary: #a855f7;
-  --primary-hover: #9333ea;
-  --primary-pressed: #7e22ce;
-  --primary-soft: #1f1429;
+  --primary: #4a9b3d;
+  --primary-hover: #56a545;
+  --primary-pressed: #408838;
+  --primary-soft: #0c2314;
+  --primary-fg: #f5f5f7;
 
   /* Text */
   --fg: #f5f5f7;
@@ -55,8 +56,8 @@
   --rank-bronze: #d97706;
 
   /* Charts */
-  --chart-1: #a855f7;
-  --chart-2: #7e22ce;
+  --chart-1: #4a9b3d;
+  --chart-2: #408838;
   --chart-3: #22c55e;
   --chart-4: #3b82f6;
   --chart-5: #eab308;
@@ -70,20 +71,23 @@
   --shadow-floating:
     0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    0 12px 28px -8px rgba(0, 0, 0, 0.55),
-    0 28px 56px -16px rgba(0, 0, 0, 0.4);
+    0 12px 28px -8px rgba(0, 0, 0, 0.55), 0 28px 56px -16px rgba(0, 0, 0, 0.4);
 
   --shadow-card-elevated:
     0 0 0 1px rgba(255, 255, 255, 0.04),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
-    0 6px 16px -4px rgba(0, 0, 0, 0.35),
-    0 14px 32px -10px rgba(0, 0, 0, 0.25);
+    0 6px 16px -4px rgba(0, 0, 0, 0.35), 0 14px 32px -10px rgba(0, 0, 0, 0.25);
 
   --shadow-inset-light:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
     inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 
   --shadow-press: inset 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+
+  /* Controls */
+  --control-touch-target: 2.75rem;
+  --focus-ring: color-mix(in oklab, var(--rank-gold) 86%, transparent);
+  --focus-ring-soft: color-mix(in oklab, var(--rank-gold) 28%, transparent);
 }
 
 /* ============================================================
@@ -98,11 +102,12 @@
   --border: #e5e5ec;
   --border-strong: #d4d4dd;
 
-  /* Brand — slightly darkened purple for AA contrast on white */
-  --primary: #9333ea;
-  --primary-hover: #7e22ce;
-  --primary-pressed: #6b21a8;
-  --primary-soft: #f3e8ff;
+  /* Brand — forest green tuned for AA contrast on white */
+  --primary: #176f3a;
+  --primary-hover: #0f6b35;
+  --primary-pressed: #084020;
+  --primary-soft: #e5f4e8;
+  --primary-fg: #f5f5f7;
 
   /* Text */
   --fg: #0f0f14;
@@ -126,8 +131,8 @@
   --rank-bronze: #92400e;
 
   /* Charts */
-  --chart-1: #9333ea;
-  --chart-2: #6b21a8;
+  --chart-1: #176f3a;
+  --chart-2: #084020;
   --chart-3: #16a34a;
   --chart-4: #2563eb;
   --chart-5: #ca8a04;
@@ -137,14 +142,12 @@
   --shadow-modal: 0 20px 60px rgba(15, 15, 20, 0.15);
 
   --shadow-floating:
-    0 0 0 1px rgba(15, 15, 20, 0.06),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 0 0 1px rgba(15, 15, 20, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
     0 8px 24px -4px rgba(15, 15, 20, 0.12),
-    0 24px 48px -12px rgba(15, 15, 20, 0.10);
+    0 24px 48px -12px rgba(15, 15, 20, 0.1);
 
   --shadow-card-elevated:
-    0 0 0 1px rgba(15, 15, 20, 0.04),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+    0 0 0 1px rgba(15, 15, 20, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
     0 4px 12px -2px rgba(15, 15, 20, 0.08),
     0 12px 24px -8px rgba(15, 15, 20, 0.06);
 
@@ -173,6 +176,9 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-pressed: var(--primary-pressed);
   --color-primary-soft: var(--primary-soft);
+  --color-primary-fg: var(--primary-fg);
+  --color-focus-ring: var(--focus-ring);
+  --color-focus-ring-soft: var(--focus-ring-soft);
 
   --color-fg: var(--fg);
   --color-fg-secondary: var(--fg-secondary);
@@ -227,85 +233,781 @@
 }
 
 /* ============================================================
+ * Tactile controls
+ * Modern skeuomorphism for buttons and button-like controls.
+ * The effect is physical but restrained: a consistent upper-left light
+ * source, machined bevel, crisp contact lip, softer ambient lift, and a
+ * depressed active state. Component files opt in with gb-control classes.
+ * ============================================================ */
+.gb-control {
+  --control-face-top: color-mix(in oklab, var(--surface-overlay), white 8%);
+  --control-face-mid: color-mix(in oklab, var(--surface-elevated), white 2%);
+  --control-face-bottom: color-mix(in oklab, var(--surface), black 7%);
+  --control-border: color-mix(in oklab, var(--border-strong), white 8%);
+  --control-border-hover: color-mix(in oklab, var(--border-strong), white 20%);
+  --control-edge: color-mix(in oklab, var(--border-strong) 68%, transparent);
+  --control-key-shadow: color-mix(in oklab, black 76%, transparent);
+  --control-ambient-shadow: color-mix(in oklab, black 60%, transparent);
+  --control-texture-light: color-mix(in oklab, white 4%, transparent);
+  --control-texture-dark: color-mix(in oklab, black 3%, transparent);
+  --control-sheen: color-mix(in oklab, white 24%, transparent);
+  --control-sheen-inset-x: 0.375rem;
+  --control-sheen-opacity: 0.62;
+  --control-rim-top: color-mix(in oklab, white 24%, transparent);
+  --control-rim-bottom: color-mix(in oklab, black 26%, transparent);
+  --control-icon-shadow: color-mix(in oklab, black 32%, transparent);
+  --control-lift-y: -0.125rem;
+  --control-press-y: 0.0625rem;
+  --control-lip-y: 0.0625rem;
+  --control-key-y: 0.625rem;
+  --control-key-blur: 1.25rem;
+  --control-key-spread: -0.875rem;
+  --control-ambient-y: 1.35rem;
+  --control-ambient-blur: 2.35rem;
+  --control-ambient-spread: -1.65rem;
+  --control-filter-hover: saturate(1.02) brightness(1.035);
+
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  border-color: var(--control-border);
+  border-style: solid;
+  border-width: 1px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 0.4375rem,
+      var(--control-texture-light) 0.4375rem 0.5rem,
+      transparent 0.5rem 0.875rem
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 0.1875rem,
+      var(--control-texture-dark) 0.1875rem 0.25rem,
+      transparent 0.25rem 0.75rem
+    ),
+    linear-gradient(
+      180deg,
+      var(--control-face-top) 0%,
+      var(--control-face-mid) 48%,
+      var(--control-face-bottom) 100%
+    );
+  background-blend-mode: soft-light, overlay, normal;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transform: translate3d(0, 0, 0);
+  transition-property:
+    background-color, border-color, box-shadow, color, filter, transform;
+  transition-duration: 170ms;
+  transition-timing-function: cubic-bezier(0.22, 0.72, 0.18, 1);
+  box-shadow:
+    inset 0 1px 0 var(--control-rim-top),
+    inset 0 -1px 0 var(--control-rim-bottom),
+    0 1px 0 color-mix(in oklab, white 7%, transparent),
+    0 var(--control-lip-y) 0 var(--control-edge),
+    0 var(--control-key-y) var(--control-key-blur) var(--control-key-spread)
+      var(--control-key-shadow),
+    0 var(--control-ambient-y) var(--control-ambient-blur)
+      var(--control-ambient-spread) var(--control-ambient-shadow);
+}
+
+.gb-control::before {
+  position: absolute;
+  inset: 1px var(--control-sheen-inset-x) auto;
+  height: 1px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--control-sheen) 18%,
+    var(--control-sheen) 82%,
+    transparent
+  );
+  content: "";
+  opacity: var(--control-sheen-opacity);
+  pointer-events: none;
+}
+
+.gb-control > svg {
+  filter: drop-shadow(0 1px 0 var(--control-icon-shadow));
+}
+
+.gb-control:not(:disabled):not([aria-disabled="true"]):hover {
+  border-color: var(--control-border-hover);
+  filter: var(--control-filter-hover);
+  transform: translate3d(0, var(--control-lift-y), 0);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 34%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 22%, transparent),
+    0 1px 0 color-mix(in oklab, white 8%, transparent),
+    0 calc(var(--control-lip-y) + 0.0625rem) 0 var(--control-edge),
+    0 calc(var(--control-key-y) + 0.25rem)
+      calc(var(--control-key-blur) + 0.35rem) var(--control-key-spread)
+      var(--control-key-shadow),
+    0 calc(var(--control-ambient-y) + 0.5rem)
+      calc(var(--control-ambient-blur) + 0.55rem) var(--control-ambient-spread)
+      var(--control-ambient-shadow);
+}
+
+.gb-control:not(:disabled):not([aria-disabled="true"]):active,
+.gb-control[data-state="open"],
+.gb-control[data-active="true"] {
+  filter: saturate(0.98) brightness(0.96);
+  transform: translate3d(0, var(--control-press-y), 0);
+  box-shadow:
+    inset 0 2px 7px color-mix(in oklab, black 34%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 14%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 18%, transparent),
+    0 1px 0 var(--control-edge),
+    0 0.4rem 0.9rem -0.75rem var(--control-key-shadow);
+}
+
+.gb-control:disabled,
+.gb-control[aria-disabled="true"] {
+  filter: saturate(0.75);
+  transform: none;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 12%, transparent);
+}
+
+.gb-control:disabled::before,
+.gb-control[aria-disabled="true"]::before {
+  opacity: 0.26;
+}
+
+.gb-control-primary {
+  --control-face-top: color-mix(in oklab, var(--primary-hover), white 22%);
+  --control-face-mid: var(--primary);
+  --control-face-bottom: color-mix(in oklab, var(--primary-pressed), black 18%);
+  --control-border: color-mix(in oklab, var(--primary-hover), white 10%);
+  --control-border-hover: color-mix(in oklab, var(--primary-hover), white 30%);
+  --control-edge: color-mix(in oklab, var(--primary-pressed) 78%, transparent);
+  --control-key-shadow: color-mix(in oklab, var(--primary-pressed) 44%, black);
+  --control-ambient-shadow: color-mix(
+    in oklab,
+    var(--primary) 34%,
+    transparent
+  );
+  --control-texture-light: color-mix(in oklab, white 7%, transparent);
+  --control-texture-dark: color-mix(
+    in oklab,
+    var(--primary-pressed) 12%,
+    transparent
+  );
+  --control-sheen: color-mix(in oklab, white 44%, transparent);
+  --control-sheen-inset-x: 0.5rem;
+  --control-sheen-opacity: 0.68;
+  --control-rim-top: color-mix(in oklab, white 42%, transparent);
+  --control-rim-bottom: color-mix(in oklab, black 34%, transparent);
+  --control-icon-shadow: color-mix(in oklab, black 42%, transparent);
+  --control-lip-y: 0.0625rem;
+  --control-key-y: 0.75rem;
+  --control-key-blur: 1.4rem;
+  --control-key-spread: -0.85rem;
+  --control-ambient-y: 1.55rem;
+  --control-ambient-blur: 2.65rem;
+  --control-ambient-spread: -1.65rem;
+
+  background-color: var(--primary);
+  color: var(--primary-fg);
+  text-shadow: 0 1px 0 color-mix(in oklab, black 42%, transparent);
+}
+
+.gb-control-secondary {
+  --control-face-top: color-mix(in oklab, var(--surface-overlay), white 8%);
+  --control-face-mid: color-mix(in oklab, var(--surface-elevated), white 2%);
+  --control-face-bottom: color-mix(in oklab, var(--surface), black 8%);
+  --control-sheen: color-mix(in oklab, white 20%, transparent);
+  --control-sheen-inset-x: 0.5rem;
+  --control-sheen-opacity: 0.56;
+}
+
+.gb-control-outline {
+  --control-face-top: color-mix(
+    in oklab,
+    var(--surface-overlay),
+    transparent 22%
+  );
+  --control-face-mid: color-mix(
+    in oklab,
+    var(--surface-elevated),
+    transparent 36%
+  );
+  --control-face-bottom: color-mix(in oklab, var(--surface), transparent 20%);
+  --control-border: color-mix(in oklab, var(--border-strong), white 6%);
+  --control-sheen: color-mix(in oklab, white 16%, transparent);
+  --control-key-y: 0.45rem;
+  --control-key-blur: 1rem;
+  --control-ambient-y: 0.85rem;
+  --control-ambient-blur: 1.65rem;
+}
+
+.gb-control-ghost {
+  --control-face-top: color-mix(
+    in oklab,
+    var(--surface-elevated),
+    transparent 60%
+  );
+  --control-face-mid: color-mix(in oklab, var(--surface), transparent 72%);
+  --control-face-bottom: color-mix(in oklab, var(--surface), transparent 78%);
+  --control-border: color-mix(in oklab, var(--border), transparent 38%);
+  --control-border-hover: color-mix(in oklab, var(--border-strong), white 10%);
+  --control-edge: color-mix(in oklab, var(--border) 58%, transparent);
+  --control-key-shadow: color-mix(in oklab, black 42%, transparent);
+  --control-ambient-shadow: color-mix(in oklab, black 36%, transparent);
+  --control-sheen: color-mix(in oklab, white 12%, transparent);
+  --control-sheen-inset-x: 0.5rem;
+  --control-sheen-opacity: 0.5;
+  --control-lip-y: 0.0625rem;
+  --control-key-y: 0.35rem;
+  --control-key-blur: 0.8rem;
+  --control-key-spread: -0.7rem;
+  --control-ambient-y: 0.75rem;
+  --control-ambient-blur: 1.35rem;
+  --control-ambient-spread: -1.1rem;
+
+  color: var(--fg-secondary);
+}
+
+.gb-control-ghost:not(:disabled):not([aria-disabled="true"]):hover {
+  color: var(--fg);
+}
+
+.gb-control[data-state="active"] {
+  --control-face-top: color-mix(in oklab, var(--surface-overlay), white 8%);
+  --control-face-mid: color-mix(in oklab, var(--surface-elevated), white 2%);
+  --control-face-bottom: color-mix(in oklab, var(--surface), black 8%);
+  --control-border: color-mix(in oklab, var(--border-strong), white 10%);
+  --control-edge: color-mix(in oklab, var(--border-strong) 68%, transparent);
+  --control-key-shadow: color-mix(in oklab, black 66%, transparent);
+  --control-ambient-shadow: color-mix(in oklab, black 46%, transparent);
+  --control-sheen: color-mix(in oklab, white 18%, transparent);
+
+  color: var(--fg);
+}
+
+.gb-control-danger {
+  --control-face-top: color-mix(in oklab, var(--danger), white 16%);
+  --control-face-mid: var(--danger);
+  --control-face-bottom: color-mix(in oklab, var(--danger), black 24%);
+  --control-border: color-mix(in oklab, var(--danger), black 10%);
+  --control-border-hover: color-mix(in oklab, var(--danger), white 24%);
+  --control-edge: color-mix(in oklab, var(--danger) 74%, transparent);
+  --control-key-shadow: color-mix(in oklab, var(--danger) 34%, black);
+  --control-ambient-shadow: color-mix(in oklab, var(--danger) 28%, transparent);
+  --control-sheen: color-mix(in oklab, white 40%, transparent);
+  --control-sheen-inset-x: 0.5rem;
+  --control-sheen-opacity: 0.64;
+  --control-rim-top: color-mix(in oklab, white 36%, transparent);
+  --control-rim-bottom: color-mix(in oklab, black 36%, transparent);
+
+  color: var(--primary-fg);
+  text-shadow: 0 1px 0 color-mix(in oklab, black 42%, transparent);
+}
+
+.gb-control-icon {
+  --control-lip-y: 0.0625rem;
+  --control-key-y: 0.4rem;
+  --control-key-blur: 0.85rem;
+  --control-key-spread: -0.65rem;
+  --control-ambient-y: 0.9rem;
+  --control-ambient-blur: 1.45rem;
+  --control-ambient-spread: -1.15rem;
+}
+
+.gb-control-link {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.gb-control-link::before {
+  content: none;
+}
+
+.gb-control-link > svg {
+  filter: none;
+}
+
+.gb-control-link:not(:disabled):not([aria-disabled="true"]):hover {
+  filter: none;
+  transform: none;
+}
+
+[data-theme="light"] .gb-control {
+  --control-key-shadow: color-mix(in oklab, black 34%, transparent);
+  --control-ambient-shadow: color-mix(in oklab, black 22%, transparent);
+  --control-edge: color-mix(in oklab, var(--border-strong) 62%, transparent);
+  --control-rim-bottom: color-mix(in oklab, black 18%, transparent);
+  --control-icon-shadow: color-mix(in oklab, white 54%, transparent);
+}
+
+[data-theme="light"] .gb-control-primary {
+  --control-key-shadow: color-mix(
+    in oklab,
+    var(--primary-pressed) 40%,
+    transparent
+  );
+  --control-ambient-shadow: color-mix(
+    in oklab,
+    var(--primary) 22%,
+    transparent
+  );
+  --control-edge: color-mix(in oklab, var(--primary-pressed) 72%, transparent);
+}
+
+[data-theme="light"] .gb-control-danger {
+  --control-key-shadow: color-mix(in oklab, var(--danger) 30%, transparent);
+  --control-ambient-shadow: color-mix(in oklab, var(--danger) 18%, transparent);
+}
+
+.gb-control-cluster {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 0.1875rem,
+      color-mix(in oklab, white 3%, transparent) 0.1875rem 0.25rem,
+      transparent 0.25rem 0.75rem
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--bg), white 2%),
+      color-mix(in oklab, var(--surface), black 5%)
+    );
+  background-blend-mode: soft-light, normal;
+  box-shadow:
+    inset 0 1px 5px color-mix(in oklab, black 28%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
+    0 1px 0 color-mix(in oklab, white 5%, transparent);
+}
+
+.gb-panel-raised,
+.gb-panel-floating {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 0.25rem,
+      color-mix(in oklab, white 2.5%, transparent) 0.25rem 0.3125rem,
+      transparent 0.3125rem 0.875rem
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface-overlay), white 3%) 0%,
+      var(--surface) 100%
+    );
+  background-blend-mode: soft-light, normal;
+}
+
+.gb-panel-raised::before,
+.gb-panel-floating::before {
+  position: absolute;
+  inset: 1px 0.75rem auto;
+  height: 1px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, white 18%, transparent) 18%,
+    color-mix(in oklab, white 18%, transparent) 82%,
+    transparent
+  );
+  content: "";
+  pointer-events: none;
+}
+
+.gb-panel-raised {
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 12%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 12%, transparent),
+    var(--shadow-card-elevated);
+}
+
+.gb-panel-floating {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 0.25rem,
+      color-mix(in oklab, white 3%, transparent) 0.25rem 0.3125rem,
+      transparent 0.3125rem 0.875rem
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface-overlay), white 5%) 0%,
+      color-mix(in oklab, var(--surface), black 3%) 100%
+    );
+  background-blend-mode: soft-light, normal;
+  box-shadow: var(--shadow-floating);
+}
+
+.gb-field-control {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 0.1875rem,
+      color-mix(in oklab, black 3%, transparent) 0.1875rem 0.25rem,
+      transparent 0.25rem 0.75rem
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface), black 5%),
+      color-mix(in oklab, var(--surface-elevated), white 3%)
+    );
+  background-blend-mode: overlay, normal;
+  box-shadow:
+    inset 0 2px 5px color-mix(in oklab, black 24%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 8%, transparent),
+    0 1px 0 color-mix(in oklab, white 4%, transparent);
+}
+
+.gb-field-control:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 2px 5px color-mix(in oklab, black 18%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 12%, transparent),
+    0 0 0 4px var(--focus-ring-soft);
+}
+
+.gb-control:focus-visible,
+.gb-route-link:focus-visible,
+.gb-pill-interactive:focus-visible,
+.gb-menu-item:focus-visible,
+.gb-control-toggle:focus-visible,
+.wallet-adapter-button:focus-visible,
+.wallet-adapter-modal-middle-button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.gb-menu-item {
+  border: 1px solid transparent;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 7%, transparent);
+  transition-property:
+    background-color, border-color, box-shadow, color, transform;
+  transition-duration: 140ms;
+}
+
+.gb-menu-item:hover,
+.gb-menu-item:focus,
+.gb-menu-item[data-highlighted] {
+  border-color: color-mix(in oklab, var(--border), transparent 20%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface-overlay), white 5%),
+    var(--surface-elevated)
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 18%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 12%, transparent),
+    0 0.35rem 0.9rem -0.75rem color-mix(in oklab, black 65%, transparent);
+}
+
+.gb-menu-item:active {
+  box-shadow:
+    inset 0 1px 5px color-mix(in oklab, black 24%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 9%, transparent);
+  transform: translateY(0.03125rem);
+}
+
+.gb-control-toggle {
+  box-shadow:
+    inset 0 1px 5px color-mix(in oklab, black 32%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 12%, transparent),
+    0 1px 0 color-mix(in oklab, white 5%, transparent);
+}
+
+.gb-pill-interactive {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in oklab, currentColor 22%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 18%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 14%, transparent),
+    0 1px 0 color-mix(in oklab, var(--border-strong), black 20%),
+    0 0.45rem 0.95rem -0.8rem color-mix(in oklab, black 60%, transparent);
+  transform: translate3d(0, 0, 0);
+  transition-property:
+    background-color, border-color, box-shadow, color, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.22, 0.72, 0.18, 1);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gb-pill-interactive:hover {
+  transform: translate3d(0, -0.0625rem, 0);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 24%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 12%, transparent),
+    0 0.125rem 0 color-mix(in oklab, var(--border-strong), black 18%),
+    0 0.65rem 1.15rem -0.8rem color-mix(in oklab, black 56%, transparent);
+}
+
+.gb-pill-interactive:active,
+.gb-pill-interactive[data-state="active"] {
+  transform: translate3d(0, 0.03125rem, 0);
+  box-shadow:
+    inset 0 1px 5px color-mix(in oklab, black 26%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 10%, transparent),
+    0 1px 0 color-mix(in oklab, var(--border-strong), black 24%);
+}
+
+.gb-range-control {
+  height: 1.25rem;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+}
+
+.gb-range-control::-webkit-slider-runnable-track {
+  height: 0.5rem;
+  border: 1px solid color-mix(in oklab, var(--border), transparent 10%);
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface), black 6%),
+    color-mix(in oklab, var(--surface-elevated), white 4%)
+  );
+  box-shadow:
+    inset 0 1px 4px color-mix(in oklab, black 34%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, white 10%, transparent),
+    0 1px 0 color-mix(in oklab, white 6%, transparent);
+}
+
+.gb-range-control::-webkit-slider-thumb {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: -0.375rem;
+  border: 1px solid color-mix(in oklab, var(--primary-hover), white 10%);
+  border-radius: var(--radius-full);
+  appearance: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--primary-hover), white 24%),
+    var(--primary) 52%,
+    color-mix(in oklab, var(--primary-pressed), black 16%)
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 44%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 28%, transparent),
+    0 0.125rem 0 color-mix(in oklab, var(--primary-pressed), black 34%),
+    0 0.55rem 1rem -0.65rem color-mix(in oklab, black 70%, transparent);
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.gb-range-control:hover::-webkit-slider-thumb {
+  transform: translateY(-0.0625rem);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 50%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 24%, transparent),
+    0 0.1875rem 0 color-mix(in oklab, var(--primary-pressed), black 34%),
+    0 0.75rem 1.25rem -0.65rem color-mix(in oklab, black 68%, transparent);
+}
+
+.gb-range-control:active::-webkit-slider-thumb {
+  transform: translateY(0.03125rem);
+  box-shadow:
+    inset 0 2px 5px color-mix(in oklab, black 34%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 18%, transparent),
+    0 1px 0 color-mix(in oklab, var(--primary-pressed), black 34%);
+}
+
+.gb-range-control::-moz-range-track {
+  height: 0.5rem;
+  border: 1px solid color-mix(in oklab, var(--border), transparent 10%);
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface), black 6%),
+    color-mix(in oklab, var(--surface-elevated), white 4%)
+  );
+  box-shadow:
+    inset 0 1px 4px color-mix(in oklab, black 34%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, white 10%, transparent),
+    0 1px 0 color-mix(in oklab, white 6%, transparent);
+}
+
+.gb-range-control::-moz-range-thumb {
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1px solid color-mix(in oklab, var(--primary-hover), white 10%);
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--primary-hover), white 24%),
+    var(--primary) 52%,
+    color-mix(in oklab, var(--primary-pressed), black 16%)
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 44%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 28%, transparent),
+    0 0.125rem 0 color-mix(in oklab, var(--primary-pressed), black 34%),
+    0 0.55rem 1rem -0.65rem color-mix(in oklab, black 70%, transparent);
+}
+
+.gb-route-link {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: none;
+  transition-property: background-color, border-color, box-shadow, color;
+  transition-duration: 150ms;
+}
+
+.gb-route-link-inactive {
+  border-color: transparent;
+  background: transparent;
+  color: var(--fg-secondary);
+}
+
+.gb-route-link-inactive:not(:disabled):not([aria-disabled="true"]):hover {
+  border-color: color-mix(in oklab, var(--border) 55%, transparent);
+  background: color-mix(in oklab, var(--surface-elevated) 44%, transparent);
+  color: var(--fg);
+}
+
+.gb-route-link-inactive:not(:disabled):not([aria-disabled="true"]):active {
+  background: color-mix(in oklab, var(--surface-elevated) 70%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-control {
+    transition-duration: 1ms;
+  }
+
+  .gb-control:not(:disabled):not([aria-disabled="true"]):hover,
+  .gb-control:not(:disabled):not([aria-disabled="true"]):active,
+  .gb-control[data-state="open"],
+  .gb-control[data-active="true"],
+  .gb-pill-interactive:hover,
+  .gb-pill-interactive:active,
+  .gb-range-control:hover::-webkit-slider-thumb,
+  .gb-range-control:active::-webkit-slider-thumb,
+  .gb-range-control:hover::-moz-range-thumb,
+  .gb-range-control:active::-moz-range-thumb {
+    transform: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .gb-control,
+  .gb-menu-item,
+  .gb-pill-interactive,
+  .gb-route-link {
+    min-height: var(--control-touch-target);
+  }
+
+  .gb-control-icon {
+    min-width: var(--control-touch-target);
+  }
+}
+
+/* ============================================================
  * Custom typography utilities mapped from DESIGN.md `typography:`.
  * Use as Tailwind utilities: `text-display`, `text-headline-md`, etc.
  * ============================================================ */
 @utility text-display {
   font-family: var(--font-sans);
-  font-size: 48px;
+  font-size: 3rem;
   font-weight: 600;
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 @utility text-headline-lg {
   font-family: var(--font-sans);
-  font-size: 32px;
+  font-size: 2rem;
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -0.015em;
+  letter-spacing: 0;
 }
 @utility text-headline-md {
   font-family: var(--font-sans);
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 600;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 @utility text-headline-sm {
   font-family: var(--font-sans);
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.3;
+  letter-spacing: 0;
 }
 @utility text-body-lg {
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 400;
   line-height: 1.5;
+  letter-spacing: 0;
 }
 @utility text-body-md {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.5;
+  letter-spacing: 0;
 }
 @utility text-body-sm {
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
   line-height: 1.4;
+  letter-spacing: 0;
 }
 @utility text-label-md {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.2;
+  letter-spacing: 0;
 }
 @utility text-label-sm {
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.2;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 @utility text-caption {
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 400;
   line-height: 1.3;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+}
+@utility text-mono-display {
+  font-family: var(--font-mono);
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+}
+@utility text-mono-lg {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0;
 }
 @utility text-mono-md {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.4;
+  letter-spacing: 0;
 }
 @utility text-mono-sm {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
   line-height: 1.3;
+  letter-spacing: 0;
 }
 
 /* ============================================================
@@ -313,7 +1015,8 @@
  * One canonical animation; components compose it with semantic colors.
  * ============================================================ */
 @keyframes pulse-dot {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -366,7 +1069,11 @@
 }
 
 @utility glass-strong {
-  background-color: color-mix(in oklab, var(--surface-overlay) 85%, transparent);
+  background-color: color-mix(
+    in oklab,
+    var(--surface-overlay) 85%,
+    transparent
+  );
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
@@ -431,7 +1138,12 @@ html,
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family:
+    var(--font-sans),
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-kerning: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -450,7 +1162,9 @@ body {
 .font-mono,
 [class*="text-mono-"] {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" on, "ss01" on;
+  font-feature-settings:
+    "tnum" 1,
+    "ss01" 1;
 }
 
 /* ============================================================
@@ -458,41 +1172,177 @@ body {
  * The package stylesheet imports Google-hosted DM Sans and hardcoded colors;
  * these overrides keep the modal CSP-safe and on the Geist visual system.
  * ============================================================ */
-.wallet-adapter-button {
+.wallet-adapter-button,
+.wallet-adapter-modal-middle-button {
+  --control-face-top: color-mix(in oklab, var(--surface-overlay), white 8%);
+  --control-face-mid: color-mix(in oklab, var(--surface-elevated), white 2%);
+  --control-face-bottom: color-mix(in oklab, var(--surface), black 7%);
+  --control-border: color-mix(in oklab, var(--border-strong), white 8%);
+  --control-border-hover: color-mix(in oklab, var(--border-strong), white 20%);
+  --control-edge: color-mix(in oklab, var(--border-strong) 68%, transparent);
+  --control-key-shadow: color-mix(in oklab, black 76%, transparent);
+  --control-ambient-shadow: color-mix(in oklab, black 60%, transparent);
+  --control-texture-light: color-mix(in oklab, white 4%, transparent);
+  --control-texture-dark: color-mix(in oklab, black 3%, transparent);
+  --control-sheen: color-mix(in oklab, white 24%, transparent);
+  --control-sheen-inset-x: 0.375rem;
+  --control-sheen-opacity: 0.62;
+  --control-rim-top: color-mix(in oklab, white 24%, transparent);
+  --control-rim-bottom: color-mix(in oklab, black 26%, transparent);
+
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
   display: flex;
   height: 48px;
   align-items: center;
-  border: 0;
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-md);
-  background: transparent;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 0.4375rem,
+      var(--control-texture-light) 0.4375rem 0.5rem,
+      transparent 0.5rem 0.875rem
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 0.1875rem,
+      var(--control-texture-dark) 0.1875rem 0.25rem,
+      transparent 0.25rem 0.75rem
+    ),
+    linear-gradient(
+      180deg,
+      var(--control-face-top) 0%,
+      var(--control-face-mid) 48%,
+      var(--control-face-bottom) 100%
+    );
+  background-blend-mode: soft-light, overlay, normal;
+  box-shadow:
+    inset 0 1px 0 var(--control-rim-top),
+    inset 0 -1px 0 var(--control-rim-bottom),
+    0 1px 0 color-mix(in oklab, white 7%, transparent),
+    0 0.0625rem 0 var(--control-edge),
+    0 0.625rem 1.25rem -0.875rem var(--control-key-shadow),
+    0 1.35rem 2.35rem -1.65rem var(--control-ambient-shadow);
   color: var(--fg);
   cursor: pointer;
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   line-height: 1;
   padding: 0 16px;
+  transform: translateY(0);
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
-    color 160ms ease;
+    filter 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.wallet-adapter-button::before,
+.wallet-adapter-modal-middle-button::before {
+  position: absolute;
+  inset: 1px var(--control-sheen-inset-x) auto;
+  height: 1px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--control-sheen) 18%,
+    var(--control-sheen) 82%,
+    transparent
+  );
+  content: "";
+  opacity: var(--control-sheen-opacity);
+  pointer-events: none;
 }
 
 .wallet-adapter-button-trigger,
 .wallet-adapter-modal-middle-button {
-  background: var(--primary);
-  color: var(--fg);
-  box-shadow: var(--shadow-inset-light);
+  --control-face-top: color-mix(in oklab, var(--primary-hover), white 22%);
+  --control-face-mid: var(--primary);
+  --control-face-bottom: color-mix(in oklab, var(--primary-pressed), black 18%);
+  --control-border: color-mix(in oklab, var(--primary-hover), white 10%);
+  --control-border-hover: color-mix(in oklab, var(--primary-hover), white 30%);
+  --control-edge: color-mix(in oklab, var(--primary-pressed) 78%, transparent);
+  --control-key-shadow: color-mix(in oklab, var(--primary-pressed) 44%, black);
+  --control-ambient-shadow: color-mix(
+    in oklab,
+    var(--primary) 34%,
+    transparent
+  );
+  --control-texture-light: color-mix(in oklab, white 7%, transparent);
+  --control-texture-dark: color-mix(
+    in oklab,
+    var(--primary-pressed) 12%,
+    transparent
+  );
+  --control-sheen: color-mix(in oklab, white 44%, transparent);
+  --control-sheen-inset-x: 0.5rem;
+  --control-sheen-opacity: 0.68;
+  --control-rim-top: color-mix(in oklab, white 42%, transparent);
+  --control-rim-bottom: color-mix(in oklab, black 34%, transparent);
+
+  border-color: var(--control-border);
+  color: var(--primary-fg);
+  text-shadow: 0 1px 0 color-mix(in oklab, black 42%, transparent);
+}
+
+[data-theme="light"] .wallet-adapter-button,
+[data-theme="light"] .wallet-adapter-modal-middle-button {
+  --control-key-shadow: color-mix(in oklab, black 34%, transparent);
+  --control-ambient-shadow: color-mix(in oklab, black 22%, transparent);
+  --control-edge: color-mix(in oklab, var(--border-strong) 62%, transparent);
+  --control-rim-bottom: color-mix(in oklab, black 18%, transparent);
+}
+
+[data-theme="light"] .wallet-adapter-button-trigger,
+[data-theme="light"] .wallet-adapter-modal-middle-button {
+  --control-key-shadow: color-mix(
+    in oklab,
+    var(--primary-pressed) 40%,
+    transparent
+  );
+  --control-ambient-shadow: color-mix(
+    in oklab,
+    var(--primary) 22%,
+    transparent
+  );
+  --control-edge: color-mix(in oklab, var(--primary-pressed) 72%, transparent);
 }
 
 .wallet-adapter-button:not([disabled]):hover,
 .wallet-adapter-dropdown-list-item:not([disabled]):hover {
-  background: var(--surface-elevated);
+  border-color: var(--control-border-hover);
+  filter: saturate(1.02) brightness(1.035);
+  transform: translateY(-0.125rem);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 34%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 22%, transparent),
+    0 1px 0 color-mix(in oklab, white 8%, transparent),
+    0 0.125rem 0 var(--control-edge),
+    0 0.875rem 1.6rem -0.875rem var(--control-key-shadow),
+    0 1.85rem 2.9rem -1.65rem var(--control-ambient-shadow);
 }
 
 .wallet-adapter-button-trigger:not([disabled]):hover,
 .wallet-adapter-modal-middle-button:not([disabled]):hover {
-  background: var(--primary-hover);
+  border-color: var(--control-border-hover);
+}
+
+.wallet-adapter-button:not([disabled]):active,
+.wallet-adapter-modal-middle-button:not([disabled]):active {
+  filter: saturate(0.98) brightness(0.96);
+  transform: translateY(0.0625rem);
+  box-shadow:
+    inset 0 2px 7px color-mix(in oklab, black 34%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 14%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, black 18%, transparent),
+    0 1px 0 var(--control-edge),
+    0 0.4rem 0.9rem -0.75rem var(--control-key-shadow);
 }
 
 .wallet-adapter-button:not([disabled]):focus-visible,
@@ -581,7 +1431,7 @@ body {
   background: transparent;
   color: var(--fg);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   outline: none;
   padding: 0 20px;
@@ -655,7 +1505,9 @@ body {
 .wallet-adapter-modal-collapse-button svg,
 .wallet-adapter-modal-list-more svg {
   fill: var(--fg-secondary);
-  transition: fill 160ms ease, transform 160ms ease;
+  transition:
+    fill 160ms ease,
+    transform 160ms ease;
 }
 
 .wallet-adapter-modal-button-close:hover svg,
@@ -663,7 +1515,8 @@ body {
   fill: var(--fg);
 }
 
-.wallet-adapter-modal-collapse-button.wallet-adapter-modal-collapse-button-active svg,
+.wallet-adapter-modal-collapse-button.wallet-adapter-modal-collapse-button-active
+  svg,
 .wallet-adapter-modal-list-more-icon-rotate {
   transform: rotate(180deg);
 }
@@ -672,7 +1525,7 @@ body {
   margin: 0;
   padding: 64px 48px 40px;
   color: var(--fg);
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 600;
   line-height: 1.25;
   text-align: center;
@@ -687,14 +1540,14 @@ body {
 
 .wallet-adapter-modal-list .wallet-adapter-button {
   border-radius: 0;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 500;
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button span {
   margin-left: auto;
   color: var(--fg-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .wallet-adapter-modal-list-more {
@@ -720,11 +1573,11 @@ body {
 .wallet-adapter-modal-middle-button {
   display: block;
   width: 100%;
-  border: 0;
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-md);
   cursor: pointer;
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   margin-top: 48px;
   padding: 12px;
@@ -738,7 +1591,17 @@ body {
 
   .wallet-adapter-modal-title {
     padding-inline: 32px;
-    font-size: 20px;
+    font-size: 1.25rem;
+  }
+}
+
+@media (pointer: coarse) {
+  .wallet-adapter-button,
+  .wallet-adapter-dropdown-list-item,
+  .wallet-adapter-modal-list-more,
+  .wallet-adapter-modal-button-close {
+    min-width: var(--control-touch-target);
+    min-height: var(--control-touch-target);
   }
 }
 

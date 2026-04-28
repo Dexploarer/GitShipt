@@ -143,6 +143,7 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
   if (success) {
     return (
       <div className="mx-auto w-full max-w-2xl py-12">
+        <h1 className="sr-only">Launch a repo token</h1>
         <LaunchResult result={success} onViewProject={handleViewProject} />
       </div>
     );
@@ -150,6 +151,7 @@ export function WizardShell({ signedIn, isStubMode }: WizardShellProps) {
 
   return (
     <div className="mx-auto w-full max-w-2xl py-12">
+      <h1 className="sr-only">Launch a repo token</h1>
       <StepIndicator current={step} />
 
       <section
@@ -444,7 +446,7 @@ function StepIndicator({ current }: { current: LaunchWizardStep }) {
             <span
               className={cn(
                 "grid size-7 place-items-center rounded-full text-mono-sm font-medium",
-                state === "current" && "bg-primary text-fg",
+                state === "current" && "bg-primary text-primary-fg",
                 state === "done" &&
                   "bg-success-soft text-success border border-success",
                 state === "future" &&

@@ -200,10 +200,7 @@ export function DestructiveConfirmModal({
               <AlertTriangle className="size-4" />
             </span>
             <div>
-              <h3
-                id="destructive-confirm-title"
-                className="text-headline-sm tracking-tight"
-              >
+              <h3 id="destructive-confirm-title" className="text-headline-sm">
                 {title}
               </h3>
               <p className="mt-1 text-body-sm text-fg-secondary">
@@ -215,7 +212,7 @@ export function DestructiveConfirmModal({
             type="button"
             aria-label="Close"
             onClick={() => onOpenChange(false)}
-            className="text-fg-muted hover:text-fg"
+            className="gb-control gb-control-icon gb-control-ghost inline-flex size-8 items-center justify-center rounded-md text-fg-muted hover:text-fg"
           >
             <X className="size-4" />
           </button>
@@ -277,7 +274,7 @@ export function DestructiveConfirmModal({
               required
               className={cn(
                 "w-full rounded-md border border-border bg-surface-elevated px-3 py-2",
-                "text-mono-sm tracking-widest text-fg placeholder:text-fg-muted",
+                "text-mono-sm text-fg placeholder:text-fg-muted",
                 "focus:outline-none focus:ring-2 focus:ring-primary",
               )}
               placeholder="000000"

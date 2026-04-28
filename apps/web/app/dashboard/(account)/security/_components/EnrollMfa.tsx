@@ -18,7 +18,11 @@ import {
  *   3. POST /api/auth/mfa/verify -> server confirms + records freshness.
  *   4. Page reloads to show the enrolled state.
  */
-export function EnrollMfa() {
+export function EnrollMfa({
+  mode = "enroll",
+}: {
+  mode?: "enroll" | "regenerate";
+}) {
   const [data, setData] = React.useState<MfaEnrollResponse | null>(null);
   const [token, setToken] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -79,8 +83,9 @@ export function EnrollMfa() {
           <FormError message={error} onDismiss={() => setError(null)} />
         ) : null}
         <p className="text-body-sm text-fg-secondary">
-          Click below to generate a fresh secret and a QR code you can scan
-          with any authenticator app.
+          {mode === "regenerate"
+            ? "If the first QR code is gone, generate a fresh authenticator secret and scan the new code."
+            : "Click below to generate a fresh secret and a QR code you can scan with any authenticator app."}
         </p>
         <div>
           <Button
@@ -89,7 +94,11 @@ export function EnrollMfa() {
             onClick={startEnrollment}
             disabled={busy}
           >
-            {busy ? "Generating…" : "Set up authenticator"}
+            {busy
+              ? "Generating..."
+              : mode === "regenerate"
+                ? "Generate new QR code"
+                : "Set up authenticator"}
           </Button>
         </div>
       </div>
@@ -113,7 +122,7 @@ export function EnrollMfa() {
           <FormError message={error} onDismiss={() => setError(null)} />
         ) : null}
         <div className="flex flex-col gap-1">
-          <span className="text-label-sm uppercase tracking-wide text-fg-muted">
+          <span className="text-label-sm uppercase text-fg-muted">
             Manual entry
           </span>
           <code className="text-mono-sm break-all text-fg">
@@ -144,7 +153,7 @@ export function EnrollMfa() {
             onClick={confirmFirstCode}
             disabled={busy || token.length !== 6}
           >
-            {busy ? "Confirming…" : "Confirm code"}
+            {busy ? "Confirming..." : "Confirm code"}
           </Button>
           <Button
             type="button"

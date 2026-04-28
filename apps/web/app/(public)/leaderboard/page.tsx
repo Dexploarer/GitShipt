@@ -36,6 +36,7 @@ export default async function LeaderboardPage({
 
   return (
     <div className="flex flex-col gap-6 lg:gap-8">
+      <h1 className="sr-only">Global leaderboard</h1>
       <ModeToggle mode={mode} />
 
       {mode === "contributor" ? (
@@ -66,7 +67,7 @@ function ModeToggle({ mode }: { mode: Mode }) {
     <div
       role="tablist"
       aria-label="Leaderboard view"
-      className="inline-flex w-fit items-center gap-0.5 rounded-md border border-border/60 bg-bg/40 p-0.5"
+      className="gb-control-cluster inline-flex w-fit items-center gap-0.5 rounded-md border border-border/60 bg-bg/40 p-0.5"
     >
       {options.map(({ value, label, href }) => {
         const on = mode === value;
@@ -77,10 +78,10 @@ function ModeToggle({ mode }: { mode: Mode }) {
             role="tab"
             aria-selected={on}
             className={cn(
-              "rounded-md px-3 py-1.5 text-label-md transition-colors",
+              "rounded-md border px-3 py-1.5 text-label-md transition-[background-color,border-color,box-shadow,color,transform]",
               on
-                ? "bg-surface-elevated text-fg shadow-inset-light"
-                : "text-fg-secondary hover:bg-surface-elevated/60 hover:text-fg",
+                ? "gb-control gb-control-secondary border-border-strong bg-surface-elevated text-fg"
+                : "gb-route-link gb-route-link-inactive text-fg-secondary hover:text-fg",
             )}
           >
             {label}

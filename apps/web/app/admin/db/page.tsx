@@ -16,7 +16,7 @@ export default async function AdminDbPage() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-headline-md tracking-tight">Database</h1>
+          <h1 className="text-headline-md">Database</h1>
           <p className="text-body-sm text-fg-secondary">
             Live read-only inventory. No SQL is executed from this page in v0.
           </p>

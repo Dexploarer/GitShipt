@@ -70,6 +70,11 @@ Missing external credentials keep the app in stub-safe mode where possible.
 Do not invent secrets. If live behavior is needed, add the required environment
 variable explicitly.
 
+Playwright e2e defaults to a production-mode server on port 3100, so it can run
+while a separate `bun run dev` session is active. Set `E2E_PORT=3101` to move
+that server, or set `E2E_BASE_URL=http://localhost:3000` /
+`PLAYWRIGHT_BASE_URL=http://localhost:3000` to reuse an existing app server.
+
 ## Workspaces
 
 - `@repo/web` is the deployable Next.js app in [`apps/web`](./apps/web).
@@ -92,6 +97,12 @@ Keep app-owned code on the `@/*` alias inside `apps/web`.
 
 Core variables:
 
+- Use [`.env.production.example`](./.env.production.example) as the production
+  input template.
+- Run `bun run env:template` to print the variable list with Sensitive/Plain
+  classification.
+- Run `bun run env:check -- --env-file=.env.production.local` before launch to
+  validate a local production env file without printing secret values.
 - `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` should point at the deployed app
   origin.
 - `DATABASE_URL` and `DATABASE_URL_UNPOOLED` are Neon Postgres connection URLs.
@@ -111,6 +122,17 @@ Core variables:
 
 Every `*_KEY`, `*_SECRET`, `*PRIVATE_KEY`, and `*KEYPAIR` value must be marked
 Sensitive in Vercel. Cold treasury private keys must never enter Vercel.
+
+Production readiness checks require the deployed environment to use the live
+cluster and canonical origin:
+
+- `NEXT_PUBLIC_SOLANA_CLUSTER=mainnet-beta`.
+- `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` set to the canonical deployed
+  HTTPS origin, not localhost or a preview URL.
+- `BAGS_PARTNER_WALLET` and `BAGS_PARTNER_CONFIG_KEY` configured as a matching
+  Bags partner pair. Keep the real config key out of the repo and set it only
+  in the deployment environment, marked Sensitive under the repo policy above.
+- `GITHUB_APP_SLUG` set to the short GitHub App URL slug, not the full app URL.
 
 ## Route Map
 

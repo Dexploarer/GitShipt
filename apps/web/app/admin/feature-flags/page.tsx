@@ -45,7 +45,7 @@ export default async function AdminFeatureFlagsPage() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-headline-md tracking-tight">Feature flags</h1>
+          <h1 className="text-headline-md">Feature flags</h1>
           <p className="text-body-sm text-fg-secondary">
             Read-only inventory for v0. This page shows current state and where
             each flag is changed; it is not a flag editor yet.

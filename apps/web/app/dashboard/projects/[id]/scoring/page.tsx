@@ -41,18 +41,11 @@ export default async function ScoringPage({
       <Breadcrumbs
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Projects", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
           { label: project.name, href: `/dashboard/projects/${id}` },
           { label: "Scoring" },
         ]}
       />
-      <header>
-        <h1 className="text-headline-lg leading-tight text-fg">Scoring</h1>
-        <p className="text-body-md text-fg-secondary">
-          Formula, payout weights, scoring window, and account exclusions for
-          this project.
-        </p>
-      </header>
 
       <section className="grid gap-3 md:grid-cols-3">
         <MetricCard

@@ -61,8 +61,12 @@ export function formatPercent(n: number, decimals = 1): string {
  * Compact relative timestamp ("just now", "2m ago", "3h ago", "5d ago").
  * Falls back to a localized date for ages over 30 days.
  */
-export function formatRelativeTime(date: Date): string {
-  const ms = Date.now() - date.getTime();
+export function formatRelativeTime(date: Date | string | number): string {
+  const value = date instanceof Date ? date : new Date(date);
+  const time = value.getTime();
+  if (!Number.isFinite(time)) return "unknown";
+
+  const ms = Date.now() - time;
   if (ms < 0) {
     // Future — used for countdowns elsewhere; this helper just returns "soon".
     return "soon";
@@ -76,7 +80,7 @@ export function formatRelativeTime(date: Date): string {
   if (hr < 24) return `${hr}h ago`;
   const day = Math.floor(hr / 24);
   if (day < 30) return `${day}d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return value.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 /**

@@ -100,7 +100,7 @@ export function TokenMetadataForm({
           type="text"
           maxLength={10}
           autoComplete="off"
-          className="text-mono-md uppercase tracking-wide"
+          className="text-mono-md uppercase"
           {...register("symbol", {
             setValueAs: (v: string) => (v ?? "").toUpperCase(),
           })}

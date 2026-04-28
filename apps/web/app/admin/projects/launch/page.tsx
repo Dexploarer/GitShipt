@@ -9,9 +9,7 @@ export default async function AdminLaunchBypassPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-headline-md tracking-tight">
-          Direct launch bypass
-        </h1>
+        <h1 className="text-headline-md">Direct launch bypass</h1>
         <p className="text-body-sm text-fg-secondary">
           Super-admin audited launch path for verified exceptions and operator
           recovery.

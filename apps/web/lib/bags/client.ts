@@ -76,7 +76,12 @@ import {
 } from "./types";
 import { stubBags } from "./__stubs";
 import { parseBagsRestEnvelope } from "./rest";
-import { normalizeBagsTransaction } from "./transactions";
+import {
+  normalizeBagsTransaction,
+  type BagsTransaction,
+} from "./transactions";
+import { solanaConnection } from "@/lib/solana/connection";
+import { assertTransactionSimulation } from "@/lib/solana/simulation";
 
 /**
  * Typed Bags.fm client. Behavior:
@@ -414,6 +419,12 @@ async function signAndSubmitViaBags(transaction: unknown): Promise<string> {
     throw new Error("Bags returned an unsupported transaction type.");
   }
 
+  await assertTransactionSimulation(
+    solanaConnection("processed"),
+    normalized,
+    "Bags transaction",
+  );
+
   const raw = await bagsRestRaw("solana/send-transaction", {
     method: "POST",
     body: JSON.stringify({ transaction: bs58.encode(serialized) }),
@@ -684,14 +695,14 @@ export const bags = {
   },
 
   /**
-   * Get an array of unsigned VersionedTransactions to claim accrued fees
-   * on behalf of `walletAddress` for `tokenMint`. Caller signs + sends.
+   * Get an array of unsigned web3 transactions to claim accrued fees on
+   * behalf of `walletAddress` for `tokenMint`. Caller signs + sends.
    * Throws when stubbed — payout dispatch must be guarded.
    */
   async getClaimTransactions(
     walletAddress: string,
     tokenMint: string,
-  ): Promise<{ transactions: unknown[]; __stub?: boolean }> {
+  ): Promise<{ transactions: BagsTransaction[]; __stub?: boolean }> {
     if (!hasCredentials.bags()) {
       return { transactions: [], __stub: true };
     }
@@ -713,7 +724,11 @@ export const bags = {
             }),
           },
         );
-    return { transactions };
+    return {
+      transactions: await Promise.all(
+        transactions.map((tx) => normalizeBagsTransaction(tx)),
+      ),
+    };
   },
 
   async signAndSubmitTransaction(transaction: unknown): Promise<string> {

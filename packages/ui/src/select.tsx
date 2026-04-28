@@ -34,7 +34,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-surface px-3 text-fg shadow-press outline-none transition-[border-color,box-shadow]",
+        "gb-control gb-control-secondary flex w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-surface px-3 text-fg outline-none transition-[border-color,box-shadow,transform]",
         "data-[size=sm]:h-8 data-[size=default]:h-9 data-[size=lg]:h-11",
         "text-body-md data-[size=sm]:text-body-sm data-[placeholder]:text-fg-muted",
         "focus-visible:border-primary focus-visible:shadow-inset-light disabled:cursor-not-allowed disabled:opacity-60",
@@ -101,7 +101,7 @@ function SelectContent({
         position={position}
         sideOffset={sideOffset}
         className={cn(
-          "relative z-50 max-h-[var(--radix-select-content-available-height)] min-w-[8rem] overflow-hidden rounded-md border border-border bg-surface-overlay text-fg shadow-popover",
+          "gb-panel-floating relative z-50 max-h-[var(--radix-select-content-available-height)] min-w-[8rem] overflow-hidden rounded-md border border-border bg-surface-overlay text-fg shadow-floating",
           position === "popper" &&
             "w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]",
           className,

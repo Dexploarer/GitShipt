@@ -184,7 +184,7 @@ export function ProjectGodModeControls({
       </div>
 
       <details className="rounded-md border border-border/60 bg-surface-elevated/60 p-3">
-        <summary className="cursor-pointer list-none text-label-md text-fg">
+        <summary className="gb-menu-item inline-flex cursor-pointer list-none rounded-md px-2 py-1 text-label-md text-fg">
           Override scoring config
         </summary>
         <div className="mt-2 space-y-2">
@@ -214,7 +214,7 @@ export function ProjectGodModeControls({
       </details>
 
       <details className="rounded-md border border-border/60 bg-surface-elevated/60 p-3">
-        <summary className="cursor-pointer list-none text-label-md text-fg">
+        <summary className="gb-menu-item inline-flex cursor-pointer list-none rounded-md px-2 py-1 text-label-md text-fg">
           Payout config (read-only here)
         </summary>
         <pre className="mt-2 max-h-60 overflow-auto rounded-md bg-bg p-2 text-mono-sm text-fg-secondary">

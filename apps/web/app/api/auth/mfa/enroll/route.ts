@@ -12,6 +12,7 @@ import { encryptSecret, generateSecret } from "@/lib/auth/mfa";
 import { check } from "@/lib/rate-limit";
 import { withIdempotency } from "@/lib/idempotency";
 import { MfaEnrollResponseSchema } from "@repo/shared";
+import { revalidateUserCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,8 @@ export async function POST(): Promise<Response> {
     },
     { scope: `auth:mfa-enroll:${userId}`, cacheResult: false },
   );
+
+  revalidateUserCaches(userId);
 
   return NextResponse.json(result, { status: 200 });
 }

@@ -77,7 +77,7 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
               <Link
                 key={id}
                 href={`#${id}`}
-                className="rounded-md px-2 py-1 text-fg-secondary transition-colors hover:bg-surface-elevated hover:text-fg"
+                className="gb-route-link gb-route-link-inactive rounded-md border px-2 py-1 text-fg-secondary hover:text-fg"
               >
                 {label}
               </Link>
@@ -277,7 +277,7 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
                 href={`/r/${header.ghOwner}/${header.ghRepo}/payouts`}
                 className="text-fg underline-offset-4 hover:underline"
               >
-                Payout history
+                Payouts
               </Link>
               <span>·</span>
               <Link

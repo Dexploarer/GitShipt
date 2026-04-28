@@ -196,7 +196,7 @@ export function TransferForm({ projectId, slug }: TransferFormProps) {
           pattern="\d{6}"
           placeholder="000000"
           autoComplete="off"
-          className="max-w-[8rem] text-mono-md tracking-widest"
+          className="max-w-[8rem] text-mono-md"
         />
       </Field>
 

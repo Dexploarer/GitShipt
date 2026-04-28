@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ArrowRight,
   Building2,
   Calendar,
+  Coins,
   ExternalLink,
   Github,
   Globe,
@@ -11,11 +13,14 @@ import {
   MapPin,
   Twitter,
   Users,
+  Wallet,
 } from "lucide-react";
-import { Badge } from "@repo/ui";
+import { Badge, Button } from "@repo/ui";
 import { getContributorProfile } from "@/lib/queries/discovery";
 import { getGitHubUser, type GitHubUserProfile } from "@/lib/github/users";
 import { formatScore, formatSol } from "@repo/lib";
+import { getAuthSession } from "@/lib/auth/session";
+import { getMyLinkedWallets } from "@/lib/queries/dashboard";
 import { ProjectsContributedTo } from "./_components/ProjectsContributedTo";
 import { EarningsHistory } from "./_components/EarningsHistory";
 
@@ -51,9 +56,10 @@ export default async function ContributorProfilePage({
   params: Params;
 }) {
   const { username } = await params;
-  const [profile, gh] = await Promise.all([
+  const [profile, gh, session] = await Promise.all([
     getContributorProfile(username),
     getGitHubUser(username),
+    getAuthSession(),
   ]);
 
   // 404 only when neither GitHub knows them nor we have any contributor row.
@@ -64,6 +70,12 @@ export default async function ContributorProfilePage({
   const displayName = gh?.name ?? profile?.ghUsername ?? username;
   const avatar =
     gh?.avatarUrl ?? profile?.avatarUrl ?? `https://github.com/${username}.png`;
+  const linkedWalletCount = session?.user?.id
+    ? (await getMyLinkedWallets(session.user.id)).length
+    : 0;
+  const signedInUsername =
+    (session?.user as { githubUsername?: string | null } | undefined)
+      ?.githubUsername ?? null;
 
   return (
     <div className="flex flex-col gap-8 lg:gap-10">
@@ -79,7 +91,7 @@ export default async function ContributorProfilePage({
           />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-[40px] font-semibold leading-[1.04] tracking-[-0.025em] text-fg sm:text-[48px]">
+              <h1 className="text-[2.5rem] font-semibold leading-[1.04] text-fg sm:text-display">
                 {displayName}
               </h1>
               {gh ? (
@@ -139,6 +151,14 @@ export default async function ContributorProfilePage({
         {gh ? <GitHubStatRow gh={gh} /> : null}
       </header>
 
+      <ContributorClaimCta
+        username={username}
+        profile={profile}
+        signedIn={Boolean(session?.user?.id)}
+        signedInUsername={signedInUsername}
+        hasLinkedWallet={linkedWalletCount > 0}
+      />
+
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ProjectsContributedTo
           rows={profile?.byProject ?? []}
@@ -147,6 +167,155 @@ export default async function ContributorProfilePage({
         <EarningsHistory rows={profile?.recentPayouts ?? []} />
       </section>
     </div>
+  );
+}
+
+function ContributorClaimCta({
+  username,
+  profile,
+  signedIn,
+  signedInUsername,
+  hasLinkedWallet,
+}: {
+  username: string;
+  profile: Awaited<ReturnType<typeof getContributorProfile>>;
+  signedIn: boolean;
+  signedInUsername: string | null;
+  hasLinkedWallet: boolean;
+}) {
+  const hasGitBagsRows = (profile?.projectsCount ?? 0) > 0;
+  const hasEarnings = (profile?.totalLifetimeLamports ?? 0n) > 0n;
+  const isOwnProfile =
+    signedInUsername?.toLowerCase() === username.toLowerCase();
+
+  if (!signedIn) {
+    return (
+      <ClaimPanel
+        icon={<Coins className="size-4" aria-hidden />}
+        title={
+          hasEarnings
+            ? "Set up contributor claiming"
+            : hasGitBagsRows
+              ? "Link a wallet for future payouts"
+              : "No GitBags earnings recorded yet"
+        }
+        description={
+          hasEarnings
+            ? "Sign in with GitHub, link a Solana wallet, and use the earnings dashboard to review payouts or claim any available escrow."
+            : hasGitBagsRows
+              ? "This profile is on GitBags leaderboards. Sign in and link a wallet so future payouts have a direct destination."
+              : "This GitHub account is public, but GitBags has not indexed contributor earnings for it yet."
+        }
+        primaryHref={`/auth/signin?next=${encodeURIComponent("/auth/wallet")}`}
+        primaryLabel="Sign in and link wallet"
+        secondaryHref="/explore"
+        secondaryLabel="Explore projects"
+      />
+    );
+  }
+
+  if (!isOwnProfile && signedInUsername) {
+    return (
+      <ClaimPanel
+        icon={<Github className="size-4" aria-hidden />}
+        title={`Viewing @${username}`}
+        description={`You are signed in as @${signedInUsername}. To claim this profile, use the GitHub account that owns @${username}.`}
+        primaryHref="/dashboard/earnings"
+        primaryLabel="Open my earnings"
+        secondaryHref="/explore"
+        secondaryLabel="Explore projects"
+      />
+    );
+  }
+
+  if (!hasLinkedWallet) {
+    return (
+      <ClaimPanel
+        icon={<Wallet className="size-4" aria-hidden />}
+        title={
+          hasEarnings
+            ? "Link a wallet to claim earnings"
+            : "Link a wallet for future payouts"
+        }
+        description={
+          hasEarnings
+            ? "Your GitHub identity is signed in. Add a Solana wallet so dashboard earnings can route claimable escrow to you."
+            : "No claimable earnings are visible on this public profile yet. Linking a wallet prepares your account for future GitBags payouts."
+        }
+        primaryHref="/auth/wallet"
+        primaryLabel="Link wallet"
+        secondaryHref="/dashboard/earnings"
+        secondaryLabel="View earnings"
+      />
+    );
+  }
+
+  return (
+    <ClaimPanel
+      icon={<Coins className="size-4" aria-hidden />}
+      title={hasEarnings ? "Manage earnings in dashboard" : "Wallet linked"}
+      description={
+        hasEarnings
+          ? "Your wallet is linked. Open the earnings dashboard to review lifetime payouts and claim project escrow when available."
+          : "No claimable earnings are visible yet. Your linked wallet is ready for future contributor payouts."
+      }
+      primaryHref="/dashboard/earnings"
+      primaryLabel={hasEarnings ? "Open earnings" : "Check earnings"}
+      secondaryHref={hasEarnings ? "/dashboard/wallets" : "/explore"}
+      secondaryLabel={hasEarnings ? "Manage wallets" : "Explore projects"}
+    />
+  );
+}
+
+function ClaimPanel({
+  icon,
+  title,
+  description,
+  primaryHref,
+  primaryLabel,
+  secondaryHref,
+  secondaryLabel,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  primaryHref: string;
+  primaryLabel: string;
+  secondaryHref: string;
+  secondaryLabel: string;
+}) {
+  return (
+    <section
+      aria-labelledby="claim-path-title"
+      className="rounded-xl border border-border bg-surface-elevated/60 p-4 shadow-card-elevated sm:p-5"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md border border-border-strong bg-surface text-primary">
+            {icon}
+          </span>
+          <div className="min-w-0 space-y-1">
+            <h2 id="claim-path-title" className="text-headline-sm text-fg">
+              {title}
+            </h2>
+            <p className="max-w-3xl text-body-sm text-fg-secondary">
+              {description}
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          <Button asChild variant="primary">
+            <Link href={primaryHref}>
+              {primaryLabel}
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href={secondaryHref}>{secondaryLabel}</Link>
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }
 

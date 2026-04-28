@@ -21,6 +21,7 @@ import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { CopyButton } from "@/components/shared";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { StartIncorporationButton } from "./_components/StartIncorporationButton";
 import { IncorporationStatusCard } from "@/components/bags/IncorporationStatusCard";
 import { solscanTokenUrl, solscanTxUrl } from "@/lib/solana/explorer";
@@ -46,12 +47,14 @@ export default async function TokenPage({
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-      <header>
-        <h1 className="text-headline-lg leading-tight text-fg">Token</h1>
-        <p className="text-body-md text-fg-secondary">
-          Bags.fm launch state, fee shares, and on-chain claim history.
-        </p>
-      </header>
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
+          { label: project.name, href: `/dashboard/projects/${id}` },
+          { label: "Token" },
+        ]}
+      />
 
       <Card depth="flat" padding="none">
         <CardHeader className="border-b border-border px-6 py-4">

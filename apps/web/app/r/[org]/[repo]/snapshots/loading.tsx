@@ -1,5 +1,5 @@
 import { Card } from "@repo/ui";
-import { Skeleton, SkeletonText } from "@repo/ui";
+import { Skeleton } from "@repo/ui";
 
 /**
  * Streaming skeleton for /r/[org]/[repo]/snapshots. Mirrors the page shape:
@@ -9,26 +9,36 @@ import { Skeleton, SkeletonText } from "@repo/ui";
 export default function ProjectSnapshotsLoading() {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-3 w-48" />
-        <Skeleton className="h-8 w-72" />
-        <SkeletonText lines={1} className="max-w-xl" />
-      </div>
-      <ul className="flex flex-col gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <li key={i}>
-            <Card depth="flat" padding="default">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-1 flex-col gap-2">
-                  <Skeleton className="h-4 w-1/3" />
-                  <Skeleton className="h-3 w-1/2" />
-                </div>
-                <Skeleton className="h-9 w-24 rounded-md" />
-              </div>
-            </Card>
-          </li>
+      <Skeleton className="h-3 w-48" />
+
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-[4.75rem] rounded-lg" />
         ))}
-      </ul>
+      </section>
+
+      <Card depth="raised" padding="none" className="overflow-hidden">
+        <div className="grid grid-cols-[minmax(0,1fr)_110px_110px_140px_170px_96px] items-center gap-3 border-b border-border bg-surface-elevated/40 px-5 py-2.5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-3 rounded-sm" />
+          ))}
+        </div>
+        <ul className="divide-y divide-border">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <li
+              key={i}
+              className="grid grid-cols-[minmax(0,1fr)_110px_110px_140px_170px_96px] items-center gap-3 px-5 py-3"
+            >
+              <Skeleton className="h-8 rounded-sm" />
+              <Skeleton className="h-6 rounded-full" />
+              <Skeleton className="h-4 rounded-sm" />
+              <Skeleton className="h-4 rounded-sm" />
+              <Skeleton className="h-4 rounded-sm" />
+              <Skeleton className="h-8 rounded-md" />
+            </li>
+          ))}
+        </ul>
+      </Card>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronUp,
+  Github,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -29,6 +30,7 @@ export interface SidebarUserCardProps {
   username?: string | null;
   /** Profile image URL — typically the GitHub avatar. */
   imageUrl?: string | null;
+  defaultDashboardHref?: string | null;
 }
 
 /**
@@ -55,6 +57,7 @@ export function SidebarUserCard({
   email,
   username,
   imageUrl,
+  defaultDashboardHref,
 }: SidebarUserCardProps) {
   const { collapsed, closeMobile } = useSidebar();
   const router = useRouter();
@@ -87,7 +90,8 @@ export function SidebarUserCard({
     name ?? username ?? (email ? email.split("@")[0] : null) ?? "Account";
   const handle = username ? `@${username}` : (email ?? null);
   const initial = (displayName.trim().charAt(0) || "?").toUpperCase();
-  const profileHref = username ? `/u/${username}` : "/dashboard";
+  const publicProfileHref = username ? `/u/${username}` : "/dashboard";
+  const dashboardHref = defaultDashboardHref ?? "/dashboard";
 
   function signOut() {
     setOpen(false);
@@ -131,13 +135,14 @@ export function SidebarUserCard({
             : undefined
         }
         className={cn(
-          "group flex w-full items-center gap-2.5 rounded-md",
-          "border border-transparent",
+          "gb-control group flex w-full items-center gap-2.5 rounded-md",
+          "border",
           "px-2 py-1.5 text-left",
-          "transition-colors",
-          "hover:bg-surface-elevated/60 hover:border-border/50",
+          "transition-[background-color,border-color,box-shadow,color,transform]",
+          open
+            ? "gb-control-secondary border-border/50 bg-surface-elevated"
+            : "gb-control-ghost border-transparent hover:border-border/50",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-          open && "bg-surface-elevated border-border/50",
           collapsed && "lg:justify-center lg:px-0",
         )}
       >
@@ -181,19 +186,27 @@ export function SidebarUserCard({
           )}
         >
           <MenuLink
-            href={profileHref}
+            href="/dashboard/profile"
             icon={UserIcon}
             label="Profile"
             onSelect={() => setOpen(false)}
           />
+          {username ? (
+            <MenuLink
+              href={publicProfileHref}
+              icon={Github}
+              label="Public profile"
+              onSelect={() => setOpen(false)}
+            />
+          ) : null}
           <MenuLink
-            href="/dashboard"
+            href={dashboardHref}
             icon={LayoutDashboard}
             label="My dashboard"
             onSelect={() => setOpen(false)}
           />
           <MenuLink
-            href="/dashboard/wallets"
+            href="/dashboard/settings"
             icon={Settings}
             label="Settings"
             onSelect={() => setOpen(false)}
@@ -205,9 +218,9 @@ export function SidebarUserCard({
             disabled={isSigningOut}
             onClick={signOut}
             className={cn(
-              "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left",
+              "gb-menu-item flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left",
               "text-body-sm text-fg-secondary",
-              "transition-colors hover:bg-surface-elevated hover:text-danger",
+              "transition-[background-color,box-shadow,color] hover:bg-surface-elevated hover:text-danger",
               "focus-visible:outline-none focus-visible:bg-surface-elevated focus-visible:text-danger",
               "disabled:pointer-events-none disabled:opacity-60",
             )}
@@ -271,9 +284,9 @@ function MenuLink({
       role="menuitem"
       onClick={onSelect}
       className={cn(
-        "flex items-center gap-2.5 rounded-md px-2.5 py-1.5",
+        "gb-menu-item flex items-center gap-2.5 rounded-md px-2.5 py-1.5",
         "text-body-sm text-fg-secondary",
-        "transition-colors hover:bg-surface-elevated hover:text-fg",
+        "transition-[background-color,box-shadow,color] hover:bg-surface-elevated hover:text-fg",
         "focus-visible:outline-none focus-visible:bg-surface-elevated focus-visible:text-fg",
       )}
     >

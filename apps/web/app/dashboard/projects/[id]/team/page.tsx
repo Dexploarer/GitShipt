@@ -36,19 +36,11 @@ export default async function TeamPage({
       <Breadcrumbs
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Projects", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
           { label: project.name, href: `/dashboard/projects/${id}` },
           { label: "Team" },
         ]}
       />
-      <header>
-        <div>
-          <h1 className="text-headline-lg leading-tight text-fg">Team</h1>
-          <p className="text-body-md text-fg-secondary">
-            Co-administrators with access to this project console.
-          </p>
-        </div>
-      </header>
 
       <Card depth="flat" padding="default">
         <div className="space-y-2">

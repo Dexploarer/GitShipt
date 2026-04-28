@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { Coins } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Pill } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { getAllPayouts } from "@/lib/queries/admin";
@@ -41,7 +36,7 @@ export default async function AdminPayoutsPage({
     <div className="space-y-4">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-headline-md tracking-tight">Payouts</h1>
+          <h1 className="text-headline-md">Payouts</h1>
           <p className="text-body-sm text-fg-secondary">
             Global queue across all projects.
           </p>

@@ -93,7 +93,7 @@ export function ExploreFilters() {
         <div
           role="group"
           aria-label="Status filter"
-          className="inline-flex items-center gap-0.5 rounded-md border border-border/60 bg-bg/40 p-0.5"
+          className="gb-control-cluster inline-flex items-center gap-0.5 rounded-md border border-border/60 bg-bg/40 p-0.5"
         >
           {STATUS_OPTIONS.map(({ key, label }) => {
             const on = status === key;
@@ -109,10 +109,10 @@ export function ExploreFilters() {
                   })
                 }
                 className={cn(
-                  "rounded px-3 py-1.5 text-label-sm transition-colors",
+                  "rounded border px-3 py-1.5 text-label-sm transition-[background-color,border-color,box-shadow,color,transform]",
                   on
-                    ? "bg-surface-elevated text-fg shadow-inset-light"
-                    : "text-fg-secondary hover:text-fg",
+                    ? "gb-control gb-control-secondary border-border-strong bg-surface-elevated text-fg"
+                    : "gb-route-link gb-route-link-inactive text-fg-secondary hover:text-fg",
                 )}
               >
                 {label}
@@ -137,8 +137,10 @@ export function ExploreFilters() {
             aria-expanded={sortOpen}
             aria-haspopup="listbox"
             className={cn(
-              "inline-flex h-9 items-center gap-2 rounded-md border border-border/60 bg-bg/40 px-3 text-label-md text-fg",
-              "transition-colors hover:bg-surface-elevated/60",
+              "gb-control inline-flex h-9 items-center gap-2 rounded-md border bg-bg/40 px-3 text-label-md text-fg",
+              sortOpen
+                ? "gb-control-secondary border-border-strong"
+                : "gb-control-ghost border-border/60",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
             )}
           >
@@ -190,9 +192,9 @@ export function ExploreFilters() {
                       if (e.key === "Escape") setSortOpen(false);
                     }}
                     className={cn(
-                      "block w-full rounded-md px-3 py-2 text-left text-body-sm transition-colors",
+                      "gb-menu-item block w-full rounded-md px-3 py-2 text-left text-body-sm transition-[background-color,box-shadow,color]",
                       on
-                        ? "bg-surface-elevated text-fg shadow-inset-light"
+                        ? "bg-surface-elevated text-fg"
                         : "text-fg-secondary hover:bg-surface-elevated/60 hover:text-fg",
                     )}
                   >

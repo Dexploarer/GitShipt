@@ -17,6 +17,8 @@ const CACHE_VALUE_KEY = "value";
 
 export const CACHE_SECONDS = {
   live: 60,
+  auth: 30,
+  admin: 30,
   browse: 120,
   profile: 300,
 } as const;
@@ -27,6 +29,16 @@ export const cacheTags = {
   explore: "gitbags:explore",
   globalLeaderboard: "gitbags:global-leaderboard",
   liveTicker: "gitbags:live-ticker",
+  launch: "gitbags:launch",
+  dashboard: "gitbags:dashboard",
+  admin: "gitbags:admin",
+  adminAudit: "gitbags:admin-audit",
+  adminUsers: "gitbags:admin-users",
+  platformConfig: "gitbags:platform-config",
+  user: (userId: string) => `gitbags:user:${userId}`,
+  dashboardUser: (userId: string) => `gitbags:dashboard-user:${userId}`,
+  dashboardProject: (projectId: string) =>
+    `gitbags:dashboard-project:${projectId}`,
   project: (projectId: string) => `gitbags:project:${projectId}`,
   projectSlug: (slug: string) => `gitbags:project-slug:${slug}`,
   projectPayouts: (projectId: string) => `gitbags:project-payouts:${projectId}`,
@@ -34,6 +46,8 @@ export const cacheTags = {
     `gitbags:project-snapshots:${projectId}`,
   contributor: (username: string) =>
     `gitbags:contributor:${username.toLowerCase()}`,
+  githubUser: (username: string) =>
+    `gitbags:github-user:${username.toLowerCase()}`,
 } as const;
 
 interface CachedValueOptions {
@@ -81,6 +95,7 @@ function toCachePayload(value: unknown): CachePayload {
   if (typeof value === "object") {
     const out: { [key: string]: CachePayload } = {};
     for (const [key, item] of Object.entries(value)) {
+      if (item === undefined) continue;
       out[key] = toCachePayload(item);
     }
     return out;
@@ -130,6 +145,24 @@ export function revalidatePublicCaches(): void {
     cacheTags.explore,
     cacheTags.globalLeaderboard,
     cacheTags.liveTicker,
+    cacheTags.launch,
+  ]);
+}
+
+export function revalidateAdminCaches(): void {
+  revalidateCacheTags([
+    cacheTags.admin,
+    cacheTags.adminAudit,
+    cacheTags.adminUsers,
+    cacheTags.platformConfig,
+  ]);
+}
+
+export function revalidateUserCaches(userId: string): void {
+  revalidateCacheTags([
+    cacheTags.dashboard,
+    cacheTags.user(userId),
+    cacheTags.dashboardUser(userId),
   ]);
 }
 
@@ -149,7 +182,10 @@ export async function revalidateProjectCaches(
 
   revalidatePublicCaches();
   revalidateCacheTags([
+    cacheTags.dashboard,
+    cacheTags.admin,
     cacheTags.project(projectId),
+    cacheTags.dashboardProject(projectId),
     cacheTags.projectPayouts(projectId),
     cacheTags.projectSnapshots(projectId),
     ...(resolvedSlug ? [cacheTags.projectSlug(resolvedSlug)] : []),

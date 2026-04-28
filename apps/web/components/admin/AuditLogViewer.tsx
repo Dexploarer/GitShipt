@@ -196,7 +196,7 @@ function AuditRowEl({ row }: { row: AuditRow }) {
         <details className="group">
           <summary
             className={cn(
-              "cursor-pointer list-none text-caption text-fg-muted",
+              "gb-menu-item inline-flex cursor-pointer list-none rounded-sm px-1.5 py-0.5 text-caption text-fg-muted",
               "group-open:text-fg-secondary",
             )}
           >

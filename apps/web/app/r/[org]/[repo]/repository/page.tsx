@@ -10,9 +10,7 @@ import {
   Star,
 } from "lucide-react";
 import { getProjectPageData } from "@/lib/queries/project-page";
-import { dbHttp } from "@/db";
-import { ghIndexerState } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getIndexerState } from "@/lib/queries/dashboard";
 import { Card, CardHeader, CardTitle, CardContent } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
@@ -47,34 +45,23 @@ export default async function ProjectRepositoryPage({
 
   const { header } = data;
 
-  const [indexerRow] = await dbHttp
-    .select()
-    .from(ghIndexerState)
-    .where(eq(ghIndexerState.projectId, header.id))
-    .limit(1);
+  const indexerRow = await getIndexerState(header.id);
 
   const repoUrl = `https://github.com/${header.ghOwner}/${header.ghRepo}`;
   const installed = header.status === "live";
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-col gap-2">
-        <Breadcrumbs
-          items={[
-            { label: "Projects", href: "/explore" },
-            {
-              label: header.name,
-              href: `/r/${header.ghOwner}/${header.ghRepo}`,
-            },
-            { label: "Repository" },
-          ]}
-        />
-        <h1 className="text-headline-lg leading-tight text-fg">Repository</h1>
-        <p className="text-body-md text-fg-secondary">
-          How GitBags sees this repo on GitHub — what&apos;s tracked, when it
-          was last synced, and which signals feed the leaderboard.
-        </p>
-      </header>
+      <Breadcrumbs
+        items={[
+          { label: "Projects", href: "/explore" },
+          {
+            label: header.name,
+            href: `/r/${header.ghOwner}/${header.ghRepo}`,
+          },
+          { label: "Repository" },
+        ]}
+      />
 
       {/* Public repo info */}
       <Card depth="raised" padding="default">

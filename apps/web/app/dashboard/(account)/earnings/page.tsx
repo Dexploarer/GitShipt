@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { sql } from "drizzle-orm";
 import { Coins, Sparkles, Wallet } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
-import { getMyEarnings, getMyLinkedWallets } from "@/lib/queries/dashboard";
-import { dbHttp } from "@/db";
-import { projects } from "@/db/schema";
+import {
+  getMyEarnings,
+  getMyLinkedWallets,
+  getProjectIdsBySlug,
+} from "@/lib/queries/dashboard";
 import { formatSol } from "@repo/lib";
 import { StatTile } from "@/components/shared/StatTile";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -46,23 +47,10 @@ export default async function EarningsPage() {
   // Resolve projectId per slug so the per-row Claim button can pass it to
   // the API (the earnings query returns slugs only).
   const slugs = earnings.byProject.map((p) => p.projectSlug);
-  const projectIdBySlug = new Map<string, string>();
-  if (slugs.length > 0) {
-    const slugLiterals = sql.join(
-      slugs.map((s) => sql`${s}`),
-      sql`, `,
-    );
-    const rows = await dbHttp
-      .select({
-        id: projects.id,
-        slug: sql<string>`${projects.ghOwner} || '/' || ${projects.ghRepo}`,
-      })
-      .from(projects)
-      .where(
-        sql`(${projects.ghOwner} || '/' || ${projects.ghRepo}) in (${slugLiterals})`,
-      );
-    for (const r of rows) projectIdBySlug.set(r.slug, r.id);
-  }
+  const rows = await getProjectIdsBySlug(slugs);
+  const projectIdBySlug = new Map(
+    rows.map((row) => [row.slug, row.projectId]),
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
@@ -72,13 +60,6 @@ export default async function EarningsPage() {
           { label: "Earnings" },
         ]}
       />
-      <header>
-        <h1 className="text-headline-lg leading-tight text-fg">Earnings</h1>
-        <p className="text-body-md text-fg-secondary">
-          Your lifetime SOL earnings across every project you&apos;ve
-          contributed to.
-        </p>
-      </header>
 
       {!walletLinked ? (
         <Card depth="raised" padding="default">

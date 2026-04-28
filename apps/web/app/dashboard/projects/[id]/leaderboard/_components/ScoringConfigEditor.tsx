@@ -136,7 +136,7 @@ export function ScoringConfigEditor({
                 max={90}
                 value={windowDays}
                 onChange={(e) => setWindowDays(Number(e.target.value))}
-                className="h-2 flex-1 cursor-pointer appearance-none rounded-md bg-surface-elevated accent-primary"
+                className="gb-range-control flex-1"
               />
               <span className="w-12 text-right text-mono-md text-fg">
                 {windowDays}d
@@ -149,10 +149,7 @@ export function ScoringConfigEditor({
               <label className="block text-label-sm text-fg-secondary">
                 Tier weights (must sum to 1.0)
               </label>
-              <Badge
-                variant={sumValid ? "success" : "danger"}
-                size="sm"
-              >
+              <Badge variant={sumValid ? "success" : "danger"} size="sm">
                 Σ {sum.toFixed(3)}
               </Badge>
             </div>
@@ -162,9 +159,7 @@ export function ScoringConfigEditor({
                   key={i}
                   className="rounded-md border border-border bg-surface px-3 py-2"
                 >
-                  <div className="text-caption text-fg-muted">
-                    Rank {i + 1}
-                  </div>
+                  <div className="text-caption text-fg-muted">Rank {i + 1}</div>
                   <input
                     type="number"
                     step={0.01}

@@ -1,6 +1,7 @@
 import "server-only";
 import { Octokit } from "@octokit/rest";
 import { redis } from "@/lib/redis";
+import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
 import {
   GitHubUserProfileCacheSchema,
   GitHubUserProfileSchema,
@@ -33,7 +34,7 @@ function publicOctokit(): Octokit {
   return _publicOctokit;
 }
 
-export async function getGitHubUser(
+async function getGitHubUserUncached(
   username: string,
 ): Promise<GitHubUserProfile | null> {
   if (!username) return null;
@@ -97,4 +98,18 @@ export async function getGitHubUser(
   }
 
   return profile;
+}
+
+export async function getGitHubUser(
+  username: string,
+): Promise<GitHubUserProfile | null> {
+  const normalized = username.toLowerCase();
+  return getCachedValue(
+    () => getGitHubUserUncached(username),
+    ["gitbags:github-user:v1", normalized],
+    {
+      tags: [cacheTags.public, cacheTags.githubUser(normalized)],
+      revalidate: CACHE_SECONDS.profile,
+    },
+  );
 }

@@ -33,7 +33,7 @@ export default async function AdminAuditPage({
     <div className="space-y-4">
       <header className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-headline-md tracking-tight">Audit log</h1>
+          <h1 className="text-headline-md">Audit log</h1>
           <p className="text-body-sm text-fg-secondary">
             Last {sinceHours}h · {rows.length} entries · append-only.
           </p>

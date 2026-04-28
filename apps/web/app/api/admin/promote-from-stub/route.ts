@@ -15,6 +15,7 @@ import { audit } from "@/lib/audit";
 import { hasCredentials, serverEnv } from "@/lib/env";
 import { promoteProjectFromStub } from "@/lib/queries/admin";
 import { withIdempotency } from "@/lib/idempotency";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -149,6 +150,8 @@ export async function POST(req: Request): Promise<Response> {
       },
       { scope: `admin:promote-from-stub:${projectId}` },
     );
+
+    await revalidateProjectCaches(result.projectId, result.slug);
 
     return NextResponse.json(result, { status: 200 });
   } catch (e) {

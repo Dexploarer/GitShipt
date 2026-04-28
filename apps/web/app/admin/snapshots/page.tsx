@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { getAllSnapshots, getSnapshotDetail } from "@/lib/queries/admin";
 import { formatRelativeTime, formatSol, formatAddress } from "@repo/lib";
@@ -28,7 +23,7 @@ export default async function AdminSnapshotsPage({
     <div className="space-y-4">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-headline-md tracking-tight">Snapshots</h1>
+          <h1 className="text-headline-md">Snapshots</h1>
           <p className="text-body-sm text-fg-secondary">
             Reproducibility check: re-running scoring on a snapshot&apos;s{" "}
             `inputs` should yield the same merkle root.
@@ -186,7 +181,7 @@ function SnapshotDetailCard({
         </div>
       </div>
       <details className="mt-4">
-        <summary className="cursor-pointer text-label-md text-fg">
+        <summary className="gb-menu-item inline-flex cursor-pointer rounded-md px-2 py-1 text-label-md text-fg">
           Leaderboard JSON
         </summary>
         <pre className="mt-2 max-h-96 overflow-auto rounded-md border border-border/40 bg-surface-elevated p-3 text-mono-sm text-fg-secondary">

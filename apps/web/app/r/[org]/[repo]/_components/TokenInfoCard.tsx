@@ -31,12 +31,12 @@ export function TokenInfoCard({
           No token launched
         </div>
         <p className="mt-2 flex-1 text-body-sm text-fg-muted">
-          Launch a Bags.fm token for {ghOwner}/{ghRepo} to start the daily
-          fee pool and reward contributors.
+          Launch a Bags.fm token for {ghOwner}/{ghRepo} to start the daily fee
+          pool and reward contributors.
         </p>
         <Link
           href="/launch"
-          className="mt-3 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-label-md text-fg transition-colors hover:bg-primary-hover"
+          className="gb-control gb-control-primary mt-3 inline-flex h-9 items-center justify-center rounded-md border border-primary bg-primary px-4 text-label-md text-primary-fg"
         >
           Launch token
         </Link>
@@ -55,12 +55,14 @@ export function TokenInfoCard({
     >
       <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-bg shadow-card-elevated">
+          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-primary-fg shadow-card-elevated">
             <Coins className="size-3.5" />
           </span>
           <div className="min-w-0">
             <div className="truncate text-label-md text-fg">{stats.symbol}</div>
-            <div className="truncate text-caption text-fg-muted">BAGS Token</div>
+            <div className="truncate text-caption text-fg-muted">
+              BAGS Token
+            </div>
           </div>
         </div>
         {stats.isStub ? (
@@ -72,7 +74,7 @@ export function TokenInfoCard({
 
       <div className="px-4 pb-3">
         <div className="flex items-baseline gap-2">
-          <span className="text-mono-md text-fg" style={{ fontSize: "22px", letterSpacing: "-0.01em" }}>
+          <span className="text-mono-lg text-fg">
             ${stats.priceUsd.toFixed(stats.priceUsd < 0.01 ? 6 : 4)}
           </span>
           <span
@@ -112,7 +114,7 @@ export function TokenInfoCard({
           target="_blank"
           rel="noreferrer noopener"
           aria-label="View on Solscan"
-          className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-surface-elevated hover:text-fg"
+          className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
         >
           <ArrowUpRight className="size-3.5" />
         </Link>

@@ -12,6 +12,7 @@ import { hasCredentials } from "@/lib/env";
 import {
   revalidateContributorCaches,
   revalidateProjectCaches,
+  revalidateUserCaches,
 } from "@/lib/cache";
 import { withIdempotency } from "@/lib/idempotency";
 
@@ -149,6 +150,7 @@ export async function POST(req: Request): Promise<Response> {
   );
 
   await revalidateProjectCaches(contributorRow.projectId);
+  revalidateUserCaches(userId);
   revalidateContributorCaches([contributorRow.ghUsername]);
 
   return NextResponse.json({ ok: true, runId: result.runId });

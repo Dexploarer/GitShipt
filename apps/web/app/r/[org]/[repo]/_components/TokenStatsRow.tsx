@@ -15,11 +15,7 @@ import { solscanTokenUrl } from "@/lib/solana/explorer";
  *
  * When no token has been launched, renders a compact CTA row instead.
  */
-export function TokenStatsRow({
-  stats,
-}: {
-  stats: TokenStats | null;
-}) {
+export function TokenStatsRow({ stats }: { stats: TokenStats | null }) {
   if (!stats) {
     return (
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-surface/40 px-3 py-2.5">
@@ -99,7 +95,7 @@ export function TokenStatsRow({
               target="_blank"
               rel="noreferrer noopener"
               aria-label="View on Solscan"
-              className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-surface-elevated hover:text-fg"
+              className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
             >
               <ArrowUpRight className="size-3.5" />
             </Link>

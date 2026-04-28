@@ -4,10 +4,10 @@ import {
   SystemProgram,
   Transaction,
   TransactionInstruction,
-  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { solanaConnection } from "./connection";
 import { payoutSigner } from "./signer";
+import { assertTransactionSimulation } from "./simulation";
 
 const MEMO_PROGRAM_ID = new PublicKey(
   "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
@@ -69,9 +69,20 @@ export async function transferSol(
   };
 
   const tx = buildTx();
-  const signature = await sendAndConfirmTransaction(conn, tx, [signer], {
-    commitment: "confirmed",
+  const latestBlockhash = await conn.getLatestBlockhash("confirmed");
+  tx.feePayer = signer.publicKey;
+  tx.recentBlockhash = latestBlockhash.blockhash;
+  tx.sign(signer);
+
+  await assertTransactionSimulation(conn, tx, "Native SOL transfer");
+
+  const signature = await conn.sendRawTransaction(tx.serialize(), {
     maxRetries: 3,
+    preflightCommitment: "confirmed",
   });
+  await conn.confirmTransaction(
+    { signature, ...latestBlockhash },
+    "confirmed",
+  );
   return { signature };
 }

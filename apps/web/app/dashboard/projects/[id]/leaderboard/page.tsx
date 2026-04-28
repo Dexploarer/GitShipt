@@ -54,17 +54,11 @@ export default async function LeaderboardPage({
       <Breadcrumbs
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Projects", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
           { label: project.name, href: `/dashboard/projects/${id}` },
           { label: "Leaderboard" },
         ]}
       />
-      <header>
-        <h1 className="text-headline-lg leading-tight text-fg">Leaderboard</h1>
-        <p className="text-body-md text-fg-secondary">
-          Live ranks &amp; tier weights — frozen daily at 00:00 UTC.
-        </p>
-      </header>
 
       <div className="min-h-[400px]">
         <LeaderboardTable

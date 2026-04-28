@@ -53,13 +53,6 @@ export default async function RepositoryPage({
         ]}
       />
 
-      <header>
-        <h1 className="text-headline-lg leading-tight text-fg">Repository</h1>
-        <p className="text-body-md text-fg-secondary">
-          GitHub install state, indexer cursors, and re-sync controls.
-        </p>
-      </header>
-
       {installedParam === "1" ? (
         <div className="rounded-md border border-success/40 bg-success/10 px-4 py-3 text-body-sm text-fg">
           <span className="inline-flex items-center gap-2">

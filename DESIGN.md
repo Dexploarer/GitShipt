@@ -1,10 +1,10 @@
 ---
 version: alpha
 name: GitBags
-description: Cypherpunk dark-mode launchpad-leaderboard for open-source repos. Built for on-chain native builders. Density, precision, and a single signature purple. Ships with mirrored light palette for accessibility and preference parity; dark is the default.
+description: Cypherpunk dark-mode launchpad-leaderboard for open-source repos. Built for on-chain native builders. Density, precision, and a single signature GitBags green. Ships with mirrored light palette for accessibility and preference parity; dark is the default.
 colors:
   # === DARK THEME (default) ===
-  # Surfaces — deep blacks with subtle purple bias
+  # Surfaces — deep blacks with subtle cool bias
   bg: "#08080C"
   surface: "#101015"
   surface-elevated: "#16161E"
@@ -12,16 +12,17 @@ colors:
   border: "#23232E"
   border-strong: "#33333F"
 
-  # Brand — Bags.fm purple, tuned for dark mode
-  primary: "#A855F7"
-  primary-hover: "#9333EA"
-  primary-pressed: "#7E22CE"
-  primary-soft: "#1F1429"
+  # Brand — GitBags logo green, tuned for dark mode
+  primary: "#4A9B3D"
+  primary-hover: "#56A545"
+  primary-pressed: "#408838"
+  primary-soft: "#0C2314"
+  primary-fg: "#F5F5F7"
 
   # Text
   fg: "#F5F5F7"
   fg-secondary: "#9494A0"
-  fg-muted: "#5A5A66"
+  fg-muted: "#80808C"
   fg-disabled: "#3A3A45"
 
   # Semantic
@@ -40,8 +41,8 @@ colors:
   rank-bronze: "#D97706"
 
   # Charts (sparklines, fee curves)
-  chart-1: "#A855F7"
-  chart-2: "#7E22CE"
+  chart-1: "#4A9B3D"
+  chart-2: "#408838"
   chart-3: "#22C55E"
   chart-4: "#3B82F6"
   chart-5: "#EAB308"
@@ -58,16 +59,17 @@ colors-light:
   border: "#E5E5EC"
   border-strong: "#D4D4DD"
 
-  # Brand — slightly darkened purple for AA contrast on white
-  primary: "#9333EA"
-  primary-hover: "#7E22CE"
-  primary-pressed: "#6B21A8"
-  primary-soft: "#F3E8FF"
+  # Brand — darkened GitBags green for AA contrast on white
+  primary: "#176F3A"
+  primary-hover: "#0F6B35"
+  primary-pressed: "#084020"
+  primary-soft: "#E5F4E8"
+  primary-fg: "#F5F5F7"
 
   # Text
   fg: "#0F0F14"
   fg-secondary: "#52525B"
-  fg-muted: "#8B8B95"
+  fg-muted: "#6B6B76"
   fg-disabled: "#C4C4CC"
 
   # Semantic — darkened for AA on white
@@ -86,8 +88,8 @@ colors-light:
   rank-bronze: "#B45309"
 
   # Charts
-  chart-1: "#9333EA"
-  chart-2: "#6B21A8"
+  chart-1: "#176F3A"
+  chart-2: "#084020"
   chart-3: "#16A34A"
   chart-4: "#2563EB"
   chart-5: "#CA8A04"
@@ -95,69 +97,88 @@ colors-light:
 typography:
   display:
     fontFamily: Geist
-    fontSize: 48px
+    fontSize: 3rem
     fontWeight: 600
     lineHeight: 1.1
-    letterSpacing: -0.02em
+    letterSpacing: 0
   headline-lg:
     fontFamily: Geist
-    fontSize: 32px
+    fontSize: 2rem
     fontWeight: 600
     lineHeight: 1.2
-    letterSpacing: -0.015em
+    letterSpacing: 0
   headline-md:
     fontFamily: Geist
-    fontSize: 24px
+    fontSize: 1.5rem
     fontWeight: 600
     lineHeight: 1.25
-    letterSpacing: -0.01em
+    letterSpacing: 0
   headline-sm:
     fontFamily: Geist
-    fontSize: 18px
+    fontSize: 1.125rem
     fontWeight: 600
     lineHeight: 1.3
+    letterSpacing: 0
   body-lg:
     fontFamily: Geist
-    fontSize: 16px
+    fontSize: 1rem
     fontWeight: 400
     lineHeight: 1.5
+    letterSpacing: 0
   body-md:
     fontFamily: Geist
-    fontSize: 14px
+    fontSize: 0.875rem
     fontWeight: 400
     lineHeight: 1.5
+    letterSpacing: 0
   body-sm:
     fontFamily: Geist
-    fontSize: 12px
+    fontSize: 0.75rem
     fontWeight: 400
     lineHeight: 1.4
+    letterSpacing: 0
   label-md:
     fontFamily: Geist
-    fontSize: 14px
+    fontSize: 0.875rem
     fontWeight: 500
     lineHeight: 1.2
+    letterSpacing: 0
   label-sm:
     fontFamily: Geist
-    fontSize: 12px
+    fontSize: 0.75rem
     fontWeight: 500
     lineHeight: 1.2
-    letterSpacing: 0.01em
+    letterSpacing: 0
   caption:
     fontFamily: Geist
-    fontSize: 11px
+    fontSize: 0.6875rem
     fontWeight: 400
     lineHeight: 1.3
-    letterSpacing: 0.02em
+    letterSpacing: 0
+  mono-display:
+    fontFamily: Geist Mono
+    fontSize: 3rem
+    fontWeight: 600
+    lineHeight: 1
+    letterSpacing: 0
+  mono-lg:
+    fontFamily: Geist Mono
+    fontSize: 1.25rem
+    fontWeight: 400
+    lineHeight: 1.25
+    letterSpacing: 0
   mono-md:
     fontFamily: Geist Mono
-    fontSize: 14px
+    fontSize: 0.875rem
     fontWeight: 400
     lineHeight: 1.4
+    letterSpacing: 0
   mono-sm:
     fontFamily: Geist Mono
-    fontSize: 12px
+    fontSize: 0.75rem
     fontWeight: 400
     lineHeight: 1.3
+    letterSpacing: 0
 
 rounded:
   none: 0px
@@ -277,8 +298,8 @@ components:
   #   - <footer>: pinned to viewport bottom-right
   # The right column has 16px gutter from the sidebar's right edge (ml-3).
   app-shell:
-    outerPadding: 12px        # only top/left/bottom — right meets viewport
-    columnGap: 12px           # sidebar ↔ content
+    outerPadding: 12px # only top/left/bottom — right meets viewport
+    columnGap: 12px # sidebar ↔ content
     contentMaxWidth: "{spacing.content-max}"
 
   # Footer — anchored to viewport bottom-right. Only the top-left corner
@@ -293,7 +314,7 @@ components:
     shadow: "{shadows.card-elevated}"
     padding: 6px 16px
     height: 36px
-    marginLeft: 16px          # mirrors the main content's left padding
+    marginLeft: 16px # mirrors the main content's left padding
 
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -481,7 +502,7 @@ components:
 
 ## Overview
 
-GitBags is a launchpad-leaderboard hybrid for open-source repos on Solana, powered by Bags.fm. The visual identity sits squarely in the **cypherpunk-dark-neon** territory: near-black surfaces, a single signature purple, monospace numerics, and zero ornamental gradients. Every pixel is in service of conveying motion, money, and merit at a glance.
+GitBags is a launchpad-leaderboard hybrid for open-source repos on Solana, powered by Bags.fm. The visual identity sits squarely in the **cypherpunk-dark-neon** territory: near-black surfaces, a single signature green pulled from the GitBags mark, monospace numerics, and zero ornamental gradients. Every pixel is in service of conveying motion, money, and merit at a glance.
 
 Emotional target: A trader's terminal that respects the engineer behind every commit. It should feel late-night, focused, and slightly dangerous. Confident enough that putting your repo on it is a flex; legible enough that a maintainer who's never touched a wallet can still understand who is being paid and why.
 
@@ -491,7 +512,7 @@ This is **not** a playful product. No rounded illustrations, no mascot pages, no
 
 ## Colors
 
-The palette is built around a single signature accent (Bags purple) over a deep neutral substrate biased slightly toward cool. Every other color is utility. **Dark is the default and the canonical aesthetic**; a mirrored light palette ships for accessibility, preference parity, and presenters who demo on bright projectors.
+The palette is built around a single signature accent (GitBags green) over a deep neutral substrate biased slightly toward cool. Every other color is utility. **Dark is the default and the canonical aesthetic**; a mirrored light palette ships for accessibility, preference parity, and presenters who demo on bright projectors.
 
 ### Theming model
 
@@ -504,17 +525,17 @@ Theme is selected via `data-theme="dark"` (default) or `data-theme="light"` on t
 
 ### Dark palette (canonical)
 
-- **Background (#08080C):** Page substrate. Near-black with a microscopic purple tint that ties the whole UI to the brand without ever calling attention to itself.
+- **Background (#08080C):** Page substrate. Near-black with a microscopic cool tint that lets the green brand accent stay crisp without calling attention to itself.
 - **Surface (#101015):** Default card background. The primary content layer.
 - **Surface Elevated (#16161E):** Hover states, sidebar selection, active rows. One step closer to the user.
 - **Surface Overlay (#1C1C25):** Modals, popovers, tooltips. The layer above the layer.
 - **Border (#23232E):** Default 1px borders for cards and table rows. Visible but never loud.
 - **Border Strong (#33333F):** Inputs, prominent dividers, focused emphasis.
-- **Primary (#A855F7):** The signature purple. Used exclusively for: brand mark, primary CTA, current SOL amounts, leaderboard score column header, sparkline strokes, active sidebar item indicator. **One primary per visible viewport** is the working ceiling.
-- **Primary Soft (#1F1429):** Tinted purple background for pills, hover states, soft callouts.
+- **Primary (#4A9B3D):** The signature green. Used exclusively for: brand mark, primary CTA, current SOL amounts, leaderboard score column header, sparkline strokes, active sidebar item indicator. **One primary per visible viewport** is the working ceiling.
+- **Primary Soft (#0C2314):** Tinted green background for pills, hover states, soft callouts.
 - **Foreground (#F5F5F7):** Primary text. Off-white, never pure white (which would feel sterile against the warm-cool surfaces).
 - **Foreground Secondary (#9494A0):** Secondary text, table headers, descriptions.
-- **Foreground Muted (#5A5A66):** USD price subtext, captions, timestamps, breadcrumbs.
+- **Foreground Muted (#80808C):** USD price subtext, captions, timestamps, breadcrumbs.
 - **Success (#22C55E):** Live indicators, gains, "Cron Active" status, positive deltas.
 - **Danger (#EF4444):** Kill switches, errors, losses, destructive confirmations.
 - **Warning (#EAB308):** Pending payouts, advisory copy, throttle warnings.
@@ -523,7 +544,7 @@ Theme is selected via `data-theme="dark"` (default) or `data-theme="light"` on t
 
 ### Light palette (mirrored)
 
-The light palette inverts the substrate (off-white `#FAFAFC` instead of near-black) while preserving role semantics. Surfaces step up: `bg` is `#FAFAFC`, `surface` is pure white, `surface-elevated` is `#F4F4F8`. Borders flip to light grays. The primary purple shifts darker (`#9333EA` instead of `#A855F7`) to maintain WCAG AA contrast on white.
+The light palette inverts the substrate (off-white `#FAFAFC` instead of near-black) while preserving role semantics. Surfaces step up: `bg` is `#FAFAFC`, `surface` is pure white, `surface-elevated` is `#F4F4F8`. Borders flip to light grays. The primary green shifts darker (`#176F3A` instead of `#4A9B3D`) to maintain WCAG AA contrast on white.
 
 Semantic colors (success, warning, danger, info) all darken proportionally and pair with light tinted backgrounds (e.g., `success-soft: #DCFCE7`). Rank medals shift to richer, lower-luminance tones so they read as gold/silver/bronze against light cards rather than pastel washes.
 
@@ -539,37 +560,39 @@ WCAG: All foreground/surface combinations exceed 4.5:1 contrast in both palettes
 
 :root {
   /* Dark palette is the default, exported by `bunx @google/design.md export` */
-  --bg: #08080C;
+  --bg: #08080c;
   --surface: #101015;
-  --surface-elevated: #16161E;
-  --surface-overlay: #1C1C25;
-  --border: #23232E;
-  --border-strong: #33333F;
-  --primary: #A855F7;
-  --primary-hover: #9333EA;
-  --primary-pressed: #7E22CE;
-  --primary-soft: #1F1429;
-  --fg: #F5F5F7;
-  --fg-secondary: #9494A0;
-  --fg-muted: #5A5A66;
+  --surface-elevated: #16161e;
+  --surface-overlay: #1c1c25;
+  --border: #23232e;
+  --border-strong: #33333f;
+  --primary: #4a9b3d;
+  --primary-hover: #56a545;
+  --primary-pressed: #408838;
+  --primary-soft: #0c2314;
+  --primary-fg: #f5f5f7;
+  --fg: #f5f5f7;
+  --fg-secondary: #9494a0;
+  --fg-muted: #80808c;
   /* ...and so on */
 }
 
 [data-theme="light"] {
   /* Light palette overrides — token names mirror :root exactly */
-  --bg: #FAFAFC;
-  --surface: #FFFFFF;
-  --surface-elevated: #F4F4F8;
-  --surface-overlay: #FFFFFF;
-  --border: #E5E5EC;
-  --border-strong: #D4D4DD;
-  --primary: #9333EA;
-  --primary-hover: #7E22CE;
-  --primary-pressed: #6B21A8;
-  --primary-soft: #F3E8FF;
-  --fg: #0F0F14;
-  --fg-secondary: #52525B;
-  --fg-muted: #8B8B95;
+  --bg: #fafafc;
+  --surface: #ffffff;
+  --surface-elevated: #f4f4f8;
+  --surface-overlay: #ffffff;
+  --border: #e5e5ec;
+  --border-strong: #d4d4dd;
+  --primary: #176f3a;
+  --primary-hover: #0f6b35;
+  --primary-pressed: #084020;
+  --primary-soft: #e5f4e8;
+  --primary-fg: #f5f5f7;
+  --fg: #0f0f14;
+  --fg-secondary: #52525b;
+  --fg-muted: #6b6b76;
   /* ...and so on */
 }
 
@@ -639,6 +662,7 @@ GitBags uses a **viewport-locked app shell** for every authenticated page (`/r/[
 **Sidebar column**: `<div class="shrink-0 p-3 pr-0">` — wraps the floating sidebar in a 12px gutter on top/left/bottom. No right padding so the gap between sidebar and content is owned by the right column.
 
 **Right column**: `<div class="flex min-w-0 flex-1 flex-col">` containing main + footer.
+
 - `<main class="min-w-0 flex-1 overflow-y-auto px-4 pt-4 pb-3 lg:overflow-hidden">` — at lg+ no scroll (bento fits the viewport); below lg falls back to vertical scroll for small screens.
 - `<footer class="shrink-0 ml-3 rounded-tl-2xl border-t border-l border-border/60 glass shadow-card-elevated surface-highlight">` — anchored bottom-right, only top-left rounded (curves toward sidebar), bottom + right meet viewport. 16px ml mirrors main's px-4 inset so the footer aligns with the content column.
 
@@ -673,7 +697,11 @@ Light theme inverts the inset highlight to white (catching light against the whi
   backdrop-filter: blur(20px) saturate(180%);
 }
 @utility glass-strong {
-  background-color: color-mix(in oklab, var(--surface-overlay) 85%, transparent);
+  background-color: color-mix(
+    in oklab,
+    var(--surface-overlay) 85%,
+    transparent
+  );
   backdrop-filter: blur(24px) saturate(180%);
 }
 ```
@@ -684,10 +712,15 @@ Light theme inverts the inset highlight to white (catching light against the whi
 
 ```css
 .surface-highlight::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit;
-  background: linear-gradient(180deg,
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
     color-mix(in oklab, var(--fg) 5%, transparent) 0%,
-    transparent 28%);
+    transparent 28%
+  );
   pointer-events: none;
 }
 ```
@@ -714,21 +747,29 @@ Row 3 (1fr):  LeaderboardTable| ↓ aside continues (countdown / pool / payouts)
 
 ```html
 <main class="lg:overflow-hidden">
-  <div class="grid h-full gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_auto_minmax(0,1fr)]">
-    <ProjectHeader />            <!-- row 1 col 1 -->
-    <RepoStatsList />            <!-- row 1 col 2, self-start -->
-    <TokenStatsRow />            <!-- row 2 col 1 only — must NOT span both -->
-    <aside lg:row-start-2 lg:row-span-2>  <!-- col 2, spans rows 2-3 -->
+  <div
+    class="grid h-full gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:grid-rows-[auto_auto_minmax(0,1fr)]"
+  >
+    <ProjectHeader />
+    <!-- row 1 col 1 -->
+    <RepoStatsList />
+    <!-- row 1 col 2, self-start -->
+    <TokenStatsRow />
+    <!-- row 2 col 1 only — must NOT span both -->
+    <aside lg:row-start-2 lg:row-span-2>
+      <!-- col 2, spans rows 2-3 -->
       <NextPayoutCountdown />
       <PoolOverviewCard />
       <RecentPayoutsFeed />
     </aside>
-    <LeaderboardTable />         <!-- row 3 col 1 -->
+    <LeaderboardTable />
+    <!-- row 3 col 1 -->
   </div>
 </main>
 ```
 
 **Bento principles**:
+
 - **Header sections float (no card wrapper)**. ProjectHeader is just avatar + name + description + Share menu, sitting directly on `bg`. RepoStatsList is a divide-y list of label/value rows with no enclosing border.
 - **Anchor cards get raised depth**. LeaderboardTable, PoolOverviewCard, TokenInfoCard (embed) — these are visual anchors and use `Card depth="raised"`.
 - **Width discipline**: TokenStatsRow lives in the leaderboard column (col 1 only) — never span cols. The right rail column (col 2) gets the countdown + pool + payouts only.
@@ -739,17 +780,18 @@ Row 3 (1fr):  LeaderboardTable| ↓ aside continues (countdown / pool / payouts)
 
 Live at `components/ui/*`. Compose pages from these — never reach for raw HTML+Tailwind when a primitive exists. Each is shadcn-style: variant-driven via `class-variance-authority`, polymorphic where helpful via an `asChild` prop.
 
-| Primitive | File | Variants / API |
-|---|---|---|
-| `Button` | `components/ui/button.tsx` | `variant`: primary / secondary / ghost / danger / outline / link · `size`: sm / default / lg / icon / icon-sm · `asChild` for polymorphism |
-| `Card` + `CardHeader/Title/Description/Content/Footer` | `components/ui/card.tsx` | `depth`: flat / raised / floating · `glass`: none / glass · `padding`: none / sm / default / lg |
-| `Badge` | `components/ui/badge.tsx` | `variant`: default / primary / success / warning / danger / info / outline · `size`: sm / default / lg · `dot` prop with optional `dotColor` (renders the canonical pulsing green dot) |
-| `Pill` | `components/ui/pill.tsx` | `variant`: primary / neutral / success / warning / danger · `size`: sm / default · `interactive` for clickable styling |
-| `Sidebar` family | `components/ui/sidebar.tsx` | `SidebarProvider` (context), `Sidebar` (the floating glass shell), `SidebarHeader/Content/Footer/Section/Item/Toggle/Divider`. Internal collapse state with localStorage persistence. |
+| Primitive                                              | File                        | Variants / API                                                                                                                                                                         |
+| ------------------------------------------------------ | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`                                               | `components/ui/button.tsx`  | `variant`: primary / secondary / ghost / danger / outline / link · `size`: sm / default / lg / icon / icon-sm · `asChild` for polymorphism                                             |
+| `Card` + `CardHeader/Title/Description/Content/Footer` | `components/ui/card.tsx`    | `depth`: flat / raised / floating · `glass`: none / glass · `padding`: none / sm / default / lg                                                                                        |
+| `Badge`                                                | `components/ui/badge.tsx`   | `variant`: default / primary / success / warning / danger / info / outline · `size`: sm / default / lg · `dot` prop with optional `dotColor` (renders the canonical pulsing green dot) |
+| `Pill`                                                 | `components/ui/pill.tsx`    | `variant`: primary / neutral / success / warning / danger · `size`: sm / default · `interactive` for clickable styling                                                                 |
+| `Sidebar` family                                       | `components/ui/sidebar.tsx` | `SidebarProvider` (context), `Sidebar` (the floating glass shell), `SidebarHeader/Content/Footer/Section/Item/Toggle/Divider`. Internal collapse state with localStorage persistence.  |
 
 Every primitive uses design tokens internally — consumers never pass raw hex. Theme switches are automatic via `data-theme` on `<html>`.
 
 **Avatar** is intentionally NOT a primitive — render with `next/image` directly (or `<img>` for small/dynamic avatars) and apply the radius ladder by size:
+
 - 32px (contributor row): `rounded-lg` (12px)
 - 48px (compact hero): `rounded-xl` (16px)
 - 72-112px (project hero): `rounded-2xl` (20px)
@@ -761,10 +803,13 @@ This keeps the visual rhythm proportional — avatars match the radius family of
 The TokenInfoCard at `app/r/[org]/[repo]/_components/TokenInfoCard.tsx` doubles as the canonical **embed widget**. Anyone can drop it into their own site via:
 
 ```html
-<iframe src="https://gitbags.xyz/embed/r/{org}/{repo}"
-        width="380" height="360"
-        style="border:0;border-radius:12px;color-scheme:light dark"
-        loading="lazy"></iframe>
+<iframe
+  src="https://gitbags.xyz/embed/r/{org}/{repo}"
+  width="380"
+  height="360"
+  style="border:0;border-radius:12px;color-scheme:light dark"
+  loading="lazy"
+></iframe>
 ```
 
 The `/embed/r/[org]/[repo]` route uses a stripped layout (transparent body, no sidebar/footer, `robots: noindex`) so iframes render only the widget. The Share dropdown in the project header has a one-click "Embed" copy that emits the snippet with the current origin substituted.
@@ -786,13 +831,21 @@ Mixing radii within a single sibling group is forbidden (e.g., a card with `lg` 
 ## Components
 
 ### Buttons
-Use the `Button` primitive from `components/ui/button.tsx`. Variants: `primary` (the only purple button on a screen — DESIGN rule), `secondary` (elevated surface + strong border), `ghost` (transparent until hover), `danger` (destructive admin), `outline`, `link`. Sizes: `sm`, `default`, `lg`, `icon`, `icon-sm`. `asChild` lets you wrap a `<Link>` (renders the link with button styling). Active state subtly scales to 0.98 — physical-button feel.
+
+Use the `Button` primitive from `components/ui/button.tsx`. Variants: `primary` (the only green button on a screen — DESIGN rule), `secondary` (elevated surface + strong border), `ghost` (subtle until hover), `danger` (destructive admin), `outline`, `link`. Sizes: `sm`, `default`, `lg`, `icon`, `icon-sm`. `asChild` lets you wrap a `<Link>` (renders the link with button styling).
+
+Controls use modern skeuomorphism: a consistent top-left light source, beveled rims, crisp contact lips, softer ambient lift, and a depressed active state. This is intentionally "milled hardware", not glossy candy UI. The control stack uses separate key and ambient shadows so important actions visibly lift from the terminal surface without resorting to glow halos. Any raw button-like surface must opt into the shared `gb-control` classes (`gb-control-primary`, `gb-control-secondary`, `gb-control-ghost`, `gb-control-icon`, `gb-control-cluster`, or `gb-menu-item`) so hover, focus, active, disabled, touch-target, and reduced-motion behavior stays coherent.
+
+Inactive route/navigation links are the exception: use `gb-route-link gb-route-link-inactive` so unselected routes stay quiet and flat while the selected route keeps the tactile active state.
 
 ### Pills and badges
+
 Use `Pill` (`components/ui/pill.tsx`) for clickable affordances and `Badge` (`components/ui/badge.tsx`) for passive status. Both rounded-full, semantic variants. `Badge` accepts a `dot` prop that renders the canonical 6px pulsing green dot prefix (use `dotColor` to override the dot's semantic color independent of variant). The "How Scoring Works", "View on Bags.fm", filter tags → Pill. The "Live", "Paused", "Killed", "Cron Active" indicators → Badge with `dot`.
 
 ### Cards
+
 Use the `Card` primitive from `components/ui/card.tsx` with `depth` + `glass` + `padding` variants. Defaults: `surface` background, 1px `border`, `rounded-lg` (12px), `padding="default"` (24px). Variants:
+
 - `depth="flat"` (default) — no shadow.
 - `depth="raised"` — `shadow-card-elevated` (the leaderboard, the embed widget).
 - `depth="floating"` — `shadow-floating` (the sidebar internally uses this; rarely needed elsewhere).
@@ -801,12 +854,15 @@ Use the `Card` primitive from `components/ui/card.tsx` with `depth` + `glass` + 
 Composable subparts: `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`.
 
 ### Tables
+
 Header row: 12px vertical padding, `fg-muted` text, label-sm typography, no top border, 1px bottom border. Data rows: 16px vertical padding, 1px bottom border (none on the last row). Numeric cells use mono. Hover brightens the row to `surface-elevated`. Top-3 ranks use a colored circular medal icon (gold/silver/bronze) in the rank column.
 
 ### Sidebar
+
 Floating Liquid Glass aside (260px expanded, 68px collapsed, 300ms transition). Lives in a 12px outer page gutter, never flush to viewport edges. All four corners `rounded-2xl`. Built from the `components/ui/sidebar.tsx` primitive set.
 
 Structure:
+
 - **Header (56px)**: brand text only — no boxed icon — plus a `SidebarToggle` (chevron rotates 180° when open). When collapsed, header shows only the toggle.
 - **Content** (flex-1 with internal scroll): nav items grouped via `SidebarSection` with optional uppercase caption titles.
 - **Footer**: hosts `ThemeToggle` + sticky context cards (`TokenSparkCard`, `UserWalletCard` on project sidebar). Cards hide when collapsed so the icon rail stays clean.
@@ -816,49 +872,58 @@ Items are 10×12 padded, `label-md` typography, `fg-secondary` by default. Activ
 State: `SidebarProvider` exposes `collapsed` + `toggle()` via React Context. Persisted to `localStorage["gitbags:sidebar:collapsed"]` after mount (hydration-safe).
 
 ### Inputs
+
 8px corner radius, `surface` background, `border-strong` border, `body-md` typography, 10×14 padding. Focus state: border becomes `primary`. Error state: border becomes `danger`, helper text in `danger` below.
 
 ### Stat cards
-Large numeric value in `display` or `headline-lg`, label below in `label-sm` `fg-secondary`. Sparkline (when present) sits to the right or below the number, using `chart-1` (primary purple) as stroke. Used in Pool Overview, admin Money Console, project Overview.
+
+Large numeric value in `display` or `headline-lg`, label below in `label-sm` `fg-secondary`. Sparkline (when present) sits to the right or below the number, using `chart-1` (primary green) as stroke. Used in Pool Overview, admin Money Console, project Overview.
 
 ### Avatars
+
 **Rounded squares, never circles** (round is reserved for affordances — status dots, pulse indicators, rank medals). Radius scales with size to keep proportional weight relative to surrounding cards:
 
-| Context | Size | Radius |
-|---|---|---|
-| Contributor row | 32px | `rounded-lg` (12px) |
-| Compact hero / inline | 48px | `rounded-xl` (16px) |
-| Project hero (avatar block) | 72-112px (responsive) | `rounded-2xl` (20px) |
-| Sidebar brand mark | n/a | (text only — no boxed icon) |
+| Context                     | Size                  | Radius                      |
+| --------------------------- | --------------------- | --------------------------- |
+| Contributor row             | 32px                  | `rounded-lg` (12px)         |
+| Compact hero / inline       | 48px                  | `rounded-xl` (16px)         |
+| Project hero (avatar block) | 72-112px (responsive) | `rounded-2xl` (20px)        |
+| Sidebar brand mark          | n/a                   | (text only — no boxed icon) |
 
 GitHub `avatar_url` is the source of truth (`https://github.com/{username}.png`). Top-3 leaderboard ranks get a colored circular `RankMedal` (gold/silver/bronze) — that's a separate primitive in the rank column, NOT a medal overlay on the avatar.
 
 ### Modals
+
 24px-32px internal padding, 16px corner radius, `surface-overlay` background, 1px `border-strong` border, with a backdrop of `bg/60` plus `backdrop-blur-md`. Close button top-right. **Destructive confirmation modals** (kill switch, force payout, project delete, fee change) use the `<DestructiveConfirmModal>` from `components/admin/` and enforce: reason string ≥20 chars, typed-name confirmation matching target, MFA reverify within last 5 min. Wrapped server-side by `destructiveAction()` in `lib/auth/destructive-action.ts`.
 
 ### Dropdown menus
+
 Used for the Share menu in the project header (Embed / Copy CA / GitHub) and any other contextual action menu. Hand-rolled (no Radix dep): click-outside + Escape close, glass surface (`glass-strong + shadow-popover`), `z-30` so it floats above bento cards. Items are 6×10 padded with `body-sm fg-secondary`, hover to `surface-elevated fg`. Trigger button uses `ChevronDown` that rotates 180° when open. Reference: `app/r/[org]/[repo]/_components/TokenActionsMenu.tsx`.
 
 ### Copy buttons
+
 Tiny client islands (~20 lines each, `app/r/[org]/[repo]/_components/CopyButton.tsx`). Show a `Copy` icon by default; swap to a green `Check` for 1.5s after a successful `navigator.clipboard.writeText()`. Used for contract addresses, embed snippets, payout signatures, snapshot Merkle roots. Keep host components server-rendered — only this island ships JS.
 
 ### Tooltips
+
 12-line max wrap, 8×12 padding, `surface-overlay` background, 1px `border-strong` border, 8px corner radius, `body-sm` typography. 200ms delay on hover.
 
 ### Empty states
+
 Centered card-content, 64×64 Lucide icon in `fg-muted`, `headline-sm` title, `body-md fg-secondary` description, primary CTA button below. Never use illustrated graphics.
 
 ### Charts (sparklines, bars)
-Recharts. Stroke 2px, no axis labels for sparklines, axis labels only when the data is the whole point of the card. Tooltip on hover uses the standard tooltip component. Color palette: `chart-1` through `chart-5`. Always purple-first (`chart-1` is `primary`).
+
+Recharts. Stroke 2px, no axis labels for sparklines, axis labels only when the data is the whole point of the card. Tooltip on hover uses the standard tooltip component. Color palette: `chart-1` through `chart-5`. Always green-first (`chart-1` is `primary`).
 
 ## Do's and Don'ts
 
-- **Do** use the primary purple for one element per visible viewport — the most important interactive element on screen. Everything else is white, gray, or semantic.
-- **Don't** stack purple elements (pill + button + chart line all primary purple in the same fold). Pick one.
+- **Do** use the primary green for one element per visible viewport — the most important interactive element on screen. Everything else is white, gray, or semantic.
+- **Don't** stack green primary elements (pill + button + chart line all primary green in the same fold). Pick one.
 - **Do** use mono for every number that has economic meaning: SOL amounts, USD prices, scores, basis points, token counts.
 - **Don't** use mono for body copy, headings, or descriptive text.
 - **Do** maintain WCAG AA contrast everywhere except disabled controls, **in both themes**.
-- **Don't** use pure black (#000) or pure white (#FFF). They feel sterile against the purple-biased surfaces. Use `bg` and `fg` tokens.
+- **Don't** use pure black (#000) or pure white (#FFF). They feel sterile against the cool-biased surfaces. Use `bg` and `fg` tokens.
 - **Do** show live data with a small pulsing green dot prefix (countdown timers, cron status, real-time pools).
 - **Don't** use animated illustrations, lottie files, or bouncy springs. Motion is functional only.
 - **Do** keep cards on a single tonal step (`surface` or `surface-elevated`, never half-tinted).

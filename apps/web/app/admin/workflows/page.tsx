@@ -161,7 +161,7 @@ export default async function AdminWorkflowsPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-headline-md tracking-tight">Workflows</h1>
+        <h1 className="text-headline-md">Workflows</h1>
         <p className="text-body-sm text-fg-secondary">
           Cron reality, heartbeat freshness, and safe manual queueing. A manual
           trigger queues a run; it does not prove the workflow completed.

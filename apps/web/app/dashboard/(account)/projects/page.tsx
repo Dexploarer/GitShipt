@@ -39,13 +39,6 @@ export default async function ProjectsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-      <header>
-        <h1 className="text-headline-lg leading-tight text-fg">My Projects</h1>
-        <p className="text-body-md text-fg-secondary">
-          All repositories you own or co-administer on GitBags.
-        </p>
-      </header>
-
       <Card depth="flat" padding="none">
         <CardHeader className="border-b border-border px-6 py-4">
           <CardTitle>

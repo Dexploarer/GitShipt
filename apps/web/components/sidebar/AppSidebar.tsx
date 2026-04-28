@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   Sparkles,
   Trophy,
+  UserRound,
   Users,
   Wallet,
   Workflow,
@@ -49,6 +50,7 @@ import { Button } from "@repo/ui";
 import { SidebarUserCard } from "./SidebarUserCard";
 import { useSessionChrome } from "@/components/auth/SessionChromeProvider";
 import { resolveOrigin } from "@/lib/nav/origins";
+import { useAuthenticatedRouteStore } from "@/lib/state/authenticated-route-store";
 import { cn } from "@repo/lib";
 
 /**
@@ -157,6 +159,12 @@ function accountGroup(): NavGroup {
     items: [
       { key: "dashboard", label: "Dashboard", icon: Home, href: "/dashboard" },
       {
+        key: "profile",
+        label: "Profile",
+        icon: UserRound,
+        href: "/dashboard/profile",
+      },
+      {
         key: "projects",
         label: "My projects",
         icon: FolderGit2,
@@ -185,6 +193,12 @@ function accountGroup(): NavGroup {
         label: "Security",
         icon: KeyRound,
         href: "/dashboard/security",
+      },
+      {
+        key: "settings",
+        label: "Settings",
+        icon: Settings,
+        href: "/dashboard/settings",
       },
     ],
   };
@@ -553,6 +567,10 @@ export function AppSidebar({
   const searchParams = useSearchParams();
   const fromOrigin = searchParams?.get("from") ?? null;
   const chromeUser = useSessionChrome();
+  const { collapsed } = useSidebar();
+  const setRouteChrome = useAuthenticatedRouteStore(
+    (state) => state.setRouteChrome,
+  );
   const resolvedUser = chromeUser;
   const resolvedIsPlatformAdmin = Boolean(chromeUser?.isPlatformAdmin);
 
@@ -571,10 +589,36 @@ export function AppSidebar({
     fromOrigin,
   );
 
-  const isItemActive = (href: string, key: string) => {
-    if (activeKey !== undefined) return activeKey === key;
-    if (href === "/") return pathname === "/";
-    return pathname === href || pathname.startsWith(`${href}/`);
+  const resolvedActiveKey = React.useMemo(() => {
+    if (activeKey !== undefined) return activeKey;
+
+    let best: { key: string; href: string } | null = null;
+    for (const group of groups) {
+      for (const item of group.items) {
+        const matches =
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        if (!matches) continue;
+        if (!best || item.href.length > best.href.length) {
+          best = { key: item.key, href: item.href };
+        }
+      }
+    }
+    return best?.key ?? null;
+  }, [activeKey, groups, pathname]);
+
+  React.useEffect(() => {
+    if (!signedIn && surface.kind === "public") return;
+    setRouteChrome({
+      pathname,
+      surface: surface.kind,
+      activeKey: resolvedActiveKey,
+    });
+  }, [pathname, resolvedActiveKey, setRouteChrome, signedIn, surface.kind]);
+
+  const isItemActive = (key: string) => {
+    return resolvedActiveKey === key;
   };
 
   const isLegalActive = (href: string) =>
@@ -583,11 +627,17 @@ export function AppSidebar({
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href={brand.href} className="flex min-w-0 items-center gap-2.5">
+        <Link
+          href={brand.href}
+          className={cn(
+            "flex min-w-0 items-center gap-2.5",
+            collapsed && "lg:hidden",
+          )}
+        >
           {brand.logo ? <CollapsibleBrandLogo /> : null}
           <CollapsibleBrand title={brand.title} subtitle={brand.subtitle} />
         </Link>
-        <SidebarToggle className="ml-auto" />
+        <SidebarToggle className={cn(!collapsed && "ml-auto")} />
       </SidebarHeader>
 
       <SidebarContent>
@@ -607,7 +657,7 @@ export function AppSidebar({
                   icon={it.icon}
                   label={it.label}
                   href={it.href}
-                  active={isItemActive(it.href, it.key)}
+                  active={isItemActive(it.key)}
                   external={it.external}
                 />
               ))}
@@ -626,14 +676,12 @@ export function AppSidebar({
             email={resolvedUser.email ?? null}
             username={resolvedUser.username ?? null}
             imageUrl={resolvedUser.imageUrl ?? null}
+            defaultDashboardHref={resolvedUser.defaultDashboardRoute ?? null}
           />
         ) : surface.kind === "public" ? (
           <CollapsibleSignInCta />
         ) : null}
-        <div className="flex items-center justify-between gap-2">
-          <CollapsiblePoweredBy />
-          <ThemeToggle />
-        </div>
+        <SidebarFooterControls />
       </SidebarFooter>
     </Sidebar>
   );
@@ -651,6 +699,8 @@ function CollapsibleBrandLogo() {
       height={28}
       sizes="28px"
       className={cn("size-7 shrink-0 object-contain", collapsed && "lg:hidden")}
+      loading="eager"
+      fetchPriority="high"
       unoptimized
       aria-hidden="true"
     />
@@ -665,9 +715,9 @@ function ReturnToLink({ href, label }: { href: string; label: string }) {
       onClick={closeMobile}
       title={collapsed ? `Return to ${label}` : undefined}
       className={cn(
-        "group flex h-9 items-center gap-3 rounded-md px-2.5",
-        "text-fg-secondary transition-[background-color,color] duration-150",
-        "hover:bg-surface-elevated/60 hover:text-fg",
+        "gb-route-link gb-route-link-inactive group flex h-11 items-center gap-3 rounded-md border px-2.5 lg:h-9",
+        "text-fg-secondary transition-[background-color,border-color,color,box-shadow] duration-150",
+        "hover:text-fg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         collapsed && "lg:justify-center lg:px-0",
       )}
@@ -708,7 +758,7 @@ function CollapsibleSignInCta() {
       asChild
       variant="primary"
       size="sm"
-      className={cn("w-full", collapsed && "lg:hidden")}
+      className={cn("w-full text-primary-fg", collapsed && "lg:hidden")}
     >
       <Link href="/auth/signin">
         <Github className="size-4" /> Sign in with GitHub
@@ -751,5 +801,20 @@ function CollapsiblePoweredBy() {
     >
       Powered by BAGS.fm
     </span>
+  );
+}
+
+function SidebarFooterControls() {
+  const { collapsed } = useSidebar();
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-2",
+        collapsed && "lg:justify-center",
+      )}
+    >
+      <CollapsiblePoweredBy />
+      <ThemeToggle className={cn(collapsed && "lg:mx-auto")} />
+    </div>
   );
 }

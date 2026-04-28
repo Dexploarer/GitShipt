@@ -2,6 +2,8 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { dbHttp } from "@/db";
 import { platformConfig } from "@/db/schema";
+import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { z } from "zod";
 
 export interface ProjectDocsValue {
   markdown: string;
@@ -14,7 +16,14 @@ export function projectDocsKey(projectId: string): string {
   return `project_docs.${projectId}`;
 }
 
-export async function getProjectDocs(
+const ProjectDocsConfigSchema = z.object({
+  markdown: z.string().default(""),
+  published: z.boolean().default(false),
+  updatedBy: z.string().nullable().optional(),
+  updatedAt: z.string().nullable().optional(),
+});
+
+async function getProjectDocsUncached(
   projectId: string,
 ): Promise<ProjectDocsValue> {
   const [row] = await dbHttp
@@ -27,13 +36,37 @@ export async function getProjectDocs(
     .limit(1);
 
   const value = row?.value ?? {};
+  const parsed = ProjectDocsConfigSchema.catch({
+    markdown: "",
+    published: false,
+    updatedBy: null,
+    updatedAt: null,
+  }).parse(value);
   return {
-    markdown: typeof value.markdown === "string" ? value.markdown : "",
-    published: value.published === true,
-    updatedBy: typeof value.updatedBy === "string" ? value.updatedBy : null,
+    markdown: parsed.markdown,
+    published: parsed.published,
+    updatedBy: parsed.updatedBy ?? null,
     updatedAt:
-      typeof value.updatedAt === "string"
-        ? value.updatedAt
-        : (row?.updatedAt?.toISOString() ?? null),
+      parsed.updatedAt ??
+      row?.updatedAt?.toISOString() ??
+      null,
   };
+}
+
+export async function getProjectDocs(
+  projectId: string,
+): Promise<ProjectDocsValue> {
+  return getCachedValue(
+    () => getProjectDocsUncached(projectId),
+    ["gitbags:dashboard:project-docs:v1", projectId],
+    {
+      tags: [
+        cacheTags.dashboard,
+        cacheTags.dashboardProject(projectId),
+        cacheTags.project(projectId),
+        cacheTags.platformConfig,
+      ],
+      revalidate: CACHE_SECONDS.auth,
+    },
+  );
 }

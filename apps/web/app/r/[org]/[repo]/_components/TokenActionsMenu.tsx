@@ -92,11 +92,13 @@ export function TokenActionsMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md border border-border/60",
+          "gb-control inline-flex items-center gap-1.5 rounded-md border",
           "px-2.5 py-1 text-label-sm text-fg-secondary",
-          "transition-colors hover:bg-surface-elevated hover:text-fg",
+          "transition-[background-color,border-color,box-shadow,color,transform] hover:text-fg",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-          open && "bg-surface-elevated text-fg",
+          open
+            ? "gb-control-secondary border-border-strong bg-surface-elevated text-fg"
+            : "gb-control-ghost border-border/60",
         )}
       >
         Share
@@ -187,9 +189,9 @@ function MenuItem({
   rel,
 }: MenuItemProps) {
   const className = cn(
-    "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left",
+    "gb-menu-item flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left",
     "text-body-sm text-fg-secondary",
-    "transition-colors hover:bg-surface-elevated hover:text-fg",
+    "transition-[background-color,box-shadow,color] hover:bg-surface-elevated hover:text-fg",
     "focus-visible:outline-none focus-visible:bg-surface-elevated focus-visible:text-fg",
     disabled && "pointer-events-none opacity-40",
   );

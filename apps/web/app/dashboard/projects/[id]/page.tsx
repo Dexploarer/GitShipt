@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   Coins,
   ExternalLink,
-  Github,
   Sparkles,
   Trophy,
   Users,
@@ -33,7 +32,6 @@ import {
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
-import { StatusBadge } from "../../_components/ProjectList";
 
 export const dynamic = "force-dynamic";
 
@@ -58,35 +56,14 @@ export default async function ProjectOverviewPage({
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <Breadcrumbs
-            items={[
-              { label: "Dashboard", href: "/dashboard" },
-              { label: "Projects", href: "/dashboard" },
-              { label: project.name },
-            ]}
-            className="mb-1"
-          />
-          <div className="flex items-center gap-2">
-            <h1 className="truncate text-headline-lg leading-tight text-fg">
-              {project.name}
-            </h1>
-            <StatusBadge status={project.status} />
-          </div>
-          <div className="mt-1 flex items-center gap-3 text-mono-sm text-fg-secondary">
-            <Link
-              href={`https://github.com/${project.slug}`}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-flex items-center gap-1 hover:text-fg"
-            >
-              <Github className="size-3.5" /> {project.slug}
-            </Link>
-            <span className="text-fg-muted">·</span>
-            <span>created {formatRelativeTime(project.createdAt)}</span>
-          </div>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Projects", href: "/dashboard/projects" },
+            { label: project.name },
+          ]}
+        />
         <Button asChild variant="secondary" size="default">
           <Link
             href={`/r/${project.slug}`}
@@ -96,7 +73,7 @@ export default async function ProjectOverviewPage({
             View public page <ExternalLink className="size-4" />
           </Link>
         </Button>
-      </header>
+      </div>
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile

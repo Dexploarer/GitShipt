@@ -14,6 +14,7 @@ import { hasCredentials } from "@/lib/env";
 import { IdempotencyReplayError, withIdempotency } from "@/lib/idempotency";
 import { createApiKey, listApiKeysForProject } from "@/lib/queries/api-keys";
 import { ProjectApiKeyScopesSchema } from "@repo/shared";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -153,6 +154,7 @@ export async function POST(
         cacheResult: false,
       },
     );
+    await revalidateProjectCaches(projectId);
     return NextResponse.json(result, { status: 201 });
   } catch (e) {
     if (e instanceof IdempotencyReplayError) {

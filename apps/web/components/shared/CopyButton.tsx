@@ -37,8 +37,8 @@ export function CopyButton({
       onClick={copy}
       aria-label={copied ? "Copied!" : label}
       className={cn(
-        "inline-flex size-7 items-center justify-center rounded-md",
-        "text-fg-muted transition-colors hover:bg-surface-elevated hover:text-fg",
+        "gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md",
+        "text-fg-muted hover:text-fg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         className,
       )}

@@ -20,21 +20,16 @@ export default async function TermsPage() {
   return (
     <article className="mx-auto flex max-w-prose flex-col gap-10 pb-16">
       <header className="flex flex-col gap-3">
-        <span className="text-label-sm uppercase tracking-wide text-fg-muted">
-          Legal
-        </span>
-        <h1 className="text-headline-lg tracking-tight text-fg">
-          Terms of Service
-        </h1>
+        <span className="text-label-sm uppercase text-fg-muted">Legal</span>
+        <h1 className="text-headline-lg text-fg">Terms of Service</h1>
         <p className="text-mono-sm text-fg-muted">
           Last updated {LAST_UPDATED}
         </p>
         <p className="text-body-md text-fg-secondary">
           These terms govern your use of GitBags, a hackathon-stage launchpad
-          that mints Solana tokens for open-source repositories and
-          routes a share of trading fees to the repository&apos;s top
-          contributors. Read carefully before launching a project or linking a
-          wallet.
+          that mints Solana tokens for open-source repositories and routes a
+          share of trading fees to the repository&apos;s top contributors. Read
+          carefully before launching a project or linking a wallet.
         </p>
       </header>
 
@@ -184,9 +179,9 @@ export default async function TermsPage() {
 
         <LegalSection index={9} title="Network and demo-mode disclaimer">
           <p>
-            GitBags may run in local, devnet, testnet, or mainnet mode
-            depending on deployment configuration. Non-mainnet SOL and tokens
-            have no monetary value, and any &ldquo;USD&rdquo; figure shown for a
+            GitBags may run in local, devnet, testnet, or mainnet mode depending
+            on deployment configuration. Non-mainnet SOL and tokens have no
+            monetary value, and any &ldquo;USD&rdquo; figure shown for a
             non-mainnet project is a synthetic display value.
           </p>
           <p>

@@ -8,7 +8,7 @@ import { cn } from "@repo/lib";
  * `asChild` prop using React's Slot.
  *
  * Variants follow DESIGN.md component spec:
- *  - primary  : the only purple button on a screen
+ *  - primary  : the only green button on a screen
  *  - secondary: elevated surface + strong border
  *  - ghost    : transparent until hover
  *  - danger   : destructive admin actions
@@ -17,26 +17,25 @@ import { cn } from "@repo/lib";
 const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2 whitespace-nowrap",
-    "rounded-md text-label-md select-none",
-    "transition-[background-color,box-shadow,color,transform] duration-150",
+    "gb-control rounded-md text-label-md font-semibold select-none",
+    "transition-[background-color,border-color,box-shadow,color,filter,transform] duration-150",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
     "disabled:pointer-events-none disabled:opacity-50",
-    "active:scale-[0.98]",
   ].join(" "),
   {
     variants: {
       variant: {
         primary:
-          "bg-primary [color:var(--bg)] shadow-card-elevated hover:bg-primary-hover active:bg-primary-pressed",
+          "gb-control-primary border border-primary bg-primary text-primary-fg",
         secondary:
-          "bg-surface-elevated [color:var(--fg)] border border-border-strong shadow-card-elevated hover:bg-surface-overlay",
+          "gb-control-secondary border border-border-strong bg-surface-elevated [color:var(--fg)]",
         ghost:
-          "bg-transparent [color:var(--fg-secondary)] hover:bg-surface-elevated hover:[color:var(--fg)]",
+          "gb-control-ghost border border-transparent bg-transparent [color:var(--fg-secondary)] hover:[color:var(--fg)]",
         danger:
-          "bg-danger [color:var(--bg)] shadow-card-elevated hover:brightness-110",
+          "gb-control-danger border border-danger bg-danger text-primary-fg",
         outline:
-          "bg-transparent [color:var(--fg)] border border-border-strong hover:bg-surface-elevated",
-        link: "bg-transparent [color:var(--fg-secondary)] hover:[color:var(--fg)] underline-offset-4 hover:underline",
+          "gb-control-outline border border-border-strong bg-transparent [color:var(--fg)]",
+        link: "gb-control-link border border-transparent bg-transparent [color:var(--fg-secondary)] hover:[color:var(--fg)] underline-offset-4 hover:underline",
       },
       size: {
         sm: "h-8 px-3 text-label-sm",

@@ -7,12 +7,7 @@ import {
   Zap,
 } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { hasCredentials, productionReadiness, serverEnv } from "@/lib/env";
 import { dbHttp } from "@/db";
@@ -48,7 +43,7 @@ export default async function AdminIntegrationsPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-headline-md tracking-tight">Integrations</h1>
+        <h1 className="text-headline-md">Integrations</h1>
         <p className="text-body-sm text-fg-secondary">
           Read-only health checks. Refresh the page to re-ping.
         </p>

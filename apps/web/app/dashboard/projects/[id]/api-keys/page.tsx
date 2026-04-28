@@ -22,24 +22,17 @@ export default async function ApiKeysPage({
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-      <Breadcrumbs
-        items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Projects", href: "/dashboard" },
-          { label: project.name, href: `/dashboard/projects/${id}` },
-          { label: "API keys" },
-        ]}
-      />
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-headline-lg leading-tight text-fg">API keys</h1>
-          <p className="text-body-md text-fg-secondary">
-            Programmatic, revocable tokens scoped to this project. Raw keys are
-            shown once at creation — store them somewhere safe.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Projects", href: "/dashboard/projects" },
+            { label: project.name, href: `/dashboard/projects/${id}` },
+            { label: "API keys" },
+          ]}
+        />
         <CreateApiKeyForm projectId={id} />
-      </header>
+      </div>
 
       <section aria-label="Active API keys">
         <h2 className="sr-only">Active keys</h2>

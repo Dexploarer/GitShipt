@@ -1,11 +1,6 @@
 import { Users } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@repo/ui";
+import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { getAllUsers } from "@/lib/queries/admin";
 import { formatRelativeTime } from "@repo/lib";
@@ -22,7 +17,7 @@ export default async function AdminUsersPage() {
     <div className="space-y-4">
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-headline-md tracking-tight">Users</h1>
+          <h1 className="text-headline-md">Users</h1>
           <p className="text-body-sm text-fg-secondary">
             Up to 500 most recent. Manage role + MFA + sybil flags.
           </p>

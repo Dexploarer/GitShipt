@@ -27,7 +27,7 @@ export function HowScoringWorksModal({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated px-3 py-1.5 text-label-sm text-fg-secondary transition-colors hover:bg-surface-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          className="gb-control gb-control-secondary inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated px-3 py-1.5 text-label-sm text-fg-secondary hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           <Info className="size-3.5" aria-hidden />
           How scoring works
@@ -47,7 +47,7 @@ export function HowScoringWorksModal({
         <div className="rounded-lg border border-border bg-surface p-4">
           <div className="text-label-sm text-fg-muted">Formula</div>
           <pre className="mt-2 overflow-x-auto text-mono-sm leading-6 text-fg">
-{`score =
+            {`score =
     mergedPRs * ${w.mergedPRs.toFixed(1)}
   + commits   * ${w.commits.toFixed(1)}
   + reviews   * ${w.reviews.toFixed(1)}
@@ -71,8 +71,8 @@ export function HowScoringWorksModal({
           <li className="flex gap-3">
             <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-fg-muted" />
             <span>
-              <span className="text-fg">Time decay:</span>{" "}
-              {scoringConfig.decay} - recent commits weigh more than old ones.
+              <span className="text-fg">Time decay:</span> {scoringConfig.decay}{" "}
+              - recent commits weigh more than old ones.
             </span>
           </li>
           <li className="flex gap-3">
@@ -98,7 +98,7 @@ export function HowScoringWorksModal({
           <DialogClose asChild>
             <button
               type="button"
-              className="inline-flex h-9 items-center rounded-md border border-border-strong bg-surface-elevated px-4 text-label-md text-fg transition-colors hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+              className="gb-control gb-control-secondary inline-flex h-9 items-center rounded-md border border-border-strong bg-surface-elevated px-4 text-label-md text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             >
               Got it
             </button>

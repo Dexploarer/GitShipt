@@ -59,7 +59,7 @@ export default async function AdminOpsPage() {
     <div className="space-y-4">
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-headline-md tracking-tight">Ops dashboard</h1>
+          <h1 className="text-headline-md">Ops dashboard</h1>
           <p className="text-body-sm text-fg-secondary">
             Live system snapshot · {formatRelativeTime(new Date())}
           </p>

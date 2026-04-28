@@ -47,7 +47,7 @@ function SocialLink({
       target="_blank"
       rel="noreferrer noopener"
       aria-label={label}
-      className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-surface-elevated hover:text-fg"
+      className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
     >
       {children}
     </Link>

@@ -12,6 +12,7 @@ import { audit } from "@/lib/audit";
 import { hasCredentials } from "@/lib/env";
 import { revokeApiKey } from "@/lib/queries/api-keys";
 import { withIdempotency } from "@/lib/idempotency";
+import { revalidateProjectCaches } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,10 @@ export async function DELETE(
 
   if (result.notFound) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  if (result.revoked.revoked) {
+    await revalidateProjectCaches(projectId);
   }
 
   return NextResponse.json(

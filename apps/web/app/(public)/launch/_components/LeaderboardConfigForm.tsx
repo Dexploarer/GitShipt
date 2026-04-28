@@ -115,7 +115,7 @@ export function LeaderboardConfigForm({
           step={1}
           value={windowDays}
           onChange={(e) => setWindowDays(Number(e.target.value))}
-          className="h-2 w-full cursor-pointer accent-primary"
+          className="gb-range-control w-full"
         />
       </FormField>
       <div className="-mt-4 flex items-center justify-between text-caption text-fg-muted">
@@ -201,7 +201,7 @@ export function LeaderboardConfigForm({
           step={25}
           value={platformFeeBps}
           onChange={(e) => setPlatformFeeBps(Number(e.target.value))}
-          className="h-2 w-full cursor-pointer accent-primary"
+          className="gb-range-control w-full"
         />
       </FormField>
       <div className="-mt-4 flex items-center justify-between text-caption text-fg-muted">

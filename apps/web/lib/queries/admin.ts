@@ -28,12 +28,63 @@ import {
   inArray,
 } from "drizzle-orm";
 import { applyDbRlsContext } from "@/lib/db-rls";
+import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
+import { z } from "zod";
 
 /**
  * Admin-only query helpers. All callers must `requirePermission('admin.access')`
  * (or stricter) before invoking. These helpers do not enforce permissions —
  * authorization happens one layer up.
  */
+
+const ProjectStatusSchema = z.enum([
+  "draft",
+  "launch_configured",
+  "live",
+  "paused",
+  "killed",
+  "simulated_live",
+]);
+const ProjectStatusFilterSchema = z
+  .union([ProjectStatusSchema, z.literal("all")])
+  .optional();
+const PayoutStatusSchema = z.enum([
+  "pending",
+  "claiming",
+  "distributing",
+  "completed",
+  "failed",
+  "cancelled",
+  "simulated",
+]);
+const PayoutStatusFilterSchema = z
+  .union([PayoutStatusSchema, z.literal("all")])
+  .optional();
+const AuditFilterSchema = z.object({
+  actionPrefix: z.string().min(1).max(100).optional(),
+  actionPrefixes: z.array(z.string().min(1).max(100)).max(20).optional(),
+  actorUserId: z.string().min(1).max(128).optional(),
+  targetType: z.string().min(1).max(80).optional(),
+  targetId: z.string().min(1).max(160).optional(),
+  sinceHours: z.number().int().min(1).max(24 * 30).optional(),
+  sinceMs: z.number().int().positive().optional(),
+  limit: z.number().int().min(1).max(500).optional(),
+});
+const PlatformConfigKeySchema = z.string().min(1).max(200);
+const IdListSchema = z.array(z.string().min(1).max(128)).max(500);
+
+function normalizeProjectStatusFilter(filter?: {
+  status?: string;
+}): { status?: z.infer<typeof ProjectStatusFilterSchema> } {
+  return { status: ProjectStatusFilterSchema.parse(filter?.status) };
+}
+
+function normalizePayoutStatusFilter(filter?: {
+  status?: string;
+}): { status?: z.infer<typeof PayoutStatusFilterSchema> } {
+  return { status: PayoutStatusFilterSchema.parse(filter?.status) };
+}
 
 export interface OpsKpis {
   activeProjects: number;
@@ -43,7 +94,7 @@ export interface OpsKpis {
   pendingEscrowSol: number;
 }
 
-export async function getOpsKpis(
+async function getOpsKpisUncached(
   hotWalletLamports: number | null,
 ): Promise<OpsKpis> {
   const [activeRows, frozenRows, failedRows, escrowRows] = await Promise.all([
@@ -81,6 +132,19 @@ export async function getOpsKpis(
   };
 }
 
+export async function getOpsKpis(
+  hotWalletLamports: number | null,
+): Promise<OpsKpis> {
+  return getCachedValue(
+    () => getOpsKpisUncached(hotWalletLamports),
+    ["gitbags:admin:ops-kpis:v1", String(hotWalletLamports ?? "unknown")],
+    {
+      tags: [cacheTags.admin],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
 export interface HeartbeatRow {
   key: string;
   workflow: string;
@@ -92,7 +156,7 @@ export interface HeartbeatRow {
 const HEARTBEAT_GREEN_SEC = 120;
 const HEARTBEAT_YELLOW_SEC = 600;
 
-export async function getHeartbeats(): Promise<HeartbeatRow[]> {
+async function getHeartbeatsUncached(): Promise<HeartbeatRow[]> {
   const rows = await dbHttp
     .select({ key: platformConfig.key, value: platformConfig.value })
     .from(platformConfig)
@@ -122,6 +186,17 @@ export async function getHeartbeats(): Promise<HeartbeatRow[]> {
     .sort((a, b) => a.workflow.localeCompare(b.workflow));
 }
 
+export async function getHeartbeats(): Promise<HeartbeatRow[]> {
+  return getCachedValue(
+    () => getHeartbeatsUncached(),
+    ["gitbags:admin:heartbeats:v1"],
+    {
+      tags: [cacheTags.admin, cacheTags.platformConfig],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
 export interface AdminFailedPayoutRow {
   id: string;
   projectId: string;
@@ -132,7 +207,7 @@ export interface AdminFailedPayoutRow {
   scheduledAt: Date;
 }
 
-export async function getRecentFailedPayouts(
+async function getRecentFailedPayoutsUncached(
   limit = 10,
 ): Promise<AdminFailedPayoutRow[]> {
   const rows = await dbHttp
@@ -163,6 +238,20 @@ export async function getRecentFailedPayouts(
   }));
 }
 
+export async function getRecentFailedPayouts(
+  limit = 10,
+): Promise<AdminFailedPayoutRow[]> {
+  const safeLimit = z.number().int().min(1).max(100).catch(10).parse(limit);
+  return getCachedValue(
+    () => getRecentFailedPayoutsUncached(safeLimit),
+    ["gitbags:admin:recent-failed-payouts:v1", String(safeLimit)],
+    {
+      tags: [cacheTags.admin],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
 export interface AuditRow {
   id: string;
   actorUserId: string | null;
@@ -186,17 +275,20 @@ export interface AuditFilter {
   limit?: number;
 }
 
-export async function getAuditLogs(
+async function getAuditLogsUncached(
   filter: AuditFilter = {},
 ): Promise<AuditRow[]> {
+  const safeFilter = AuditFilterSchema.parse(filter);
   const sinceMs =
-    filter.sinceMs ?? Date.now() - (filter.sinceHours ?? 24) * 60 * 60 * 1000;
+    safeFilter.sinceMs ??
+    Date.now() - (safeFilter.sinceHours ?? 24) * 60 * 60 * 1000;
   const since = new Date(sinceMs);
-  const limit = Math.min(filter.limit ?? 100, 500);
+  const limit = safeFilter.limit ?? 100;
 
   const conds = [gte(auditLogs.createdAt, since)];
   const actionPrefixes =
-    filter.actionPrefixes ?? (filter.actionPrefix ? [filter.actionPrefix] : []);
+    safeFilter.actionPrefixes ??
+    (safeFilter.actionPrefix ? [safeFilter.actionPrefix] : []);
   if (actionPrefixes.length === 1) {
     conds.push(like(auditLogs.action, `${actionPrefixes[0]}%`));
   } else if (actionPrefixes.length > 1) {
@@ -205,14 +297,14 @@ export async function getAuditLogs(
     );
     if (prefixCond) conds.push(prefixCond);
   }
-  if (filter.actorUserId) {
-    conds.push(eq(auditLogs.actorUserId, filter.actorUserId));
+  if (safeFilter.actorUserId) {
+    conds.push(eq(auditLogs.actorUserId, safeFilter.actorUserId));
   }
-  if (filter.targetType) {
-    conds.push(eq(auditLogs.targetType, filter.targetType));
+  if (safeFilter.targetType) {
+    conds.push(eq(auditLogs.targetType, safeFilter.targetType));
   }
-  if (filter.targetId) {
-    conds.push(eq(auditLogs.targetId, filter.targetId));
+  if (safeFilter.targetId) {
+    conds.push(eq(auditLogs.targetId, safeFilter.targetId));
   }
 
   const rows = await dbHttp
@@ -246,6 +338,20 @@ export async function getAuditLogs(
   }));
 }
 
+export async function getAuditLogs(
+  filter: AuditFilter = {},
+): Promise<AuditRow[]> {
+  const safeFilter = AuditFilterSchema.parse(filter);
+  return getCachedValue(
+    () => getAuditLogsUncached(safeFilter),
+    ["gitbags:admin:audit:v1", JSON.stringify(safeFilter)],
+    {
+      tags: [cacheTags.admin, cacheTags.adminAudit],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
 export interface AdminProjectRow {
   id: string;
   slug: string;
@@ -265,23 +371,13 @@ export interface AdminProjectRow {
   createdAt: Date;
 }
 
-export async function getAllProjects(filter?: {
+async function getAllProjectsUncached(filter?: {
   status?: string;
 }): Promise<AdminProjectRow[]> {
+  const safeFilter = normalizeProjectStatusFilter(filter);
   const conds = [];
-  if (filter?.status && filter.status !== "all") {
-    conds.push(
-      eq(
-        projects.status,
-        filter.status as
-          | "draft"
-          | "launch_configured"
-          | "live"
-          | "paused"
-          | "killed"
-          | "simulated_live",
-      ),
-    );
+  if (safeFilter.status && safeFilter.status !== "all") {
+    conds.push(eq(projects.status, safeFilter.status));
   }
 
   const baseQuery = dbHttp
@@ -319,6 +415,20 @@ export async function getAllProjects(filter?: {
   }));
 }
 
+export async function getAllProjects(filter?: {
+  status?: string;
+}): Promise<AdminProjectRow[]> {
+  const safeFilter = normalizeProjectStatusFilter(filter);
+  return getCachedValue(
+    () => getAllProjectsUncached(safeFilter),
+    ["gitbags:admin:projects:v1", safeFilter.status ?? "all"],
+    {
+      tags: [cacheTags.admin],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
 export interface PartnerFeeShareSummary {
   totalProjects: number;
   launchedProjects: number;
@@ -335,7 +445,7 @@ export interface PartnerFeeShareSummary {
   latestLaunchUpdatedAt: Date | null;
 }
 
-export async function getPartnerFeeShareSummary(): Promise<PartnerFeeShareSummary> {
+async function getPartnerFeeShareSummaryUncached(): Promise<PartnerFeeShareSummary> {
   const [projectRow] = await dbHttp
     .select({
       totalProjects: count(),
@@ -381,7 +491,18 @@ export async function getPartnerFeeShareSummary(): Promise<PartnerFeeShareSummar
   };
 }
 
-export async function getProjectAdminDetail(projectId: string): Promise<{
+export async function getPartnerFeeShareSummary(): Promise<PartnerFeeShareSummary> {
+  return getCachedValue(
+    () => getPartnerFeeShareSummaryUncached(),
+    ["gitbags:admin:partner-fee-share-summary:v1"],
+    {
+      tags: [cacheTags.admin],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
+async function getProjectAdminDetailUncached(projectId: string): Promise<{
   project: typeof projects.$inferSelect;
   ownerName: string | null;
   ownerUsername: string | null;
@@ -419,15 +540,43 @@ export async function getProjectAdminDetail(projectId: string): Promise<{
   ]);
 
   return {
-    project: row.project,
+    project: {
+      ...row.project,
+      scoringConfig: ScoringConfigSchema.parse(row.project.scoringConfig),
+      payoutConfig: PayoutConfigSchema.parse(row.project.payoutConfig),
+    },
     ownerName: row.ownerName,
     ownerUsername: row.ownerUsername,
-    scoringConfig: row.project.scoringConfig,
-    payoutConfig: row.project.payoutConfig,
+    scoringConfig: ScoringConfigSchema.parse(row.project.scoringConfig),
+    payoutConfig: PayoutConfigSchema.parse(row.project.payoutConfig),
     contributorsCount: contributorsRow[0]?.c ?? 0,
     activeApiKeys: apiKeyRow[0]?.c ?? 0,
     lastApiKeyUsedAt: apiKeyRow[0]?.lastUsedAt ?? null,
   };
+}
+
+export async function getProjectAdminDetail(projectId: string): Promise<{
+  project: typeof projects.$inferSelect;
+  ownerName: string | null;
+  ownerUsername: string | null;
+  scoringConfig: ScoringConfig;
+  payoutConfig: PayoutConfig;
+  contributorsCount: number;
+  activeApiKeys: number;
+  lastApiKeyUsedAt: Date | null;
+} | null> {
+  return getCachedValue(
+    () => getProjectAdminDetailUncached(projectId),
+    ["gitbags:admin:project-detail:v1", projectId],
+    {
+      tags: [
+        cacheTags.admin,
+        cacheTags.project(projectId),
+        cacheTags.dashboardProject(projectId),
+      ],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
 }
 
 export interface AdminUserRow {
@@ -441,7 +590,7 @@ export interface AdminUserRow {
   createdAt: Date;
 }
 
-export async function getAllUsers(): Promise<AdminUserRow[]> {
+async function getAllUsersUncached(): Promise<AdminUserRow[]> {
   const rows = await dbHttp
     .select({
       id: users.id,
@@ -469,6 +618,17 @@ export async function getAllUsers(): Promise<AdminUserRow[]> {
   }));
 }
 
+export async function getAllUsers(): Promise<AdminUserRow[]> {
+  return getCachedValue(
+    () => getAllUsersUncached(),
+    ["gitbags:admin:users:v1"],
+    {
+      tags: [cacheTags.admin, cacheTags.adminUsers],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
 export interface AdminPayoutRow {
   id: string;
   projectId: string;
@@ -489,24 +649,13 @@ export interface AdminPayoutRow {
   snapshotId: string;
 }
 
-export async function getAllPayouts(filter?: {
+async function getAllPayoutsUncached(filter?: {
   status?: string;
 }): Promise<AdminPayoutRow[]> {
+  const safeFilter = normalizePayoutStatusFilter(filter);
   const conds = [];
-  if (filter?.status && filter.status !== "all") {
-    conds.push(
-      eq(
-        payouts.status,
-        filter.status as
-          | "pending"
-          | "claiming"
-          | "distributing"
-          | "completed"
-          | "failed"
-          | "cancelled"
-          | "simulated",
-      ),
-    );
+  if (safeFilter.status && safeFilter.status !== "all") {
+    conds.push(eq(payouts.status, safeFilter.status));
   }
 
   const baseQuery = dbHttp
@@ -547,6 +696,20 @@ export async function getAllPayouts(filter?: {
   }));
 }
 
+export async function getAllPayouts(filter?: {
+  status?: string;
+}): Promise<AdminPayoutRow[]> {
+  const safeFilter = normalizePayoutStatusFilter(filter);
+  return getCachedValue(
+    () => getAllPayoutsUncached(safeFilter),
+    ["gitbags:admin:payouts:v1", safeFilter.status ?? "all"],
+    {
+      tags: [cacheTags.admin],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
 export interface AdminSnapshotRow {
   id: string;
   projectId: string;
@@ -560,7 +723,7 @@ export interface AdminSnapshotRow {
   forcedBy: string | null;
 }
 
-export async function getAllSnapshots(): Promise<AdminSnapshotRow[]> {
+async function getAllSnapshotsUncached(): Promise<AdminSnapshotRow[]> {
   const rows = await dbHttp
     .select({
       id: snapshots.id,
@@ -594,7 +757,18 @@ export async function getAllSnapshots(): Promise<AdminSnapshotRow[]> {
   }));
 }
 
-export async function getSnapshotDetail(snapshotId: string) {
+export async function getAllSnapshots(): Promise<AdminSnapshotRow[]> {
+  return getCachedValue(
+    () => getAllSnapshotsUncached(),
+    ["gitbags:admin:snapshots:v1"],
+    {
+      tags: [cacheTags.admin],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
+async function getSnapshotDetailUncached(snapshotId: string) {
   const [row] = await dbHttp
     .select({
       snapshot: snapshots,
@@ -612,7 +786,33 @@ export async function getSnapshotDetail(snapshotId: string) {
   };
 }
 
+export async function getSnapshotDetail(snapshotId: string) {
+  const safeSnapshotId = z.string().min(1).max(128).parse(snapshotId);
+  return getCachedValue(
+    () => getSnapshotDetailUncached(safeSnapshotId),
+    ["gitbags:admin:snapshot-detail:v1", safeSnapshotId],
+    {
+      tags: [cacheTags.admin],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
 export async function getPlatformConfigValue<T = Record<string, unknown>>(
+  key: string,
+): Promise<T | null> {
+  const safeKey = PlatformConfigKeySchema.parse(key);
+  return getCachedValue(
+    () => getPlatformConfigValueUncached<T>(safeKey),
+    ["gitbags:admin:platform-config:v1", safeKey],
+    {
+      tags: [cacheTags.admin, cacheTags.platformConfig],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
+}
+
+async function getPlatformConfigValueUncached<T = Record<string, unknown>>(
   key: string,
 ): Promise<T | null> {
   const [row] = await dbHttp
@@ -623,7 +823,7 @@ export async function getPlatformConfigValue<T = Record<string, unknown>>(
   return (row?.value as T | undefined) ?? null;
 }
 
-export async function getTableRowCounts(): Promise<
+async function getTableRowCountsUncached(): Promise<
   Array<{ table: string; rows: number }>
 > {
   const tableNames = [
@@ -674,6 +874,19 @@ export async function getTableRowCounts(): Promise<
     }
   }
   return out;
+}
+
+export async function getTableRowCounts(): Promise<
+  Array<{ table: string; rows: number }>
+> {
+  return getCachedValue(
+    () => getTableRowCountsUncached(),
+    ["gitbags:admin:table-row-counts:v1"],
+    {
+      tags: [cacheTags.admin],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
 }
 
 /**
@@ -744,8 +957,9 @@ export async function promoteProjectFromStub(projectId: string): Promise<{
   });
 }
 
-export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {
-  if (ids.length === 0) return [];
+async function getUsersByIdsUncached(ids: string[]): Promise<AdminUserRow[]> {
+  const safeIds = IdListSchema.parse(ids);
+  if (safeIds.length === 0) return [];
   const rows = await dbHttp
     .select({
       id: users.id,
@@ -758,7 +972,7 @@ export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {
       createdAt: users.createdAt,
     })
     .from(users)
-    .where(inArray(users.id, ids));
+    .where(inArray(users.id, safeIds));
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
@@ -769,6 +983,20 @@ export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {
     mfaEnabled: Boolean(r.mfaSecretEnc),
     createdAt: r.createdAt,
   }));
+}
+
+export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {
+  const safeIds = IdListSchema.parse(ids);
+  if (safeIds.length === 0) return [];
+  const sortedIds = [...safeIds].sort();
+  return getCachedValue(
+    () => getUsersByIdsUncached(sortedIds),
+    ["gitbags:admin:users-by-ids:v1", sortedIds.join(",")],
+    {
+      tags: [cacheTags.admin, cacheTags.adminUsers],
+      revalidate: CACHE_SECONDS.admin,
+    },
+  );
 }
 
 /**

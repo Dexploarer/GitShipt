@@ -11,7 +11,7 @@ export default async function AdminSettingsPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-headline-md tracking-tight">Settings</h1>
+        <h1 className="text-headline-md">Settings</h1>
         <p className="text-body-sm text-fg-secondary">
           Platform controls grouped by operational concern.
         </p>

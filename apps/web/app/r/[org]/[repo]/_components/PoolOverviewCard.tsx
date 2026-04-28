@@ -5,10 +5,10 @@ import { PoolSparkline } from "./PoolSparkline";
 import type { PoolOverview, ProjectHeader } from "@/lib/queries/project-page";
 
 /**
- * The page hero — the single primary-purple element on the screen.
+ * The page hero — the single primary-green element on the screen.
  * Display-size SOL value uses `text-primary`, and the sparkline below uses
- * `var(--chart-1)` which is the same purple. We deliberately avoid pairing
- * any other purple element (button, pill) on the same fold to keep the
+ * `var(--chart-1)` which is the same green. We deliberately avoid pairing
+ * any other primary-green element (button, pill) on the same fold to keep the
  * one-primary-per-viewport rule intact.
  */
 export function PoolOverviewCard({
@@ -47,7 +47,7 @@ export function PoolOverviewCard({
       </div>
 
       <div>
-        <div className="text-mono-md text-[40px] font-semibold leading-none text-primary sm:text-[48px]">
+        <div className="font-mono text-[2.5rem] font-semibold leading-none text-primary sm:text-mono-display">
           {formatSol(pool.dailyFeeLamports, 2)}
         </div>
         <div className="mt-1 text-mono-sm text-fg-muted">
@@ -69,7 +69,7 @@ export function PoolOverviewCard({
           href={pool.bagsUrl}
           target="_blank"
           rel="noreferrer noopener"
-          className="inline-flex items-center justify-between rounded-md border border-border-strong bg-surface-elevated px-3 py-2 text-label-md text-fg transition-colors hover:bg-surface-overlay"
+          className="gb-control gb-control-secondary inline-flex items-center justify-between rounded-md border border-border-strong bg-surface-elevated px-3 py-2 text-label-md text-fg"
         >
           View on Bags.fm
           <ArrowUpRight className="size-4 text-fg-secondary" />

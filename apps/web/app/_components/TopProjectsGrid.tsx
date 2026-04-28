@@ -20,11 +20,10 @@ export function TopProjectsGrid({ projects }: { projects: LandingProject[] }) {
     <section className="flex flex-col gap-4">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-headline-md tracking-tight text-fg">
-            Top projects on GitBags
-          </h2>
+          <h2 className="text-headline-md text-fg">Top projects on GitBags</h2>
           <p className="text-body-md text-fg-secondary">
-            Live repos with the most swap fees flowing to contributors right now.
+            Live repos with the most swap fees flowing to contributors right
+            now.
           </p>
         </div>
         <Link
@@ -78,7 +77,7 @@ function TopProjectCard({ project }: { project: LandingProject }) {
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="truncate text-label-md font-semibold tracking-tight text-fg">
+              <h3 className="truncate text-label-md font-semibold text-fg">
                 {project.name}
               </h3>
               <Badge
@@ -101,10 +100,7 @@ function TopProjectCard({ project }: { project: LandingProject }) {
             label="Lifetime"
             value={formatSol(project.lifetimeFeesLamports, 2)}
           />
-          <Stat
-            label="Daily"
-            value={formatSol(project.dailyFeeLamports, 2)}
-          />
+          <Stat label="Daily" value={formatSol(project.dailyFeeLamports, 2)} />
           <Stat
             label="Devs"
             icon={<Users className="size-3" aria-hidden />}

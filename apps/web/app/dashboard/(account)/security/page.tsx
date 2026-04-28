@@ -1,10 +1,7 @@
-import { eq } from "drizzle-orm";
-import { ShieldCheck } from "lucide-react";
-import { dbHttp } from "@/db";
-import { users } from "@/db/schema";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
 import { getMfaConfirmedAt } from "@/lib/auth/mfa";
+import { getAccountSecurityState } from "@/lib/queries/account";
 import {
   Card,
   CardHeader,
@@ -12,7 +9,6 @@ import {
   CardDescription,
   CardContent,
 } from "@repo/ui";
-import { Badge } from "@repo/ui";
 import { EnrollMfa } from "./_components/EnrollMfa";
 import { VerifyMfa } from "./_components/VerifyMfa";
 import { RevokeMfa } from "./_components/RevokeMfa";
@@ -38,12 +34,8 @@ export default async function SecurityPage() {
   const session = await requireAuthSession("/dashboard/security");
 
   const userId = session.user.id;
-  const [row] = await dbHttp
-    .select({ mfaSecretEnc: users.mfaSecretEnc })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  const enrolled = Boolean(row?.mfaSecretEnc);
+  const security = await getAccountSecurityState(userId);
+  const enrolled = Boolean(security?.mfaEnrolled);
 
   const confirmedAtMs = enrolled ? await getMfaConfirmedAt(userId) : null;
   const confirmedIso = confirmedAtMs
@@ -52,25 +44,6 @@ export default async function SecurityPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-headline-lg leading-tight text-fg">Security</h1>
-          <p className="text-body-md text-fg-secondary">
-            Two-factor authentication protects destructive admin actions on your
-            account.
-          </p>
-        </div>
-        {enrolled ? (
-          <Badge variant="primary" size="sm">
-            <ShieldCheck className="size-3.5" /> MFA enabled
-          </Badge>
-        ) : (
-          <Badge variant="default" size="sm">
-            MFA disabled
-          </Badge>
-        )}
-      </header>
-
       <Card>
         <CardHeader>
           <CardTitle>Authenticator app</CardTitle>
@@ -84,7 +57,7 @@ export default async function SecurityPage() {
           {enrolled ? (
             <>
               <section className="flex flex-col gap-2">
-                <div className="text-label-sm uppercase tracking-wide text-fg-muted">
+                <div className="text-label-sm uppercase text-fg-muted">
                   Last verified
                 </div>
                 <div className="text-mono-md text-fg">
@@ -92,6 +65,11 @@ export default async function SecurityPage() {
                 </div>
               </section>
               <VerifyMfa />
+              {!confirmedIso ? (
+                <div className="border-t border-border pt-6">
+                  <EnrollMfa mode="regenerate" />
+                </div>
+              ) : null}
               <div className="border-t border-border pt-6">
                 <RevokeMfa />
               </div>

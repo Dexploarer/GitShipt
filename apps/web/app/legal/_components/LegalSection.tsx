@@ -21,7 +21,7 @@ export function LegalSection({ index, title, children }: LegalSectionProps) {
     >
       <h2
         id={`${slug}-heading`}
-        className="flex items-baseline gap-3 text-headline-sm tracking-tight text-fg"
+        className="flex items-baseline gap-3 text-headline-sm text-fg"
       >
         <span className="text-mono-sm text-fg-muted tabular-nums">
           {String(index).padStart(2, "0")}

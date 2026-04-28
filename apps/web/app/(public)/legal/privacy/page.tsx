@@ -22,12 +22,8 @@ export default async function PrivacyPage() {
   return (
     <article className="mx-auto flex max-w-prose flex-col gap-10 pb-16">
       <header className="flex flex-col gap-3">
-        <span className="text-label-sm uppercase tracking-wide text-fg-muted">
-          Legal
-        </span>
-        <h1 className="text-headline-lg tracking-tight text-fg">
-          Privacy Policy
-        </h1>
+        <span className="text-label-sm uppercase text-fg-muted">Legal</span>
+        <h1 className="text-headline-lg text-fg">Privacy Policy</h1>
         <p className="text-mono-sm text-fg-muted">
           Last updated {LAST_UPDATED}
         </p>

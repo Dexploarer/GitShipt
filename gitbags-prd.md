@@ -320,16 +320,16 @@ export async function processProjectPayout(projectId: string) {
 
 ### Bags API endpoints we use
 
-| Purpose                                | Endpoint                                                                    | When                   |
-| -------------------------------------- | --------------------------------------------------------------------------- | ---------------------- |
-| Resolve GitHub username to Bags wallet | `GET /api/v1/token-launch/fee-share/wallet/v2?provider=github&username={u}` | Launch + onboarding    |
-| Create fee share config                | `POST /api/v1/fee-share/config`                                             | Launch                 |
-| Create launch tx                       | `POST /api/v1/token-launch/create-launch-transaction`                       | Launch                 |
-| List claimable positions               | `GET /api/v1/token-launch/claimable-positions?wallet={addr}`                | Daily payout cron      |
-| Claim fees (SDK)                       | `sdk.fee.*`                                                                 | Daily payout cron      |
-| Partner fee stats + claim txs          | `sdk.partner.getPartnerConfigClaimStats()` / `sdk.partner.getPartnerConfigClaimTransactions()` | Admin fees console |
-| Lifetime fees (analytics)              | `GET /api/v1/token-launch/lifetime-fees?tokenMint={m}`                      | Project page           |
-| Token holders (top N)                  | SDK `analytics.getTokenHolders`                                             | Optional dividend mode |
+| Purpose                                | Endpoint                                                                                       | When                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------- |
+| Resolve GitHub username to Bags wallet | `GET /api/v1/token-launch/fee-share/wallet/v2?provider=github&username={u}`                    | Launch + onboarding    |
+| Create fee share config                | `POST /api/v1/fee-share/config`                                                                | Launch                 |
+| Create launch tx                       | `POST /api/v1/token-launch/create-launch-transaction`                                          | Launch                 |
+| List claimable positions               | `GET /api/v1/token-launch/claimable-positions?wallet={addr}`                                   | Daily payout cron      |
+| Claim fees (SDK)                       | `sdk.fee.*`                                                                                    | Daily payout cron      |
+| Partner fee stats + claim txs          | `sdk.partner.getPartnerConfigClaimStats()` / `sdk.partner.getPartnerConfigClaimTransactions()` | Admin fees console     |
+| Lifetime fees (analytics)              | `GET /api/v1/token-launch/lifetime-fees?tokenMint={m}`                                         | Project page           |
+| Token holders (top N)                  | SDK `analytics.getTokenHolders`                                                                | Optional dividend mode |
 
 ### Constraints to design around
 
@@ -490,7 +490,7 @@ Every component generated during the 3-day sprint pulls from the same token tabl
 
 ### Aesthetic direction
 
-**Cypherpunk dark-purple.** Near-black surfaces (`#08080C`), single signature Bags-purple accent (`#A855F7`), Geist + Geist Mono typography, flat depth model (no glow halos, no gradients, no neumorphism), monospace numerics for every economically-meaningful figure. Trader's terminal density meets engineer-respecting legibility. See `DESIGN.md` for full token table and rationale.
+**Cypherpunk dark-green.** Near-black surfaces (`#08080C`), single signature GitBags-green accent (`#4A9B3D`), Geist + Geist Mono typography, flat depth model (no glow halos, no gradients, no neumorphism), monospace numerics for every economically-meaningful figure. Trader's terminal density meets engineer-respecting legibility. See `DESIGN.md` for full token table and rationale.
 
 ### Token highlights (excerpt — see file for complete schema)
 
@@ -500,10 +500,11 @@ colors:
   surface: "#101015"
   surface-elevated: "#16161E"
   border: "#23232E"
-  primary: "#A855F7" # Bags purple, one per viewport
+  primary: "#4A9B3D" # GitBags green, one per viewport
+  primary-fg: "#F5F5F7" # off-white text/icon color on green controls
   fg: "#F5F5F7"
   fg-secondary: "#9494A0"
-  fg-muted: "#5A5A66"
+  fg-muted: "#80808C"
   success: "#22C55E" # live indicators, gains
   rank-gold: "#FBBF24"
   rank-silver: "#CBD5E1"
@@ -519,9 +520,9 @@ typography:
 ### Authoring rules
 
 - **Tokens are the source of truth.** Components reference tokens (`{colors.primary}`), never raw hex.
-- **One primary per viewport.** Stacking purple elements is the most common drift; the linter doesn't catch it but PR review must.
+- **One primary per viewport.** Stacking primary-green elements is the most common drift; the linter doesn't catch it but PR review must.
 - **Mono for money.** Every SOL amount, USD price, score, BPS value, timestamp, and tx signature is `mono-md` or `mono-sm`. Body copy is never mono.
-- **Flat depth.** Hierarchy via three surface tones (`bg`/`surface`/`surface-elevated`) and 1px borders, never via glow or shadow. Box-shadow only on popovers and modals.
+- **Tactile depth.** Cards stay restrained, but every button or button-like control uses the shared skeuomorphic control layer: bevel, top light, crisp contact lip, key/ambient shadow, hover lift, and a depressed active state. Inactive route links stay flat via the route-link treatment; actionable controls use the physical control stack. No ad hoc button styling.
 - **Lucide icons only.** No custom illustrations, no Lottie, no PNGs in the UI surface (logos and avatars excepted).
 
 ### Tooling
@@ -558,7 +559,8 @@ GitBags ships **two themes**: dark (canonical, default) and light (mirrored). Bo
 :root {
   --bg: #08080c;
   --surface: #101015;
-  --primary: #a855f7;
+  --primary: #4a9b3d;
+  --primary-fg: #f5f5f7;
   --fg: #f5f5f7;
   /* ...rest of dark palette */
 }
@@ -566,7 +568,8 @@ GitBags ships **two themes**: dark (canonical, default) and light (mirrored). Bo
 [data-theme="light"] {
   --bg: #fafafc;
   --surface: #ffffff;
-  --primary: #9333ea;
+  --primary: #176f3a;
+  --primary-fg: #f5f5f7;
   --fg: #0f0f14;
   /* ...rest of light palette */
 }
@@ -859,9 +862,9 @@ Routes live under `/admin/*`. Distinct session realm from `/dashboard/*` (separa
 
 The admin console **uses the same DESIGN.md tokens and component library** as the rest of the product. The visual difference between project admin and super-admin is signaled by:
 
-- **Sidebar accent**: project admin sidebar matches the standard purple. Super-admin sidebar has a subtle red `border-strong` left edge in the brand mark area, signaling elevated authority.
+- **Sidebar accent**: project admin sidebar matches the standard green. Super-admin sidebar has a subtle red `border-strong` left edge in the brand mark area, signaling elevated authority.
 - **Header pill**: project pages show a `[Admin]` pill in `primary-soft`. Super-admin pages show a `[Admin: SUPER]` pill in `danger-soft danger`. This is the most reliable visual cue and appears on every admin route.
-- **Destructive controls**: always use `button-danger` (red), never primary purple. Confirmation modals use `surface-overlay` background with a red `border-strong` and a red icon header.
+- **Destructive controls**: always use `button-danger` (red), never primary green. Confirmation modals use `surface-overlay` background with a red `border-strong` and a red icon header.
 - **Tables in admin views**: same component, but financial-impact columns (treasury balance, fees claimed, refunds) are right-aligned `mono-md` and color-coded green (positive) or red (negative).
 
 ### Granular permission matrix (for `lib/auth/permissions.ts`)

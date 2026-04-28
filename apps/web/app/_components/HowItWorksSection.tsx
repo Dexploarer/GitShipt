@@ -31,16 +31,20 @@ export function HowItWorksSection() {
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <h2 className="text-headline-md tracking-tight text-fg">
-          How GitBags works
-        </h2>
+        <h2 className="text-headline-md text-fg">How GitBags works</h2>
         <p className="text-body-md text-fg-secondary">
-          Three steps from a public repo to recurring on-chain payouts for the people who built it.
+          Three steps from a public repo to recurring on-chain payouts for the
+          people who built it.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {STEPS.map(({ n, title, body, Icon }) => (
-          <Card key={n} depth="flat" padding="lg" className="flex flex-col gap-4">
+          <Card
+            key={n}
+            depth="flat"
+            padding="lg"
+            className="flex flex-col gap-4"
+          >
             <div className="flex items-center gap-3">
               <span
                 aria-hidden
@@ -48,9 +52,7 @@ export function HowItWorksSection() {
               >
                 <Icon className="size-5" />
               </span>
-              <span className="text-mono-sm text-fg-muted">
-                Step {n}
-              </span>
+              <span className="text-mono-sm text-fg-muted">Step {n}</span>
             </div>
             <CardContent className="flex flex-col gap-2">
               <CardTitle>{title}</CardTitle>

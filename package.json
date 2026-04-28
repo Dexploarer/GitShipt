@@ -38,6 +38,8 @@
     "db:migrate": "cd apps/web && bun --env-file=../../.env.local run db:migrate",
     "db:push": "cd apps/web && bun --env-file=../../.env.local run db:push",
     "db:studio": "cd apps/web && bun --env-file=../../.env.local run db:studio",
+    "env:check": "NODE_ENV=production bun scripts/check-production-env.mjs",
+    "env:template": "bun scripts/check-production-env.mjs --print-template",
     "theme:export": "bun scripts/theme-export.mjs",
     "theme:lint": "bun scripts/theme-lint.mjs",
     "format": "bunx prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css}\""

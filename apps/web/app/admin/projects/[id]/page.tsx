@@ -61,7 +61,7 @@ export default async function AdminProjectDetailPage({
             ]}
             className="mb-1"
           />
-          <h1 className="text-headline-md tracking-tight">{project.name}</h1>
+          <h1 className="text-headline-md">{project.name}</h1>
           <p className="text-mono-sm text-fg-secondary">
             {slug} · owned by {ownerUsername ?? ownerName ?? "—"}
           </p>
@@ -163,7 +163,7 @@ export default async function AdminProjectDetailPage({
         <div className="flex items-center gap-2 px-1.5">
           <Power className="size-4 text-fg-muted" />
           <div>
-            <h2 className="text-headline-sm tracking-tight">Lifecycle log</h2>
+            <h2 className="text-headline-sm">Lifecycle log</h2>
             <p className="text-body-sm text-fg-secondary">
               Admin, Bags launch, fee-share, API-key, and payout operations for
               this project.

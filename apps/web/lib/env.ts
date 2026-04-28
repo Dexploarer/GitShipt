@@ -203,6 +203,7 @@ export function productionReadiness(): ProductionReadiness {
     ["GITHUB_APP_ID", env.GITHUB_APP_ID],
     ["GITHUB_APP_PRIVATE_KEY", env.GITHUB_APP_PRIVATE_KEY],
     ["GITHUB_APP_WEBHOOK_SECRET", env.GITHUB_APP_WEBHOOK_SECRET],
+    ["GITHUB_APP_SLUG", env.GITHUB_APP_SLUG],
     ["BAGS_API_KEY", env.BAGS_API_KEY],
     ["BAGS_WEBHOOK_SECRET", env.BAGS_WEBHOOK_SECRET],
     ["BAGS_PARTNER_WALLET", env.BAGS_PARTNER_WALLET],
@@ -221,8 +222,26 @@ export function productionReadiness(): ProductionReadiness {
     warnings.push("NEXT_PUBLIC_APP_URL points at localhost.");
   }
 
+  if (env.BETTER_AUTH_URL?.includes("localhost")) {
+    warnings.push("BETTER_AUTH_URL points at localhost.");
+  } else if (
+    env.BETTER_AUTH_URL &&
+    process.env.NEXT_PUBLIC_APP_URL &&
+    env.BETTER_AUTH_URL !== publicEnv.NEXT_PUBLIC_APP_URL
+  ) {
+    warnings.push("BETTER_AUTH_URL does not match NEXT_PUBLIC_APP_URL.");
+  }
+
   if (publicEnv.NEXT_PUBLIC_SOLANA_CLUSTER !== "mainnet-beta") {
     missing.push("NEXT_PUBLIC_SOLANA_CLUSTER=mainnet-beta");
+  }
+
+  if (
+    publicEnv.NEXT_PUBLIC_SOLANA_CLUSTER === "mainnet-beta" &&
+    env.HELIUS_RPC_URL &&
+    /devnet|testnet/i.test(env.HELIUS_RPC_URL)
+  ) {
+    warnings.push("HELIUS_RPC_URL appears to target devnet/testnet.");
   }
 
   if (env.ALLOW_STUBS_IN_PROD) {

@@ -57,6 +57,13 @@
       "when": 1777260000000,
       "tag": "0007_snapshot_period_idempotency",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777330000000,
+      "tag": "0008_user_settings",
+      "breakpoints": true
     }
   ]
 }

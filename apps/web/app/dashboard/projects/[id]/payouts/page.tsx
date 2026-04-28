@@ -35,18 +35,11 @@ export default async function PayoutsPage({
       <Breadcrumbs
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: "Projects", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
           { label: project.name, href: `/dashboard/projects/${id}` },
           { label: "Payouts" },
         ]}
       />
-      <header>
-        <h1 className="text-headline-lg leading-tight text-fg">Payouts</h1>
-        <p className="text-body-md text-fg-secondary">
-          Daily distribution history. Failed payouts can be re-queued for the
-          next cron pass.
-        </p>
-      </header>
 
       <Card depth="flat" padding="none">
         <CardHeader className="border-b border-border px-6 py-4">

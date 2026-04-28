@@ -41,7 +41,7 @@ function DropdownMenuContent({
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
         className={cn(
-          "z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-36 overflow-y-auto rounded-md border border-border bg-surface-overlay p-1 text-fg shadow-popover outline-none",
+          "gb-panel-floating relative z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-36 overflow-y-auto rounded-md border border-border bg-surface-overlay p-1 text-fg shadow-floating outline-none",
           className,
         )}
         {...props}
@@ -73,7 +73,7 @@ function DropdownMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-body-sm outline-none transition-colors",
+        "gb-menu-item relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-body-sm outline-none transition-[background-color,box-shadow,color]",
         "focus:bg-surface-elevated focus:text-fg data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8",
         "data-[variant=danger]:text-danger data-[variant=danger]:focus:bg-danger-soft",
         "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -95,7 +95,7 @@ function DropdownMenuCheckboxItem({
       data-slot="dropdown-menu-checkbox-item"
       checked={checked}
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 text-body-sm outline-none transition-colors",
+        "gb-menu-item relative flex cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 text-body-sm outline-none transition-[background-color,box-shadow,color]",
         "focus:bg-surface-elevated focus:text-fg data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       )}
@@ -131,7 +131,7 @@ function DropdownMenuRadioItem({
     <DropdownMenuPrimitive.RadioItem
       data-slot="dropdown-menu-radio-item"
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 text-body-sm outline-none transition-colors",
+        "gb-menu-item relative flex cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 text-body-sm outline-none transition-[background-color,box-shadow,color]",
         "focus:bg-surface-elevated focus:text-fg data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       )}

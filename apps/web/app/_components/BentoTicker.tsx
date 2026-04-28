@@ -22,7 +22,12 @@ import type { LandingTicker } from "@/lib/queries/global";
 const CELLS = [
   { key: "volume", label: "24h Volume", Icon: Activity, accent: "text-fg" },
   { key: "fees", label: "Lifetime Fees", Icon: Coins, accent: "text-primary" },
-  { key: "projects", label: "Active Projects", Icon: Sparkles, accent: "text-fg" },
+  {
+    key: "projects",
+    label: "Active Projects",
+    Icon: Sparkles,
+    accent: "text-fg",
+  },
   { key: "earning", label: "Earners", Icon: Users, accent: "text-fg" },
 ] as const;
 
@@ -67,8 +72,7 @@ export function BentoTickerCell({
         <cell.Icon className="size-3.5 text-fg-muted" aria-hidden />
       </div>
       <div
-        className={cn("text-mono-md tabular-nums", cell.accent)}
-        style={{ fontSize: "20px", letterSpacing: "-0.005em" }}
+        className={cn("text-mono-lg tabular-nums", cell.accent)}
         aria-live="polite"
       >
         {format(cellKey, initial)}

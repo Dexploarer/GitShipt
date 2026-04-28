@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { auth } from "./index";
 import { isPlatformAdmin } from "./admin-check";
 import { hasCredentials } from "@/lib/env";
+import {
+  getAccountProfile,
+  getAccountSettings,
+} from "@/lib/queries/account";
 
 type BetterAuthSession = Awaited<
   ReturnType<ReturnType<typeof auth>["api"]["getSession"]>
@@ -38,6 +42,7 @@ export interface SessionUserChrome {
   email: string | null;
   username: string | null;
   imageUrl: string | null;
+  defaultDashboardRoute?: string;
   isPlatformAdmin: boolean;
 }
 
@@ -77,15 +82,24 @@ export const requireAuthSession = cache(
 export function toSessionUserChrome(
   session: AuthSessionWithUser,
   isAdmin: boolean,
+  profile?: {
+    githubUsername: string | null;
+    image: string | null;
+  } | null,
+  settings?: {
+    defaultDashboardRoute: string;
+  } | null,
 ): SessionUserChrome {
   return {
     id: session.user.id,
     name: session.user.name ?? null,
     email: session.user.email ?? null,
     username:
+      profile?.githubUsername ??
       (session.user as { githubUsername?: string | null }).githubUsername ??
       null,
-    imageUrl: session.user.image ?? null,
+    imageUrl: profile?.image ?? session.user.image ?? null,
+    defaultDashboardRoute: settings?.defaultDashboardRoute ?? "/dashboard",
     isPlatformAdmin: isAdmin,
   };
 }
@@ -95,8 +109,12 @@ export const getSessionUser = cache(
     const session = await getAuthSession();
     if (!session?.user?.id) return null;
 
-    const isAdmin = await isPlatformAdmin(session.user.id);
+    const [isAdmin, profile, settings] = await Promise.all([
+      isPlatformAdmin(session.user.id),
+      getAccountProfile(session.user.id),
+      getAccountSettings(session.user.id),
+    ]);
 
-    return toSessionUserChrome(session, isAdmin);
+    return toSessionUserChrome(session, isAdmin, profile, settings);
   },
 );

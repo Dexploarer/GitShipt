@@ -22,11 +22,19 @@ const sharedSecurityHeaders = [
  * Content-Security-Policy — strict baseline.
  *
  * Notes / TODOs:
- *  - script-src includes 'unsafe-inline' because Next.js emits an inline
- *    bootstrap script for the App Router (route prefetch + theme script).
- *    v1.1: switch to a nonce-based CSP via proxy.ts (the proxy already
- *    runs on every request and can inject a nonce header that next/script
- *    consumes). Until then, we accept this trade.
+ *  - script-src includes 'unsafe-inline' because Next.js emits inline App
+ *    Router bootstrap scripts, and next-themes injects an inline theme script.
+ *    Next.js 16.2 nonce enforcement must be implemented in proxy.ts by
+ *    generating a per-request nonce, forwarding it as x-nonce plus the request
+ *    Content-Security-Policy, and setting the same CSP on the response. Next
+ *    then parses the request CSP and attaches the nonce during SSR.
+ *    Do not partially enforce this here: nonce CSP requires all matching pages
+ *    to be dynamically rendered. The current build still prerenders
+ *    /auth/signin and /_not-found statically, so a proxy-only nonce would leave
+ *    those static shells without nonced framework/theme scripts. Finish this as
+ *    a dedicated sweep by opting the remaining document routes into dynamic
+ *    rendering, passing x-nonce to ThemeProvider's nonce prop, and only then
+ *    removing script 'unsafe-inline' from the enforced policy.
  *    Production also ships a stricter Report-Only policy without script
  *    'unsafe-inline' so it can be smoke-tested before enforce.
  *  - style-src 'unsafe-inline' is for Tailwind's inlined styles + Recharts.
@@ -98,6 +106,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   reactCompiler: true,
+  devIndicators: { position: "top-right" },
   allowedDevOrigins: ["127.0.0.1"],
   transpilePackages: ["@repo/lib", "@repo/shared", "@repo/ui"],
 

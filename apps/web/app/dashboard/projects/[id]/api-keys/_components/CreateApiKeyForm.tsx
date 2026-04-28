@@ -219,7 +219,7 @@ export function CreateApiKeyForm({ projectId }: CreateApiKeyFormProps) {
               return (
                 <label
                   key={scope}
-                  className="flex cursor-pointer items-start gap-2 rounded-md border border-border bg-surface-elevated/50 px-3 py-2"
+                  className="gb-menu-item flex cursor-pointer items-start gap-2 rounded-md border border-border bg-surface-elevated/50 px-3 py-2"
                 >
                   <Checkbox
                     checked={checked}

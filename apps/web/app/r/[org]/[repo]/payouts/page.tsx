@@ -58,30 +58,16 @@ export default async function ProjectPayoutsPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-col gap-2">
-        <Breadcrumbs
-          items={[
-            { label: "Projects", href: "/explore" },
-            {
-              label: header.name,
-              href: `/r/${header.ghOwner}/${header.ghRepo}`,
-            },
-            { label: "Payouts" },
-          ]}
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-headline-lg leading-tight text-fg">
-            Payout history
-          </h1>
-          <Badge variant="success" dot size="sm">
-            Daily at 00:30 UTC
-          </Badge>
-        </div>
-        <p className="text-body-md text-fg-secondary">
-          Every snapshot the platform has executed for this project. Click a row
-          to see the on-chain transaction.
-        </p>
-      </header>
+      <Breadcrumbs
+        items={[
+          { label: "Projects", href: "/explore" },
+          {
+            label: header.name,
+            href: `/r/${header.ghOwner}/${header.ghRepo}`,
+          },
+          { label: "Payouts" },
+        ]}
+      />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <SummaryTile
@@ -259,7 +245,7 @@ function PayoutRow({
             target="_blank"
             rel="noreferrer noopener"
             aria-label={`View transaction ${formatAddress(payout.claimSignature)} on Solscan`}
-            className="inline-flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-surface-elevated hover:text-fg"
+            className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
           >
             <ArrowUpRight className="size-3.5" />
           </Link>

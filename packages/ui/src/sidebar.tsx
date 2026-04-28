@@ -314,7 +314,7 @@ export function SidebarSection({
       {title ? (
         <div
           className={cn(
-            "px-2.5 pb-1.5 text-caption uppercase tracking-wider text-fg-muted",
+            "px-2.5 pb-1.5 text-caption uppercase text-fg-muted",
             // Hide the title only when desktop-collapsed; mobile drawer always
             // renders at full width.
             collapsed && "lg:hidden",
@@ -378,11 +378,11 @@ export function SidebarItem({
   );
 
   const className = cn(
-    "group flex h-9 items-center gap-3 rounded-md px-2.5",
-    "transition-[background-color,color,box-shadow] duration-150",
+    "group flex h-11 items-center gap-3 rounded-md border px-2.5 lg:h-9",
+    "transition-[background-color,border-color,color,box-shadow,transform] duration-150",
     active
-      ? "bg-surface-elevated text-fg shadow-inset-light"
-      : "text-fg-secondary hover:bg-surface-elevated/60 hover:text-fg",
+      ? "gb-control gb-control-secondary border-border-strong bg-surface-elevated text-fg"
+      : "gb-route-link gb-route-link-inactive text-fg-secondary hover:text-fg",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
     disabled && "pointer-events-none opacity-40",
     collapsed && "lg:justify-center lg:px-0",
@@ -447,10 +447,10 @@ export function SidebarToggle({ className }: { className?: string }) {
       // Hide the desktop collapse toggle on mobile — the drawer is opened/closed
       // by the hamburger trigger or backdrop, not by this affordance.
       className={cn(
-        "hidden lg:inline-flex h-8 w-8 items-center justify-center rounded-md",
-        "text-fg-secondary hover:bg-surface-elevated hover:text-fg",
-        "transition-colors",
+        "gb-control gb-control-icon gb-control-ghost hidden h-8 w-8 items-center justify-center rounded-md lg:inline-flex",
+        "text-fg-secondary hover:text-fg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+        collapsed && "lg:mx-auto",
         className,
       )}
     >

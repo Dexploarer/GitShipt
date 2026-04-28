@@ -58,7 +58,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border border-border bg-surface p-6 text-fg shadow-modal outline-none transition-[opacity,transform]",
+          "gb-panel-floating fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border border-border bg-surface p-6 text-fg shadow-modal outline-none transition-[opacity,transform]",
           "data-[state=closed]:scale-95 data-[state=closed]:opacity-0 data-[state=open]:scale-100 data-[state=open]:opacity-100",
           className,
         )}
@@ -69,8 +69,8 @@ function DialogContent({
           <DialogPrimitive.Close
             data-slot="dialog-close"
             className={cn(
-              "absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-md text-fg-muted transition-colors",
-              "hover:bg-surface-elevated hover:text-fg",
+              "gb-control gb-control-icon gb-control-ghost absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-md text-fg-muted",
+              "hover:text-fg",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
               "disabled:pointer-events-none",
             )}
