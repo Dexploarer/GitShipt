@@ -4,9 +4,10 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { start } from "workflow/api";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { dbHttp, dbPool } from "@/db";
 import {
+  payoutRecipients,
   payouts,
   projects,
   projectMemberships,
@@ -36,8 +37,11 @@ import {
 } from "@/lib/cache-actions";
 import { bags } from "@/lib/bags/client";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
-import { solanaConnection } from "@/lib/solana/connection";
 import { applyDbRlsContext } from "@/lib/db-rls";
+import {
+  executePartnerFeeClaimAttempt,
+  reservePartnerFeeClaimAttempt,
+} from "@/lib/funds/partner-fee-claims";
 import {
   CreateProjectBodySchema,
   PayoutConfigSchema,
@@ -46,8 +50,12 @@ import {
 import { healthPulse } from "@/workflows/healthPulse";
 import { indexGithubDeltas } from "@/workflows/indexGithubDeltas";
 import { takeSnapshot, takeProjectSnapshot } from "@/workflows/takeSnapshot";
-import { executePayout } from "@/workflows/executePayout";
+import {
+  executePayout,
+  processSnapshotPayout,
+} from "@/workflows/executePayout";
 import { expireEscrow } from "@/workflows/expireEscrow";
+import { reconcileFunds } from "@/workflows/reconcileFunds";
 import { publishKpis } from "@/workflows/publishKpis";
 import { computeLeaderboard as computeLeaderboardWorkflow } from "@/workflows/computeLeaderboard";
 import {
@@ -97,6 +105,10 @@ const DirectLaunchSchema = CreateProjectBodySchema.extend({
   idempotencyKey: z.string().min(8).optional(),
 });
 
+const MANUAL_RECONCILIATION_ERROR =
+  "manual_reconciliation_required_external_side_effect_may_have_succeeded";
+const LAUNCH_SUBMISSION_PENDING_PREFIX = "pending:";
+
 export async function directLaunchProject(input: unknown): Promise<{
   ok: true;
   projectId: string;
@@ -122,70 +134,223 @@ export async function directLaunchProject(input: unknown): Promise<{
     async () => {
       const dbp = dbPool();
       const [existing] = await dbHttp
-        .select({ id: projects.id, tokenMint: projects.tokenMint })
+        .select({
+          id: projects.id,
+          ownerUserId: projects.ownerUserId,
+          status: projects.status,
+          tokenMint: projects.tokenMint,
+          ghOwner: projects.ghOwner,
+          ghRepo: projects.ghRepo,
+          bagsConfigKey: projects.bagsConfigKey,
+          bagsLaunchSignature: projects.bagsLaunchSignature,
+          bagsLaunchWallet: projects.bagsLaunchWallet,
+          bagsPoolClaimerWallet: projects.bagsPoolClaimerWallet,
+          bagsTokenMetadata: projects.bagsTokenMetadata,
+          bagsInitialBuyLamports: projects.bagsInitialBuyLamports,
+        })
         .from(projects)
-        .where(eq(projects.ghRepoId, parsed.ghRepoId))
+        .where(
+          and(
+            eq(projects.ghOwner, parsed.ghOwner),
+            eq(projects.ghRepo, parsed.ghRepo),
+          ),
+        )
         .limit(1);
       if (existing) {
-        throw new Error("repo_already_exists");
+        if (
+          (existing.status === "live" ||
+            existing.status === "simulated_live") &&
+          existing.tokenMint
+        ) {
+          return {
+            ok: true as const,
+            projectId: existing.id,
+            tokenMint: existing.tokenMint,
+            status:
+              existing.status === "simulated_live"
+                ? ("simulated_live" as const)
+                : ("live" as const),
+            txSig: null,
+            note: "Existing launched project — returned persisted token mint.",
+          };
+        }
+
+        if (existing.status === "launch_configured") {
+          if (isLaunchSubmissionPending(existing.bagsLaunchSignature)) {
+            throw new Error("launch_requires_manual_reconciliation");
+          }
+          if (willStubMode) {
+            throw new Error("live_credentials_required");
+          }
+          if (
+            !existing.tokenMint ||
+            !existing.bagsConfigKey ||
+            !existing.bagsTokenMetadata
+          ) {
+            throw new Error("launch_config_incomplete");
+          }
+          const launchWallet =
+            existing.bagsLaunchWallet ??
+            existing.bagsPoolClaimerWallet ??
+            payoutSignerPublicKey();
+          if (!launchWallet) {
+            throw new Error(
+              "SOLANA_PAYOUT_KEYPAIR is required before live launch.",
+            );
+          }
+          const guard = canLaunchOnBags();
+          if (!guard.ok)
+            throw new Error(`Refusing on-chain launch: ${guard.reason}`);
+
+          await markDirectLaunchSubmissionPending(existing.id, {
+            tokenMint: existing.tokenMint,
+            configKey: existing.bagsConfigKey,
+            metadataUrl: existing.bagsTokenMetadata,
+            launchWallet,
+            initialBuyLamports:
+              existing.bagsInitialBuyLamports ??
+              serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+          });
+
+          const launch = await withIdempotency(
+            deriveKey(
+              "admin-direct-launch-final",
+              existing.id,
+              existing.tokenMint,
+              existing.bagsConfigKey,
+            ),
+            () =>
+              bags.createAndSubmitLaunchTransaction({
+                tokenMint: existing.tokenMint!,
+                metadataUrl: existing.bagsTokenMetadata!,
+                configKey: existing.bagsConfigKey!,
+                launchWallet,
+                initialBuyLamports:
+                  existing.bagsInitialBuyLamports ??
+                  serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+              }),
+            { scope: `admin:direct-launch:final:${existing.id}` },
+          );
+          const now = new Date();
+          const [completed] = await dbHttp
+            .update(projects)
+            .set({
+              bagsLaunchId: launch.signature,
+              bagsLaunchSignature: launch.signature,
+              bagsLaunchWallet: launchWallet,
+              status: "live",
+              simulatedAt: null,
+              updatedAt: now,
+            })
+            .where(eq(projects.id, existing.id))
+            .returning({ id: projects.id });
+          if (!completed) {
+            throw new Error("launch_complete_persist_failed");
+          }
+
+          await audit({
+            actorUserId: ctx.userId,
+            action: "project.launch_complete",
+            targetType: "project",
+            targetId: existing.id,
+            metadata: {
+              directLaunch: true,
+              resumed: true,
+              tokenMint: existing.tokenMint,
+              bagsConfigKey: existing.bagsConfigKey,
+              launchSignature: launch.signature,
+              launchWallet,
+              initialBuyLamports:
+                existing.bagsInitialBuyLamports ??
+                serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+            },
+            ip: ctx.ip,
+            userAgent: ctx.userAgent,
+          });
+
+          return {
+            ok: true as const,
+            projectId: existing.id,
+            tokenMint: existing.tokenMint,
+            status: "live" as const,
+            txSig: launch.signature,
+            note: "Bags launch transaction broadcast. Token is live.",
+          };
+        }
+
+        if (
+          existing.status !== "draft" ||
+          existing.ownerUserId !== ctx.userId
+        ) {
+          throw new Error("repo_already_exists");
+        }
       }
 
-      const projectId = await dbp.transaction(async (tx) => {
-        await applyDbRlsContext(tx);
-        const [inserted] = await tx
-          .insert(projects)
-          .values({
-            ownerUserId: ctx.userId,
+      let projectId = existing?.id;
+      if (!projectId) {
+        projectId = await dbp.transaction(async (tx) => {
+          await applyDbRlsContext(tx);
+          const [inserted] = await tx
+            .insert(projects)
+            .values({
+              ownerUserId: ctx.userId,
+              ghOwner: parsed.ghOwner,
+              ghRepo: parsed.ghRepo,
+              ghRepoId: parsed.ghRepoId,
+              ghInstallationId: parsed.ghInstallationId ?? null,
+              name: parsed.name,
+              symbol: parsed.symbol,
+              description: parsed.description ?? null,
+              imageUrl: parsed.imageUrl,
+              tokenWebsiteUrl: parsed.website ?? null,
+              tokenTwitterUrl: parsed.twitter ?? null,
+              tokenTelegramUrl: parsed.telegram ?? null,
+              status: "draft",
+              platformFeeBps: parsed.platformFeeBps,
+              scoringConfig: parsed.scoringConfig,
+              payoutConfig: parsed.payoutConfig,
+            })
+            .returning({ id: projects.id });
+          if (!inserted) throw new Error("Project insert returned no row.");
+
+          await tx.insert(projectMemberships).values({
+            userId: ctx.userId,
+            projectId: inserted.id,
+            role: "project_owner",
+          });
+          return inserted.id;
+        });
+
+        await audit({
+          actorUserId: ctx.userId,
+          action: "project.create",
+          targetType: "project",
+          targetId: projectId,
+          metadata: {
             ghOwner: parsed.ghOwner,
             ghRepo: parsed.ghRepo,
             ghRepoId: parsed.ghRepoId,
-            ghInstallationId: parsed.ghInstallationId ?? null,
-            name: parsed.name,
-            description: parsed.description ?? null,
-            imageUrl: parsed.imageUrl,
-            tokenWebsiteUrl: parsed.website ?? null,
-            tokenTwitterUrl: parsed.twitter ?? null,
-            tokenTelegramUrl: parsed.telegram ?? null,
-            status: "draft",
-            platformFeeBps: parsed.platformFeeBps,
-            scoringConfig: parsed.scoringConfig,
-            payoutConfig: parsed.payoutConfig,
-          })
-          .returning({ id: projects.id });
-        if (!inserted) throw new Error("Project insert returned no row.");
-
-        await tx.insert(projectMemberships).values({
-          userId: ctx.userId,
-          projectId: inserted.id,
-          role: "project_owner",
+            directLaunch: true,
+          },
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
         });
-        return inserted.id;
-      });
+      }
 
-      await audit({
-        actorUserId: ctx.userId,
-        action: "project.create",
-        targetType: "project",
-        targetId: projectId,
-        metadata: {
-          ghOwner: parsed.ghOwner,
-          ghRepo: parsed.ghRepo,
-          ghRepoId: parsed.ghRepoId,
-          directLaunch: true,
-        },
-        ip: ctx.ip,
-        userAgent: ctx.userAgent,
-      });
-
-      const tokenInfo = await bags.createTokenInfo({
-        name: parsed.name,
-        symbol: parsed.symbol,
-        description: parsed.description,
-        imageUrl: parsed.imageUrl,
-        website: parsed.website,
-        twitter: parsed.twitter,
-        telegram: parsed.telegram,
-      });
+      const tokenInfo = await withIdempotency(
+        deriveKey("admin-direct-launch-token-info", projectId),
+        () =>
+          bags.createTokenInfo({
+            name: parsed.name,
+            symbol: parsed.symbol,
+            description: parsed.description,
+            imageUrl: parsed.imageUrl,
+            website: parsed.website,
+            twitter: parsed.twitter,
+            telegram: parsed.telegram,
+          }),
+        { scope: `admin:direct-launch:token-info:${projectId}` },
+      );
       const isStub = Boolean(tokenInfo.__stub);
 
       const payoutWallet = payoutSignerPublicKey();
@@ -202,18 +367,27 @@ export async function directLaunchProject(input: unknown): Promise<{
         throw new Error("Unable to derive the Bags pool claimer wallet.");
       }
 
-      const feeShareConfig = await bags.createFeeShareConfig({
-        payer: poolClaimerWallet,
-        baseMint: tokenInfo.tokenMint,
-        feeClaimers: [
-          {
-            wallet: poolClaimerWallet,
-            bps: 10_000 - parsed.platformFeeBps,
-          },
-        ],
-        platformFeeWallet: serverEnv().SOLANA_TREASURY_ADDRESS,
-        shareFee: parsed.platformFeeBps,
-      });
+      const feeShareConfig = await withIdempotency(
+        deriveKey(
+          "admin-direct-launch-fee-config",
+          projectId,
+          tokenInfo.tokenMint,
+        ),
+        () =>
+          bags.createFeeShareConfig({
+            payer: poolClaimerWallet,
+            baseMint: tokenInfo.tokenMint,
+            feeClaimers: [
+              {
+                wallet: poolClaimerWallet,
+                bps: 10_000 - parsed.platformFeeBps,
+              },
+            ],
+            platformFeeWallet: serverEnv().SOLANA_TREASURY_ADDRESS,
+            shareFee: parsed.platformFeeBps,
+          }),
+        { scope: `admin:direct-launch:fee-config:${projectId}` },
+      );
 
       let txSig = feeShareConfig.txSignatures.at(-1) ?? null;
       let launchSignature: string | null = null;
@@ -224,20 +398,75 @@ export async function directLaunchProject(input: unknown): Promise<{
         const guard = canLaunchOnBags();
         if (!guard.ok)
           throw new Error(`Refusing on-chain launch: ${guard.reason}`);
-        const launch = await bags.createAndSubmitLaunchTransaction({
+        const configuredAt = new Date();
+        await dbHttp
+          .update(projects)
+          .set({
+            tokenMint: tokenInfo.tokenMint,
+            bagsLaunchId: null,
+            bagsConfigKey: feeShareConfig.configKey,
+            bagsLaunchSignature: null,
+            bagsLaunchWallet: poolClaimerWallet,
+            bagsPoolClaimerWallet: poolClaimerWallet,
+            bagsTokenMetadata: tokenInfo.tokenMetadata,
+            bagsInitialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+            status: "launch_configured",
+            simulatedAt: null,
+            updatedAt: configuredAt,
+          })
+          .where(eq(projects.id, projectId));
+
+        await audit({
+          actorUserId: ctx.userId,
+          action: "project.launch",
+          targetType: "project",
+          targetId: projectId,
+          metadata: {
+            directLaunch: true,
+            phase: "configured",
+            tokenMint: tokenInfo.tokenMint,
+            bagsConfigKey: feeShareConfig.configKey,
+            feeShareConfigSignatures: feeShareConfig.txSignatures,
+            poolClaimerWallet,
+            platformFeeBps: parsed.platformFeeBps,
+            stub: false,
+          },
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        });
+
+        await markDirectLaunchSubmissionPending(projectId, {
           tokenMint: tokenInfo.tokenMint,
-          metadataUrl: tokenInfo.tokenMetadata,
           configKey: feeShareConfig.configKey,
+          metadataUrl: tokenInfo.tokenMetadata,
           launchWallet: poolClaimerWallet,
           initialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
         });
+
+        const launch = await withIdempotency(
+          deriveKey(
+            "admin-direct-launch-final",
+            projectId,
+            tokenInfo.tokenMint,
+            feeShareConfig.configKey,
+          ),
+          () =>
+            bags.createAndSubmitLaunchTransaction({
+              tokenMint: tokenInfo.tokenMint,
+              metadataUrl: tokenInfo.tokenMetadata,
+              configKey: feeShareConfig.configKey,
+              launchWallet: poolClaimerWallet,
+              initialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+            }),
+          { scope: `admin:direct-launch:final:${projectId}` },
+        );
         launchSignature = launch.signature;
         txSig = launch.signature;
         note = "Bags launch transaction broadcast. Token is live.";
       }
 
       const now = new Date();
-      await dbHttp
+      const [updated] = await dbHttp
         .update(projects)
         .set({
           tokenMint: tokenInfo.tokenMint,
@@ -252,11 +481,15 @@ export async function directLaunchProject(input: unknown): Promise<{
           simulatedAt: isStub ? now : null,
           updatedAt: now,
         })
-        .where(eq(projects.id, projectId));
+        .where(eq(projects.id, projectId))
+        .returning({ id: projects.id });
+      if (!updated) {
+        throw new Error("launch_complete_persist_failed");
+      }
 
       await audit({
         actorUserId: ctx.userId,
-        action: "project.launch",
+        action: "project.launch_complete",
         targetType: "project",
         targetId: projectId,
         metadata: {
@@ -293,6 +526,42 @@ export async function directLaunchProject(input: unknown): Promise<{
     `${parsed.ghOwner}/${parsed.ghRepo}`,
   );
   return result;
+}
+
+interface DirectLaunchPendingConfig {
+  tokenMint: string;
+  configKey: string;
+  metadataUrl: string;
+  launchWallet: string;
+  initialBuyLamports: number;
+}
+
+function isLaunchSubmissionPending(signature: string | null): boolean {
+  return signature?.startsWith(LAUNCH_SUBMISSION_PENDING_PREFIX) ?? false;
+}
+
+async function markDirectLaunchSubmissionPending(
+  projectId: string,
+  config: DirectLaunchPendingConfig,
+): Promise<void> {
+  const [updated] = await dbHttp
+    .update(projects)
+    .set({
+      tokenMint: config.tokenMint,
+      bagsConfigKey: config.configKey,
+      bagsLaunchSignature: `${LAUNCH_SUBMISSION_PENDING_PREFIX}${Date.now()}`,
+      bagsLaunchWallet: config.launchWallet,
+      bagsTokenMetadata: config.metadataUrl,
+      bagsInitialBuyLamports: config.initialBuyLamports,
+      status: "launch_configured",
+      simulatedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(projects.id, projectId))
+    .returning({ id: projects.id });
+  if (!updated) {
+    throw new Error("launch_pending_persist_failed");
+  }
 }
 
 const ProjectActionSchema = DestructiveBaseSchema.extend({
@@ -463,6 +732,9 @@ export async function retryPayout(input: unknown): Promise<{ ok: true }> {
       status: payouts.status,
       attemptCount: payouts.attemptCount,
       projectId: payouts.projectId,
+      snapshotId: payouts.snapshotId,
+      claimSignature: payouts.claimSignature,
+      lastError: payouts.lastError,
     })
     .from(payouts)
     .where(eq(payouts.id, parsed.payoutId))
@@ -474,23 +746,52 @@ export async function retryPayout(input: unknown): Promise<{ ok: true }> {
     projectId: row.projectId,
   });
 
+  if (row.status !== "failed") {
+    throw new Error("payout_not_retryable");
+  }
+  if (
+    row.claimSignature ||
+    row.lastError?.includes(MANUAL_RECONCILIATION_ERROR)
+  ) {
+    throw new Error("payout_retry_requires_manual_reconciliation");
+  }
+  const [recipientRisk] = await dbHttp
+    .select({ count: sql<number>`count(*)::int` })
+    .from(payoutRecipients).where(sql`
+      ${payoutRecipients.payoutId} = ${row.id}
+      and (
+        ${payoutRecipients.status} = 'sending'
+        or ${payoutRecipients.sendAttemptId} is not null
+        or ${payoutRecipients.error} like ${`%${MANUAL_RECONCILIATION_ERROR}%`}
+      )
+    `);
+  if ((recipientRisk?.count ?? 0) > 0) {
+    throw new Error("payout_retry_requires_manual_reconciliation");
+  }
+
   await withIdempotency(
     parsed.idempotencyKey ?? `payout:retry:${row.id}`,
     async () => {
       await dbHttp
         .update(payouts)
         .set({
-          status: "pending",
+          status: "claiming",
           attemptCount: row.attemptCount + 1,
           lastError: null,
+          startedAt: new Date(),
         })
         .where(eq(payouts.id, row.id));
+      const workflowRun = await start(processSnapshotPayout, [row.snapshotId]);
       await audit({
         actorUserId: ctx.userId,
         action: "payout.retry",
         targetType: "payout",
         targetId: row.id,
-        metadata: { previousStatus: row.status, attempt: row.attemptCount + 1 },
+        metadata: {
+          previousStatus: row.status,
+          attempt: row.attemptCount + 1,
+          workflowRunId: workflowRun.runId,
+        },
         ip: ctx.ip,
         userAgent: ctx.userAgent,
       });
@@ -760,6 +1061,7 @@ export async function updateProjectPlatformFeeBps(
 export async function claimPartnerFees(input: unknown): Promise<{
   ok: true;
   partnerWallet: string;
+  attemptId: string;
   signatures: string[];
   before: { claimedFees: string; unclaimedFees: string };
   after: { claimedFees: string; unclaimedFees: string };
@@ -783,9 +1085,12 @@ export async function claimPartnerFees(input: unknown): Promise<{
     );
   }
 
-  const result = await withIdempotency(
+  const idempotencyKey =
     parsed.idempotencyKey ??
-      deriveKey("admin-partner-fees-claim", partnerWallet, ctx.userId),
+    deriveKey("admin-partner-fees-claim", partnerWallet, ctx.userId);
+
+  const result = await withIdempotency(
+    idempotencyKey,
     async () =>
       await destructiveAction(
         {
@@ -805,28 +1110,15 @@ export async function claimPartnerFees(input: unknown): Promise<{
           metadata: { partnerWallet },
         },
         async () => {
-          const before = await bags.getPartnerClaimStats(partnerWallet);
-          if (BigInt(before.unclaimedFees) <= 0n) {
-            throw new Error("no_partner_fees_to_claim");
+          const attempt = await reservePartnerFeeClaimAttempt({
+            partnerWallet,
+            partnerConfigKey,
+            idempotencyKey,
+          });
+          const claim = await executePartnerFeeClaimAttempt(attempt.id);
+          if (claim.status !== "succeeded" || !claim.before || !claim.after) {
+            throw new Error(claim.reason ?? "partner_fee_claim_failed");
           }
-
-          const txs = await bags.getPartnerClaimTransactions(partnerWallet);
-          if (txs.length === 0) {
-            throw new Error("no_partner_claim_transactions");
-          }
-
-          const conn = solanaConnection("confirmed");
-          const signatures: string[] = [];
-          for (const tx of txs) {
-            const signature = await bags.signAndSubmitTransaction(tx.transaction, {
-              operation: "Bags partner fee claim transaction",
-              bagsInstructionPolicy: "partner-claim",
-            });
-            await conn.confirmTransaction(signature, "confirmed");
-            signatures.push(signature);
-          }
-
-          const after = await bags.getPartnerClaimStats(partnerWallet);
           await audit({
             actorUserId: ctx.userId,
             action: "treasury.partner_claim",
@@ -834,10 +1126,13 @@ export async function claimPartnerFees(input: unknown): Promise<{
             targetId: partnerConfigKey,
             metadata: {
               partnerWallet,
+              attemptId: attempt.id,
               phase: "settled",
-              signatures,
-              before,
-              after,
+              signatures: claim.signatures,
+              before: claim.before,
+              after: claim.after,
+              claimedDeltaLamports: claim.claimedDeltaLamports,
+              unclaimedDeltaLamports: claim.unclaimedDeltaLamports,
             },
             ip: ctx.ip,
             userAgent: ctx.userAgent,
@@ -845,9 +1140,10 @@ export async function claimPartnerFees(input: unknown): Promise<{
           return {
             ok: true as const,
             partnerWallet,
-            signatures,
-            before,
-            after,
+            attemptId: attempt.id,
+            signatures: claim.signatures,
+            before: claim.before,
+            after: claim.after,
           };
         },
       ),
@@ -1180,6 +1476,7 @@ const TriggerWorkflowSchema = z.object({
     "takeSnapshot",
     "executePayout",
     "expireEscrow",
+    "reconcileFunds",
     "publishKpis",
   ]),
   idempotencyKey: z.string().min(8).optional(),
@@ -1189,7 +1486,9 @@ async function requireWorkflowRetriggerPermission(
   workflowName: AdminWorkflowName,
   userId: string,
 ): Promise<void> {
-  await requirePermission(workflowRetriggerPermission(workflowName), { userId });
+  await requirePermission(workflowRetriggerPermission(workflowName), {
+    userId,
+  });
 }
 
 export async function retriggerWorkflow(
@@ -1215,7 +1514,9 @@ export async function retriggerWorkflow(
                 ? await start(executePayout, [])
                 : parsed.name === "expireEscrow"
                   ? await start(expireEscrow, [])
-                  : await start(publishKpis, []);
+                  : parsed.name === "reconcileFunds"
+                    ? await start(reconcileFunds, [])
+                    : await start(publishKpis, []);
 
       await audit({
         actorUserId: ctx.userId,

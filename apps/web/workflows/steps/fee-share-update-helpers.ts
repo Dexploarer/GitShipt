@@ -22,6 +22,10 @@ import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { loadContributorWallets } from "./snapshot-helpers";
 
+const MANUAL_RECONCILIATION_ERROR =
+  "manual_reconciliation_required_external_side_effect_may_have_succeeded";
+const ERROR_LIMIT = 1_000;
+
 export interface FeeShareProjectContext {
   id: string;
   status:
@@ -189,6 +193,25 @@ export async function executeFeeShareUpdateAttempt(
     };
   }
 
+  const [currentAttempt] = await dbHttp
+    .select({
+      status: feeShareUpdateAttempts.status,
+      signatures: feeShareUpdateAttempts.signatures,
+      error: feeShareUpdateAttempts.error,
+    })
+    .from(feeShareUpdateAttempts)
+    .where(eq(feeShareUpdateAttempts.id, attemptId))
+    .limit(1);
+
+  if (requiresManualFeeShareReconciliation(currentAttempt)) {
+    return {
+      attemptId,
+      status: "skipped",
+      signatures: currentAttempt.signatures,
+      reason: "manual_reconciliation_required",
+    };
+  }
+
   const [claimed] = await dbHttp
     .update(feeShareUpdateAttempts)
     .set({
@@ -236,6 +259,7 @@ export async function executeFeeShareUpdateAttempt(
     return await markAttemptFailed(attemptId, "payout_signer_not_pool_claimer");
   }
 
+  const signatures: string[] = [];
   try {
     const txs = await bags.getUpdateFeeShareConfigTransactions({
       baseMint: project.tokenMint,
@@ -246,7 +270,6 @@ export async function executeFeeShareUpdateAttempt(
       })),
     });
     const conn = solanaConnection("confirmed");
-    const signatures: string[] = [];
     for (const tx of txs) {
       if (await isKillSwitchEnabled()) {
         throw new Error("kill_switch_enabled");
@@ -255,8 +278,14 @@ export async function executeFeeShareUpdateAttempt(
         operation: "Bags fee-share update transaction",
         bagsInstructionPolicy: "fee-config",
       });
-      await conn.confirmTransaction(signature, "confirmed");
       signatures.push(signature);
+      await persistFeeShareSignatures(attemptId, signatures);
+      const confirmation = await conn.confirmTransaction(signature, "confirmed");
+      if (confirmation.value.err) {
+        throw new Error(
+          `fee_share_update_confirmation_failed:${JSON.stringify(confirmation.value.err)}`,
+        );
+      }
     }
 
     await dbHttp
@@ -273,22 +302,68 @@ export async function executeFeeShareUpdateAttempt(
     return { attemptId, status: "succeeded", signatures };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return await markAttemptFailed(attemptId, message);
+    const reason =
+      signatures.length > 0
+        ? manualReconciliationReason(message, signatures)
+        : message;
+    return await markAttemptFailed(attemptId, reason, signatures);
   }
 }
 
 async function markAttemptFailed(
   attemptId: string,
   reason: string,
+  signatures: ReadonlyArray<string> = [],
 ): Promise<ExecutedFeeShareUpdate> {
   await dbHttp
     .update(feeShareUpdateAttempts)
     .set({
       status: "failed",
-      error: reason.slice(0, 1_000),
+      ...(signatures.length > 0 ? { signatures: [...signatures] } : {}),
+      error: reason.slice(0, ERROR_LIMIT),
       completedAt: new Date(),
       updatedAt: new Date(),
     })
     .where(eq(feeShareUpdateAttempts.id, attemptId));
-  return { attemptId, status: "failed", signatures: [], reason };
+  return { attemptId, status: "failed", signatures: [...signatures], reason };
+}
+
+async function persistFeeShareSignatures(
+  attemptId: string,
+  signatures: ReadonlyArray<string>,
+): Promise<void> {
+  await dbHttp
+    .update(feeShareUpdateAttempts)
+    .set({
+      signatures: [...signatures],
+      updatedAt: new Date(),
+    })
+    .where(eq(feeShareUpdateAttempts.id, attemptId));
+}
+
+function requiresManualFeeShareReconciliation(
+  attempt:
+    | {
+        status: "pending" | "sending" | "succeeded" | "failed" | "skipped";
+        signatures: string[];
+        error: string | null;
+      }
+    | undefined,
+): attempt is {
+  status: "failed";
+  signatures: string[];
+  error: string | null;
+} {
+  if (!attempt || attempt.status !== "failed") return false;
+  return (
+    attempt.signatures.length > 0 ||
+    attempt.error?.includes(MANUAL_RECONCILIATION_ERROR) === true
+  );
+}
+
+function manualReconciliationReason(
+  message: string,
+  signatures: ReadonlyArray<string>,
+): string {
+  return `${MANUAL_RECONCILIATION_ERROR}:fee_share_update_signatures=${signatures.join(",")};${message}`;
 }

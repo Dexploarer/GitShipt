@@ -28,14 +28,23 @@ async function importHelpers(args?: {
   wallets?: Record<string, string | null>;
   treasury?: string;
   cap?: bigint;
+  bagsClient?: Record<string, unknown>;
+  confirmTransaction?: (signature: string) => Promise<unknown>;
+  dbHttp?: Record<string, unknown>;
 }) {
   vi.resetModules();
   vi.doMock("@/db", () => ({
-    dbHttp: {},
+    dbHttp: args?.dbHttp ?? {},
     dbPool: vi.fn(),
     schema: {},
   }));
-  vi.doMock("@/lib/bags/client", () => ({ bags: {} }));
+  vi.doMock("@/lib/bags/client", () => ({ bags: args?.bagsClient ?? {} }));
+  vi.doMock("@/lib/solana/connection", () => ({
+    solanaConnection: vi.fn(() => ({
+      confirmTransaction:
+        args?.confirmTransaction ?? vi.fn(async () => ({ value: null })),
+    })),
+  }));
   vi.doMock("@/lib/db-rls", () => ({
     applyDbRlsContext: vi.fn(),
     enterDbWorkflowContext: vi.fn(),
@@ -115,6 +124,7 @@ describe("payout helpers", () => {
   afterEach(() => {
     vi.doUnmock("@/db");
     vi.doUnmock("@/lib/bags/client");
+    vi.doUnmock("@/lib/solana/connection");
     vi.doUnmock("@/lib/db-rls");
     vi.doUnmock("@/lib/env");
     vi.doUnmock("@/lib/payouts/safety");
@@ -175,5 +185,77 @@ describe("payout helpers", () => {
       ok: false,
       reason: "cycle_over_cap:total=100,cap=99",
     });
+  });
+
+  it("marks ambiguous Bags claim failures for manual reconciliation with known signatures", async () => {
+    const { Transaction } = await import("@solana/web3.js");
+    const { claimBagsFees, extractManualReconciliationClaimSignatures } =
+      await importHelpers({
+        bagsClient: {
+          getClaimTransactions: vi.fn(async () => ({
+            transactions: [new Transaction()],
+          })),
+          signAndSubmitTransaction: vi.fn(async () => "claim-sig-1"),
+        },
+        confirmTransaction: vi.fn(async () => {
+          throw new Error("confirmation_timeout");
+        }),
+      });
+
+    await expect(
+      claimBagsFees({
+        walletAddress: "pool-wallet",
+        tokenMint: "So11111111111111111111111111111111111111112",
+      }),
+    ).rejects.toThrow(
+      /manual_reconciliation_required_external_side_effect_may_have_succeeded:claim_signatures=claim-sig-1;confirmation_timeout/,
+    );
+
+    expect(
+      extractManualReconciliationClaimSignatures(
+        "manual_reconciliation_required_external_side_effect_may_have_succeeded:claim_signatures=claim-sig-1;confirmation_timeout",
+      ),
+    ).toBe("claim-sig-1");
+  });
+
+  it("does not retry recipients already marked for manual reconciliation", async () => {
+    const limit = vi
+      .fn()
+      .mockResolvedValueOnce([{ status: "distributing" }])
+      .mockResolvedValueOnce([
+        {
+          id: "recipient-1",
+          status: "failed",
+          sendAttemptId: null,
+          sendingAt: null,
+          txSignature: null,
+          error:
+            "manual_reconciliation_required_external_side_effect_may_have_succeeded:recipient=recipient-1;signature=sig-1;db_timeout",
+        },
+      ]);
+    const where = vi.fn(() => ({ limit }));
+    const from = vi.fn(() => ({ where }));
+    const dbHttp = {
+      select: vi.fn(() => ({ from })),
+      update: vi.fn(),
+    };
+    const { dispatchRecipient } = await importHelpers({ dbHttp });
+
+    await expect(
+      dispatchRecipient({
+        payoutId: "payout-1",
+        sourcePayoutId: "payout-1",
+        escrowDays: 30,
+        recipient: {
+          contributorId: "alice",
+          rank: 1,
+          weight: 1,
+          amountLamports: "100",
+          walletAddress: "alice-wallet",
+          idempotencyKey: "idem-1",
+        },
+      }),
+    ).resolves.toEqual({ status: "skipped" });
+    expect(dbHttp.update).not.toHaveBeenCalled();
   });
 });

@@ -38,6 +38,7 @@ import { applyDbRlsContext } from "@/lib/db-rls";
  */
 
 const PLATFORM_GH_USERNAME = "gitbags-platform";
+const LAUNCH_SUBMISSION_PENDING_PREFIX = "pending:";
 
 export interface LaunchProgressUpdate {
   phase:
@@ -250,8 +251,7 @@ export async function createAndLaunchAction(
             // If already launched, short-circuit.
             if (
               (existing.status === "live" ||
-                existing.status === "simulated_live" ||
-                existing.status === "launch_configured") &&
+                existing.status === "simulated_live") &&
               existing.tokenMint
             ) {
               isExistingLive = true;
@@ -280,6 +280,133 @@ export async function createAndLaunchAction(
 
         // Authoritative permission check before launching.
         await requirePermission("project.update", { userId, projectId });
+
+        const [project] = await dbHttp
+          .select()
+          .from(projects)
+          .where(eq(projects.id, projectId))
+          .limit(1);
+        if (!project) {
+          throw new ActionError("not_found", "Project not found.", 404);
+        }
+
+        if (project.status === "launch_configured") {
+          const ready = readConfiguredLaunch(project);
+          if (!ready.ok) {
+            throw new ActionError(
+              "launch_config_incomplete",
+              ready.message,
+              409,
+            );
+          }
+
+          if (isLaunchSubmissionPending(project.bagsLaunchSignature)) {
+            return {
+              ok: true,
+              projectId,
+              tokenMint: ready.config.tokenMint,
+              status: "launch_configured",
+              stub: false,
+              configKey: ready.config.configKey,
+              txSig: null,
+              ghOwner: validated.ghOwner,
+              ghRepo: validated.ghRepo,
+              note: "Final Bags launch submission is already marked pending. Manual review is required before retrying to avoid a duplicate initial buy.",
+            } satisfies LaunchActionResult;
+          }
+
+          const guard = canLaunchOnBags();
+          if (!guard.ok) {
+            throw new ActionError(
+              "launch_refused",
+              `Refusing on-chain launch: ${guard.reason}`,
+              409,
+            );
+          }
+
+          await markLaunchSubmissionPending(projectId, ready.config);
+
+          const launch = await bags.createAndSubmitLaunchTransaction({
+            tokenMint: ready.config.tokenMint,
+            metadataUrl: ready.config.metadataUrl,
+            configKey: ready.config.configKey,
+            launchWallet: ready.config.launchWallet,
+            initialBuyLamports: ready.config.initialBuyLamports,
+          });
+          const persistNow = new Date();
+          const [completed] = await dbHttp
+            .update(projects)
+            .set({
+              bagsLaunchId: launch.signature,
+              bagsLaunchSignature: launch.signature,
+              bagsLaunchWallet: ready.config.launchWallet,
+              status: "live",
+              simulatedAt: null,
+              updatedAt: persistNow,
+            })
+            .where(eq(projects.id, projectId))
+            .returning({ id: projects.id });
+
+          if (!completed) {
+            throw new ActionError(
+              "launch_complete_persist_failed",
+              "Final Bags launch was submitted, but the live state could not be persisted. Manual review is required before retrying.",
+              500,
+            );
+          }
+
+          await audit({
+            actorUserId: userId,
+            action: "project.launch_complete",
+            targetType: "project",
+            targetId: projectId,
+            metadata: {
+              tokenMint: ready.config.tokenMint,
+              bagsConfigKey: ready.config.configKey,
+              launchSignature: launch.signature,
+              launchWallet: ready.config.launchWallet,
+              poolClaimerWallet: project.bagsPoolClaimerWallet,
+              initialBuyLamports: ready.config.initialBuyLamports,
+              cluster: serverEnvCluster(),
+            },
+          });
+
+          return {
+            ok: true,
+            projectId,
+            tokenMint: ready.config.tokenMint,
+            status: "live",
+            stub: false,
+            configKey: ready.config.configKey,
+            txSig: launch.signature,
+            ghOwner: validated.ghOwner,
+            ghRepo: validated.ghRepo,
+            note: "Bags launch transaction broadcast. Token is live.",
+          } satisfies LaunchActionResult;
+        }
+
+        if (project.status !== "draft") {
+          if (project.tokenMint) {
+            return {
+              ok: true,
+              projectId,
+              tokenMint: project.tokenMint,
+              status:
+                project.status === "simulated_live" ? "simulated_live" : "live",
+              stub: project.status === "simulated_live",
+              configKey: project.bagsConfigKey ?? undefined,
+              txSig: null,
+              ghOwner: validated.ghOwner,
+              ghRepo: validated.ghRepo,
+              note: `Project status is ${project.status}; returning persisted token mint.`,
+            } satisfies LaunchActionResult;
+          }
+          throw new ActionError(
+            "bad_status",
+            `Project is in ${project.status} status; cannot launch.`,
+            409,
+          );
+        }
 
         // Bags step 1: token info
         const tokenInfo = await bags.createTokenInfo({
@@ -328,6 +455,56 @@ export async function createAndLaunchAction(
           shareFee: validated.platformFeeBps,
         });
 
+        const configuredAt = new Date();
+        const configuredStatus = isStub
+          ? "simulated_live"
+          : "launch_configured";
+        const initialBuyLamports = serverEnv().BAGS_INITIAL_BUY_LAMPORTS;
+        const [configured] = await dbHttp
+          .update(projects)
+          .set({
+            tokenMint: tokenInfo.tokenMint,
+            bagsLaunchId: isStub ? feeShareConfig.configKey : null,
+            bagsConfigKey: feeShareConfig.configKey,
+            bagsLaunchSignature: null,
+            bagsLaunchWallet: isStub ? null : payer,
+            bagsPoolClaimerWallet: poolClaimerWallet,
+            bagsTokenMetadata: tokenInfo.tokenMetadata,
+            bagsInitialBuyLamports: initialBuyLamports,
+            status: configuredStatus,
+            simulatedAt: isStub ? configuredAt : null,
+            updatedAt: configuredAt,
+          })
+          .where(eq(projects.id, projectId))
+          .returning({ id: projects.id });
+
+        if (!configured) {
+          throw new ActionError(
+            "launch_config_persist_failed",
+            "Failed to persist Bags launch configuration before final launch.",
+            500,
+          );
+        }
+
+        await audit({
+          actorUserId: userId,
+          action: "project.launch",
+          targetType: "project",
+          targetId: projectId,
+          metadata: {
+            phase: "configured",
+            tokenMint: tokenInfo.tokenMint,
+            bagsConfigKey: feeShareConfig.configKey,
+            stub: isStub,
+            platformFeeBps: validated.platformFeeBps,
+            feeShareConfigSignatures: feeShareConfig.txSignatures,
+            launchWallet: isStub ? null : payer,
+            poolClaimerWallet,
+            initialBuyLamports,
+            cluster: serverEnvCluster(),
+          },
+        });
+
         // Bags step 3: create, sign, and submit the final launch transaction.
         let txSig = feeShareConfig.txSignatures.at(-1) ?? null;
         let launchSignature: string | null = null;
@@ -344,22 +521,30 @@ export async function createAndLaunchAction(
               409,
             );
           }
+          await markLaunchSubmissionPending(projectId, {
+            tokenMint: tokenInfo.tokenMint,
+            metadataUrl: tokenInfo.tokenMetadata,
+            configKey: feeShareConfig.configKey,
+            launchWallet: payer,
+            initialBuyLamports,
+          });
           const launch = await bags.createAndSubmitLaunchTransaction({
             tokenMint: tokenInfo.tokenMint,
             metadataUrl: tokenInfo.tokenMetadata,
             configKey: feeShareConfig.configKey,
             launchWallet: payer,
-            initialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+            initialBuyLamports,
           });
           launchSignature = launch.signature;
           txSig = launch.signature;
           note = "Bags launch transaction broadcast. Token is live.";
         }
 
-        // Persist token/config state. Real mode only reaches this point after
-        // the Bags launch transaction is broadcast.
+        // Persist terminal launch state. Real mode only reaches this point
+        // after the Bags launch transaction is broadcast; the configured
+        // checkpoint above prevents retries from regenerating token/config.
         const persistNow = new Date();
-        await dbHttp
+        const [updated] = await dbHttp
           .update(projects)
           .set({
             tokenMint: tokenInfo.tokenMint,
@@ -369,19 +554,31 @@ export async function createAndLaunchAction(
             bagsLaunchWallet: isStub ? null : payer,
             bagsPoolClaimerWallet: poolClaimerWallet,
             bagsTokenMetadata: tokenInfo.tokenMetadata,
-            bagsInitialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+            bagsInitialBuyLamports: initialBuyLamports,
             status: isStub ? "simulated_live" : "live",
             simulatedAt: isStub ? persistNow : null,
             updatedAt: persistNow,
           })
-          .where(eq(projects.id, projectId));
+          .where(eq(projects.id, projectId))
+          .returning({ id: projects.id });
+
+        if (!updated) {
+          throw new ActionError(
+            "update_failed",
+            isStub
+              ? "Failed to persist simulated launch."
+              : "Final Bags launch was submitted, but the live state could not be persisted. Manual review is required before retrying.",
+            500,
+          );
+        }
 
         await audit({
           actorUserId: userId,
-          action: "project.launch",
+          action: "project.launch_complete",
           targetType: "project",
           targetId: projectId,
           metadata: {
+            phase: "complete",
             tokenMint: tokenInfo.tokenMint,
             bagsConfigKey: feeShareConfig.configKey,
             stub: isStub,
@@ -390,7 +587,7 @@ export async function createAndLaunchAction(
             launchSignature,
             launchWallet: isStub ? null : payer,
             poolClaimerWallet,
-            initialBuyLamports: serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+            initialBuyLamports,
             cluster: process.env.NEXT_PUBLIC_SOLANA_CLUSTER ?? "devnet",
           },
         });
@@ -961,6 +1158,88 @@ function draftContentHash(body: CreateProjectBody): string {
     .update(JSON.stringify(body))
     .digest("hex")
     .slice(0, 24);
+}
+
+interface ConfiguredLaunch {
+  tokenMint: string;
+  metadataUrl: string;
+  configKey: string;
+  launchWallet: string;
+  initialBuyLamports: number;
+}
+
+function readConfiguredLaunch(
+  project: typeof projects.$inferSelect,
+): { ok: true; config: ConfiguredLaunch } | { ok: false; message: string } {
+  const payoutWallet = payoutSignerPublicKey();
+  const launchWallet = project.bagsLaunchWallet ?? payoutWallet;
+  if (!project.tokenMint) {
+    return {
+      ok: false,
+      message: "Stored Bags launch configuration is missing token mint.",
+    };
+  }
+  if (!project.bagsConfigKey) {
+    return {
+      ok: false,
+      message: "Stored Bags launch configuration is missing config key.",
+    };
+  }
+  if (!project.bagsTokenMetadata) {
+    return {
+      ok: false,
+      message: "Stored Bags launch configuration is missing metadata URL.",
+    };
+  }
+  if (!launchWallet) {
+    return {
+      ok: false,
+      message: "Stored Bags launch configuration is missing launch wallet.",
+    };
+  }
+  return {
+    ok: true,
+    config: {
+      tokenMint: project.tokenMint,
+      metadataUrl: project.bagsTokenMetadata,
+      configKey: project.bagsConfigKey,
+      launchWallet,
+      initialBuyLamports:
+        project.bagsInitialBuyLamports ?? serverEnv().BAGS_INITIAL_BUY_LAMPORTS,
+    },
+  };
+}
+
+function isLaunchSubmissionPending(signature: string | null): boolean {
+  return signature?.startsWith(LAUNCH_SUBMISSION_PENDING_PREFIX) ?? false;
+}
+
+async function markLaunchSubmissionPending(
+  projectId: string,
+  config: ConfiguredLaunch,
+): Promise<void> {
+  await dbHttp
+    .update(projects)
+    .set({
+      tokenMint: config.tokenMint,
+      bagsConfigKey: config.configKey,
+      bagsLaunchSignature: `${LAUNCH_SUBMISSION_PENDING_PREFIX}${Date.now()}`,
+      bagsLaunchWallet: config.launchWallet,
+      bagsTokenMetadata: config.metadataUrl,
+      bagsInitialBuyLamports: config.initialBuyLamports,
+      status: "launch_configured",
+      updatedAt: new Date(),
+    })
+    .where(eq(projects.id, projectId));
+}
+
+function serverEnvCluster(): string {
+  try {
+    serverEnv();
+  } catch {
+    // keep audit metadata best-effort even when env validation is noisy
+  }
+  return process.env.NEXT_PUBLIC_SOLANA_CLUSTER ?? "devnet";
 }
 
 /**

@@ -5,9 +5,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { start } from "workflow/api";
 import { z } from "zod";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { dbHttp } from "@/db";
 import {
+  payoutRecipients,
   platformConfig,
   projectMemberships,
   projects,
@@ -23,6 +24,7 @@ import { check } from "@/lib/rate-limit";
 import { updateProjectCaches } from "@/lib/cache-actions";
 import { projectDocsKey } from "@/lib/queries/project-docs";
 import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
+import { processSnapshotPayout } from "@/workflows/executePayout";
 import { takeProjectSnapshot } from "@/workflows/takeSnapshot";
 
 /**
@@ -47,6 +49,9 @@ async function requireSessionUserId(): Promise<string> {
   }
   return session.user.id;
 }
+
+const MANUAL_RECONCILIATION_ERROR =
+  "manual_reconciliation_required_external_side_effect_may_have_succeeded";
 
 // ---------------------------------------------------------------------------
 // pauseProject — toggle live <-> paused
@@ -160,7 +165,7 @@ export async function updateScoringConfig(
 }
 
 // ---------------------------------------------------------------------------
-// retryPayout — flip a failed payout back to pending so the cron picks it up
+// retryPayout — resume a clean failed payout by starting its snapshot workflow.
 // ---------------------------------------------------------------------------
 const retryPayoutSchema = z.object({
   projectId: z.string().min(1),
@@ -181,18 +186,61 @@ export async function retryPayout(
   const rl = await check("default", `retry:${userId}:${data.payoutId}`);
   if (!rl.success) throw new Error("Rate limited — try again shortly.");
 
-  await withIdempotency(
+  const result = await withIdempotency(
     data.idempotencyKey ?? `retry:${data.payoutId}`,
     async () => {
+      const [row] = await dbHttp
+        .select({
+          id: payouts.id,
+          status: payouts.status,
+          attemptCount: payouts.attemptCount,
+          snapshotId: payouts.snapshotId,
+          claimSignature: payouts.claimSignature,
+          lastError: payouts.lastError,
+        })
+        .from(payouts)
+        .where(
+          and(
+            eq(payouts.id, data.payoutId),
+            eq(payouts.projectId, data.projectId),
+          ),
+        )
+        .limit(1);
+      if (!row) throw new Error("payout_not_found");
+      if (row.status !== "failed") {
+        throw new Error("payout_not_retryable");
+      }
+      if (
+        row.claimSignature ||
+        row.lastError?.includes(MANUAL_RECONCILIATION_ERROR)
+      ) {
+        throw new Error("payout_retry_requires_manual_reconciliation");
+      }
+      const [recipientRisk] = await dbHttp
+        .select({ count: sql<number>`count(*)::int` })
+        .from(payoutRecipients).where(sql`
+          ${payoutRecipients.payoutId} = ${row.id}
+          and (
+            ${payoutRecipients.status} = 'sending'
+            or ${payoutRecipients.sendAttemptId} is not null
+            or ${payoutRecipients.error} like ${`%${MANUAL_RECONCILIATION_ERROR}%`}
+          )
+        `);
+      if ((recipientRisk?.count ?? 0) > 0) {
+        throw new Error("payout_retry_requires_manual_reconciliation");
+      }
+
       await dbHttp
         .update(payouts)
         .set({
-          status: "pending",
+          status: "claiming",
+          attemptCount: row.attemptCount + 1,
           lastError: null,
-          // Don't reset attemptCount — the cron uses it for backoff.
+          startedAt: new Date(),
         })
         .where(eq(payouts.id, data.payoutId));
-      return { ok: true } as const;
+      const workflowRun = await start(processSnapshotPayout, [row.snapshotId]);
+      return { workflowRunId: workflowRun.runId } as const;
     },
     { scope: `project:payout:retry:${data.projectId}:${userId}` },
   );
@@ -202,7 +250,10 @@ export async function retryPayout(
     action: "payout.retry",
     targetType: "payout",
     targetId: data.payoutId,
-    metadata: { projectId: data.projectId },
+    metadata: {
+      projectId: data.projectId,
+      workflowRunId: result.workflowRunId,
+    },
   });
 
   revalidatePath(`/dashboard/projects/${data.projectId}/payouts`);

@@ -37,6 +37,30 @@ void schema; // keep referenced for future use
 const MANUAL_RECONCILIATION_ERROR =
   "manual_reconciliation_required_external_side_effect_may_have_succeeded";
 const SENDING_RECONCILIATION_AFTER_MS = 10 * 60 * 1000;
+const CLAIM_SIGNATURES_PATTERN = /(?:^|[:;])claim_signatures=([^;]+)/;
+
+export function isManualReconciliationError(message: string): boolean {
+  return message.includes(MANUAL_RECONCILIATION_ERROR);
+}
+
+export function extractManualReconciliationClaimSignatures(
+  message: string,
+): string | null {
+  const raw = CLAIM_SIGNATURES_PATTERN.exec(message)?.[1]?.trim();
+  if (!raw || raw === "unknown") return null;
+  return raw;
+}
+
+function manualClaimReconciliationError(
+  message: string,
+  claimSignatures: readonly string[],
+): Error {
+  return new Error(
+    `${MANUAL_RECONCILIATION_ERROR}:claim_signatures=${
+      claimSignatures.length > 0 ? claimSignatures.join(",") : "unknown"
+    };${message}`,
+  );
+}
 
 /**
  * JSON-safe row used at workflow step boundaries — bigints encoded as
@@ -268,32 +292,34 @@ export async function claimBagsFees(args: {
   const { solanaConnection } = await import("@/lib/solana/connection");
   const conn = solanaConnection("confirmed");
 
-  const sigs: string[] = [];
-  try {
-    for (const txUnknown of transactions) {
-      if (
-        txUnknown instanceof VersionedTransaction ||
-        txUnknown instanceof Transaction
-      ) {
-        const sig = await bags.signAndSubmitTransaction(txUnknown, {
-          operation: "Bags fee claim transaction",
-          bagsInstructionPolicy: "fee-claim",
-        });
-        sigs.push(sig);
-        await conn.confirmTransaction(sig, "confirmed");
-        continue;
-      }
+  const claimTransactions: Array<
+    InstanceType<typeof VersionedTransaction> | InstanceType<typeof Transaction>
+  > = [];
+  for (const txUnknown of transactions) {
+    if (
+      txUnknown instanceof VersionedTransaction ||
+      txUnknown instanceof Transaction
+    ) {
+      claimTransactions.push(txUnknown);
+      continue;
+    }
 
-      throw new Error("Bags returned an unsupported claim transaction type.");
+    throw new Error("Bags returned an unsupported claim transaction type.");
+  }
+
+  const sigs: string[] = [];
+  for (const tx of claimTransactions) {
+    try {
+      const sig = await bags.signAndSubmitTransaction(tx, {
+        operation: "Bags fee claim transaction",
+        bagsInstructionPolicy: "fee-claim",
+      });
+      sigs.push(sig);
+      await conn.confirmTransaction(sig, "confirmed");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw manualClaimReconciliationError(message, sigs);
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (sigs.length > 0) {
-      throw new Error(
-        `${MANUAL_RECONCILIATION_ERROR}:claim_signatures=${sigs.join(",")};${message}`,
-      );
-    }
-    throw error;
   }
   return {
     signature: sigs.length > 0 ? sigs.join(",") : null,
@@ -512,12 +538,17 @@ export async function markPayoutClaimed(
 export async function markPayoutFailed(
   payoutId: string,
   reason: string,
+  options: { claimSignature?: string | null } = {},
 ): Promise<void> {
   enterDbWorkflowContext("payout-helpers:markPayoutFailed");
+  const claimSignature =
+    options.claimSignature ??
+    extractManualReconciliationClaimSignatures(reason);
   await dbHttp
     .update(payouts)
     .set({
       status: "failed",
+      ...(claimSignature ? { claimSignature } : {}),
       lastError: reason.slice(0, 1_000),
       executedAt: new Date(),
     })
@@ -566,6 +597,7 @@ export async function dispatchRecipient(args: {
       sendAttemptId: payoutRecipients.sendAttemptId,
       sendingAt: payoutRecipients.sendingAt,
       txSignature: payoutRecipients.txSignature,
+      error: payoutRecipients.error,
     })
     .from(payoutRecipients)
     .where(eq(payoutRecipients.idempotencyKey, args.recipient.idempotencyKey))
@@ -576,6 +608,13 @@ export async function dispatchRecipient(args: {
     existing.status === "sent" ||
     existing.status === "confirmed" ||
     existing.status === "escrow"
+  ) {
+    return { status: "skipped" };
+  }
+  if (
+    existing.status === "failed" &&
+    existing.error &&
+    isManualReconciliationError(existing.error)
   ) {
     return { status: "skipped" };
   }
@@ -694,7 +733,22 @@ export async function dispatchRecipient(args: {
     return { status: "failed" };
   }
 
-  await markRecipientConfirmedWithRetry(existing.id, signature);
+  try {
+    await markRecipientConfirmedWithRetry(existing.id, signature);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await dbHttp
+      .update(payoutRecipients)
+      .set({
+        status: "failed",
+        txSignature: signature,
+        sendAttemptId: null,
+        sendingAt: null,
+        error: message.slice(0, 500),
+      })
+      .where(eq(payoutRecipients.id, existing.id));
+    return { status: "failed", sig: signature };
+  }
   return { status: "sent", sig: signature };
 }
 

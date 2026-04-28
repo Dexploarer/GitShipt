@@ -15,11 +15,13 @@ import {
   isStubMode,
   checkClaimableLamports,
   claimBagsFees,
+  extractManualReconciliationClaimSignatures,
   buildPlan,
   assertCycleUnderCap,
   persistPayoutPlan,
   dispatchRecipient,
   finalizePayout,
+  isManualReconciliationError,
   type SnapshotContextJson,
   type DistributionPlanRowJson,
 } from "./steps/payout-helpers";
@@ -33,6 +35,10 @@ import {
 } from "@/lib/workflow-locks";
 
 const ESCROW_DAYS = 30;
+
+type ClaimFeesStepResult =
+  | { ok: true; signature: string | null; txCount: number }
+  | { ok: false; reason: string; claimSignature: string | null };
 
 /**
  * executePayout — daily root, 00:30 UTC. Fans out one child workflow per
@@ -169,7 +175,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
       };
     }
 
-    let claimResult: { signature: string | null; txCount: number };
+    let claimResult: ClaimFeesStepResult;
     try {
       claimResult = await claimFeesStep({
         walletAddress: platformWallet,
@@ -180,6 +186,23 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
       const message = error instanceof Error ? error.message : String(error);
       await markPayoutFailedStep(persisted.payoutId, message);
       await auditAbort(snapshotId, `claim_failed:${message.slice(0, 200)}`);
+      return {
+        payoutId: persisted.payoutId,
+        recipientCount: persisted.recipientCount,
+        stub,
+        status: "failed",
+      };
+    }
+    if (!claimResult.ok) {
+      await markPayoutFailedStep(
+        persisted.payoutId,
+        claimResult.reason,
+        claimResult.claimSignature,
+      );
+      await auditAbort(
+        snapshotId,
+        `claim_failed:${claimResult.reason.slice(0, 200)}`,
+      );
       return {
         payoutId: persisted.payoutId,
         recipientCount: persisted.recipientCount,
@@ -306,16 +329,29 @@ async function claimFeesStep(args: {
   walletAddress: string;
   tokenMint: string;
   idempotencyKey: string;
-}): Promise<{ signature: string | null; txCount: number }> {
+}): Promise<ClaimFeesStepResult> {
   "use step";
   const { stepId } = getStepMetadata();
   return await withIdempotency(
     `${stepId}:${args.idempotencyKey}`,
-    () =>
-      claimBagsFees({
-        walletAddress: args.walletAddress,
-        tokenMint: args.tokenMint,
-      }),
+    async () => {
+      try {
+        const result = await claimBagsFees({
+          walletAddress: args.walletAddress,
+          tokenMint: args.tokenMint,
+        });
+        return { ok: true, ...result };
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        if (!isManualReconciliationError(reason)) throw error;
+        return {
+          ok: false,
+          reason,
+          claimSignature:
+            extractManualReconciliationClaimSignatures(reason),
+        };
+      }
+    },
     { scope: "workflow:payout:claim" },
   );
 }
@@ -365,11 +401,12 @@ async function markPayoutClaimedStep(
 async function markPayoutFailedStep(
   payoutId: string,
   reason: string,
+  claimSignature?: string | null,
 ): Promise<void> {
   "use step";
   enterDbWorkflowContext("executePayout:markFailed");
   const { markPayoutFailed } = await import("./steps/payout-helpers");
-  await markPayoutFailed(payoutId, reason);
+  await markPayoutFailed(payoutId, reason, { claimSignature });
 }
 
 async function dispatchStep(args: {
@@ -383,7 +420,15 @@ async function dispatchStep(args: {
   const { stepId } = getStepMetadata();
   return await withIdempotency(
     `${stepId}:${args.recipient.idempotencyKey}`,
-    () => dispatchRecipient(args),
+    async () => {
+      try {
+        return await dispatchRecipient(args);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        if (!isManualReconciliationError(reason)) throw error;
+        return { status: "failed" };
+      }
+    },
     { scope: "workflow:payout:dispatch" },
   );
 }
