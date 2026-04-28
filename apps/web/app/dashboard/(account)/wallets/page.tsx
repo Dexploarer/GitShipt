@@ -103,8 +103,18 @@ export default async function WalletsPage() {
                   ) : (
                     <span className="text-caption text-fg-muted">—</span>
                   )}
-                  <span className="text-caption text-fg-muted">
-                    verified {formatRelativeTime(w.verifiedAt)}
+                  <span className="inline-flex items-center gap-2">
+                    <Badge
+                      variant="success"
+                      size="sm"
+                      dot
+                      dotColor="success"
+                    >
+                      verified
+                    </Badge>
+                    <span className="text-caption text-fg-muted">
+                      {formatRelativeTime(w.verifiedAt)}
+                    </span>
                   </span>
                 </li>
               ))}
