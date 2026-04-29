@@ -32,7 +32,7 @@ export function ScoreBreakdownCell({ score, inputs }: ScoreBreakdownCellProps) {
         <span
           // Underlined-on-hover affordance so users notice it's interactive.
           className="cursor-help underline decoration-dotted decoration-fg-muted/60 underline-offset-4 outline-none focus-visible:decoration-fg"
-          tabIndex={0}
+          aria-label={`Score ${formatScore(score)} from ${inputs.mergedPRs} merged PRs, ${inputs.commits} commits, ${inputs.reviews} reviews, ${inputs.issues} issues, and ${inputs.netLines} net lines`}
         >
           {formatScore(score)}
         </span>

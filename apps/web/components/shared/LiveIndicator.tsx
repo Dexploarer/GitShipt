@@ -33,10 +33,16 @@ export function LiveIndicator({
   label = "Synced",
   className,
 }: LiveIndicatorProps) {
-  const [, setTick] = useState(0);
+  const [nowMs, setNowMs] = useState<number | null>(null);
+
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30_000);
-    return () => clearInterval(id);
+    const update = () => setNowMs(Date.now());
+    const first = setTimeout(update, 0);
+    const id = setInterval(update, 30_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
   }, []);
 
   if (!lastSyncAt) {
@@ -79,7 +85,7 @@ export function LiveIndicator({
   }
   const ageSec = Math.max(
     0,
-    Math.floor((Date.now() - dateObj.getTime()) / 1000),
+    Math.floor(((nowMs ?? dateObj.getTime()) - dateObj.getTime()) / 1000),
   );
 
   let tone: "fresh" | "warn" | "stale";
@@ -105,7 +111,10 @@ export function LiveIndicator({
       )}
       suppressHydrationWarning
     >
-      <span className={cn("size-2 rounded-full", dotClass)} aria-hidden="true" />
+      <span
+        className={cn("size-2 rounded-full", dotClass)}
+        aria-hidden="true"
+      />
       <span>{label}</span>
       <RelativeTime date={dateObj} />
     </span>

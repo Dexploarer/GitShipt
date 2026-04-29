@@ -430,6 +430,8 @@ export async function getPlatformIndexerHeartbeat(): Promise<Date | null> {
   cacheLife("live");
   cacheTag(cacheTags.public);
   cacheTag(cacheTags.platformConfig);
+  if (!hasCredentials.db()) return null;
+
   const [row] = await dbHttp
     .select({ value: platformConfig.value })
     .from(platformConfig)
