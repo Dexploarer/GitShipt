@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Save } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui";
 import { Input } from "@repo/ui";
 import { FormField } from "@/components/shared/FormField";
@@ -40,8 +41,11 @@ export function GeneralForm({
           idempotencyKey: `meta-${projectId}-${Date.now()}`,
         });
         setSaved(true);
+        toast.success("Project metadata saved");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Save failed");
+        const message = err instanceof Error ? err.message : "Save failed";
+        setError(message);
+        toast.error(message);
       }
     });
   }

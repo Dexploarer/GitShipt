@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui";
 
 export function StartIncorporationButton({
@@ -40,11 +41,13 @@ export function StartIncorporationButton({
               `Request failed (${res.status})`,
           );
         }
+        toast.success("Bags incorporation started");
         router.refresh();
       } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "Incorporation start failed.",
-        );
+        const message =
+          e instanceof Error ? e.message : "Incorporation start failed.";
+        setError(message);
+        toast.error(message);
       }
     });
   }

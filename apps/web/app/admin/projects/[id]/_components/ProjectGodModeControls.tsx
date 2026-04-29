@@ -237,6 +237,7 @@ export function ProjectGodModeControls({
         action={async (p) => {
           return await pauseProject({ projectId, ...p });
         }}
+        successToast={`${projectName} paused`}
       />
       <DestructiveConfirmModal
         open={openModal === "kill"}
@@ -254,6 +255,7 @@ export function ProjectGodModeControls({
         action={async (p) => {
           return await killProject({ projectId, ...p });
         }}
+        successToast={`${projectName} killed — payouts halted`}
       />
       <DestructiveConfirmModal
         open={openModal === "fee"}
@@ -276,6 +278,7 @@ export function ProjectGodModeControls({
             ...p,
           });
         }}
+        successToast={`${projectName} fee share updated to ${feeBps} bps`}
       />
     </div>
   );

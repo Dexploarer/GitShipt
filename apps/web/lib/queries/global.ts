@@ -6,14 +6,24 @@ import {
   contributorClaims,
   payouts,
   payoutRecipients,
+  platformConfig,
 } from "@/db/schema";
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { redis } from "@/lib/redis";
 import { hasCredentials } from "@/lib/env";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { cacheTags } from "@/lib/cache";
 import { z } from "zod";
+
+/**
+ * Statuses that count as "operationally running" on public surfaces —
+ * landing top-projects, ticker active-projects count, global leaderboard,
+ * etc. `simulated_live` is included because stub-mode projects ARE running
+ * (just on fallback credentials); the UI distinguishes via a "Simulated"
+ * badge per ProjectCard.
+ */
+const PUBLIC_LIVE_STATUSES = ["live", "simulated_live"] as const;
 
 /**
  * Public marketing data layer. Powers the landing hero ticker, the Top
@@ -164,7 +174,7 @@ async function getLandingDataUncached(): Promise<LandingData> {
     })
     .from(projects)
     .leftJoin(payouts, eq(payouts.projectId, projects.id))
-    .where(eq(projects.status, "live"))
+    .where(inArray(projects.status, PUBLIC_LIVE_STATUSES))
     .groupBy(projects.id)
     .orderBy(
       desc(
@@ -201,7 +211,7 @@ async function getLandingDataUncached(): Promise<LandingData> {
     dbHttp
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(projects)
-      .where(eq(projects.status, "live")),
+      .where(inArray(projects.status, PUBLIC_LIVE_STATUSES)),
     dbHttp
       .select({
         count: sql<number>`COUNT(DISTINCT ${contributorClaims.contributorId})::int`,
@@ -308,7 +318,7 @@ async function getGlobalLeaderboardUncached(): Promise<{
       })
       .from(projects)
       .leftJoin(payouts, eq(payouts.projectId, projects.id))
-      .where(eq(projects.status, "live"))
+      .where(inArray(projects.status, PUBLIC_LIVE_STATUSES))
       .groupBy(projects.id)
       .orderBy(
         desc(
@@ -410,6 +420,36 @@ export async function getGlobalLeaderboard(): Promise<{
 }
 
 /**
+ * Platform-wide indexer heartbeat. Powers the public `<LiveIndicator>` on
+ * the global leaderboard so visitors can see the system is alive (or stale).
+ * Read from `platform_config['heartbeat.indexer']` which `indexGithubDeltas`
+ * writes on every tick.
+ */
+export async function getPlatformIndexerHeartbeat(): Promise<Date | null> {
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.platformConfig);
+  if (!hasCredentials.db()) return null;
+
+  const [row] = await dbHttp
+    .select({ value: platformConfig.value })
+    .from(platformConfig)
+    .where(eq(platformConfig.key, "heartbeat.indexer"))
+    .limit(1);
+  if (!row) return null;
+  // platformConfig.value is jsonb so Postgres can return null/string/array.
+  // Heartbeat writers always write a `{ lastBeatAt: ISO }` object, but defend
+  // against drift / manual edits / future writers that diverge.
+  const raw: unknown = row.value;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const lastBeatAt = (raw as { lastBeatAt?: unknown }).lastBeatAt;
+  if (typeof lastBeatAt !== "string") return null;
+  const d = new Date(lastBeatAt);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+/**
  * Slim ticker-only fetch for any future client-side polling endpoint. Same
  * shape as `LandingTicker`. Currently unused (the landing's `<LiveTicker>`
  * receives its initial values from `getLandingData()` server-side), but
@@ -427,7 +467,7 @@ export async function getLiveTickerDataUncached(): Promise<LandingTicker> {
     dbHttp
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(projects)
-      .where(eq(projects.status, "live")),
+      .where(inArray(projects.status, PUBLIC_LIVE_STATUSES)),
     dbHttp
       .select({
         count: sql<number>`COUNT(DISTINCT ${contributorClaims.contributorId})::int`,

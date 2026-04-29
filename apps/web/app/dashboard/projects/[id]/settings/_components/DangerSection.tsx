@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui";
 import { deleteProject } from "../../actions";
 
@@ -30,9 +31,12 @@ export function DangerSection({
           confirmSlug: confirm,
           idempotencyKey: `delete-${projectId}`,
         });
-        // deleteProject redirects to /dashboard on success — no further UI.
+        // deleteProject redirects to /dashboard on success — no success toast
+        // (the redirect would unmount the toaster's host before it appears).
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Delete failed");
+        const message = err instanceof Error ? err.message : "Delete failed";
+        setError(message);
+        toast.error(message);
       }
     });
   }

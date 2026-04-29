@@ -42,6 +42,11 @@ export function KillSwitchPanel({
         action={async (p) => {
           return await toggleKillSwitch({ enabled: targetEnabled, ...p });
         }}
+        successToast={
+          targetEnabled
+            ? "Platform kill switch ENABLED — workflows paused"
+            : "Platform kill switch DISABLED — workflows resumed"
+        }
       />
     </div>
   );
