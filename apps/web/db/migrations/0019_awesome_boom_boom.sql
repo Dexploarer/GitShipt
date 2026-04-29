@@ -215,6 +215,12 @@ CREATE INDEX IF NOT EXISTS "projects_launch_state_idx"
 -- mark them 'launched' to avoid them being gated by §12 launch-gate logic
 -- when PR 2 ships. The 14-day shipshape migration window (§11) handles the
 -- runbook side separately.
+--
+-- The `AND launch_state != 'launched'` clause is a no-op when the migration
+-- runs cleanly (the column was just added with default 'pending_install'),
+-- but it scopes a re-run / partially-applied retry to only the rows that
+-- still need promotion — cheaper, idempotent, and self-documenting.
 UPDATE "projects"
    SET "launch_state" = 'launched'
- WHERE "status" IN ('live', 'paused', 'killed', 'simulated_live');
+ WHERE "status" IN ('live', 'paused', 'killed', 'simulated_live')
+   AND "launch_state" <> 'launched';

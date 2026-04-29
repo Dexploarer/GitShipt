@@ -11,7 +11,15 @@
 
 set -uo pipefail
 
-cd "$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+# `cd ""` is a no-op in bash, so the previous `cd "$(...)" || exit 0` silently
+# swallowed the not-in-a-git-repo case and ran the rest of the hook in
+# whatever directory the user was sitting in. Resolve the repo root
+# explicitly and bail when it's empty.
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [ -z "$repo_root" ]; then
+  exit 0
+fi
+cd "$repo_root" || exit 0
 
 # Only check files that are actually modified (staged or unstaged) right now.
 # Untracked files we deliberately ignore — those are usually scratch.
