@@ -9,6 +9,7 @@ import { Card } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { CopyButton } from "@/components/shared/CopyButton";
 import { formatSol, formatRelativeTime, formatAddress } from "@repo/lib";
 import { clusterLabel, solscanTxUrl } from "@/lib/solana/explorer";
 
@@ -255,15 +256,21 @@ function PayoutRow({
       </div>
       <div className="text-right">
         {payout.claimSignature ? (
-          <Link
-            href={solscanTxUrl(payout.claimSignature)}
-            target="_blank"
-            rel="noreferrer noopener"
-            aria-label={`View transaction ${formatAddress(payout.claimSignature)} on Solscan`}
-            className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
-          >
-            <ArrowUpRight className="size-3.5" />
-          </Link>
+          <span className="inline-flex items-center gap-0.5">
+            <CopyButton
+              value={payout.claimSignature}
+              label="Copy transaction signature"
+            />
+            <Link
+              href={solscanTxUrl(payout.claimSignature)}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label={`View transaction ${formatAddress(payout.claimSignature)} on Solscan`}
+              className="gb-control gb-control-icon gb-control-ghost inline-flex size-7 items-center justify-center rounded-md text-fg-muted hover:text-fg"
+            >
+              <ArrowUpRight className="size-3.5" />
+            </Link>
+          </span>
         ) : (
           <span className="inline-block size-7" aria-hidden />
         )}
