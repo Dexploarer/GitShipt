@@ -29,7 +29,10 @@ export function SignInForm() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-bg px-6 py-12">
+    <main
+      id="main-content"
+      className="grid min-h-screen place-items-center bg-bg px-6 py-12"
+    >
       <div className="w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-card-elevated surface-highlight">
         <Link
           href="/"
@@ -82,20 +85,20 @@ export function SignInForm() {
           By signing in, you agree to the{" "}
           <Link
             href="/legal/terms"
-            className="text-fg-secondary underline-offset-2 transition-colors hover:text-fg hover:underline"
+            className="text-fg underline decoration-fg-muted underline-offset-2 transition-colors hover:decoration-fg"
           >
             terms
           </Link>{" "}
           and{" "}
           <Link
             href="/legal/privacy"
-            className="text-fg-secondary underline-offset-2 transition-colors hover:text-fg hover:underline"
+            className="text-fg underline decoration-fg-muted underline-offset-2 transition-colors hover:decoration-fg"
           >
             privacy policy
           </Link>
           .
         </p>
       </div>
-    </div>
+    </main>
   );
 }
