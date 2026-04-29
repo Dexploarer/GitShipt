@@ -156,7 +156,39 @@ check that defaults to v0.
 | 42 | wire: penalty enforcement (yellow alignment, red/black payout skip) | `workflows/computeLeaderboard.ts` + `workflows/executePayout.ts` | unit | 21, 41 |
 | 43 | wire: community-verified payout gate | `workflows/executePayout.ts` | unit | schema, 42 |
 
-**After Phase 4**: v1 projects get the full new behavior. v0 projects unchanged.
+**After Phase 4**: v1 wiring is in place. New projects default to v1 and use
+the new behavior. **Existing projects still on v0** (their schema rows still
+have `formulaVersion: "v0"`) continue to use the v0 path. The cut-over is
+the next commit.
+
+### Phase 4.5 — v0 → v1 promotion (1 commit, design §11)
+
+Single SQL migration that promotes every existing project from v0 to v1 in
+one cut-over. Lands AFTER all Phase 4 wiring is verified, so projects
+flipping to v1 immediately get the new behavior.
+
+| # | Title | Files | Tests | Depends on |
+|---|---|---|---|---|
+| 44 | db: 0019_promote_v0_to_v1 backfill | `apps/web/db/migrations/0019_promote_v0_to_v1.sql` | unit (verify v1 fields populated for promoted projects), e2e (one v0 project rendered as v1 after migration) | 39, 40, 41, 42, 43 |
+
+The backfill:
+- `UPDATE projects SET scoring_config = jsonb_set(scoring_config, '{formulaVersion}', '"v1"')` for all rows where current `formulaVersion = 'v0'`.
+- Same UPDATE adds the v1 config defaults: `perPrCommitCap = 5`,
+  `perDayMergedPrCap = 10`, `draftQueueEnabled = true`,
+  `draftAutoReviewDelayHours = 24`, `trivialCommitFilter = true`,
+  `substantiveReviewFloor = {minBodyChars: 200, minAnchoredComments: 1}`,
+  weights for `merges = 2.0`, `reviewSubstantiveScore = 1.0`,
+  `coAuthored = 0.5`.
+- `alignmentConfig`, `agentRoutingPolicy`, `communityLinks` remain NULL —
+  v1 code paths short-circuit when these are null (alignment forced to
+  "informational" mode, routing defaults to treasury, no community surface).
+  Owners populate via PR 3 configurator at their pace.
+
+The v0 dispatch path remains in code as a per-project kill-switch. Nothing
+auto-sets `formulaVersion` back to `'v0'` — only an admin can, by editing
+`scoringConfig` directly.
+
+**After Phase 4.5**: every project on the platform is running v1.
 
 ### Phase 5 — Async + non-intrusive UX (3 commits)
 
@@ -166,9 +198,9 @@ of the v1 system already wired in Phase 4.
 
 | # | Title | Files | Tests | Depends on |
 |---|---|---|---|---|
-| 44 | workflow: processDraftQueue | `workflows/processDraftQueue.ts` + cron entry in `vercel.json` | unit (mocked Octokit + DB) | 22, 36 |
-| 45 | gh-bot over-cap comment + score-status check | `lib/github/bot-comments.ts` + integration in indexProjectDeltas | unit | 22, 40 |
-| 46 | gh-bot penalty-status check | `lib/github/bot-comments.ts` (extend) | unit | 21, 42 |
+| 45 | workflow: processDraftQueue | `workflows/processDraftQueue.ts` + cron entry in `vercel.json` | unit (mocked Octokit + DB) | 22, 36 |
+| 46 | gh-bot over-cap comment + score-status check | `lib/github/bot-comments.ts` + integration in indexProjectDeltas | unit | 22, 40 |
+| 47 | gh-bot penalty-status check | `lib/github/bot-comments.ts` (extend) | unit | 21, 42 |
 
 **After Phase 5**: contributors see status checks on their PRs and helpful
 bot comments when over cap. Drafts left open for >24h get auto-reviewed.
@@ -180,10 +212,10 @@ with reality.
 
 | # | Title | Files | Depends on |
 |---|---|---|---|
-| 47 | dogfood: GitShipt own shipshape.md at repo root | `shipshape.md` | 27, 32 |
-| 48 | dogfood: GitShipt own .github/workflows/gitshipt-report.yml | workflow file | 38 |
-| 49 | dogfood: GitShipt own README badge | `README.md` (additive) | 31 |
-| 50 | docs: honesty fix at /docs | `apps/web/app/(public)/docs/page.tsx` | all of Phase 4 |
+| 48 | dogfood: GitShipt own shipshape.md at repo root | `shipshape.md` | 27, 32 |
+| 49 | dogfood: GitShipt own .github/workflows/gitshipt-report.yml | workflow file | 38 |
+| 50 | dogfood: GitShipt own README badge | `README.md` (additive) | 31 |
+| 51 | docs: honesty fix at /docs | `apps/web/app/(public)/docs/page.tsx` | all of Phase 4 + 44 |
 
 **After Phase 6**: PR 1 ships. Branch is mergeable.
 
@@ -197,13 +229,14 @@ If reviewer fatigue is a concern, group commits into reviewable chunks:
 - **Review chunk B — surface + ingest (8 commits, ~1200 lines).**
   Commits 31–38. New routes/webhooks/UI; reviewer can verify auth, rendering,
   Zod validation.
-- **Review chunk C — wiring + async (8 commits, ~800 lines).**
-  Commits 39–46. v1 behavior turns on. Reviewer can run end-to-end on a
-  fixture project.
+- **Review chunk C — wiring + cut-over + async (9 commits, ~900 lines).**
+  Commits 39–47. v1 wiring, the v0→v1 backfill (commit 44), draft-queue
+  worker, gh-bot UX. Reviewer can run end-to-end on a fixture project and
+  verify the cut-over moves all v0 projects cleanly.
 - **Review chunk D — dogfood + docs (4 commits, ~150 lines).**
-  Commits 47–50. Sanity check.
+  Commits 48–51. Sanity check.
 
-Total: 32 commits added on top of the 7 already on the branch (= 39 total).
+Total: 33 commits added on top of the 8 already on the branch (= 41 total).
 Estimated 18–24 working hours of focused work.
 
 ## Out-of-scope for PR 1 (held for PR 2 / PR 3)
@@ -214,14 +247,16 @@ Estimated 18–24 working hours of focused work.
 - **Format adapters** (CLAUDE.md / .cursor/rules / copilot-instructions). PR 2.
 - **README badge insertion logic in the install PR.** PR 2 (the badge SVG
   route is in PR 1; the install-PR-side insertion is PR 2).
-- **14-day migration window enforcement** for existing projects without
-  shipshape. PR 2.
 - **Dashboard configurator UI** for alignment policy / agent routing /
   install button. PR 3.
 - **Org default-config editor UI** beyond the read-only display. PR 3.
 - **`gitshipt/report-action@v1` reusable action** (lives in a separate
   repo). PR 2 has the stub workflow that calls it; the action repo itself
   is independent.
+
+(Removed: 14-day migration window enforcement. Per design §11, existing
+projects auto-promote to v1 in commit 44 — no grace window, consistent
+with `SPEC.md`'s no-grace-windows rule.)
 
 ## How to verify each commit before pushing
 

@@ -36,7 +36,10 @@ doc is approved.
   do suggestions compile). v1 measures length + anchor density; substance
   detection is v2.
 - **Fiat billing for any GitShipt-side service.** SOL only.
-- **Existing-project grandfathering past 14 days.** See §11.
+- **Existing-project grace windows of any kind.** Forbidden by SPEC.md.
+  Existing v0 projects auto-promote to v1 at PR 1 deploy via SQL backfill;
+  see §11. The earlier 14-day migration window in this doc was a grace
+  window in disguise and has been removed.
 
 ## 3. Three-PR plan
 
@@ -65,7 +68,6 @@ doc is approved.
   `.github/copilot-instructions.md`
 - The reusable `gitshipt/report-action@v1` (separate repo, stubbed here)
 - E2E for gate failure paths (no admin, no App, no shipshape)
-- Migration window enforcement for existing projects
 
 ### PR 3 — dashboard configurator (~1 day)
 
@@ -733,19 +735,45 @@ author. Aggregates feed alignment computation per §8.1. `penalty_issue` and
 > 10% of active contributors flagged in a window pauses further CI penalty
 events and notifies the project owner).
 
-## 11. Existing-project policy (option b)
+## 11. v0 → v1 promotion at deploy (no migration window)
 
-- All projects with `formulaVersion: "v0"` and no `shipshape.md` committed
-  on default branch enter a 14-day migration window starting at PR 2 deploy.
-- During the window, payouts continue under v0 scoring.
-- 7 days in, in-app + email notification: "install shipshape within 7 days".
-- 14 days in, projects without shipshape committed:
-  - `paused = true` with `pausedReason = "shipshape_not_installed"`
-  - Workflows skip them
-  - Owner sees a banner with "Install shipshape" CTA on dashboard
-- Owner can clear pause by completing install at any time.
+The earlier draft of this doc proposed a 14-day grace window for existing v0
+projects. That was a grace window, which `SPEC.md` already forbids. Removed.
 
-`MIGRATION_WINDOW_DAYS = 14` is configurable in `platformConfig`.
+Replacement: at PR 1 deploy, a single SQL backfill (`0019_promote_v0_to_v1.sql`,
+runs after all Phase 4 wiring is in place per the implementation plan) promotes
+every existing project to v1 in one cut-over:
+
+- `scoringConfig.formulaVersion` flipped from `"v0"` to `"v1"`.
+- Missing v1 config fields filled with defaults:
+  - `perPrCommitCap = 5`
+  - `perDayMergedPrCap = 10`
+  - `draftQueueEnabled = true`
+  - `draftAutoReviewDelayHours = 24`
+  - `trivialCommitFilter = true`
+  - `substantiveReviewFloor = { minBodyChars: 200, minAnchoredComments: 1 }`
+  - `weights.merges = 2.0`, `weights.reviewSubstantiveScore = 1.0`,
+    `weights.coAuthored = 0.5`
+- `alignmentConfig`, `agentRoutingPolicy`, `communityLinks` remain NULL —
+  v1 code paths short-circuit cleanly when these are null (alignment mode
+  forced to "informational", routing defaults to "treasury", no community
+  surface). Owners can populate at their leisure via PR 3's configurator.
+
+The v0 dispatch path in code stays as a per-project kill-switch: if a project
+hits a critical v1 bug, an admin can flip `formulaVersion` back to `"v0"` to
+isolate that one project. Nothing auto-sets it.
+
+For the launch gate (§12), this means: existing live projects already past
+launch don't go through `pending_install → ready_to_launch`. They start at
+`launch_state = "launched"` (backfilled in the schema migration). The launch
+gate applies only to NEW projects created after PR 2 ships.
+
+For shipshape installation: the install kit (PR 2) opens a `chore: install
+GitShipt` PR against any repo whose owner re-installs the GitShipt App.
+There is no auto-pause for projects without shipshape committed — they
+keep paying out, they just don't get the runbook surface in their repo
+until the owner installs it. The live `gitshipt.com/r/[org]/[repo]/shipshape.md`
+URL works regardless.
 
 ## 12. Launch gate (PR 2 — referenced for spine compatibility)
 

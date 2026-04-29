@@ -44,6 +44,9 @@ the product model.
 
 - A 7-day or N-day grace/claim window for contributors who haven't linked a
   wallet. (Specifically forbidden — invented in a past session, reverted.)
+- A 14-day or N-day migration window for existing projects to install
+  shipshape. (Same principle. v0 → v1 promotion happens in one cut-over via
+  a single SQL backfill per shipshape design §11; no grace.)
 - A custom Incorporation feature, signing flow, or KYC layer. Bags owns this.
 - SPL token support, "future-proofing" for non-SOL payouts, or generic
   multi-asset abstractions.
