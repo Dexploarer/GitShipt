@@ -63,27 +63,15 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-28 9:58pm CDT
+# [gitbags] recent context, 2026-04-28 10:31pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (25,324t read) | 1,527,750t work | 98% savings
+Stats: 50 obs (24,051t read) | 1,450,059t work | 98% savings
 
 ### Apr 28, 2026
-1933 8:43p ✅ Stale "Primary-Green" Prose Purged — DESIGN.md, badge.tsx, PoolOverviewCard.tsx
-1936 8:44p ✅ GitShipt Production Build Passes Clean — 34 Files, Bone Palette Migration Complete
-1939 8:47p 🔵 gb-control-primary Text Shadow Conflict — Black text-shadow on Near-Black primary-fg
-1941 8:49p 🔴 --primary-text-shadow Token Added — Theme-Aware Text Shadow for Bone Palette Buttons
-1945 8:56p 🔵 GitShipt Completeness Audit — Prior Audit History Retrieved From Memory
-1946 " 🔵 GitShipt Full Route Tree Enumerated — All PRD Routes Present, Several Extra Pages Added
-1950 8:57p 🔵 GitShipt Completeness Audit — Stub/Simulated Surface Inventory and v1.1 Status
-1951 " 🔵 GitShipt Nav Structure — Sidebar Covers All Routes, PublicNav Has 3 Top Links
-1968 9:03p 🔵 GitShipt Admin Cosign TODO — Full Call Site and Architecture Survey
-1969 " 🔵 Irreversible Actions Identified — Cosign Scope for Finding 2
-1970 " 🟣 PublicNav.tsx Mobile Collapse — Responsive Hamburger Menu Implementation
-1971 9:04p 🔵 GitShipt Security Audit — Five Production Gaps Identified
 1973 9:06p 🔵 Landing Page Discloses Simulated 24h Volume — Finding 5 Scope Mapped
 1974 " ⚖️ Simulated Volume Metric — Credential-Gated Display vs. Outright Removal
 1972 " 🟣 PublicNav Mobile Collapse Implemented via Sheet Component
@@ -122,6 +110,18 @@ Stats: 50 obs (25,324t read) | 1,527,750t work | 98% savings
 2011 " 🔵 prepare-e2e-build.mjs Residual Open Finding — Unrelated Process cwd-Inspection Failure Still Blocks E2E
 2012 " 🔵 GitShipt Full Working Tree — 54 Modified Files, 6 Untracked, Uncommitted Before Push
 2013 9:38p 🔵 Cosign Duplicate-Execution Fix — Final Re-Review Confirmed Correct
+2036 9:59p ✅ GitShipt Bone Palette Migration — All Changes Committed and Pushed
+2037 " ✅ GitShipt "Harden production readiness" Commit — 60 Files, New DB Migration
+2039 10:00p ✅ GitShipt Push to origin/main Succeeded — Working Tree Clean
+2077 10:09p 🔵 GitShipt Full System Review — Session Initialization and Repo State
+2078 10:12p 🔵 GitShipt Full Route Map — 115+ Routes Confirmed Across Public, Dashboard, Admin, API, and Embed Surfaces
+2079 " 🔵 GitShipt Security Architecture — CSP, Proxy, Auth, RLS, Rate-Limiting, and Audit Layers All Confirmed
+2080 " 🔵 GitShipt Tech Stack — Confirmed Full Dependency Manifest
+2081 " 🔵 GitShipt Design System — Bone-Ink Palette with Full Dark/Light Token Set Confirmed
+2082 10:15p 🔵 GitShipt Hackathon Submission Description — Consolidated from Source Files
+2083 10:16p ✅ GitShipt Public GitHub Repository Created for Hackathon Submission
+2084 " ✅ GitShipt Origin Remote Migrated from gitbags to SYMBaiEX/GitShipt and Pushed
+2086 " 🔵 GitShipt Codebase Contains No Legacy gitbags References; AGENTS.md Has One Uncommitted Local Change
 
-Access 1528k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 1450k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
