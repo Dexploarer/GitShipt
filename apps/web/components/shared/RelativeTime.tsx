@@ -24,14 +24,17 @@ export function RelativeTime({
   intervalSec = 30,
   className,
 }: RelativeTimeProps) {
+  // Floor at 1s. setInterval(fn, 0) busy-loops; floats < 1 round to 0 in some
+  // engines. Caller intent for sub-second is almost certainly a bug.
+  const safeIntervalMs = Math.max(1000, Math.floor(intervalSec) * 1000);
   // We don't read the tick — it just forces a re-render so formatRelativeTime
   // computes against a fresh Date.now().
   const [, setTick] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), intervalSec * 1000);
+    const id = setInterval(() => setTick((t) => t + 1), safeIntervalMs);
     return () => clearInterval(id);
-  }, [intervalSec]);
+  }, [safeIntervalMs]);
 
   const dateObj = date instanceof Date ? date : new Date(date);
   const valid = Number.isFinite(dateObj.getTime());

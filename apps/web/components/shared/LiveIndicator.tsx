@@ -58,6 +58,25 @@ export function LiveIndicator({
 
   const dateObj =
     lastSyncAt instanceof Date ? lastSyncAt : new Date(lastSyncAt);
+  // Defend against malformed inputs (invalid string, NaN). NaN would otherwise
+  // make every threshold comparison false and the dot would fall through to
+  // "stale" silently — the same visual as a real failure, masking the bug.
+  if (!Number.isFinite(dateObj.getTime())) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-2 text-mono-sm text-fg-muted",
+          className,
+        )}
+      >
+        <span
+          className="size-2 rounded-full bg-fg-muted/40"
+          aria-hidden="true"
+        />
+        Invalid timestamp
+      </span>
+    );
+  }
   const ageSec = Math.max(
     0,
     Math.floor((Date.now() - dateObj.getTime()) / 1000),

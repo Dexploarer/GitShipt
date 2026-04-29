@@ -402,9 +402,14 @@ export async function getPlatformIndexerHeartbeat(): Promise<Date | null> {
     .where(eq(platformConfig.key, "heartbeat.indexer"))
     .limit(1);
   if (!row) return null;
-  const v = row.value as { lastBeatAt?: string };
-  if (!v.lastBeatAt) return null;
-  const d = new Date(v.lastBeatAt);
+  // platformConfig.value is jsonb so Postgres can return null/string/array.
+  // Heartbeat writers always write a `{ lastBeatAt: ISO }` object, but defend
+  // against drift / manual edits / future writers that diverge.
+  const raw: unknown = row.value;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const lastBeatAt = (raw as { lastBeatAt?: unknown }).lastBeatAt;
+  if (typeof lastBeatAt !== "string") return null;
+  const d = new Date(lastBeatAt);
   return Number.isFinite(d.getTime()) ? d : null;
 }
 
