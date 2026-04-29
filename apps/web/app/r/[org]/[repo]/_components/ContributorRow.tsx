@@ -1,13 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { RankMedal } from "@/components/shared";
-import {
-  formatPercent,
-  formatScore,
-  formatSol,
-  formatUsd,
-} from "@repo/lib";
+import { formatPercent, formatSol, formatUsd } from "@repo/lib";
 import type { LeaderboardRow } from "@/lib/queries/project-page";
+import { ScoreBreakdownCell } from "./ScoreBreakdownCell";
 
 /**
  * Single leaderboard row. Renders as a `<Link>` so the entire row is one
@@ -66,7 +62,7 @@ export function ContributorRow({
         </div>
       </div>
       <div role="cell" className="text-right text-mono-md text-fg">
-        {formatScore(row.score)}
+        <ScoreBreakdownCell score={row.score} inputs={row.inputs} />
       </div>
       <div role="cell" className="text-right text-mono-md text-fg">
         {formatPercent(row.weightPercent)}

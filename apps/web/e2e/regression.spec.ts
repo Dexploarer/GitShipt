@@ -3,6 +3,16 @@ import { expect, test, type Page } from "@playwright/test";
 const DEMO_PROJECT_PATH = "/r/SYMBaiEX/gitshipt";
 const HYDRATION_RE =
   /hydration|hydrated|server rendered|server-rendered|did not match/i;
+const HAS_E2E_DB = Boolean(
+  process.env.DATABASE_URL ||
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.DATABASE_POSTGRES_URL ||
+  process.env.DATABASE_POSTGRES_URL_NON_POOLING ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRES_URL_NON_POOLING ||
+  process.env.POSTGRES_PRISMA_URL,
+);
+const regressionTest = HAS_E2E_DB ? test : test.skip;
 
 async function installLightTheme(page: Page) {
   await page.addInitScript(() => {
@@ -123,85 +133,97 @@ async function visibleTextContrastFailures(page: Page) {
 }
 
 test.describe("audit regression coverage", () => {
-  test("mobile project footer does not overlap the daily fee pool value", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await requireOkPage(page, DEMO_PROJECT_PATH);
+  regressionTest(
+    "mobile project footer does not overlap the daily fee pool value",
+    async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await requireOkPage(page, DEMO_PROJECT_PATH);
 
-    const poolCard = page
-      .getByRole("heading", { name: "Daily Fee Pool", level: 2 })
-      .locator("xpath=ancestor::section[1]");
-    await expect(poolCard).toBeVisible();
-    await poolCard.scrollIntoViewIfNeeded();
+      const poolCard = page
+        .getByRole("heading", { name: "Daily Fee Pool", level: 2 })
+        .locator("xpath=ancestor::section[1]");
+      await expect(poolCard).toBeVisible();
+      await poolCard.scrollIntoViewIfNeeded();
 
-    const layout = await page.evaluate(() => {
-      const footer = document.querySelector("footer");
-      const heading = Array.from(document.querySelectorAll("h2")).find(
-        (el) => el.textContent?.trim() === "Daily Fee Pool",
-      );
-      const pool = heading?.closest("section") ?? null;
-      const amount = pool
-        ? Array.from(pool.querySelectorAll("div, span")).find((el) =>
-            /\bSOL\b/.test(el.textContent ?? ""),
-          )
-        : null;
+      const layout = await page.evaluate(() => {
+        const footer = document.querySelector("footer");
+        const heading = Array.from(document.querySelectorAll("h2")).find(
+          (el) => el.textContent?.trim() === "Daily Fee Pool",
+        );
+        const pool = heading?.closest("section") ?? null;
+        const amount = pool
+          ? Array.from(pool.querySelectorAll("div, span")).find((el) =>
+              /\bSOL\b/.test(el.textContent ?? ""),
+            )
+          : null;
 
-      if (!footer || !pool || !amount) return null;
+        if (!footer || !pool || !amount) return null;
 
-      const footerBox = footer.getBoundingClientRect();
-      const amountBox = amount.getBoundingClientRect();
-      return {
-        footerTop: footerBox.top,
-        amountBottom: amountBox.bottom,
-      };
-    });
+        const footerBox = footer.getBoundingClientRect();
+        const amountBox = amount.getBoundingClientRect();
+        return {
+          footerTop: footerBox.top,
+          amountBottom: amountBox.bottom,
+        };
+      });
 
-    expect(layout).not.toBeNull();
-    expect(layout!.amountBottom).toBeLessThanOrEqual(layout!.footerTop);
-  });
+      expect(layout).not.toBeNull();
+      expect(layout!.amountBottom).toBeLessThanOrEqual(layout!.footerTop);
+    },
+  );
 
-  test("explore hydrates without React mismatch warnings", async ({ page }) => {
-    const hydrationProblems = captureHydrationProblems(page);
+  regressionTest(
+    "explore hydrates without React mismatch warnings",
+    async ({ page }) => {
+      const hydrationProblems = captureHydrationProblems(page);
 
-    await requireOkPage(page, "/explore");
-    await expect(
-      page.getByRole("searchbox", { name: "Search projects" }),
-    ).toBeVisible();
-    await page.getByRole("searchbox", { name: "Search projects" }).fill("git");
-    await page.waitForTimeout(400);
+      await requireOkPage(page, "/explore");
+      await expect(
+        page.getByRole("searchbox", { name: "Search projects" }),
+      ).toBeVisible();
+      await page
+        .getByRole("searchbox", { name: "Search projects" })
+        .fill("git");
+      await page.waitForTimeout(400);
 
-    expect(hydrationProblems).toEqual([]);
-  });
+      expect(hydrationProblems).toEqual([]);
+    },
+  );
 
-  test("public routes keep one descriptive h1 for route announcements", async ({
-    page,
-  }) => {
-    for (const path of ["/", "/explore", DEMO_PROJECT_PATH]) {
-      await requireOkPage(page, path);
+  regressionTest(
+    "public routes keep one descriptive h1 for route announcements",
+    async ({ page }) => {
+      const publicPaths = HAS_E2E_DB
+        ? ["/", "/explore", DEMO_PROJECT_PATH]
+        : ["/", "/explore"];
+      for (const path of publicPaths) {
+        await requireOkPage(page, path);
+        await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+      }
+    },
+  );
+
+  regressionTest(
+    "light theme keeps visible text above WCAG contrast thresholds",
+    async ({ page }) => {
+      await installLightTheme(page);
+      await requireOkPage(page, "/explore");
+
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-    }
-  });
+      expect(await visibleTextContrastFailures(page)).toEqual([]);
+    },
+  );
 
-  test("light theme keeps visible text above WCAG contrast thresholds", async ({
-    page,
-  }) => {
-    await installLightTheme(page);
-    await requireOkPage(page, "/explore");
+  regressionTest(
+    "admin and project settings routes are gated without a session",
+    async ({ page }) => {
+      await page.goto("/admin");
+      await expect(page).toHaveURL(/\/auth\/signin\?next=%2Fadmin$/);
 
-    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-    expect(await visibleTextContrastFailures(page)).toEqual([]);
-  });
-
-  test("admin and project settings routes are gated without a session", async ({
-    page,
-  }) => {
-    await page.goto("/admin");
-    await expect(page).toHaveURL(/\/auth\/signin\?next=%2Fadmin$/);
-
-    await page.goto("/dashboard/projects/project_demo/settings");
-    await expect(page).toHaveURL(
-      /\/auth\/signin\?next=%2Fdashboard%2Fprojects%2Fproject_demo%2Fsettings$/,
-    );
-  });
+      await page.goto("/dashboard/projects/project_demo/settings");
+      await expect(page).toHaveURL(
+        /\/auth\/signin\?next=%2Fdashboard%2Fprojects%2Fproject_demo%2Fsettings$/,
+      );
+    },
+  );
 });

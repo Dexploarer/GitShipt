@@ -33,7 +33,7 @@ jobs:
         run: bun run build
 
       - name: Lighthouse CI
-        uses: treosh/lighthouse-ci-action@12.x
+        uses: treosh/lighthouse-ci-action@12.6.2
         with:
           configPath: ./.github/lighthouserc.json
           uploadArtifacts: true

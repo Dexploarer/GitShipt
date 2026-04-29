@@ -27,6 +27,7 @@ import { hasCredentials } from "@/lib/env";
 import { cacheLife, cacheTag } from "next/cache";
 import { bags } from "@/lib/bags/client";
 import { formatRelativeTime, formatSol } from "@repo/lib";
+import { RelativeTime } from "@/components/shared/RelativeTime";
 import { cn } from "@repo/lib";
 
 
@@ -245,7 +246,11 @@ function HeartbeatsCard({
                 </span>
               </div>
               <span className="text-mono-sm text-fg-muted">
-                {r.lastBeatAt ? formatRelativeTime(r.lastBeatAt) : "never"}
+                {r.lastBeatAt ? (
+                  <RelativeTime date={r.lastBeatAt} />
+                ) : (
+                  "never"
+                )}
               </span>
             </li>
           ))
@@ -354,12 +359,10 @@ function RecentAuditCard({
                   · {r.actorName ?? "system"}
                 </span>
               </span>
-              <span
+              <RelativeTime
+                date={r.createdAt}
                 className="shrink-0 text-mono-sm text-fg-muted"
-                title={r.createdAt.toISOString()}
-              >
-                {formatRelativeTime(r.createdAt)}
-              </span>
+              />
             </li>
           ))
         )}

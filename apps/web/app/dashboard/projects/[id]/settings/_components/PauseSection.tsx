@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Pause, Play } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui";
 import { Input } from "@repo/ui";
 import { Badge } from "@repo/ui";
@@ -36,8 +37,11 @@ export function PauseSection({
           idempotencyKey: `pause-${projectId}-${Date.now()}`,
         });
         setConfirmOpen(false);
+        toast.success(isPaused ? "Project resumed" : "Project paused");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Toggle failed");
+        const message = e instanceof Error ? e.message : "Toggle failed";
+        setError(message);
+        toast.error(message);
       }
     });
   }

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ChevronDown, ChevronUp, Save, Zap } from "lucide-react";
+import { toast } from "sonner";
 import {
   Card,
   CardHeader,
@@ -73,8 +74,11 @@ export function ScoringConfigEditor({
           idempotencyKey: `scoring-ui-${projectId}-${Date.now()}`,
         });
         setSaved(true);
+        toast.success("Scoring config updated");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Save failed");
+        const message = e instanceof Error ? e.message : "Save failed";
+        setError(message);
+        toast.error(message);
       }
     });
   }
@@ -87,8 +91,12 @@ export function ScoringConfigEditor({
           projectId,
           idempotencyKey: `force-${projectId}-${Date.now()}`,
         });
+        toast.success("Snapshot triggered");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Snapshot trigger failed");
+        const message =
+          e instanceof Error ? e.message : "Snapshot trigger failed";
+        setError(message);
+        toast.error(message);
       }
     });
   }

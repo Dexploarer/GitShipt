@@ -6,7 +6,11 @@ import { ArrowUpRight, Trophy } from "lucide-react";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Card } from "@repo/ui";
-import { getLandingData } from "@/lib/queries/global";
+import {
+  getLandingData,
+  getPlatformIndexerHeartbeat,
+} from "@/lib/queries/global";
+import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import {
   getProjectBySlug,
   getProjectLeaderboard,
@@ -17,35 +21,8 @@ import {
   BentoTickerCell,
   getLandingTickerCellKeys,
 } from "../_components/BentoTicker";
-
 const FEATURED_OWNER = "SYMBaiEX";
 const FEATURED_REPO = "gitshipt";
-const MIA_LOGO_OVERLAYS = [
-  {
-    position: "left-[25%] top-[32%]",
-    size: "size-[72px] sm:size-[92px] lg:size-[132px]",
-    drift: "gitshipt-logo-float-a",
-    tilt: "-rotate-12 -skew-y-6",
-  },
-  {
-    position: "right-[23%] top-[25%]",
-    size: "size-16 sm:size-[84px] lg:size-[120px]",
-    drift: "gitshipt-logo-float-b",
-    tilt: "rotate-10 skew-y-6",
-  },
-  {
-    position: "left-[37%] top-[45%]",
-    size: "size-12 sm:size-[66px] lg:size-[88px]",
-    drift: "gitshipt-logo-float-c",
-    tilt: "rotate-6 -skew-y-3",
-  },
-  {
-    position: "right-[19%] top-[35%]",
-    size: "size-12 sm:size-[66px] lg:size-[92px]",
-    drift: "gitshipt-logo-float-d",
-    tilt: "-rotate-8 skew-y-3",
-  },
-] as const;
 
 /**
  * Landing page — viewport-locked bento on lg+, scrollable column on mobile.
@@ -66,9 +43,10 @@ export default function LandingPage() {
 }
 
 async function LandingPageContent() {
-  const [{ ticker }, featuredHeader] = await Promise.all([
+  const [{ ticker }, featuredHeader, indexerHeartbeat] = await Promise.all([
     getLandingData(),
     getProjectBySlug(FEATURED_OWNER, FEATURED_REPO),
+    getPlatformIndexerHeartbeat(),
   ]);
   const featuredContribs: LeaderboardRow[] = featuredHeader
     ? await getProjectLeaderboard(
@@ -90,7 +68,7 @@ async function LandingPageContent() {
           via `order-*` so the mobile reading flow is: text → visual →
           featured-project → CTAs, instead of text → featured → visual → CTAs.
         */}
-      <div className="grid grid-cols-1 gap-4 lg:mb-8 lg:min-h-0 lg:grid-cols-[minmax(0,520px)_minmax(0,760px)] lg:justify-center lg:gap-8">
+      <div className="grid grid-cols-1 gap-4 lg:mb-2 lg:min-h-0 lg:grid-cols-[minmax(0,480px)_minmax(0,900px)] lg:justify-center lg:gap-8">
         <div className="contents lg:flex lg:flex-col lg:min-h-0 lg:justify-center lg:gap-10">
           <section className="order-1 flex flex-col items-start gap-4 lg:order-none lg:gap-5">
             <h1 className="text-display text-fg">
@@ -103,16 +81,22 @@ async function LandingPageContent() {
               on-chain in SOL.
             </p>
 
-            <Link
-              href="https://github.com/SYMBaiEX/gitshipt"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-flex items-center gap-1.5 text-caption text-fg-muted transition-colors hover:text-fg"
-            >
-              <Github className="size-3.5" aria-hidden />
-              SYMBaiEX/gitshipt
-              <ArrowUpRight className="size-3" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-caption">
+              <Link
+                href="https://github.com/SYMBaiEX/gitshipt"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center gap-1.5 text-fg-muted transition-colors hover:text-fg"
+              >
+                <Github className="size-3.5" aria-hidden />
+                SYMBaiEX/gitshipt
+                <ArrowUpRight className="size-3" />
+              </Link>
+              <LiveIndicator
+                lastSyncAt={indexerHeartbeat}
+                label="Indexer"
+              />
+            </div>
           </section>
 
           <div className="order-3 flex w-full flex-col gap-10 lg:order-none lg:w-[440px]">
@@ -138,49 +122,63 @@ async function LandingPageContent() {
         </div>
 
         <div className="contents lg:flex lg:min-h-0 lg:flex-col lg:justify-end lg:gap-0">
-          <div className="gitshipt-mia-stage pointer-events-none relative order-2 mx-auto aspect-square w-full max-w-[360px] sm:max-w-[460px] lg:order-none lg:aspect-auto lg:mx-0 lg:h-[700px] lg:w-full lg:max-w-none lg:shrink-0">
+          <div className="gitshipt-mia-stage pointer-events-none relative order-2 mx-auto aspect-square w-full max-w-[420px] sm:max-w-[540px] lg:order-none lg:aspect-auto lg:mx-0 lg:h-[820px] lg:w-full lg:max-w-none lg:shrink-0">
             <Image
               src="/mia.png"
               alt=""
               fill
               priority
-              sizes="(max-width: 640px) 360px, (max-width: 1024px) 460px, 700px"
+              sizes="(max-width: 640px) 420px, (max-width: 1024px) 540px, 900px"
               className="gitshipt-mia-art z-[1] object-contain object-bottom"
               unoptimized
             />
-            {MIA_LOGO_OVERLAYS.map((logo) => (
-              <span
-                key={`${logo.position}-${logo.size}`}
-                aria-hidden="true"
-                className={`${logo.position} ${logo.size} ${logo.drift} gitshipt-logo-float absolute z-10 block`}
-              >
-                <Image
-                  src="/logo.png"
-                  alt=""
-                  fill
-                  sizes="(max-width: 640px) 72px, (max-width: 1024px) 92px, 132px"
-                  className={`${logo.tilt} gitshipt-logo-mark select-none object-contain`}
-                  unoptimized
-                />
-              </span>
-            ))}
+            <div
+              aria-hidden="true"
+              className="gitshipt-flag-wave absolute right-[8%] top-[-4%] z-[3] w-[140px] sm:w-[180px] lg:w-[240px]"
+            >
+              <Image
+                src="/flag.png"
+                alt=""
+                width={480}
+                height={640}
+                sizes="(max-width: 640px) 140px, (max-width: 1024px) 180px, 240px"
+                className="gitshipt-flag-art h-auto w-full select-none object-contain"
+                unoptimized
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Row 2: live KPI strip (4 cells) ──────────────────────── */}
-      <section
-        aria-label="Live platform metrics"
-        className={
-          tickerCellKeys.length === 4
-            ? "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:shrink-0 lg:grid-cols-4 lg:gap-3"
-            : "grid grid-cols-1 gap-2 sm:grid-cols-3 lg:shrink-0 lg:gap-3"
-        }
-      >
-        {tickerCellKeys.map((cellKey) => (
-          <BentoTickerCell key={cellKey} initial={ticker} cellKey={cellKey} />
-        ))}
-      </section>
+      {/* ── Row 2: ship marker + live KPI strip (above footer) ──── */}
+      <div className="relative lg:shrink-0">
+        <div
+          aria-hidden="true"
+          className="gitshipt-ship-float pointer-events-none absolute -top-12 left-1/2 z-[2] w-[140px] -translate-x-1/2 sm:w-[180px] lg:-top-16 lg:w-[220px]"
+        >
+          <Image
+            src="/ship.png"
+            alt=""
+            width={440}
+            height={293}
+            sizes="(max-width: 640px) 140px, (max-width: 1024px) 180px, 220px"
+            className="gitshipt-ship-art h-auto w-full select-none object-contain"
+            unoptimized
+          />
+        </div>
+        <section
+          aria-label="Live platform metrics"
+          className={
+            tickerCellKeys.length === 4
+              ? "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 lg:gap-3"
+              : "grid grid-cols-1 gap-2 sm:grid-cols-3 lg:gap-3"
+          }
+        >
+          {tickerCellKeys.map((cellKey) => (
+            <BentoTickerCell key={cellKey} initial={ticker} cellKey={cellKey} />
+          ))}
+        </section>
+      </div>
     </div>
   );
 }

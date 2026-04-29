@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Ban, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui";
 import { DestructiveConfirmModal } from "@/components/admin/DestructiveConfirmModal";
 import { cancelPayout, retryPayout } from "@/app/admin/actions";
@@ -28,6 +29,9 @@ export function PayoutRowActions({
         payoutId,
         idempotencyKey: `payout-retry-${payoutId}-${Date.now()}`,
       });
+      toast.success("Payout retry queued");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Retry failed");
     } finally {
       setBusy(false);
     }
@@ -79,6 +83,7 @@ export function PayoutRowActions({
         action={async (p) => {
           return await cancelPayout({ payoutId, ...p });
         }}
+        successToast="Payout cancelled"
       />
     </div>
   );

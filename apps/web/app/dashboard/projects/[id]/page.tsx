@@ -23,6 +23,8 @@ import { formatSol, formatRelativeTime } from "@repo/lib";
 import { loadProjectFor } from "../../_components/loadProject";
 import { StatTile } from "@/components/shared/StatTile";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { LiveIndicator } from "@/components/shared/LiveIndicator";
+import { RelativeTime } from "@/components/shared/RelativeTime";
 import {
   Card,
   CardHeader,
@@ -76,15 +78,21 @@ async function ProjectOverviewPageContent({
             { label: project.name },
           ]}
         />
-        <Button asChild variant="secondary" size="default">
-          <Link
-            href={`/r/${project.slug}`}
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            View public page <ExternalLink className="size-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          <LiveIndicator
+            lastSyncAt={indexer?.lastIncrementalSyncAt ?? null}
+            label="Indexer"
+          />
+          <Button asChild variant="secondary" size="default">
+            <Link
+              href={`/r/${project.slug}`}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              View public page <ExternalLink className="size-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -155,9 +163,11 @@ function RecentActivityCard({ rows }: { rows: RecentAuditEntry[] }) {
                     <span className="text-label-md text-fg">
                       {humanizeAction(r.action)}
                     </span>
-                    <span className="text-caption text-fg-muted">
-                      {formatRelativeTime(r.createdAt)}
-                    </span>
+                    <RelativeTime
+                      date={r.createdAt}
+                      className="text-caption text-fg-muted"
+                    />
+
                   </div>
                   <div className="text-caption text-fg-muted truncate">
                     {r.actorName ?? "system"}
@@ -234,9 +244,14 @@ function AlertsCard({
                   </span>
                 </div>
                 <p className="mt-1 text-caption text-fg-muted">
-                  {indexer?.lastIncrementalSyncAt
-                    ? `Last sync ${formatRelativeTime(indexer.lastIncrementalSyncAt)}`
-                    : "Never synced"}
+                  {indexer?.lastIncrementalSyncAt ? (
+                    <>
+                      Last sync{" "}
+                      <RelativeTime date={indexer.lastIncrementalSyncAt} />
+                    </>
+                  ) : (
+                    "Never synced"
+                  )}
                   . Open Repository to inspect link state.
                 </p>
               </li>

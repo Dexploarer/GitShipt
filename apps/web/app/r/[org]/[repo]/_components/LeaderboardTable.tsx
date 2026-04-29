@@ -1,5 +1,6 @@
 import { Trophy } from "lucide-react";
 import { ContributorRow } from "./ContributorRow";
+import { LeaderboardTooltipScope } from "./LeaderboardTooltipScope";
 import { HowScoringWorksModal } from "./HowScoringWorksModal";
 import { formatSol } from "@repo/lib";
 import { Card } from "@repo/ui";
@@ -82,14 +83,16 @@ export function LeaderboardTable({
             className="min-h-0 max-h-[520px] flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent] lg:max-h-none"
             aria-label="Contributor rankings, scrollable"
           >
-            {rows.map((row) => (
-              <ContributorRow
-                key={row.contributorId}
-                row={row}
-                dailyFeeLamports={dailyFeeLamports}
-                dailyFeeUsd={dailyFeeUsd}
-              />
-            ))}
+            <LeaderboardTooltipScope>
+              {rows.map((row) => (
+                <ContributorRow
+                  key={row.contributorId}
+                  row={row}
+                  dailyFeeLamports={dailyFeeLamports}
+                  dailyFeeUsd={dailyFeeUsd}
+                />
+              ))}
+            </LeaderboardTooltipScope>
           </div>
         </div>
       )}
