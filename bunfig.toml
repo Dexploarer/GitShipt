@@ -1,0 +1,17 @@
+# Bun workspace install configuration.
+#
+# `linker = "hoisted"` forces a flat node_modules layout instead of Bun's
+# default `isolated` (.bun/-deduped symlinks). Required because the
+# Vercel Workflow DevKit bundler runs esbuild with a custom resolver that
+# cannot follow Bun's isolated layout when resolving transitive peer
+# dependencies inside @solana/web3.js (specifically @solana/codecs-numbers
+# and rpc-websockets). With hoisted, esbuild walks normal node_modules
+# directories and finds peers correctly.
+#
+# Tradeoff: phantom-dependency protection is weaker than isolated. Code
+# could accidentally import a transitive dep that isn't in package.json
+# and still resolve at runtime. Acceptable for this app — the workflow
+# build is the binding constraint.
+
+[install]
+linker = "hoisted"
