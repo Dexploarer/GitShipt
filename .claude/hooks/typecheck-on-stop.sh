@@ -26,6 +26,19 @@ if [ "${CLAUDE_SKIP_TYPECHECK:-0}" = "1" ]; then
   exit 0
 fi
 
+# Bun is required for typecheck. If it's not on PATH (fresh shell, dotfile
+# drift, etc.), surface a clear message rather than letting the user see a
+# generic "command not found" mixed with hook plumbing.
+if ! command -v bun >/dev/null 2>&1; then
+  {
+    echo "Stop hook: \`bun\` is not in PATH; skipping typecheck."
+    echo "Uncommitted TS files would have been checked:"
+    echo "$changed_ts" | sed 's/^/  - /'
+    echo "Install Bun (https://bun.sh) or set CLAUDE_SKIP_TYPECHECK=1 to silence."
+  } >&2
+  exit 0
+fi
+
 # Run typecheck quietly. On failure, surface the tail of the output to Claude
 # so it can offer to fix.
 output=$(bun run typecheck 2>&1)

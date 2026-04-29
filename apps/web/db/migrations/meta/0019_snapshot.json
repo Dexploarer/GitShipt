@@ -496,7 +496,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "contributor_penalties_ci_evidence_required": {
+          "name": "contributor_penalties_ci_evidence_required",
+          "value": "\"contributor_penalties\".\"issued_by\" <> 'ci_workflow' OR \"contributor_penalties\".\"evidence_url\" IS NOT NULL"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.contributor_claims": {
