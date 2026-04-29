@@ -81,6 +81,12 @@ maintainers handle 15% via `/gitshipt flag` + `/gitshipt ban`, the remaining
   gameable by well-prompted bots. Real substance check (do comments
   reference real diff symbols, do suggestions compile) needs LLM at
   review time. v2.
+- **Org-level coordination beyond namespace + default-config inheritance.**
+  v1 ships orgs as a namespace with shared defaults and read-only
+  aggregated dashboards. Org-level tokens with cross-repo fee-pool
+  weighting, org-level shipshape, org-wide slash commands, and
+  auto-sync of org defaults to existing projects all defer to v2 — they
+  need their own design pass. Per-repo coordination is the v1 contract.
 
 ## Boundaries that need confirmation before crossing
 

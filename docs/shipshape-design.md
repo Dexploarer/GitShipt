@@ -860,6 +860,92 @@ install time; GitHub's permission model means only repo admins can grant.
 - Runbook preview (renders current `shipshape.md` + `logbook.md`)
 - "Install runbook" / "Update runbook" buttons
 
+## 14.5 Organizations (PR 1)
+
+GitHub orgs are a real namespace dimension — orgs with N repos shouldn't
+manage N copies of identical scoring/alignment/community config, and an
+org owner reasonably wants an aggregated view across their repos. v1
+ships **org-as-namespace + default-config inheritance + read-only org
+dashboard + cross-repo contributor visibility**.
+
+### 14.5.1 What's in v1
+
+- **`organizations` table** stores per-org defaults (scoring, alignment,
+  agent routing, community links, payout config). One row per GitHub org
+  the App has been installed on.
+- **`projects.ghOrgId` FK** (nullable — user repos have no org). On
+  project creation for an org repo, the org row is looked up (or
+  created on first install) and current defaults are **snapshotted**
+  into the project row. Project owns its config from that point.
+- **No auto-sync.** When org defaults change, existing projects keep
+  their snapshotted config. Predictable; no surprise mutations to live
+  payouts. Org owner can "re-apply defaults" to a project explicitly
+  via the dashboard if they want.
+- **Org dashboard** at `app/dashboard/orgs/[ghLogin]/page.tsx`:
+  - Read-only list of org's GitShipt projects with status, period
+    payout, top contributor.
+  - Aggregated leaderboard: sum a contributor's score across all org
+    projects (group by `gh_user_id`).
+  - Recent payouts across the org.
+- **Org settings page** at `app/dashboard/orgs/[ghLogin]/settings/page.tsx`
+  for the org owner to edit defaults. Affects only future project
+  creations.
+- **Cross-repo contributor view** in the contributor's own dashboard:
+  `gh_user_id` joins across project rows so their work on multiple
+  GitShipt repos shows as one identity with per-project breakdowns.
+
+### 14.5.2 Schema additions
+
+```ts
+organizations (
+  id text pk default createId(),
+  gh_org_id text unique not null,         // GitHub org's numeric id
+  gh_login text unique not null,          // org slug, e.g. "anthropic"
+  display_name text,
+  default_scoring_config jsonb,
+  default_alignment_config jsonb,
+  default_agent_routing_policy jsonb,
+  default_community_links jsonb,
+  default_payout_config jsonb,
+  primary_wallet_address text,
+  installed_at timestamp not null default now(),
+  installed_by_user_id text not null,      // gh user id who installed App
+  created_at timestamp not null default now(),
+  updated_at timestamp not null default now()
+)
+-- index on gh_org_id, gh_login
+
+projects gains:
+  gh_org_id text                           // soft FK to organizations.gh_org_id
+                                            // null for user-namespace repos
+```
+
+### 14.5.3 Permissions
+
+- **Editing org defaults** requires the user to be currently `admin` on
+  the GitHub org (`octokit.rest.orgs.getMembershipForUser` returns
+  `role: "admin"`) AND wallet-linked.
+- **Viewing org dashboard** is open to any GitShipt-authenticated user
+  who has at least one repo-level relationship to any project in the
+  org (contributor, maintainer, or owner). Org owners see everything.
+- **Cosign** is reserved for irreversible org-level actions; v1 has
+  none (re-applying defaults is reversible by re-editing). Future
+  org-level treasury ops will require it.
+
+### 14.5.4 Deferred to v2
+
+- **Org-level token** with cross-repo fee-pool weighting.
+- **Org-level shipshape.md** at `gitshipt.com/org/[org]/shipshape.md`.
+- **Org-level slash commands** that propagate across all org repos
+  (e.g., `/gitshipt org-ban` to ban a contributor from every repo
+  under the org).
+- **Auto-sync of org defaults** to existing projects (opt-in
+  "apply default to all projects in org now" mechanism).
+- **Org-level treasury / payout aggregation.**
+
+These need their own design pass; the v1 namespace+inheritance gets
+80% of the value at 20% of the complexity.
+
 ## 15. Risks + mitigations
 
 | Risk | Mitigation |
@@ -894,7 +980,10 @@ install time; GitHub's permission model means only repo admins can grant.
 - The `gitshipt/report-action` repository itself (PR 2)
 - Dashboard configurator UI (PR 3)
 - Hosted AI review service (not on roadmap)
-- Cross-repo / monorepo aggregation (v3)
+- **Org-level token** with cross-repo fee-pool weighting (v2)
+- **Org-level shipshape.md** + org-level slash commands (v2)
+- **Auto-sync of org defaults** to existing projects (v2)
+- Cross-repo / monorepo aggregation beyond org-namespace dashboards (v3)
 - Non-GitHub source forges (GitLab, Codeberg) — v3 minimum
 
 ### 17.2 Acknowledged limitations — the "oh well" list
@@ -946,7 +1035,7 @@ implementation lands as a series of commits on this branch in the order:
 
 1. Schema migration (incl. perWindowPrCap / draftQueueEnabled fields,
    contributor_penalties table, communityLinks/communityVerified columns,
-   pendingDraftReviews table)
+   pendingDraftReviews table, organizations table, projects.ghOrgId)
 2. Scoring v1 + pacing cap logic + tests
 3. Indexer v1 (incl. head-SHA check on review iteration bonus,
    linkedOpenIssue author rule, co-author noreply verification) + tests
@@ -965,5 +1054,7 @@ implementation lands as a series of commits on this branch in the order:
 14. GitShipt's own README badge inserted (dogfood the install kit)
 15. Badge SVG route at `app/badge/r/[org]/[repo].svg` (PR 1 since it's
     needed before any badge can resolve)
+16. Org dashboard (`app/dashboard/orgs/[ghLogin]/page.tsx`) read-only +
+    cross-repo contributor view + org settings page
 
 Each commit passes typecheck and tests independently.
