@@ -12,7 +12,10 @@ import { formatRelativeTime } from "@repo/lib";
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
   { key: "draft", label: "Draft" },
+  { key: "launch_configured", label: "Configured" },
   { key: "live", label: "Live" },
+  { key: "simulated_live", label: "Simulated" },
+  { key: "tracked", label: "Tracked" },
   { key: "paused", label: "Paused" },
   { key: "killed", label: "Killed" },
 ] as const;
