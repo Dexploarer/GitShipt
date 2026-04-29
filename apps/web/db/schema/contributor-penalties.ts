@@ -4,7 +4,9 @@ import {
   text,
   timestamp,
   index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createId } from "@repo/lib";
 import { contributors } from "./contributors";
 import { projects } from "./projects";
@@ -71,6 +73,14 @@ export const contributorPenalties = pgTable(
       t.projectId,
       t.level,
       t.expiresAt,
+    ),
+    // CI-issued penalties must include an evidence URL (CI run); human-issued
+    // penalties may include one but it's not required. Mirror of the CHECK
+    // constraint hand-written into 0018_awesome_boom_boom.sql so future
+    // db:generate runs don't try to drop it as drift.
+    ciEvidenceRequired: check(
+      "contributor_penalties_ci_evidence_required",
+      sql`${t.issuedBy} <> 'ci_workflow' OR ${t.evidenceUrl} IS NOT NULL`,
     ),
   }),
 );
