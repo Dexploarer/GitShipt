@@ -767,16 +767,88 @@ At every transition the launching user's GitHub `admin` permission on the
 target repo is re-verified live. Permission can be lost between transitions;
 the gate fails closed.
 
-## 13. Format adapters (PR 2)
+## 13. Install kit + format adapters (PR 2)
 
-Single source of truth: `shipshape.md`. Adapters serialize a subset:
+When an owner installs the GitShipt App on a repo, our App opens a single
+PR titled `chore: install GitShipt` containing all the files the spine
+needs to operate. The owner reviews + merges using the same admin perms
+required to install the App, advancing `launchState` per §12.
 
-- `CLAUDE.md` — full shipshape with `@AGENTS.md` and `@SPEC.md` cross-refs
+### 13.1 Install PR contents
+
+| File | Treatment | Required? |
+|---|---|---|
+| `shipshape.md` (repo root) | Create | **Required** — runbook spine |
+| `.github/workflows/gitshipt-report.yml` | Create | **Required** — CI ingest source |
+| `README.md` | Additive — insert badge after first H1; only if README exists | Strongly advised |
+| `CLAUDE.md` | Additive — append `@shipshape.md` import section; create if missing | Optional |
+| `.cursor/rules/gitshipt.md` | Create (single rule file in existing or new dir) | Optional |
+| `.github/copilot-instructions.md` | Additive — append `## GitShipt` section; create if missing | Optional |
+| `AGENTS.md` | Additive — append shipshape pointer; create if missing | Optional |
+
+### 13.2 Additive merge logic — idempotent install
+
+For files marked "Additive": never blindly overwrite. The App reads the
+file, locates the GitShipt-managed section by marker comments
+(`<!-- gitshipt:start -->` ... `<!-- gitshipt:end -->`), and replaces
+just that section. Re-running install (or auto-update PRs as shipshape
+rules change) updates the section, preserving everything else.
+
+If the file doesn't exist, the App creates it with just the managed
+section.
+
+### 13.3 README badge
+
+```md
+[![GitShipt — tracked](https://gitshipt.com/badge/r/{org}/{repo}.svg)](https://gitshipt.com/r/{org}/{repo})
+```
+
+- Served from a new route `app/badge/r/[org]/[repo].svg/route.ts` returning
+  an SVG with the GitShipt mark + "tracked" label.
+- v1 is static "tracked"; v2 can render live data (top contributor,
+  current period rank, payout cadence).
+- Insertion logic: find the first H1 in the README. If a badges block
+  (run of consecutive `[![..]()` lines) immediately follows, append
+  badge to that block. Otherwise insert on a new line after the H1.
+- Tracking: searching GitHub for `gitshipt.com/badge` surfaces all
+  GitShipt-tracked repos. Useful for analytics + social proof.
+
+### 13.4 Owner install-time choices
+
+Owner sees a checklist on the install page:
+
+- ☑ `shipshape.md` (required, locked)
+- ☑ `.github/workflows/gitshipt-report.yml` (required, locked)
+- ☑ README badge (default on)
+- ☑ `CLAUDE.md` adapter (default on)
+- ☑ `.cursor/rules/gitshipt.md` (default on)
+- ☑ `.github/copilot-instructions.md` (default on)
+- ☑ `AGENTS.md` (default on)
+
+Choices stored on `projects.installPreferences` so re-runs honor them.
+
+### 13.5 Format adapter contents
+
+All adapters reference the canonical live URL
+`https://gitshipt.com/r/[org]/[repo]/shipshape.md` so they don't go stale,
+and include a marker-bracketed section that the install PR can update
+in-place:
+
+- `CLAUDE.md` — `@shipshape.md` import + `@AGENTS.md` + `@SPEC.md` cross-refs
 - `.cursor/rules/gitshipt.md` — Cursor-rules format with frontmatter
 - `.github/copilot-instructions.md` — flat instructions, no frontmatter
+- `AGENTS.md` — short shipshape pointer paragraph
 
-All three reference the canonical live URL
-`https://gitshipt.com/r/[org]/[repo]/shipshape.md` so they don't go stale.
+### 13.6 Required GitHub App permissions
+
+The install PR mechanism requires:
+- **Contents: read & write** (create files, open PRs)
+- **Pull requests: read & write** (open the PR, label it)
+- **Metadata: read** (resolve repo info)
+- **Issues: write** (apply labels for the penalty system per §6.6)
+
+These are documented in the App manifest. The App requests them at
+install time; GitHub's permission model means only repo admins can grant.
 
 ## 14. Dashboard configurator (PR 3 — referenced for completeness)
 
@@ -890,5 +962,8 @@ implementation lands as a series of commits on this branch in the order:
 11. Public docs honesty fix
 12. GitShipt's own `shipshape.md` at repo root
 13. GitShipt's own `.github/workflows/gitshipt-report.yml`
+14. GitShipt's own README badge inserted (dogfood the install kit)
+15. Badge SVG route at `app/badge/r/[org]/[repo].svg` (PR 1 since it's
+    needed before any badge can resolve)
 
 Each commit passes typecheck and tests independently.
