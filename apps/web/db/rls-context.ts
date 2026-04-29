@@ -87,62 +87,59 @@ export function withRlsContext<T>(
  * Wrap Neon HTTP queries in a short transaction that first sets the local RLS
  * GUCs consumed by Postgres policies. Drizzle still sees only the actual query
  * result. No context defaults to anon, so accidental private reads fail closed.
+ *
+ * @neondatabase/serverless v1.0 made the function-call form of the query
+ * function template-only at the type level; the parameterized `(query, params)`
+ * form moved to `.query()` and `sql.query()` inside transactions. Drizzle uses
+ * `client.query ?? client`, so exposing `.query()` is what matters here.
  */
+const RLS_GUC_QUERY =
+  "select set_config('app.rls_mode', $1, true), set_config('app.user_id', $2, true), set_config('app.role', $3, true), set_config('app.rls_reason', $4, true)";
+
 export function createRlsNeonClient(
   base: NeonQueryFunction<false, false>,
 ): NeonQueryFunction<false, false> {
-  const wrapped = ((
-    queryOrStrings: string | TemplateStringsArray,
-    ...args: unknown[]
-  ) => {
-    if (typeof queryOrStrings !== "string") {
-      return base(queryOrStrings, ...args);
-    }
-
-    const query = queryOrStrings;
-    const params = (Array.isArray(args[0]) ? args[0] : []) as unknown[];
-    const opts = args[1] as Parameters<typeof base>[2];
+  const rlsParams = (): [string, string, string, string] => {
     const ctx = getRlsContext();
-    const userId = ctx.mode === "user" ? ctx.userId : "";
-    const role = ctx.mode === "user" ? ctx.role : "";
-    const reason = ctx.reason ?? "";
+    return [
+      ctx.mode,
+      ctx.mode === "user" ? ctx.userId : "",
+      ctx.mode === "user" ? ctx.role : "",
+      ctx.reason ?? "",
+    ];
+  };
 
+  // Template-literal pass-through. Drizzle prefers `.query()`, so this path is
+  // mostly for ad-hoc `await sql\`...\`` callers — the RLS context is still
+  // applied via the wrapped transaction below.
+  const wrapped = ((strings: TemplateStringsArray, ...params: unknown[]) =>
+    base(strings, ...params)) as NeonQueryFunction<false, false>;
+
+  wrapped.query = ((query: string, params?: unknown[], opts?: unknown) => {
     const promise = base
       .transaction(
-        (sql) => [
-          sql(
-            "select set_config('app.rls_mode', $1, true), set_config('app.user_id', $2, true), set_config('app.role', $3, true), set_config('app.rls_reason', $4, true)",
-            [ctx.mode, userId, role, reason],
-          ),
-          sql(query, params),
-        ],
-        opts,
+        (sql) => [sql.query(RLS_GUC_QUERY, rlsParams()), sql.query(query, params)],
+        opts as Parameters<typeof base.transaction>[1],
       )
       .then((results) => results[1]);
 
     Object.assign(promise, {
-      parameterizedQuery: { query, params },
+      parameterizedQuery: { query, params: params ?? [] },
       opts,
     });
     return promise;
-  }) as NeonQueryFunction<false, false>;
+  }) as NeonQueryFunction<false, false>["query"];
 
-  wrapped.transaction = ((queriesOrFn, opts) => {
-    const ctx = getRlsContext();
-    const userId = ctx.mode === "user" ? ctx.userId : "";
-    const role = ctx.mode === "user" ? ctx.role : "";
-    const reason = ctx.reason ?? "";
-    return base.transaction(
+  wrapped.transaction = ((queriesOrFn, opts) =>
+    base.transaction(
       (sql) => [
-        sql(
-          "select set_config('app.rls_mode', $1, true), set_config('app.user_id', $2, true), set_config('app.role', $3, true), set_config('app.rls_reason', $4, true)",
-          [ctx.mode, userId, role, reason],
-        ),
+        sql.query(RLS_GUC_QUERY, rlsParams()),
         ...(typeof queriesOrFn === "function" ? queriesOrFn(sql) : queriesOrFn),
       ],
       opts,
-    );
-  }) as NeonQueryFunction<false, false>["transaction"];
+    )) as NeonQueryFunction<false, false>["transaction"];
+
+  wrapped.unsafe = base.unsafe.bind(base);
 
   return wrapped;
 }

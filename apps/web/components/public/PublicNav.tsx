@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Github, Menu, Sparkles, X } from "lucide-react";
+import { Menu, Sparkles, X } from "lucide-react";
+import { Github } from "@repo/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@repo/lib";
 import {

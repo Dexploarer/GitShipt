@@ -1,16 +1,10 @@
 "use client";
 
+import { Github } from "@repo/ui";
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ChevronUp,
-  Github,
-  LayoutDashboard,
-  LogOut,
-  Settings,
-  User as UserIcon,
-} from "lucide-react";
+import { ChevronUp, LayoutDashboard, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useSidebar } from "@repo/ui";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/navigation";

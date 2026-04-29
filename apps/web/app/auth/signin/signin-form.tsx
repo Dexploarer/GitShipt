@@ -1,7 +1,8 @@
 "use client";
 
+import { Github } from "@repo/ui";
 import Link from "next/link";
-import { Github, Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
 import { useSearchParams } from "next/navigation";

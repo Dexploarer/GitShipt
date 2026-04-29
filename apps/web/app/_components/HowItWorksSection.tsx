@@ -1,4 +1,5 @@
-import { Coins, Github, Sparkles } from "lucide-react";
+import { Github } from "@repo/ui";
+import { Coins, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardTitle } from "@repo/ui";
 
 /**

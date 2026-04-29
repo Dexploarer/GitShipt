@@ -1,6 +1,7 @@
+import { Github } from "@repo/ui";
 import Link from "next/link";
 import Image from "next/image";
-import { Coins, Github, Users } from "lucide-react";
+import { Coins, Users } from "lucide-react";
 import { Card } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { formatSol } from "@repo/lib";

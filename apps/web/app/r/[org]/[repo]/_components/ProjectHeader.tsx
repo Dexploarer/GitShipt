@@ -1,6 +1,7 @@
+import { Github } from "@repo/ui";
 import Image from "next/image";
 import Link from "next/link";
-import { ExternalLink, Github } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { TokenActionsMenu } from "./TokenActionsMenu";
 import type { ProjectHeader as ProjectHeaderType } from "@/lib/queries/project-page";
 

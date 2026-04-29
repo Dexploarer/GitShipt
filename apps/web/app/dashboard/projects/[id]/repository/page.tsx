@@ -1,13 +1,8 @@
+import { Github } from "@repo/ui";
 import { Suspense } from "react";
 import Link from "next/link";
 import {
-  CheckCircle2,
-  Download,
-  ExternalLink,
-  Github,
-  Sparkles,
-  XCircle,
-} from "lucide-react";
+  CheckCircle2, Download, ExternalLink, Sparkles, XCircle } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { getIndexerState } from "@/lib/queries/dashboard";
 import { formatRelativeTime } from "@repo/lib";
@@ -24,7 +19,6 @@ import { Button } from "@repo/ui";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ReindexButton } from "./_components/ReindexButton";
-
 
 export default function RepositoryPage({
   params,

@@ -1,12 +1,7 @@
+import { Github } from "@repo/ui";
 import { Suspense } from "react";
 import {
-  Database,
-  Github,
-  PlugZap,
-  ShieldCheck,
-  Sparkles,
-  Zap,
-} from "lucide-react";
+  Database, PlugZap, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
@@ -18,7 +13,6 @@ import { bags } from "@/lib/bags/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { hasSolanaConnection, solanaConnection } from "@/lib/solana/connection";
 import { cn } from "@repo/lib";
-
 
 interface ServiceHealth {
   name: string;

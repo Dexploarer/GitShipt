@@ -1,7 +1,8 @@
+import { Github } from "@repo/ui";
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, Github, Trophy } from "lucide-react";
+import { ArrowUpRight, Trophy } from "lucide-react";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Card } from "@repo/ui";

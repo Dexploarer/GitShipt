@@ -1,14 +1,9 @@
+import { Github } from "@repo/ui";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  AlertTriangle,
-  Github,
-  Power,
-  RefreshCcw,
-  Settings2,
-  Sparkles,
-} from "lucide-react";
+  AlertTriangle, Power, RefreshCcw, Settings2, Sparkles } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
@@ -17,7 +12,6 @@ import { AuditLogViewer } from "@/components/admin/AuditLogViewer";
 import { getAuditLogs, getProjectAdminDetail } from "@/lib/queries/admin";
 import { formatRelativeTime } from "@repo/lib";
 import { ProjectGodModeControls } from "./_components/ProjectGodModeControls";
-
 
 export default function AdminProjectDetailPage({
   params,

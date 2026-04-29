@@ -1,16 +1,9 @@
+import { Github } from "@repo/ui";
 import { Suspense } from "react";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import {
-  Bell,
-  ChevronRight,
-  Github,
-  KeyRound,
-  Settings,
-  ShieldCheck,
-  UserRound,
-  Wallet,
-} from "lucide-react";
+  Bell, ChevronRight, KeyRound, Settings, ShieldCheck, UserRound, Wallet } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
 import {
@@ -29,7 +22,6 @@ import {
 } from "@repo/ui";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { AccountPreferencesForm } from "../_components/AccountPreferencesForm";
-
 
 export default function SettingsPage() {
   return (

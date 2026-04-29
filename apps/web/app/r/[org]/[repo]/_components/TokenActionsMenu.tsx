@@ -1,14 +1,9 @@
 "use client";
 
+import { Github } from "@repo/ui";
 import { useEffect, useRef, useState } from "react";
 import {
-  Check,
-  ChevronDown,
-  Code2,
-  Copy,
-  ExternalLink,
-  Github,
-} from "lucide-react";
+  Check, ChevronDown, Code2, Copy, ExternalLink } from "lucide-react";
 import { cn } from "@repo/lib";
 
 /**

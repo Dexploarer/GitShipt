@@ -1,5 +1,6 @@
+import { Github, Twitter } from "@repo/ui";
 import Link from "next/link";
-import { Github, Twitter } from "lucide-react";
+
 import { SidebarProvider } from "@repo/ui";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";

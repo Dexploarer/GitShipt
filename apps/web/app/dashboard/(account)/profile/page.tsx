@@ -1,8 +1,9 @@
+import { Github } from "@repo/ui";
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType } from "react";
-import { Calendar, Github, ShieldCheck, UserRound } from "lucide-react";
+import { Calendar, ShieldCheck, UserRound } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
 import { getAccountProfile } from "@/lib/queries/account";
@@ -17,7 +18,6 @@ import {
 } from "@repo/ui";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ProfileEditor } from "../_components/ProfileEditor";
-
 
 export default function ProfilePage() {
   return (

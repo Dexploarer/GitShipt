@@ -1,5 +1,6 @@
+import { Github, Twitter } from "@repo/ui";
 import Link from "next/link";
-import { Github, Twitter } from "lucide-react";
+
 import { clusterLabel } from "@/lib/solana/explorer";
 
 /**

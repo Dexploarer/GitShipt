@@ -27,3 +27,4 @@ export * from "./sidebar";
 export * from "./skeleton";
 export * from "./spinner";
 export * from "./ui-store";
+export * from "./brand-icons";

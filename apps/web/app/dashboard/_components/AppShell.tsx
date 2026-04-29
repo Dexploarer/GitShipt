@@ -1,6 +1,7 @@
+import { Github, Twitter } from "@repo/ui";
 import * as React from "react";
 import Link from "next/link";
-import { Github, Twitter } from "lucide-react";
+
 import { MobileSidebarTrigger } from "@/components/sidebar/MobileSidebarTrigger";
 import { clusterLabel } from "@/lib/solana/explorer";
 

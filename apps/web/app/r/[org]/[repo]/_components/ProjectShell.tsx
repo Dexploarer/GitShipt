@@ -1,5 +1,6 @@
+import { Github, Twitter } from "@repo/ui";
 import Link from "next/link";
-import { Github, Twitter } from "lucide-react";
+
 import { SidebarProvider } from "@repo/ui";
 import type { ProjectHeader } from "@/lib/queries/project-page";
 import { ProjectShellMain, ProjectShellSidebar } from "./ProjectShellClient";

@@ -1,7 +1,7 @@
+import { Github, Twitter } from "@repo/ui";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Github, Twitter } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/auth/permissions";

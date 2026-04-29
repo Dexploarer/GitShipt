@@ -1,15 +1,10 @@
+import { Github } from "@repo/ui";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowUpRight,
-  GitBranch,
-  GitFork,
-  Github,
-  RefreshCw,
-  Star,
-} from "lucide-react";
+  ArrowUpRight, GitBranch, GitFork, RefreshCw, Star } from "lucide-react";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { getIndexerState } from "@/lib/queries/dashboard";
 import { Card, CardHeader, CardTitle, CardContent } from "@repo/ui";

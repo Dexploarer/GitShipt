@@ -1,21 +1,10 @@
+import { Github, Twitter } from "@repo/ui";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowRight,
-  Building2,
-  Calendar,
-  Coins,
-  ExternalLink,
-  Github,
-  Globe,
-  GitFork,
-  MapPin,
-  Twitter,
-  Users,
-  Wallet,
-} from "lucide-react";
+  ArrowRight, Building2, Calendar, Coins, ExternalLink, Globe, GitFork, MapPin, Users, Wallet } from "lucide-react";
 import { Badge, Button } from "@repo/ui";
 import { getContributorProfile } from "@/lib/queries/discovery";
 import { getGitHubUser, type GitHubUserProfile } from "@/lib/github/users";
@@ -48,7 +37,6 @@ export async function generateMetadata({
       : `Earnings, projects, and contributions for @${username} on GitShipt.`,
   };
 }
-
 
 export default function ContributorProfilePage({
   params,
