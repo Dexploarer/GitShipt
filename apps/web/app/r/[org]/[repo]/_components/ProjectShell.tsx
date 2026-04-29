@@ -38,6 +38,7 @@ export interface ProjectShellProps {
 
 type ProjectSidebarActive =
   | "leaderboard"
+  | "feed"
   | "payouts"
   | "snapshots"
   | "repository"
