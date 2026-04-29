@@ -14,7 +14,7 @@ const spinnerVariants = cva("inline-block animate-spin", {
       lg: "size-6",
     },
     color: {
-      primary: "text-primary",
+      primary: "text-primary-readable",
       fg: "text-fg",
       inherit: "text-current",
     },

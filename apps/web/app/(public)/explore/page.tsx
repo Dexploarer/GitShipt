@@ -92,7 +92,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
     >
       <span
         aria-hidden
-        className="grid size-12 place-items-center rounded-xl bg-primary-soft text-primary"
+        className="grid size-12 place-items-center rounded-xl bg-primary-soft text-primary-readable"
       >
         <Compass className="size-6" />
       </span>

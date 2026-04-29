@@ -28,7 +28,7 @@ function Switch({
         data-size={size}
         className={cn(
           "pointer-events-none block rounded-full bg-fg shadow-card-elevated transition-transform",
-          "data-[state=checked]:bg-fg data-[state=unchecked]:bg-fg-secondary",
+          "data-[state=checked]:bg-primary-fg data-[state=unchecked]:bg-fg-secondary",
           "data-[size=default]:size-4 data-[size=sm]:size-3",
           "data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0.5",
           "data-[size=sm]:data-[state=checked]:translate-x-3",

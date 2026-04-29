@@ -34,7 +34,7 @@ export function NextPayoutCountdown({ targetIso }: { targetIso: string }) {
       </h2>
 
       <div
-        className="mt-4 text-[1.75rem] font-mono leading-[1.1] text-fg tabular-nums"
+        className="mt-4 text-mono-lg text-fg tabular-nums"
         suppressHydrationWarning
         aria-live="polite"
       >

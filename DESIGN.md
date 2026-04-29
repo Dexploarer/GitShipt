@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: GitShipt
-description: Cypherpunk dark-mode launchpad-leaderboard for open-source repos. Built for on-chain native builders. Density, precision, and a single signature GitShipt green. Ships with mirrored light palette for accessibility and preference parity; dark is the default.
+description: Cypherpunk dark-mode launchpad-leaderboard for open-source repos. Built for on-chain native builders. Density, precision, and a single bone-ink GitShipt logo palette. Ships with mirrored light palette for accessibility and preference parity; dark is the default.
 colors:
   # === DARK THEME (default) ===
   # Surfaces — deep blacks with subtle cool bias
@@ -12,12 +12,14 @@ colors:
   border: "#23232E"
   border-strong: "#33333F"
 
-  # Brand — GitShipt logo green, tuned for dark mode
-  primary: "#4A9B3D"
-  primary-hover: "#56A545"
-  primary-pressed: "#408838"
-  primary-soft: "#0C2314"
-  primary-fg: "#F5F5F7"
+  # Brand — sampled from logo.png bone ink, tuned for dark mode
+  primary: "#E6DAC6"
+  primary-hover: "#F4EAD7"
+  primary-pressed: "#CDBDA2"
+  primary-soft: "#241F18"
+  primary-fg: "#08080C"
+  primary-readable: "#E6DAC6"
+  primary-text-shadow: "color-mix(in oklab, black 28%, transparent)"
 
   # Text
   fg: "#F5F5F7"
@@ -32,6 +34,7 @@ colors:
   warning-soft: "#2A2110"
   danger: "#EF4444"
   danger-soft: "#2A1414"
+  danger-fg: "#FFFAF0"
   info: "#3B82F6"
   info-soft: "#0F1F33"
 
@@ -41,8 +44,8 @@ colors:
   rank-bronze: "#D97706"
 
   # Charts (sparklines, fee curves)
-  chart-1: "#4A9B3D"
-  chart-2: "#408838"
+  chart-1: "#E6DAC6"
+  chart-2: "#CDBDA2"
   chart-3: "#22C55E"
   chart-4: "#3B82F6"
   chart-5: "#EAB308"
@@ -59,12 +62,14 @@ colors-light:
   border: "#E5E5EC"
   border-strong: "#D4D4DD"
 
-  # Brand — darkened GitShipt green for AA contrast on white
-  primary: "#176F3A"
-  primary-hover: "#0F6B35"
-  primary-pressed: "#084020"
-  primary-soft: "#E5F4E8"
-  primary-fg: "#F5F5F7"
+  # Brand — bright logo bone for filled controls, with readable text accent
+  primary: "#E6DAC6"
+  primary-hover: "#F4EAD7"
+  primary-pressed: "#CDBDA2"
+  primary-soft: "#F3EBDD"
+  primary-fg: "#2A2118"
+  primary-readable: "#6F5638"
+  primary-text-shadow: "color-mix(in oklab, white 46%, transparent)"
 
   # Text
   fg: "#0F0F14"
@@ -79,6 +84,7 @@ colors-light:
   warning-soft: "#FEF9C3"
   danger: "#DC2626"
   danger-soft: "#FEE2E2"
+  danger-fg: "#FFFAF0"
   info: "#2563EB"
   info-soft: "#DBEAFE"
 
@@ -88,8 +94,8 @@ colors-light:
   rank-bronze: "#B45309"
 
   # Charts
-  chart-1: "#176F3A"
-  chart-2: "#084020"
+  chart-1: "#6F5638"
+  chart-2: "#352A1C"
   chart-3: "#16A34A"
   chart-4: "#2563EB"
   chart-5: "#CA8A04"
@@ -502,17 +508,17 @@ components:
 
 ## Overview
 
-GitShipt is a launchpad-leaderboard hybrid for open-source repos on Solana, powered by Bags.fm. The visual identity sits squarely in the **cypherpunk-dark-neon** territory: near-black surfaces, a single signature green pulled from the GitShipt mark, monospace numerics, and zero ornamental gradients. Every pixel is in service of conveying motion, money, and merit at a glance.
+GitShipt is a launchpad-leaderboard hybrid for open-source repos on Solana, powered by Bags.fm. The visual identity sits squarely in the **cypherpunk-dark-bone** territory: near-black surfaces, a single bone-and-ink accent sampled from `logo.png`, monospace numerics, and zero ornamental gradients. Every pixel is in service of conveying motion, money, and merit at a glance.
 
 Emotional target: A trader's terminal that respects the engineer behind every commit. It should feel late-night, focused, and slightly dangerous. Confident enough that putting your repo on it is a flex; legible enough that a maintainer who's never touched a wallet can still understand who is being paid and why.
 
 Density is a feature. Information per square inch should beat any traditional SaaS dashboard. Cards have generous internal padding (24px) but tight inter-card gutters (16-24px). Tables are dense but never cramped: 12-16px row padding, monospace numerics, never wrap.
 
-This is **not** a playful product. No rounded illustrations, no mascot pages, no springy bounce animations. Motion is restricted to subtle transitions (opacity, transform), countdown timers, sparklines, and live indicators (pulsing green dots).
+This is **not** a playful product. No rounded illustrations, no mascot pages, no springy bounce animations. Motion is restricted to subtle transitions (opacity, transform), countdown timers, sparklines, and live indicators.
 
 ## Colors
 
-The palette is built around a single signature accent (GitShipt green) over a deep neutral substrate biased slightly toward cool. Every other color is utility. **Dark is the default and the canonical aesthetic**; a mirrored light palette ships for accessibility, preference parity, and presenters who demo on bright projectors.
+The palette is built around a single signature accent (GitShipt logo bone) over a deep neutral substrate biased slightly toward cool. Every other color is utility. **Dark is the default and the canonical aesthetic**; a mirrored light palette ships for accessibility, preference parity, and presenters who demo on bright projectors.
 
 ### Theming model
 
@@ -525,14 +531,14 @@ Theme is selected via `data-theme="dark"` (default) or `data-theme="light"` on t
 
 ### Dark palette (canonical)
 
-- **Background (#08080C):** Page substrate. Near-black with a microscopic cool tint that lets the green brand accent stay crisp without calling attention to itself.
+- **Background (#08080C):** Page substrate. Near-black with a microscopic cool tint that lets the bone brand accent stay crisp without calling attention to itself.
 - **Surface (#101015):** Default card background. The primary content layer.
 - **Surface Elevated (#16161E):** Hover states, sidebar selection, active rows. One step closer to the user.
 - **Surface Overlay (#1C1C25):** Modals, popovers, tooltips. The layer above the layer.
 - **Border (#23232E):** Default 1px borders for cards and table rows. Visible but never loud.
 - **Border Strong (#33333F):** Inputs, prominent dividers, focused emphasis.
-- **Primary (#4A9B3D):** The signature green. Used exclusively for: brand mark, primary CTA, current SOL amounts, leaderboard score column header, sparkline strokes, active sidebar item indicator. **One primary per visible viewport** is the working ceiling.
-- **Primary Soft (#0C2314):** Tinted green background for pills, hover states, soft callouts.
+- **Primary (#E6DAC6):** The signature logo bone. Used exclusively for: brand mark, primary CTA, current SOL amounts, leaderboard score column header, sparkline strokes, active sidebar item indicator. **One primary per visible viewport** is the working ceiling.
+- **Primary Soft (#241F18):** Warm ink-bone background for pills, hover states, soft callouts.
 - **Foreground (#F5F5F7):** Primary text. Off-white, never pure white (which would feel sterile against the warm-cool surfaces).
 - **Foreground Secondary (#9494A0):** Secondary text, table headers, descriptions.
 - **Foreground Muted (#80808C):** USD price subtext, captions, timestamps, breadcrumbs.
@@ -544,7 +550,7 @@ Theme is selected via `data-theme="dark"` (default) or `data-theme="light"` on t
 
 ### Light palette (mirrored)
 
-The light palette inverts the substrate (off-white `#FAFAFC` instead of near-black) while preserving role semantics. Surfaces step up: `bg` is `#FAFAFC`, `surface` is pure white, `surface-elevated` is `#F4F4F8`. Borders flip to light grays. The primary green shifts darker (`#176F3A` instead of `#4A9B3D`) to maintain WCAG AA contrast on white.
+The light palette inverts the substrate (off-white `#FAFAFC` instead of near-black) while preserving role semantics. Surfaces step up: `bg` is `#FAFAFC`, `surface` is pure white, `surface-elevated` is `#F4F4F8`. Borders flip to light grays. Filled primary controls keep the bright logo-bone surface in both themes and use warm-ink `primary-fg`; standalone accent text uses `primary-readable` so links, icons, and numeric accents maintain WCAG AA contrast on white.
 
 Semantic colors (success, warning, danger, info) all darken proportionally and pair with light tinted backgrounds (e.g., `success-soft: #DCFCE7`). Rank medals shift to richer, lower-luminance tones so they read as gold/silver/bronze against light cards rather than pastel washes.
 
@@ -566,11 +572,13 @@ WCAG: All foreground/surface combinations exceed 4.5:1 contrast in both palettes
   --surface-overlay: #1c1c25;
   --border: #23232e;
   --border-strong: #33333f;
-  --primary: #4a9b3d;
-  --primary-hover: #56a545;
-  --primary-pressed: #408838;
-  --primary-soft: #0c2314;
-  --primary-fg: #f5f5f7;
+  --primary: #e6dac6;
+  --primary-hover: #f4ead7;
+  --primary-pressed: #cdbda2;
+  --primary-soft: #241f18;
+  --primary-fg: #08080c;
+  --primary-readable: #e6dac6;
+  --primary-text-shadow: color-mix(in oklab, black 28%, transparent);
   --fg: #f5f5f7;
   --fg-secondary: #9494a0;
   --fg-muted: #80808c;
@@ -585,11 +593,13 @@ WCAG: All foreground/surface combinations exceed 4.5:1 contrast in both palettes
   --surface-overlay: #ffffff;
   --border: #e5e5ec;
   --border-strong: #d4d4dd;
-  --primary: #176f3a;
-  --primary-hover: #0f6b35;
-  --primary-pressed: #084020;
-  --primary-soft: #e5f4e8;
-  --primary-fg: #f5f5f7;
+  --primary: #e6dac6;
+  --primary-hover: #f4ead7;
+  --primary-pressed: #cdbda2;
+  --primary-soft: #f3ebdd;
+  --primary-fg: #2a2118;
+  --primary-readable: #6f5638;
+  --primary-text-shadow: color-mix(in oklab, white 46%, transparent);
   --fg: #0f0f14;
   --fg-secondary: #52525b;
   --fg-muted: #6b6b76;
@@ -633,7 +643,7 @@ Hierarchy is tight. Most surfaces use only 2-3 levels.
 
 Body text is **400 weight**. Labels, headings, and UI emphasis are **500 or 600**. Bold (700+) is reserved for the brand mark and the page hero only.
 
-Letter spacing is tight and negative on display/headline (-0.02 to -0.01em), neutral on body, and positive on small caps labels (0.01-0.02em).
+Letter spacing is neutral across display, headline, body, label, caption, and mono utilities. Do not introduce ad hoc tracking classes in components.
 
 ## Layout — App Shell
 
@@ -784,7 +794,7 @@ Live at `components/ui/*`. Compose pages from these — never reach for raw HTML
 | ------------------------------------------------------ | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Button`                                               | `components/ui/button.tsx`  | `variant`: primary / secondary / ghost / danger / outline / link · `size`: sm / default / lg / icon / icon-sm · `asChild` for polymorphism                                             |
 | `Card` + `CardHeader/Title/Description/Content/Footer` | `components/ui/card.tsx`    | `depth`: flat / raised / floating · `glass`: none / glass · `padding`: none / sm / default / lg                                                                                        |
-| `Badge`                                                | `components/ui/badge.tsx`   | `variant`: default / primary / success / warning / danger / info / outline · `size`: sm / default / lg · `dot` prop with optional `dotColor` (renders the canonical pulsing green dot) |
+| `Badge`                                                | `components/ui/badge.tsx`   | `variant`: default / primary / success / warning / danger / info / outline · `size`: sm / default / lg · `dot` prop with optional `dotColor` (renders the canonical pulsing status dot) |
 | `Pill`                                                 | `components/ui/pill.tsx`    | `variant`: primary / neutral / success / warning / danger · `size`: sm / default · `interactive` for clickable styling                                                                 |
 | `Sidebar` family                                       | `components/ui/sidebar.tsx` | `SidebarProvider` (context), `Sidebar` (the floating glass shell), `SidebarHeader/Content/Footer/Section/Item/Toggle/Divider`. Internal collapse state with localStorage persistence.  |
 
@@ -832,7 +842,7 @@ Mixing radii within a single sibling group is forbidden (e.g., a card with `lg` 
 
 ### Buttons
 
-Use the `Button` primitive from `components/ui/button.tsx`. Variants: `primary` (the only green button on a screen — DESIGN rule), `secondary` (elevated surface + strong border), `ghost` (subtle until hover), `danger` (destructive admin), `outline`, `link`. Sizes: `sm`, `default`, `lg`, `icon`, `icon-sm`. `asChild` lets you wrap a `<Link>` (renders the link with button styling).
+Use the `Button` primitive from `components/ui/button.tsx`. Variants: `primary` (the only logo-bone button on a screen — DESIGN rule), `secondary` (elevated surface + strong border), `ghost` (subtle until hover), `danger` (destructive admin), `outline`, `link`. Sizes: `sm`, `default`, `lg`, `icon`, `icon-sm`. `asChild` lets you wrap a `<Link>` (renders the link with button styling).
 
 Controls use modern skeuomorphism: a consistent top-left light source, beveled rims, crisp contact lips, softer ambient lift, and a depressed active state. This is intentionally "milled hardware", not glossy candy UI. The control stack uses separate key and ambient shadows so important actions visibly lift from the terminal surface without resorting to glow halos. Any raw button-like surface must opt into the shared `gb-control` classes (`gb-control-primary`, `gb-control-secondary`, `gb-control-ghost`, `gb-control-icon`, `gb-control-cluster`, or `gb-menu-item`) so hover, focus, active, disabled, touch-target, and reduced-motion behavior stays coherent.
 
@@ -840,7 +850,7 @@ Inactive route/navigation links are the exception: use `gb-route-link gb-route-l
 
 ### Pills and badges
 
-Use `Pill` (`components/ui/pill.tsx`) for clickable affordances and `Badge` (`components/ui/badge.tsx`) for passive status. Both rounded-full, semantic variants. `Badge` accepts a `dot` prop that renders the canonical 6px pulsing green dot prefix (use `dotColor` to override the dot's semantic color independent of variant). The "How Scoring Works", "View on Bags.fm", filter tags → Pill. The "Live", "Paused", "Killed", "Cron Active" indicators → Badge with `dot`.
+Use `Pill` (`components/ui/pill.tsx`) for clickable affordances and `Badge` (`components/ui/badge.tsx`) for passive status. Both rounded-full, semantic variants. `Badge` accepts a `dot` prop that renders the canonical 6px pulsing status dot prefix (use `dotColor` to override the dot's semantic color independent of variant). The "How Scoring Works", "View on Bags.fm", filter tags -> Pill. The "Live", "Paused", "Killed", "Cron Active" indicators -> Badge with `dot`.
 
 ### Cards
 
@@ -877,7 +887,7 @@ State: `SidebarProvider` exposes `collapsed` + `toggle()` via React Context. Per
 
 ### Stat cards
 
-Large numeric value in `display` or `headline-lg`, label below in `label-sm` `fg-secondary`. Sparkline (when present) sits to the right or below the number, using `chart-1` (primary green) as stroke. Used in Pool Overview, admin Money Console, project Overview.
+Large numeric value in `display` or `headline-lg`, label below in `label-sm` `fg-secondary`. Sparkline (when present) sits to the right or below the number, using `chart-1` (primary logo bone) as stroke. Used in Pool Overview, admin Money Console, project Overview.
 
 ### Avatars
 
@@ -902,7 +912,7 @@ Used for the Share menu in the project header (Embed / Copy CA / GitHub) and any
 
 ### Copy buttons
 
-Tiny client islands (~20 lines each, `app/r/[org]/[repo]/_components/CopyButton.tsx`). Show a `Copy` icon by default; swap to a green `Check` for 1.5s after a successful `navigator.clipboard.writeText()`. Used for contract addresses, embed snippets, payout signatures, snapshot Merkle roots. Keep host components server-rendered — only this island ships JS.
+Tiny client islands (~20 lines each, `app/r/[org]/[repo]/_components/CopyButton.tsx`). Show a `Copy` icon by default; swap to a success-colored `Check` for 1.5s after a successful `navigator.clipboard.writeText()`. Used for contract addresses, embed snippets, payout signatures, snapshot Merkle roots. Keep host components server-rendered — only this island ships JS.
 
 ### Tooltips
 
@@ -914,12 +924,12 @@ Centered card-content, 64×64 Lucide icon in `fg-muted`, `headline-sm` title, `b
 
 ### Charts (sparklines, bars)
 
-Recharts. Stroke 2px, no axis labels for sparklines, axis labels only when the data is the whole point of the card. Tooltip on hover uses the standard tooltip component. Color palette: `chart-1` through `chart-5`. Always green-first (`chart-1` is `primary`).
+Recharts. Stroke 2px, no axis labels for sparklines, axis labels only when the data is the whole point of the card. Tooltip on hover uses the standard tooltip component. Color palette: `chart-1` through `chart-5`. Always logo-first (`chart-1` is `primary`).
 
 ## Do's and Don'ts
 
-- **Do** use the primary green for one element per visible viewport — the most important interactive element on screen. Everything else is white, gray, or semantic.
-- **Don't** stack green primary elements (pill + button + chart line all primary green in the same fold). Pick one.
+- **Do** use the primary logo-bone accent for one element per visible viewport — the most important interactive element on screen. Everything else is white, gray, or semantic.
+- **Don't** stack primary elements (pill + button + chart line all primary in the same fold). Pick one.
 - **Do** use mono for every number that has economic meaning: SOL amounts, USD prices, scores, basis points, token counts.
 - **Don't** use mono for body copy, headings, or descriptive text.
 - **Do** maintain WCAG AA contrast everywhere except disabled controls, **in both themes**.

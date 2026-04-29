@@ -5,10 +5,10 @@ import { PoolSparkline } from "./PoolSparkline";
 import type { PoolOverview, ProjectHeader } from "@/lib/queries/project-page";
 
 /**
- * The page hero — the single primary-green element on the screen.
- * Display-size SOL value uses `text-primary`, and the sparkline below uses
- * `var(--chart-1)` which is the same green. We deliberately avoid pairing
- * any other primary-green element (button, pill) on the same fold to keep the
+ * The page hero — the single primary accent element on the screen.
+ * Display-size SOL value uses `text-primary-readable`, and the sparkline below uses
+ * `var(--chart-1)` which is the same brand accent. We deliberately avoid pairing
+ * any other primary accent element (button, pill) on the same fold to keep the
  * one-primary-per-viewport rule intact.
  */
 export function PoolOverviewCard({
@@ -47,7 +47,7 @@ export function PoolOverviewCard({
       </div>
 
       <div>
-        <div className="font-mono text-[2.5rem] font-semibold leading-none text-primary sm:text-mono-display">
+        <div className="text-mono-display text-primary-readable">
           {formatSol(pool.dailyFeeLamports, 2)}
         </div>
         <div className="mt-1 text-mono-sm text-fg-muted">

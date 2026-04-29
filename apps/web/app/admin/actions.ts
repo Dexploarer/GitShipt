@@ -23,7 +23,12 @@ import { requirePermission } from "@/lib/auth/permissions";
 import {
   destructiveAction,
   DestructiveActionError,
+  PendingAdminActionError,
 } from "@/lib/auth/destructive-action";
+import type {
+  AdminActionResult,
+  PendingAdminApproval,
+} from "@/lib/admin-action-result";
 import {
   canLaunchOnBags,
   hasCredentials,
@@ -95,7 +100,42 @@ const DestructiveBaseSchema = z.object({
   typedConfirmation: z.string().min(1),
   mfaConfirmedAtMs: z.number().int().positive().optional(),
   idempotencyKey: z.string().min(8).optional(),
+  pendingActionId: z.string().min(1).optional(),
 });
+
+function irreversibleCosign(input: {
+  pendingActionId?: string;
+  idempotencyKey: string;
+}): {
+  required: true;
+  pendingActionId?: string;
+  idempotencyKey: string;
+} {
+  return {
+    required: true,
+    pendingActionId: input.pendingActionId,
+    idempotencyKey: input.idempotencyKey,
+  };
+}
+
+async function runDestructiveAction<T extends { ok: true }>(
+  fn: () => Promise<T>,
+): Promise<T | PendingAdminApproval> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error instanceof PendingAdminActionError) {
+      return {
+        ok: false,
+        status: "pending_admin_approval",
+        pendingActionId: error.pendingActionId,
+        expiresAt: error.expiresAt.toISOString(),
+        message: "Second super_admin approval required.",
+      };
+    }
+    throw error;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Project lifecycle
@@ -628,7 +668,7 @@ export async function pauseProject(input: unknown): Promise<{ ok: true }> {
   return { ok: true };
 }
 
-export async function killProject(input: unknown): Promise<{ ok: true }> {
+export async function killProject(input: unknown): Promise<AdminActionResult> {
   const parsed = ProjectActionSchema.parse(input);
   const ctx = await requireSession();
 
@@ -639,42 +679,51 @@ export async function killProject(input: unknown): Promise<{ ok: true }> {
     .limit(1);
   if (!proj) throw new Error("project_not_found");
 
-  await withIdempotency(
-    parsed.idempotencyKey ?? deriveKey("admin-kill", proj.id, ctx.userId),
-    async () => {
-      await destructiveAction(
-        {
-          actorUserId: ctx.userId,
-          permission: "project.kill",
-          projectId: proj.id,
-          reason: parsed.reason,
-          targetName: proj.name,
-          typedConfirmation: parsed.typedConfirmation,
-          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-          ip: ctx.ip,
-          userAgent: ctx.userAgent,
-        },
-        {
-          action: "project.kill",
-          targetType: "project",
-          targetId: proj.id,
-        },
-        async () => {
-          await dbHttp
-            .update(projects)
-            .set({ status: "killed", killedAt: new Date() })
-            .where(eq(projects.id, proj.id));
-        },
-      );
-      return { ok: true } as const;
-    },
+  const idempotencyKey =
+    parsed.idempotencyKey ?? deriveKey("admin-kill", proj.id, ctx.userId);
+
+  const result = await withIdempotency(
+    idempotencyKey,
+    async () =>
+      runDestructiveAction(async () => {
+        await destructiveAction(
+          {
+            actorUserId: ctx.userId,
+            permission: "project.kill",
+            projectId: proj.id,
+            reason: parsed.reason,
+            targetName: proj.name,
+            typedConfirmation: parsed.typedConfirmation,
+            mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+            ip: ctx.ip,
+            userAgent: ctx.userAgent,
+            cosign: irreversibleCosign({
+              pendingActionId: parsed.pendingActionId,
+              idempotencyKey,
+            }),
+          },
+          {
+            action: "project.kill",
+            targetType: "project",
+            targetId: proj.id,
+          },
+          async () => {
+            await dbHttp
+              .update(projects)
+              .set({ status: "killed", killedAt: new Date() })
+              .where(eq(projects.id, proj.id));
+          },
+        );
+        return { ok: true } as const;
+      }),
     { scope: `admin:project:kill:${proj.id}:${ctx.userId}` },
   );
+  if (!result.ok) return result;
 
   revalidatePath(`/admin/projects/${proj.id}`);
   revalidatePath("/admin/projects");
   await updateProjectCaches(proj.id);
-  return { ok: true };
+  return result;
 }
 
 const UpdateScoringSchema = z.object({
@@ -814,7 +863,7 @@ const CancelPayoutSchema = DestructiveBaseSchema.extend({
   payoutId: z.string().min(1),
 });
 
-export async function cancelPayout(input: unknown): Promise<{ ok: true }> {
+export async function cancelPayout(input: unknown): Promise<AdminActionResult> {
   const parsed = CancelPayoutSchema.parse(input);
   const ctx = await requireSession();
 
@@ -833,43 +882,52 @@ export async function cancelPayout(input: unknown): Promise<{ ok: true }> {
     throw new Error("payout_not_cancellable");
   }
 
-  await withIdempotency(
+  const idempotencyKey =
     parsed.idempotencyKey ??
-      deriveKey("admin-cancel-payout", row.id, ctx.userId),
-    async () => {
-      await destructiveAction(
-        {
-          actorUserId: ctx.userId,
-          permission: "payouts.cancel",
-          projectId: row.projectId,
-          reason: parsed.reason,
-          targetName: row.id,
-          typedConfirmation: parsed.typedConfirmation,
-          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-          ip: ctx.ip,
-          userAgent: ctx.userAgent,
-        },
-        {
-          action: "payout.cancel",
-          targetType: "payout",
-          targetId: row.id,
-          metadata: { previousStatus: row.status },
-        },
-        async () => {
-          await dbHttp
-            .update(payouts)
-            .set({ status: "cancelled" })
-            .where(eq(payouts.id, row.id));
-        },
-      );
-      return { ok: true } as const;
-    },
+    deriveKey("admin-cancel-payout", row.id, ctx.userId);
+
+  const result = await withIdempotency(
+    idempotencyKey,
+    async () =>
+      runDestructiveAction(async () => {
+        await destructiveAction(
+          {
+            actorUserId: ctx.userId,
+            permission: "payouts.cancel",
+            projectId: row.projectId,
+            reason: parsed.reason,
+            targetName: row.id,
+            typedConfirmation: parsed.typedConfirmation,
+            mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+            ip: ctx.ip,
+            userAgent: ctx.userAgent,
+            cosign: irreversibleCosign({
+              pendingActionId: parsed.pendingActionId,
+              idempotencyKey,
+            }),
+          },
+          {
+            action: "payout.cancel",
+            targetType: "payout",
+            targetId: row.id,
+            metadata: { previousStatus: row.status },
+          },
+          async () => {
+            await dbHttp
+              .update(payouts)
+              .set({ status: "cancelled" })
+              .where(eq(payouts.id, row.id));
+          },
+        );
+        return { ok: true } as const;
+      }),
     { scope: `admin:payout:cancel:${row.projectId}:${ctx.userId}` },
   );
+  if (!result.ok) return result;
 
   revalidatePath("/admin/payouts");
   await updateProjectCaches(row.projectId);
-  return { ok: true };
+  return result;
 }
 
 const ForceSnapshotSchema = z.object({
@@ -1064,14 +1122,17 @@ export async function updateProjectPlatformFeeBps(
   return { ok: true, bps: parsed.bps };
 }
 
-export async function claimPartnerFees(input: unknown): Promise<{
-  ok: true;
-  partnerWallet: string;
-  attemptId: string;
-  signatures: string[];
-  before: { claimedFees: string; unclaimedFees: string };
-  after: { claimedFees: string; unclaimedFees: string };
-}> {
+export async function claimPartnerFees(input: unknown): Promise<
+  | {
+      ok: true;
+      partnerWallet: string;
+      attemptId: string;
+      signatures: string[];
+      before: { claimedFees: string; unclaimedFees: string };
+      after: { claimedFees: string; unclaimedFees: string };
+    }
+  | PendingAdminApproval
+> {
   const parsed = ClaimPartnerFeesSchema.parse(input);
   const ctx = await requireSession();
   const env = serverEnv();
@@ -1098,63 +1159,70 @@ export async function claimPartnerFees(input: unknown): Promise<{
   const result = await withIdempotency(
     idempotencyKey,
     async () =>
-      await destructiveAction(
-        {
-          actorUserId: ctx.userId,
-          permission: "platform.treasury.topup",
-          reason: parsed.reason,
-          targetName: "partner.fees.claim",
-          typedConfirmation: parsed.typedConfirmation,
-          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-          ip: ctx.ip,
-          userAgent: ctx.userAgent,
-        },
-        {
-          action: "treasury.partner_claim",
-          targetType: "partner_config",
-          targetId: partnerConfigKey,
-          metadata: { partnerWallet },
-        },
-        async () => {
-          const attempt = await reservePartnerFeeClaimAttempt({
-            partnerWallet,
-            partnerConfigKey,
-            idempotencyKey,
-          });
-          const claim = await executePartnerFeeClaimAttempt(attempt.id);
-          if (claim.status !== "succeeded" || !claim.before || !claim.after) {
-            throw new Error(claim.reason ?? "partner_fee_claim_failed");
-          }
-          await audit({
+      runDestructiveAction(() =>
+        destructiveAction(
+          {
             actorUserId: ctx.userId,
+            permission: "platform.treasury.topup",
+            reason: parsed.reason,
+            targetName: "partner.fees.claim",
+            typedConfirmation: parsed.typedConfirmation,
+            mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+            ip: ctx.ip,
+            userAgent: ctx.userAgent,
+            cosign: irreversibleCosign({
+              pendingActionId: parsed.pendingActionId,
+              idempotencyKey,
+            }),
+          },
+          {
             action: "treasury.partner_claim",
             targetType: "partner_config",
             targetId: partnerConfigKey,
-            metadata: {
+            metadata: { partnerWallet },
+          },
+          async ({ idempotencyKey: executionIdempotencyKey }) => {
+            const attempt = await reservePartnerFeeClaimAttempt({
+              partnerWallet,
+              partnerConfigKey,
+              idempotencyKey: executionIdempotencyKey ?? idempotencyKey,
+            });
+            const claim = await executePartnerFeeClaimAttempt(attempt.id);
+            if (claim.status !== "succeeded" || !claim.before || !claim.after) {
+              throw new Error(claim.reason ?? "partner_fee_claim_failed");
+            }
+            await audit({
+              actorUserId: ctx.userId,
+              action: "treasury.partner_claim",
+              targetType: "partner_config",
+              targetId: partnerConfigKey,
+              metadata: {
+                partnerWallet,
+                attemptId: attempt.id,
+                phase: "settled",
+                signatures: claim.signatures,
+                before: claim.before,
+                after: claim.after,
+                claimedDeltaLamports: claim.claimedDeltaLamports,
+                unclaimedDeltaLamports: claim.unclaimedDeltaLamports,
+              },
+              ip: ctx.ip,
+              userAgent: ctx.userAgent,
+            });
+            return {
+              ok: true as const,
               partnerWallet,
               attemptId: attempt.id,
-              phase: "settled",
               signatures: claim.signatures,
               before: claim.before,
               after: claim.after,
-              claimedDeltaLamports: claim.claimedDeltaLamports,
-              unclaimedDeltaLamports: claim.unclaimedDeltaLamports,
-            },
-            ip: ctx.ip,
-            userAgent: ctx.userAgent,
-          });
-          return {
-            ok: true as const,
-            partnerWallet,
-            attemptId: attempt.id,
-            signatures: claim.signatures,
-            before: claim.before,
-            after: claim.after,
-          };
-        },
+            };
+          },
+        ),
       ),
     { scope: `admin:partner-fees:claim:${partnerWallet}` },
   );
+  if (!result.ok) return result;
 
   revalidatePath("/admin/fees");
   await updateAdminCaches();
@@ -1289,7 +1357,7 @@ const GrantRoleSchema = DestructiveBaseSchema.extend({
   role: z.enum(["user", "moderator", "admin", "super_admin"]),
 });
 
-export async function grantRole(input: unknown): Promise<{ ok: true }> {
+export async function grantRole(input: unknown): Promise<AdminActionResult> {
   const parsed = GrantRoleSchema.parse(input);
   const ctx = await requireSession();
 
@@ -1300,43 +1368,55 @@ export async function grantRole(input: unknown): Promise<{ ok: true }> {
     .limit(1);
   if (!target) throw new Error("user_not_found");
 
-  await withIdempotency(
+  const idempotencyKey =
     parsed.idempotencyKey ??
-      deriveKey("admin-grant-role", target.id, parsed.role, ctx.userId),
-    async () => {
-      await destructiveAction(
-        {
-          actorUserId: ctx.userId,
-          permission: "admin.users.role.grant",
-          reason: parsed.reason,
-          targetName: target.name,
-          typedConfirmation: parsed.typedConfirmation,
-          mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
-          ip: ctx.ip,
-          userAgent: ctx.userAgent,
-        },
-        {
-          action: "user.role_grant",
-          targetType: "user",
-          targetId: target.id,
-          metadata: { previousRole: target.role, newRole: parsed.role },
-        },
-        async () => {
-          await dbHttp
-            .update(users)
-            .set({ role: parsed.role })
-            .where(eq(users.id, target.id));
-        },
-      );
-      return { ok: true } as const;
-    },
+    deriveKey("admin-grant-role", target.id, parsed.role, ctx.userId);
+
+  const result = await withIdempotency(
+    idempotencyKey,
+    async () =>
+      runDestructiveAction(async () => {
+        await destructiveAction(
+          {
+            actorUserId: ctx.userId,
+            permission: "admin.users.role.grant",
+            reason: parsed.reason,
+            targetName: target.name,
+            typedConfirmation: parsed.typedConfirmation,
+            mfaConfirmedAtMs: parsed.mfaConfirmedAtMs,
+            ip: ctx.ip,
+            userAgent: ctx.userAgent,
+            cosign:
+              parsed.role === "super_admin"
+                ? irreversibleCosign({
+                    pendingActionId: parsed.pendingActionId,
+                    idempotencyKey,
+                  })
+                : undefined,
+          },
+          {
+            action: "user.role_grant",
+            targetType: "user",
+            targetId: target.id,
+            metadata: { previousRole: target.role, newRole: parsed.role },
+          },
+          async () => {
+            await dbHttp
+              .update(users)
+              .set({ role: parsed.role })
+              .where(eq(users.id, target.id));
+          },
+        );
+        return { ok: true } as const;
+      }),
     { scope: `admin:user:grant-role:${target.id}:${ctx.userId}` },
   );
+  if (!result.ok) return result;
 
   revalidatePath("/admin/users");
   await updateAdminCaches();
   await updateUserCaches(target.id);
-  return { ok: true };
+  return result;
 }
 
 const ResetMfaSchema = DestructiveBaseSchema.extend({

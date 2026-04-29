@@ -5,6 +5,7 @@ import { HandCoins } from "lucide-react";
 import { Button } from "@repo/ui";
 import { DestructiveConfirmModal } from "@/components/admin/DestructiveConfirmModal";
 import { claimPartnerFees } from "@/app/admin/actions";
+import { isPendingAdminApproval } from "@/lib/admin-action-result";
 
 interface PartnerFeesClaimFormProps {
   partnerWallet: string;
@@ -40,7 +41,10 @@ export function PartnerFeesClaimForm({
   } | null>(null);
   const unclaimedFees = stats ? BigInt(stats.unclaimedFees) : 0n;
   const canClaim =
-    partnerConfigSet && serverClaimAvailable && unclaimedFees > 0n && !statsError;
+    partnerConfigSet &&
+    serverClaimAvailable &&
+    unclaimedFees > 0n &&
+    !statsError;
 
   return (
     <div className="mt-4 rounded-md border border-border/60 bg-surface-elevated/60 p-3">
@@ -107,12 +111,15 @@ export function PartnerFeesClaimForm({
         targetLabel="Type partner.fees.claim to confirm"
         confirmLabel="Claim fees"
         busyLabel="Claiming..."
+        cosignRequired
         action={async (p) => {
           const result = await claimPartnerFees({ partnerWallet, ...p });
+          if (isPendingAdminApproval(result)) return result;
           setLastClaim({
             signatures: result.signatures,
             afterUnclaimedFees: result.after.unclaimedFees,
           });
+          return result;
         }}
       />
     </div>

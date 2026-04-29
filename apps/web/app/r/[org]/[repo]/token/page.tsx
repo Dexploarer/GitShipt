@@ -232,7 +232,7 @@ function Metric({
     <div className="rounded-lg border border-border/60 bg-surface/40 px-4 py-3">
       <div className="text-caption text-fg-muted">{label}</div>
       <div
-        className={`mt-1 text-mono-md ${accent ? "text-primary" : "text-fg"}`}
+        className={`mt-1 text-mono-md ${accent ? "text-primary-readable" : "text-fg"}`}
       >
         {value}
       </div>

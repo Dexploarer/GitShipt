@@ -633,7 +633,7 @@ function ResultRow({
             href={href}
             target="_blank"
             rel="noreferrer noopener"
-            className="text-primary hover:underline"
+            className="text-primary-readable hover:underline"
           >
             {v}
           </a>

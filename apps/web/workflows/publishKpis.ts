@@ -17,7 +17,7 @@ import {
  *
  * Reads the same aggregates as `getLandingData()`'s ticker block via the
  * uncached ticker helper, then writes a JSON snapshot to
- * Redis at `gitshipt:ticker:landing` with a 120s TTL so a single missed
+ * Redis at `gitshipt:ticker:landing:v2` with a 120s TTL so a single missed
  * cron beat doesn't blank the homepage. The landing page reads this cache
  * inside `getLandingData()` and merges it into the response when present.
  *
@@ -26,12 +26,13 @@ import {
  * payload so duplicate runs are observable in the snapshot itself.
  */
 
-const TICKER_REDIS_KEY = "gitshipt:ticker:landing";
+const TICKER_REDIS_KEY = "gitshipt:ticker:landing:v2";
 const TICKER_TTL_SECONDS = 120;
 
 interface CachedTickerSnapshot {
   ticker: {
-    volume24hUsd: number;
+    volume24hUsd: number | null;
+    volumeSource: LandingTicker["volumeSource"];
     /** Serialized as string because JSON has no bigint. */
     lifetimeFeesLamports: string;
     activeProjects: number;
@@ -84,6 +85,7 @@ async function snapshotTicker(): Promise<void> {
   const payload: CachedTickerSnapshot = {
     ticker: {
       volume24hUsd: ticker.volume24hUsd,
+      volumeSource: ticker.volumeSource,
       lifetimeFeesLamports: ticker.lifetimeFeesLamports.toString(),
       activeProjects: ticker.activeProjects,
       contributorsEarning: ticker.contributorsEarning,

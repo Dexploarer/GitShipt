@@ -104,7 +104,7 @@ export default async function TokenPage({
                 </Badge>
               </Row>
               <Row label="Contributor fee share">
-                <span className="inline-flex items-center gap-2 text-mono-md text-primary">
+                <span className="inline-flex items-center gap-2 text-mono-md text-primary-readable">
                   {formatPercent(contributorBps / 100, 1)}
                   <Badge variant="default" size="sm">
                     platform {formatPercent(project.platformFeeBps / 100, 1)}
@@ -126,7 +126,7 @@ export default async function TokenPage({
           ) : (
             <p className="text-body-md text-fg-secondary">
               No token launched yet.{" "}
-              <Link href="/launch" className="text-primary hover:underline">
+              <Link href="/launch" className="text-primary-readable hover:underline">
                 Launch on Bags.fm →
               </Link>
             </p>
@@ -176,7 +176,7 @@ export default async function TokenPage({
                       {p.recipientCount === 1 ? "" : "s"}
                     </div>
                   </div>
-                  <div className="text-mono-md text-primary">
+                  <div className="text-mono-md text-primary-readable">
                     {formatSol(p.totalLamports, 4)}
                   </div>
                   {p.claimSignature ? (
@@ -184,7 +184,7 @@ export default async function TokenPage({
                       href={solscanTxUrl(p.claimSignature)}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="text-mono-sm text-primary hover:underline"
+                      className="text-mono-sm text-primary-readable hover:underline"
                     >
                       {formatAddress(p.claimSignature, 4, 4)}
                     </Link>

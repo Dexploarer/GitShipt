@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, X, Loader2 } from "lucide-react";
+import { AlertTriangle, Clock, X, Loader2 } from "lucide-react";
 import { Button } from "@repo/ui";
 import { Card } from "@repo/ui";
 import { cn } from "@repo/lib";
+import { isPendingAdminApproval } from "@/lib/admin-action-result";
 
 /**
  * Generic destructive-confirmation modal.
@@ -30,6 +31,8 @@ export interface DestructiveConfirmModalProps {
   targetLabel?: string;
   confirmLabel?: string;
   busyLabel?: string;
+  /** Show the optional second-approver id field for irreversible actions. */
+  cosignRequired?: boolean;
   /**
    * Async action called when the form is submitted with valid input. Must
    * throw on failure. The caller is responsible for invoking the right
@@ -40,7 +43,8 @@ export interface DestructiveConfirmModalProps {
     typedConfirmation: string;
     mfaConfirmedAtMs: number | undefined;
     idempotencyKey: string;
-  }) => Promise<void>;
+    pendingActionId?: string;
+  }) => Promise<unknown>;
 }
 
 const REASON_MIN = 20;
@@ -55,11 +59,18 @@ export function DestructiveConfirmModal({
   targetLabel = "Type the target name to confirm",
   confirmLabel = "Confirm",
   busyLabel = "Working...",
+  cosignRequired = false,
   action,
 }: DestructiveConfirmModalProps) {
   const [reason, setReason] = React.useState("");
   const [typed, setTyped] = React.useState("");
   const [mfa, setMfa] = React.useState("");
+  const [approvalId, setApprovalId] = React.useState("");
+  const [pendingApproval, setPendingApproval] = React.useState<{
+    pendingActionId: string;
+    expiresAt: string;
+    message: string;
+  } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
@@ -73,6 +84,8 @@ export function DestructiveConfirmModal({
       setReason("");
       setTyped("");
       setMfa("");
+      setApprovalId("");
+      setPendingApproval(null);
       setError(null);
       setBusy(false);
     });
@@ -160,12 +173,25 @@ export function DestructiveConfirmModal({
     setError(null);
     try {
       const mfaConfirmedAtMs = await verifyMfa(mfa);
-      await action({
+      const trimmedApprovalId = approvalId.trim();
+      const result = await action({
         reason: reason.trim(),
         typedConfirmation: typed,
         mfaConfirmedAtMs,
         idempotencyKey: newClientIdempotencyKey("destructive"),
+        pendingActionId: trimmedApprovalId || undefined,
       });
+      if (isPendingAdminApproval(result)) {
+        setPendingApproval({
+          pendingActionId: result.pendingActionId,
+          expiresAt: result.expiresAt,
+          message: result.message,
+        });
+        setApprovalId(result.pendingActionId);
+        setMfa("");
+        setBusy(false);
+        return;
+      }
       onOpenChange(false);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -282,6 +308,54 @@ export function DestructiveConfirmModal({
             />
           </Field>
 
+          {cosignRequired || pendingApproval ? (
+            <Field
+              label="Approval ID"
+              hint={
+                <span className="text-caption text-fg-muted">
+                  {pendingApproval ? "pending" : "optional"}
+                </span>
+              }
+            >
+              <input
+                value={approvalId}
+                onChange={(e) => setApprovalId(e.target.value)}
+                className={cn(
+                  "w-full rounded-md border border-border bg-surface-elevated px-3 py-2",
+                  "text-mono-sm text-fg placeholder:text-fg-muted",
+                  "focus:outline-none focus:ring-2 focus:ring-primary",
+                )}
+                placeholder="pending_admin_action id"
+                autoComplete="off"
+              />
+            </Field>
+          ) : null}
+
+          {pendingApproval ? (
+            <div
+              role="status"
+              className="rounded-md border border-primary/40 bg-primary-soft px-3 py-2 text-body-sm text-primary-readable"
+            >
+              <div className="flex items-start gap-2">
+                <Clock className="mt-0.5 size-4 shrink-0" />
+                <div className="space-y-1">
+                  <p>{pendingApproval.message}</p>
+                  <p>
+                    ID{" "}
+                    <span className="text-mono-sm">
+                      {pendingApproval.pendingActionId}
+                    </span>{" "}
+                    expires{" "}
+                    <span className="text-mono-sm">
+                      {formatExpiry(pendingApproval.expiresAt)}
+                    </span>
+                    .
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {error ? (
             <p className="rounded-md border border-danger/40 bg-danger-soft px-3 py-2 text-body-sm text-danger">
               {error}
@@ -317,6 +391,15 @@ export function DestructiveConfirmModal({
       </Card>
     </div>
   );
+}
+
+function formatExpiry(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 function newClientIdempotencyKey(prefix: string): string {

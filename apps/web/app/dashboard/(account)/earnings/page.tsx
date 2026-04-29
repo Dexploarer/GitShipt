@@ -64,7 +64,7 @@ export default async function EarningsPage() {
           <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div className="flex flex-col gap-1">
               <CardTitle className="flex items-center gap-2">
-                <Wallet className="size-4 text-primary" />
+                <Wallet className="size-4 text-primary-readable" />
                 Link a Solana wallet to claim earnings
               </CardTitle>
               <CardDescription>
@@ -136,7 +136,7 @@ export default async function EarningsPage() {
                       <td className="px-6 py-3 text-mono-sm text-fg">
                         {p.projectSlug}
                       </td>
-                      <td className="px-4 py-3 text-right text-mono-md text-primary">
+                      <td className="px-4 py-3 text-right text-mono-md text-primary-readable">
                         {formatSol(p.lifetimeLamports, 4)}
                       </td>
                       <td className="px-4 py-3 text-right text-mono-md text-fg">

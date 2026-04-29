@@ -23,7 +23,7 @@ export function TokenStatsRow({ stats }: { stats: TokenStats | null }) {
           No token launched —{" "}
           <Link
             href="/launch"
-            className="font-medium text-primary hover:underline"
+            className="font-medium text-primary-readable hover:underline"
           >
             launch one
           </Link>{" "}
@@ -115,7 +115,7 @@ function Stat({
 }) {
   return (
     <div className="rounded-lg border border-border/60 bg-surface/40 px-3 py-2 lg:px-4 lg:py-2.5">
-      <div className="text-caption text-fg-muted lg:text-label-sm">{label}</div>
+      <div className="text-caption text-fg-muted">{label}</div>
       <div className="mt-1 flex min-w-0 items-center justify-between gap-1.5 lg:mt-1.5">
         {children}
       </div>

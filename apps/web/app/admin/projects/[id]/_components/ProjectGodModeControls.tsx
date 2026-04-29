@@ -234,7 +234,7 @@ export function ProjectGodModeControls({
         targetName={projectName}
         confirmLabel="Pause project"
         action={async (p) => {
-          await pauseProject({ projectId, ...p });
+          return await pauseProject({ projectId, ...p });
         }}
       />
       <DestructiveConfirmModal
@@ -249,8 +249,9 @@ export function ProjectGodModeControls({
         }
         targetName={projectName}
         confirmLabel="Kill project"
+        cosignRequired
         action={async (p) => {
-          await killProject({ projectId, ...p });
+          return await killProject({ projectId, ...p });
         }}
       />
       <DestructiveConfirmModal
@@ -268,7 +269,11 @@ export function ProjectGodModeControls({
         targetName={projectName}
         confirmLabel="Update fee share"
         action={async (p) => {
-          await updateProjectPlatformFeeBps({ projectId, bps: feeBps, ...p });
+          return await updateProjectPlatformFeeBps({
+            projectId,
+            bps: feeBps,
+            ...p,
+          });
         }}
       />
     </div>

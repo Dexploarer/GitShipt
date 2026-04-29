@@ -31,7 +31,7 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h1 className="truncate text-[1.75rem] font-semibold leading-tight text-fg sm:text-[2.25rem] lg:text-[2.75rem]">
+          <h1 className="truncate text-headline-lg text-fg">
             {header.name}
           </h1>
           <Link
@@ -39,7 +39,7 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
             target="_blank"
             rel="noreferrer noopener"
             aria-label={`Open ${header.ghOwner}/${header.ghRepo} on GitHub`}
-            className="inline-flex items-center gap-1 text-body-md text-fg-secondary transition-colors hover:text-fg lg:text-body-lg"
+            className="inline-flex items-center gap-1 text-body-md text-fg-secondary transition-colors hover:text-fg"
           >
             <Github className="size-4 lg:size-5" />
             {header.ghOwner}/{header.ghRepo}
@@ -47,15 +47,15 @@ export function ProjectHeader({ header }: { header: ProjectHeaderType }) {
           </Link>
         </div>
         {ticker ? (
-          <div className="mt-1 text-body-sm text-fg-secondary lg:text-body-md">
+          <div className="mt-1 text-body-sm text-fg-secondary">
             Ticker:{" "}
-            <span className="text-mono-md text-fg lg:text-[0.9375rem]">
+            <span className="text-mono-md text-fg">
               ${ticker}
             </span>
           </div>
         ) : null}
         {header.description ? (
-          <p className="mt-1.5 line-clamp-2 text-body-md text-fg-secondary lg:mt-2 lg:text-body-lg">
+          <p className="mt-1.5 line-clamp-2 text-body-md text-fg-secondary lg:mt-2">
             {header.description}
           </p>
         ) : null}

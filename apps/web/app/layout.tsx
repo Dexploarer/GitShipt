@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SolanaWalletProvider } from "@/components/providers/SolanaWalletProvider";
@@ -55,6 +56,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const user = await getSessionUser();
 
   return (
@@ -66,7 +68,7 @@ export default async function RootLayout({
     >
       <body className="min-h-screen bg-app-gradient text-fg antialiased">
         <SkipLink />
-        <ThemeProvider>
+        <ThemeProvider nonce={nonce}>
           <SessionChromeProvider user={user}>
             <SolanaWalletProvider>
               <div>{children}</div>

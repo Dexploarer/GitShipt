@@ -98,7 +98,7 @@ function Empty() {
       </p>
       <Link
         href="/explore"
-        className="mt-1 text-label-md text-primary hover:underline"
+        className="mt-1 text-label-md text-primary-readable hover:underline"
       >
         Browse projects
       </Link>

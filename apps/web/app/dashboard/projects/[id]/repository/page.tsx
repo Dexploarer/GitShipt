@@ -82,7 +82,7 @@ export default async function RepositoryPage({
               href={`https://github.com/${project.slug}`}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center gap-1 text-mono-md text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-mono-md text-primary-readable hover:underline"
             >
               <Github className="size-3.5" /> {project.slug}
               <ExternalLink className="size-3" />

@@ -16,7 +16,7 @@ const pillVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-primary-soft text-primary hover:brightness-110",
+        primary: "bg-primary-soft text-primary-readable hover:brightness-110",
         neutral:
           "bg-surface-elevated text-fg-secondary border border-border hover:bg-surface-overlay hover:text-fg",
         success: "bg-success-soft text-success",

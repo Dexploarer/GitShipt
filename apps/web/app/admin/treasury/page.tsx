@@ -83,7 +83,7 @@ export default async function AdminTreasuryPage() {
                   href={solscanAddressUrl(hotPubkey, cluster)}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-label-sm text-primary hover:underline"
+                  className="text-label-sm text-primary-readable hover:underline"
                 >
                   Open in Solscan ↗
                 </Link>
@@ -116,7 +116,7 @@ export default async function AdminTreasuryPage() {
                   href={solscanAddressUrl(coldAddress, cluster)}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-label-sm text-primary hover:underline"
+                  className="text-label-sm text-primary-readable hover:underline"
                 >
                   Open in Solscan ↗
                 </Link>

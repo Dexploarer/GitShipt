@@ -8,7 +8,7 @@ import { cn } from "@repo/lib";
  * `asChild` prop using React's Slot.
  *
  * Variants follow DESIGN.md component spec:
- *  - primary  : the only green button on a screen
+ *  - primary  : the only logo-bone button on a screen
  *  - secondary: elevated surface + strong border
  *  - ghost    : transparent until hover
  *  - danger   : destructive admin actions
@@ -32,7 +32,7 @@ const buttonVariants = cva(
         ghost:
           "gb-control-ghost border border-transparent bg-transparent [color:var(--fg-secondary)] hover:[color:var(--fg)]",
         danger:
-          "gb-control-danger border border-danger bg-danger text-primary-fg",
+          "gb-control-danger border border-danger bg-danger text-danger-fg",
         outline:
           "gb-control-outline border border-border-strong bg-transparent [color:var(--fg)]",
         link: "gb-control-link border border-transparent bg-transparent [color:var(--fg-secondary)] hover:[color:var(--fg)] underline-offset-4 hover:underline",

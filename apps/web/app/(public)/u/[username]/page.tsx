@@ -91,7 +91,7 @@ export default async function ContributorProfilePage({
           />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-[2.5rem] font-semibold leading-[1.04] text-fg sm:text-display">
+              <h1 className="text-display text-fg">
                 {displayName}
               </h1>
               {gh ? (
@@ -291,7 +291,7 @@ function ClaimPanel({
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md border border-border-strong bg-surface text-primary">
+          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md border border-border-strong bg-surface text-primary-readable">
             {icon}
           </span>
           <div className="min-w-0 space-y-1">

@@ -93,7 +93,7 @@ export default async function PayoutsPage({
                       <td className="px-4 py-3">
                         <PayoutStatusBadge status={r.status} />
                       </td>
-                      <td className="px-4 py-3 text-right text-mono-md text-primary">
+                      <td className="px-4 py-3 text-right text-mono-md text-primary-readable">
                         {formatSol(r.totalLamports, 4)}
                       </td>
                       <td className="px-4 py-3 text-right text-mono-md text-fg">
@@ -105,7 +105,7 @@ export default async function PayoutsPage({
                             href={solscanTxUrl(r.claimSignature)}
                             target="_blank"
                             rel="noreferrer noopener"
-                            className="inline-flex items-center gap-1 text-mono-sm text-primary hover:underline"
+                            className="inline-flex items-center gap-1 text-mono-sm text-primary-readable hover:underline"
                           >
                             {formatAddress(r.claimSignature, 6, 6)}
                             <ExternalLink className="size-3" />

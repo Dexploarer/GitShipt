@@ -207,7 +207,7 @@ function AlertsCard({
                 ) : null}
                 <Link
                   href={`/dashboard/projects/${projectId}/payouts`}
-                  className="mt-1 inline-flex text-label-sm text-primary hover:underline"
+                  className="mt-1 inline-flex text-label-sm text-primary-readable hover:underline"
                 >
                   Review &amp; retry
                 </Link>

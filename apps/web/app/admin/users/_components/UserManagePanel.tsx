@@ -126,8 +126,9 @@ export function UserManagePanel({
         description={`This changes ${userName}'s global role from ${role} to ${pendingRole}.`}
         targetName={userName}
         confirmLabel={`Grant ${pendingRole}`}
+        cosignRequired={pendingRole === "super_admin"}
         action={async (p) => {
-          await grantRole({ userId, role: pendingRole, ...p });
+          return await grantRole({ userId, role: pendingRole, ...p });
         }}
       />
 
@@ -139,7 +140,7 @@ export function UserManagePanel({
         targetName={userName}
         confirmLabel="Reset MFA"
         action={async (p) => {
-          await resetUserMfa({ userId, ...p });
+          return await resetUserMfa({ userId, ...p });
         }}
       />
     </>

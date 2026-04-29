@@ -1,16 +1,17 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const configuredBaseURL =
-  [process.env.E2E_BASE_URL, process.env.PLAYWRIGHT_BASE_URL]
-    .find((url): url is string => Boolean(url?.trim()))
-    ?.trim();
+const configuredBaseURL = [
+  process.env.E2E_BASE_URL,
+  process.env.PLAYWRIGHT_BASE_URL,
+]
+  .find((url): url is string => Boolean(url?.trim()))
+  ?.trim();
 const serverPort = process.env.E2E_PORT?.trim() || "3100";
-const baseURL =
-  configuredBaseURL ?? `http://127.0.0.1:${serverPort}`;
+const baseURL = configuredBaseURL ?? `http://127.0.0.1:${serverPort}`;
 const webServer = configuredBaseURL
   ? undefined
   : {
-      command: `NODE_ENV=production bun --env-file=../../.env.local run build && NODE_ENV=production bun --env-file=../../.env.local run start -- --hostname 127.0.0.1 --port ${serverPort}`,
+      command: `bun scripts/prepare-e2e-build.mjs && NODE_ENV=production bun --env-file=../../.env.local run build && NODE_ENV=production bun --env-file=../../.env.local run start -- --hostname 127.0.0.1 --port ${serverPort}`,
       url: baseURL,
       reuseExistingServer: false,
       timeout: 120_000,

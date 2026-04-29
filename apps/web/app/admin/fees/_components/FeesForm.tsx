@@ -14,12 +14,16 @@ export function FeesForm({ currentBps }: { currentBps: number }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-label-sm text-fg-secondary">Current</span>
-        <span className="text-mono-sm text-fg">{currentBps} bps · {(currentBps / 100).toFixed(2)}%</span>
+        <span className="text-mono-sm text-fg">
+          {currentBps} bps · {(currentBps / 100).toFixed(2)}%
+        </span>
       </div>
       <div className="space-y-2">
         <label className="flex items-center justify-between text-label-sm text-fg-secondary">
           <span>New value</span>
-          <span className="text-mono-sm text-fg">{bps} bps · {(bps / 100).toFixed(2)}%</span>
+          <span className="text-mono-sm text-fg">
+            {bps} bps · {(bps / 100).toFixed(2)}%
+          </span>
         </label>
         <input
           type="number"
@@ -48,8 +52,8 @@ export function FeesForm({ currentBps }: { currentBps: number }) {
         title="Update platform fee"
         description={
           <>
-            New fee will be <span className="text-mono-sm">{bps} bps</span>{" "}
-            (<span className="text-mono-sm">{(bps / 100).toFixed(2)}%</span>).
+            New fee will be <span className="text-mono-sm">{bps} bps</span> (
+            <span className="text-mono-sm">{(bps / 100).toFixed(2)}%</span>).
             Applies to every active project on the next snapshot.
           </>
         }
@@ -57,7 +61,7 @@ export function FeesForm({ currentBps }: { currentBps: number }) {
         targetLabel="Type platform.fees.bps to confirm"
         confirmLabel="Save fee"
         action={async (p) => {
-          await updateFeesBps({ bps, ...p });
+          return await updateFeesBps({ bps, ...p });
         }}
       />
     </div>

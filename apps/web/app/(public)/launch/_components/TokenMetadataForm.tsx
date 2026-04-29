@@ -213,7 +213,7 @@ export function TokenMetadataForm({
               <button
                 type="button"
                 onClick={useBannerImage}
-                className="text-primary hover:underline"
+                className="text-primary-readable hover:underline"
               >
                 Use repo social banner
               </button>

@@ -18,7 +18,7 @@ export function DocSection({
       <h2 className="group flex items-baseline gap-2 text-headline-md text-fg">
         <a
           href={`#${id}`}
-          className="transition-colors hover:text-primary"
+          className="transition-colors hover:text-primary-readable"
           aria-label={`Link to ${title}`}
         >
           {title}

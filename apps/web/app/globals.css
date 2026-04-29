@@ -28,11 +28,13 @@
   --border-strong: #33333f;
 
   /* Brand */
-  --primary: #4a9b3d;
-  --primary-hover: #56a545;
-  --primary-pressed: #408838;
-  --primary-soft: #0c2314;
-  --primary-fg: #f5f5f7;
+  --primary: #e6dac6;
+  --primary-hover: #f4ead7;
+  --primary-pressed: #cdbda2;
+  --primary-soft: #241f18;
+  --primary-fg: #08080c;
+  --primary-readable: #e6dac6;
+  --primary-text-shadow: color-mix(in oklab, black 28%, transparent);
 
   /* Text */
   --fg: #f5f5f7;
@@ -47,6 +49,7 @@
   --warning-soft: #2a2110;
   --danger: #ef4444;
   --danger-soft: #2a1414;
+  --danger-fg: #fffaf0;
   --info: #3b82f6;
   --info-soft: #0f1f33;
 
@@ -56,8 +59,8 @@
   --rank-bronze: #d97706;
 
   /* Charts */
-  --chart-1: #4a9b3d;
-  --chart-2: #408838;
+  --chart-1: #e6dac6;
+  --chart-2: #cdbda2;
   --chart-3: #22c55e;
   --chart-4: #3b82f6;
   --chart-5: #eab308;
@@ -86,8 +89,8 @@
 
   /* Controls */
   --control-touch-target: 2.75rem;
-  --focus-ring: color-mix(in oklab, var(--rank-gold) 86%, transparent);
-  --focus-ring-soft: color-mix(in oklab, var(--rank-gold) 28%, transparent);
+  --focus-ring: color-mix(in oklab, var(--primary) 86%, transparent);
+  --focus-ring-soft: color-mix(in oklab, var(--primary) 28%, transparent);
 }
 
 /* ============================================================
@@ -102,12 +105,14 @@
   --border: #e5e5ec;
   --border-strong: #d4d4dd;
 
-  /* Brand — forest green tuned for AA contrast on white */
-  --primary: #176f3a;
-  --primary-hover: #0f6b35;
-  --primary-pressed: #084020;
-  --primary-soft: #e5f4e8;
-  --primary-fg: #f5f5f7;
+  /* Brand — bright logo bone for filled controls, with readable text accent */
+  --primary: #e6dac6;
+  --primary-hover: #f4ead7;
+  --primary-pressed: #cdbda2;
+  --primary-soft: #f3ebdd;
+  --primary-fg: #2a2118;
+  --primary-readable: #6f5638;
+  --primary-text-shadow: color-mix(in oklab, white 46%, transparent);
 
   /* Text */
   --fg: #0f0f14;
@@ -122,6 +127,7 @@
   --warning-soft: #fef9c3;
   --danger: #b91c1c;
   --danger-soft: #fee2e2;
+  --danger-fg: #fffaf0;
   --info: #1d4ed8;
   --info-soft: #dbeafe;
 
@@ -131,8 +137,8 @@
   --rank-bronze: #92400e;
 
   /* Charts */
-  --chart-1: #176f3a;
-  --chart-2: #084020;
+  --chart-1: #6f5638;
+  --chart-2: #352a1c;
   --chart-3: #16a34a;
   --chart-4: #2563eb;
   --chart-5: #ca8a04;
@@ -177,6 +183,7 @@
   --color-primary-pressed: var(--primary-pressed);
   --color-primary-soft: var(--primary-soft);
   --color-primary-fg: var(--primary-fg);
+  --color-primary-readable: var(--primary-readable);
   --color-focus-ring: var(--focus-ring);
   --color-focus-ring-soft: var(--focus-ring-soft);
 
@@ -191,6 +198,7 @@
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-danger-fg: var(--danger-fg);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
 
@@ -411,7 +419,7 @@
 
   background-color: var(--primary);
   color: var(--primary-fg);
-  text-shadow: 0 1px 0 color-mix(in oklab, black 42%, transparent);
+  text-shadow: 0 1px 0 var(--primary-text-shadow);
 }
 
 .gb-control-secondary {
@@ -502,7 +510,7 @@
   --control-rim-top: color-mix(in oklab, white 36%, transparent);
   --control-rim-bottom: color-mix(in oklab, black 36%, transparent);
 
-  color: var(--primary-fg);
+  color: var(--danger-fg);
   text-shadow: 0 1px 0 color-mix(in oklab, black 42%, transparent);
 }
 
@@ -1288,7 +1296,7 @@ body {
 
   border-color: var(--control-border);
   color: var(--primary-fg);
-  text-shadow: 0 1px 0 color-mix(in oklab, black 42%, transparent);
+  text-shadow: 0 1px 0 var(--primary-text-shadow);
 }
 
 [data-theme="light"] .wallet-adapter-button,

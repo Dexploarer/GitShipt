@@ -63,65 +63,65 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-28 8:01pm CDT
+# [gitbags] recent context, 2026-04-28 9:58pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (23,586t read) | 2,120,477t work | 99% savings
+Stats: 50 obs (25,324t read) | 1,527,750t work | 98% savings
 
 ### Apr 28, 2026
-1798 6:29p ✅ gitbags-prd.md + vercel.json Doc Pass — Neon Terminology, Env Var Canonicalization, Missing Cron Added
-1806 6:34p 🔵 GitBags Post-Upgrade Quality Gate — All Green (S133 Final Verification)
-1807 6:37p 🔵 GitBags Working Tree — Full Multi-Session Diff Before Structured Commit
-1808 " ✅ GitBags Commit 5ceb13a — "Update Bun runtime and docs"
-1809 " 🔴 Zsh Glob Expansion Fails on [...all] Bracket Pattern in git add
-1810 " ✅ GitBags Commit a12326d — "Harden runtime env and database setup"
-1811 " 🔄 getTableRowCountsUncached — Single Parameterized Query Replaces Sequential pg_class Loop
-1812 " 🟣 claimPartnerFees — Admin Cache Revalidation After Successful Settlement
-1813 " 🔄 GitHub Health Ping in Admin Page — Moved to getCachedValue to Avoid Live Call Per Render
-1814 6:40p ✅ GitBags Commit d6b932f — "Add fund reconciliation workflow"
-1815 " ✅ GitBags Commit 807f949 — "Harden launch and payout money flows"
-1816 " ✅ GitBags 5-Commit Push — Full Multi-Session Work Landed to main (dbaae13..6e75954)
-1817 " 🟣 Cache-Control Hygiene — no-store-response.ts Utility + 6 Route Handler Patches
-1818 6:52p 🔵 GitBags Money-Flow Security Audit — Four Critical Findings
-1819 " ⚖️ Brand Rename: GitBags → GitShipt (Codex Task)
-1822 " 🔵 GitBags → GitShipt Brand Rename — Full Occurrence Map (425 lines)
-1824 6:53p ✅ GitBags → GitShipt Brand Rename — Bulk perl Substitution Across 65 Files
-1826 " ✅ GitBags → GitShipt Brand Rename — Verified Complete, Internal Identifiers Confirmed Unchanged
-1828 6:54p 🔴 Brand Rename Edge-Case Fixes — Apostrophe Corruption, Demo Email, Token Symbol
-1833 6:55p ✅ Token Symbol Fallback + Demo Mint Address Updated to GitShipt Brand
-1835 " ✅ GitBags → GitShipt Brand Rename — Final Verification Pass Complete
-1837 6:56p 🔴 Brand Rename Cleanup — Redis Test Fixture Revert + AGENTS.md Bun Version Correction
-1841 6:57p ✅ GitBags → GitShipt Brand Rename — Definitive Completion Verified
-1844 6:58p ✅ Full "gitbags" → "gitshipt" Rename Extended to Internal Identifiers + PRD File Renamed
-1845 7:00p 🔵 GitShipt Brand Rename Quality Gate — All 100 Tests Pass
-1846 7:01p 🔵 GitShipt Brand Rename — Pre-Commit Working Tree: 100 Modified + 1 Deleted + 1 Untracked
-1854 7:17p ⚖️ GitShipt Full Repo Completeness Audit Initiated — Scale of 100
-1855 " 🔵 GitShipt Repo — Comprehensive Production-Readiness Audit Initiated
-1856 " 🔵 GitShipt Prior Audit History Found in MEMORY.md — Four Completed Audit Passes
-1857 7:20p 🔵 GitShipt Full Repo Audit — Build/Test/Lint Baseline Results
-1858 " 🔵 GitShipt Production Env Gap — 15 Required Variables Missing from Vercel
-1859 " 🔵 GitShipt Route and Feature Completeness — All PRD Routes Present, Admin Fully Wired
-1860 " 🔵 GitShipt Security Architecture Audit — RBAC, Idempotency, Webhook Auth Fully Implemented
-1861 " 🔵 GitShipt Workflow Architecture Audit — 10 Vercel Workflows Fully Implemented with Redis Locks
-1862 7:32p 🔵 GitShipt Money-Flow Security Audit — New Deep Review Initiated
-1868 7:33p 🔵 GitShipt Payout Pipeline — Full 9-Step Architecture Map
-1869 " 🔵 GitShipt Fund Reconciliation Architecture — Hot Wallet vs Liability Delta
-1870 " 🔵 GitShipt Manual Reconciliation Sentinel Pattern — Cross-System Zero-Loss Guarantee
-1871 " 🔵 GitShipt Launch Flow — Two-Phase Checkpoint Prevents Duplicate Initial Buy
-1872 " 🔵 GitShipt Fee-Share Update Pipeline — Idempotent Per-Target-Hash Attempt Model
-1873 7:36p 🔵 GitShipt DB Schema — Payout, Recipient, Fee-Share, and Project Tables Fully Mapped
-1874 " 🔴 loadFrozenSnapshotsAwaitingPayout Was Missing Retry-Safe Payout Resume
-1875 " 🔴 persistPayoutPlan Did Not Re-Reserve Claiming Status on Retry + markPayoutClaimed Status Check Widened
-1876 " 🔴 markLaunchSubmissionPending Was Fire-and-Forget — Now Throws on Persist Failure + Pending Signature is Deterministic
-1877 " 🟣 payout-helpers.test.ts — New Test for loadFrozenSnapshotsAwaitingPayout SQL Predicates
-1890 7:48p 🔴 loadFrozenSnapshotsAwaitingPayout SQL — Crashed Payouts Never Retried
-1891 " 🔴 persistPayoutPlan — Retry Path Did Not Re-Advance Status to 'claiming'
-1892 " 🔴 markPayoutClaimed — Status Filter Widened to Accept 'pending' or 'claiming'
-1893 " 🔴 markLaunchSubmissionPending — Fire-and-Forget DB Write + Non-Deterministic Sentinel
-1894 " 🔵 GitShipt Money-Flow Audit — All Four P0/P1 Vulnerabilities Fixed and Verified
+1933 8:43p ✅ Stale "Primary-Green" Prose Purged — DESIGN.md, badge.tsx, PoolOverviewCard.tsx
+1936 8:44p ✅ GitShipt Production Build Passes Clean — 34 Files, Bone Palette Migration Complete
+1939 8:47p 🔵 gb-control-primary Text Shadow Conflict — Black text-shadow on Near-Black primary-fg
+1941 8:49p 🔴 --primary-text-shadow Token Added — Theme-Aware Text Shadow for Bone Palette Buttons
+1945 8:56p 🔵 GitShipt Completeness Audit — Prior Audit History Retrieved From Memory
+1946 " 🔵 GitShipt Full Route Tree Enumerated — All PRD Routes Present, Several Extra Pages Added
+1950 8:57p 🔵 GitShipt Completeness Audit — Stub/Simulated Surface Inventory and v1.1 Status
+1951 " 🔵 GitShipt Nav Structure — Sidebar Covers All Routes, PublicNav Has 3 Top Links
+1968 9:03p 🔵 GitShipt Admin Cosign TODO — Full Call Site and Architecture Survey
+1969 " 🔵 Irreversible Actions Identified — Cosign Scope for Finding 2
+1970 " 🟣 PublicNav.tsx Mobile Collapse — Responsive Hamburger Menu Implementation
+1971 9:04p 🔵 GitShipt Security Audit — Five Production Gaps Identified
+1973 9:06p 🔵 Landing Page Discloses Simulated 24h Volume — Finding 5 Scope Mapped
+1974 " ⚖️ Simulated Volume Metric — Credential-Gated Display vs. Outright Removal
+1972 " 🟣 PublicNav Mobile Collapse Implemented via Sheet Component
+1976 9:08p 🔵 PublicNav.tsx Patch Review — Finding 3 Scope and Criteria Defined
+1977 " 🔵 E2E Stale-Lock Patch (Finding 4) — Code Review Scope and Audit Criteria
+1978 9:11p 🔵 Worker 5 Patch Review — Finding 5: Simulated Landing Volume Removal Audit
+1979 " 🔵 prepare-e2e-build.mjs Full Implementation — Stale Lock Removal with Active-Build Guard
+1980 " 🔵 Playwright webServer CWD — Command Launches from apps/web/, Making process.cwd() Correct
+1981 " 🔵 looksLikeNextBuild Regex — Broad "bun run build" Pattern Is a Potential False-Positive Risk
+1982 " 🔵 playwright.config.ts webServer Patch — &&-Chain Correctly Propagates Script Failures
+1983 9:13p 🔴 CSP Nonce Enforcement Activated — script-src 'unsafe-inline' Removed from Production
+1984 " 🟣 PublicNav Mobile Collapse — Sheet-Based Hamburger Menu Added
+1985 " 🔴 Playwright E2E Stale Build Lock — prepare-e2e-build.mjs Preflight Script Added
+1986 9:14p 🔴 Landing KPI Strip — 3-Cell Orphan Layout Fixed, Volume Guard Added
+1987 9:16p 🔴 Simulated 24h Volume Removed From Landing — volumeSource Guard Prevents Future Leakage
+1988 " 🟣 Admin Cosign Gate Implemented — Irreversible Actions Require Second super_admin Approval
+1989 " 🔵 prepare-e2e-build.mjs Fails Open When lsof Inspection Fails on macOS
+1990 " 🔴 Landing 3-Cell KPI Grid Orphan Fixed — sm:grid-cols-3 for No-Volume State
+1991 " 🔵 Admin Cosign UX Gap — DestructiveConfirmModal Does Not Surface pendingActionId for Second Approver
+1993 9:19p 🔵 GitShipt Admin Cosign Gate Architecture — Pending Action Server-Side Infrastructure
+1994 " ⚖️ Admin Cosign UX — Pending State Must Stay Open, Not Close on First Submit
+1995 9:20p 🔵 GitShipt Two-Super-Admin Cosign Flow — Architecture Review Scope
+1996 9:21p 🔵 prepare-e2e-build.mjs Stale Lock Cleanup — Fails Closed Correctly, No False-Positive Risk
+1997 9:23p 🔵 prepare-e2e-build.mjs Live Smoke Tests — All Failure-Closed and False-Positive Cases Verified
+1998 9:24p 🔵 GitShipt Full Repo Completeness Audit Requested — Deep Pass Initiated
+1999 9:25p 🔵 Global Query Tests Pass Clean After Landing KPI Review
+2000 9:27p 🔴 destructive-action.test.ts — Cosign Crash-Resume Test Corrected
+2001 " 🔵 GitShipt Production Build — 87 Routes Confirmed Clean After Cosign Fixes
+2002 9:29p ⚖️ E2E Stale Lock Helper classifyBuildCommand — Reviewer Approved, False-Positive Resolved
+2003 " 🔵 classifyBuildCommand Resolves False-Positive in E2E Stale Lock Helper
+2004 " 🔵 Cosign Resumed-Row Execution Not Atomically Claimed — New Medium Finding
+2005 9:31p 🔵 prepare-e2e-build.mjs Full Implementation Confirmed — Line-Level Code Review Complete
+2006 9:32p 🔴 Cosign Duplicate-Execution Window Fixed — Stored Idempotency Key Now Forwarded to Action fn
+2009 " ⚖️ Cosign Duplicate-Execution Fix — Reviewer Beauvoir Full Approval
+2010 9:35p 🔵 Landing Page Simulated Volume Removed — Reviewer Approved With Runtime Verification
+2011 " 🔵 prepare-e2e-build.mjs Residual Open Finding — Unrelated Process cwd-Inspection Failure Still Blocks E2E
+2012 " 🔵 GitShipt Full Working Tree — 54 Modified Files, 6 Untracked, Uncommitted Before Push
+2013 9:38p 🔵 Cosign Duplicate-Execution Fix — Final Re-Review Confirmed Correct
 
-Access 2120k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 1528k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

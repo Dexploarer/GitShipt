@@ -106,7 +106,7 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
               </a>
               . Every trade on that token generates fees. {platformFeePct}% goes
               to the GitShipt platform; the remaining{" "}
-              <span className="text-mono-sm text-primary">
+              <span className="text-mono-sm text-primary-readable">
                 {contributorPoolPct}%
               </span>{" "}
               is the contributor pool.

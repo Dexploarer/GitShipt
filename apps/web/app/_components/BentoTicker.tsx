@@ -1,7 +1,7 @@
 import { Activity, Coins, Sparkles, Users } from "lucide-react";
 import { cn } from "@repo/lib";
 import { formatSol, formatUsd } from "@repo/lib";
-import type { LandingTicker } from "@/lib/queries/global";
+import { hasRealLandingVolume, type LandingTicker } from "@/lib/queries/global";
 
 /**
  * Floating live-stat cell (no Card wrapper). Same visual vocabulary as
@@ -9,10 +9,9 @@ import type { LandingTicker } from "@/lib/queries/global";
  * + mono value.
  *
  * The displayed value comes straight from `initial: LandingTicker`, which
- * the page hydrates from a cron-published Redis snapshot (`gitshipt:ticker:
- * landing`, refreshed every minute by `workflows/publishKpis.ts`) with a
- * graceful DB-derived fallback. The previous ±0.4% client-side drift on a
- * 10s setInterval was removed — that was simulated liveness, not data.
+ * the page hydrates from a cron-published Redis snapshot with a graceful
+ * DB-derived fallback. Volume only renders when it is explicitly sourced
+ * from real Bags market data.
  *
  * This component is now a pure server-renderable cell: no `useState`, no
  * `useEffect`, no `"use client"`. Liveness comes from the page re-rendering
@@ -21,7 +20,12 @@ import type { LandingTicker } from "@/lib/queries/global";
 
 const CELLS = [
   { key: "volume", label: "24h Volume", Icon: Activity, accent: "text-fg" },
-  { key: "fees", label: "Lifetime Fees", Icon: Coins, accent: "text-primary" },
+  {
+    key: "fees",
+    label: "Lifetime Fees",
+    Icon: Coins,
+    accent: "text-primary-readable",
+  },
   {
     key: "projects",
     label: "Active Projects",
@@ -31,12 +35,20 @@ const CELLS = [
   { key: "earning", label: "Earners", Icon: Users, accent: "text-fg" },
 ] as const;
 
-type CellKey = (typeof CELLS)[number]["key"];
+export type BentoTickerCellKey = (typeof CELLS)[number]["key"];
 
-function format(key: CellKey, t: LandingTicker): string {
+export function getLandingTickerCellKeys(
+  ticker: LandingTicker,
+): BentoTickerCellKey[] {
+  return hasRealLandingVolume(ticker)
+    ? ["fees", "volume", "projects", "earning"]
+    : ["fees", "projects", "earning"];
+}
+
+function format(key: BentoTickerCellKey, t: LandingTicker): string {
   switch (key) {
     case "volume":
-      return formatUsd(t.volume24hUsd);
+      return hasRealLandingVolume(t) ? formatUsd(t.volume24hUsd) : "--";
     case "fees":
       return formatSol(t.lifetimeFeesLamports, 2);
     case "projects":
@@ -52,10 +64,11 @@ export function BentoTickerCell({
   className,
 }: {
   initial: LandingTicker;
-  cellKey: CellKey;
+  cellKey: BentoTickerCellKey;
   className?: string;
 }) {
   const cell = CELLS.find((c) => c.key === cellKey)!;
+  if (cellKey === "volume" && !hasRealLandingVolume(initial)) return null;
 
   return (
     <div

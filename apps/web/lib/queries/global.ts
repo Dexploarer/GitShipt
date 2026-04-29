@@ -30,15 +30,28 @@ export interface LandingProject {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
+  status:
+    | "draft"
+    | "launch_configured"
+    | "live"
+    | "paused"
+    | "killed"
+    | "simulated_live";
   contributorsCount: number;
   lifetimeFeesLamports: bigint;
   dailyFeeLamports: bigint;
 }
 
+export type LandingVolumeSource = "bags" | "unavailable";
+
 export interface LandingTicker {
-  /** Sum of stub-derived 24h volume across live projects. */
-  volume24hUsd: number;
+  /** Real Bags-derived 24h volume when the upstream data source exposes it. */
+  volume24hUsd: number | null;
+  /**
+   * `bags` means `volume24hUsd` came from a real Bags market-data source.
+   * `unavailable` keeps the landing honest instead of displaying simulations.
+   */
+  volumeSource: LandingVolumeSource;
   /** SUM(payouts.total_amount_lamports) WHERE status='completed'. */
   lifetimeFeesLamports: bigint;
   /** COUNT(projects WHERE status='live'). */
@@ -73,31 +86,18 @@ export interface GlobalProjectEntry {
   contributorsPaid: number;
 }
 
-/**
- * Lamports per SOL (kept local so this module has no other deps).
- */
-const LAMPORTS_PER_SOL = 1_000_000_000n;
-
-/**
- * Convert a bigint lamports value to a number of SOL (lossy for very large
- * values but fine for the demo + display scale).
- */
-function lamportsToSolNumber(lamports: bigint): number {
-  return Number(lamports) / Number(LAMPORTS_PER_SOL);
-}
-
-/**
- * Deterministic 24h volume stub mirroring `lib/queries/token-stats.ts`.
- * Real Bags volume isn't exposed yet — when it is, swap this for a sum
- * over `tokenStats.volume24hUsd` per project.
- *
- * Same scaling factor as token-stats.ts: priceUsd × 25_000_000, where
- * priceUsd = lifetimeSol / 100_000.
- */
-function stubVolume24hUsd(lifetimeLamports: bigint): number {
-  const lifetimeSol = lamportsToSolNumber(lifetimeLamports);
-  const priceUsd = lifetimeSol / 100_000 || 0.00001;
-  return priceUsd * 25_000_000;
+export function hasRealLandingVolume(
+  ticker: Pick<LandingTicker, "volume24hUsd" | "volumeSource">,
+): ticker is Pick<LandingTicker, "volume24hUsd" | "volumeSource"> & {
+  volume24hUsd: number;
+  volumeSource: "bags";
+} {
+  return (
+    ticker.volumeSource === "bags" &&
+    typeof ticker.volume24hUsd === "number" &&
+    Number.isFinite(ticker.volume24hUsd) &&
+    ticker.volume24hUsd >= 0
+  );
 }
 
 /**
@@ -187,14 +187,6 @@ async function getLandingDataUncached(): Promise<LandingData> {
   const activeProjects = activeRows[0]?.count ?? 0;
   const contributorsEarning = earningRows[0]?.count ?? 0;
 
-  // 24h volume — sum of stubs across the top projects so the headline
-  // number scales with the demo data. TODO: swap for a real Bags volume
-  // sum once the API exposes per-token rolling volume.
-  const volume24hUsd = topProjects.reduce(
-    (acc, p) => acc + stubVolume24hUsd(p.lifetimeFeesLamports),
-    0,
-  );
-
   // Prefer the cron-published Redis snapshot when present so the homepage
   // numbers match what's being broadcast across surfaces. The DB-derived
   // values above are the graceful fallback when Redis is empty / down.
@@ -203,7 +195,8 @@ async function getLandingDataUncached(): Promise<LandingData> {
   return {
     topProjects,
     ticker: cached ?? {
-      volume24hUsd,
+      volume24hUsd: null,
+      volumeSource: "unavailable",
       lifetimeFeesLamports,
       activeProjects,
       contributorsEarning,
@@ -212,7 +205,7 @@ async function getLandingDataUncached(): Promise<LandingData> {
 }
 
 export function getLandingData(): Promise<LandingData> {
-  return getCachedValue(getLandingDataUncached, ["gitshipt:landing-data:v1"], {
+  return getCachedValue(getLandingDataUncached, ["gitshipt:landing-data:v2"], {
     tags: [cacheTags.public, cacheTags.landing],
     revalidate: CACHE_SECONDS.live,
   });
@@ -394,12 +387,12 @@ export function getGlobalLeaderboard(): Promise<{
 /**
  * Slim ticker-only fetch for any future client-side polling endpoint. Same
  * shape as `LandingTicker`. Currently unused (the landing's `<LiveTicker>`
- * receives its initial values from `getLandingData()` server-side and just
- * animates them client-side), but exposed so a `/api/ticker` route can wrap
- * this without re-importing the heavier `getLandingData`.
+ * receives its initial values from `getLandingData()` server-side), but
+ * exposed so a `/api/ticker` route can wrap this without re-importing the
+ * heavier `getLandingData`.
  */
 export async function getLiveTickerDataUncached(): Promise<LandingTicker> {
-  const [feesRows, activeRows, earningRows, walletRows] = await Promise.all([
+  const [feesRows, activeRows, earningRows] = await Promise.all([
     dbHttp
       .select({
         sum: sql<string>`COALESCE(SUM(${payouts.totalAmountLamports}), 0)::text`,
@@ -416,23 +409,12 @@ export async function getLiveTickerDataUncached(): Promise<LandingTicker> {
       })
       .from(contributorClaims)
       .where(isNotNull(contributorClaims.walletAddress)),
-    // Sum of stub volume — same shape as getLandingData but without the
-    // top projects payload.
-    dbHttp
-      .select({
-        sum: sql<string>`COALESCE(SUM(${payouts.totalAmountLamports}) FILTER (WHERE ${payouts.status} = 'completed'), 0)::text`,
-      })
-      .from(payouts)
-      .innerJoin(
-        projects,
-        and(eq(projects.id, payouts.projectId), eq(projects.status, "live")),
-      ),
   ]);
 
   const lifetimeFeesLamports = BigInt(feesRows[0]?.sum ?? "0");
-  const liveLamports = BigInt(walletRows[0]?.sum ?? "0");
   return {
-    volume24hUsd: stubVolume24hUsd(liveLamports),
+    volume24hUsd: null,
+    volumeSource: "unavailable",
     lifetimeFeesLamports,
     activeProjects: activeRows[0]?.count ?? 0,
     contributorsEarning: earningRows[0]?.count ?? 0,
@@ -440,10 +422,14 @@ export async function getLiveTickerDataUncached(): Promise<LandingTicker> {
 }
 
 export function getLiveTickerData(): Promise<LandingTicker> {
-  return getCachedValue(getLiveTickerDataUncached, ["gitshipt:live-ticker:v1"], {
-    tags: [cacheTags.public, cacheTags.liveTicker, cacheTags.landing],
-    revalidate: CACHE_SECONDS.live,
-  });
+  return getCachedValue(
+    getLiveTickerDataUncached,
+    ["gitshipt:live-ticker:v2"],
+    {
+      tags: [cacheTags.public, cacheTags.liveTicker, cacheTags.landing],
+      revalidate: CACHE_SECONDS.live,
+    },
+  );
 }
 
 /**
@@ -452,11 +438,12 @@ export function getLiveTickerData(): Promise<LandingTicker> {
  * from `workflows/`) so this module stays free of workflow-runtime code
  * and can be pulled into RSCs without dragging in the workflow client.
  */
-export const LANDING_TICKER_CACHE_KEY = "gitshipt:ticker:landing";
+export const LANDING_TICKER_CACHE_KEY = "gitshipt:ticker:landing:v2";
 
 const CachedLandingTickerPayloadSchema = z.object({
   ticker: z.object({
-    volume24hUsd: z.number(),
+    volume24hUsd: z.number().nullable().optional(),
+    volumeSource: z.enum(["bags", "unavailable"]).optional(),
     lifetimeFeesLamports: z.string(),
     activeProjects: z.number().int().min(0),
     contributorsEarning: z.number().int().min(0),
@@ -480,8 +467,17 @@ export async function getCachedLandingTicker(): Promise<LandingTicker | null> {
     const raw = await r.get(LANDING_TICKER_CACHE_KEY);
     if (!raw) return null;
     const parsed = CachedLandingTickerPayloadSchema.parse(JSON.parse(raw));
+    const volumeSource = parsed.ticker.volumeSource ?? "unavailable";
+    const volume24hUsd =
+      volumeSource === "bags" &&
+      typeof parsed.ticker.volume24hUsd === "number" &&
+      Number.isFinite(parsed.ticker.volume24hUsd) &&
+      parsed.ticker.volume24hUsd >= 0
+        ? parsed.ticker.volume24hUsd
+        : null;
     return {
-      volume24hUsd: Number(parsed.ticker.volume24hUsd) || 0,
+      volume24hUsd,
+      volumeSource: volume24hUsd === null ? "unavailable" : "bags",
       lifetimeFeesLamports: BigInt(parsed.ticker.lifetimeFeesLamports ?? "0"),
       activeProjects: parsed.ticker.activeProjects ?? 0,
       contributorsEarning: parsed.ticker.contributorsEarning ?? 0,

@@ -75,8 +75,9 @@ export function PayoutRowActions({
         targetName={payoutId}
         targetLabel="Type the payout id to confirm"
         confirmLabel="Cancel payout"
+        cosignRequired
         action={async (p) => {
-          await cancelPayout({ payoutId, ...p });
+          return await cancelPayout({ payoutId, ...p });
         }}
       />
     </div>

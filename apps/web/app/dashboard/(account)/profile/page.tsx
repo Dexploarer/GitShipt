@@ -193,7 +193,7 @@ function ProfileStat({
           </div>
           <div className="mt-1 text-body-sm text-fg-secondary">{detail}</div>
         </div>
-        <Icon className="size-4 text-primary" aria-hidden />
+        <Icon className="size-4 text-primary-readable" aria-hidden />
       </div>
     </Card>
   );

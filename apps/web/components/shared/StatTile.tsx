@@ -17,7 +17,7 @@ export interface StatTileProps {
 }
 
 const accentClass: Record<NonNullable<StatTileProps["accent"]>, string> = {
-  primary: "text-primary",
+  primary: "text-primary-readable",
   neutral: "text-fg",
   success: "text-success",
   warning: "text-warning",
@@ -54,7 +54,7 @@ export function StatTile({
           <Icon
             className={cn(
               "size-4 shrink-0 text-fg-muted",
-              accent === "primary" && "text-primary",
+              accent === "primary" && "text-primary-readable",
             )}
             aria-hidden
           />

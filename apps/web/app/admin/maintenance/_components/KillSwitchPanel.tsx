@@ -6,10 +6,16 @@ import { Button } from "@repo/ui";
 import { DestructiveConfirmModal } from "@/components/admin/DestructiveConfirmModal";
 import { toggleKillSwitch } from "@/app/admin/actions";
 
-export function KillSwitchPanel({ currentEnabled }: { currentEnabled: boolean }) {
+export function KillSwitchPanel({
+  currentEnabled,
+}: {
+  currentEnabled: boolean;
+}) {
   const [open, setOpen] = React.useState(false);
   const targetEnabled = !currentEnabled;
-  const targetName = targetEnabled ? "ENABLE KILL SWITCH" : "DISABLE KILL SWITCH";
+  const targetName = targetEnabled
+    ? "ENABLE KILL SWITCH"
+    : "DISABLE KILL SWITCH";
 
   return (
     <div className="flex items-center justify-end">
@@ -18,7 +24,8 @@ export function KillSwitchPanel({ currentEnabled }: { currentEnabled: boolean })
         size="sm"
         onClick={() => setOpen(true)}
       >
-        <Power className="size-4" /> {targetEnabled ? "Enable kill switch" : "Disable kill switch"}
+        <Power className="size-4" />{" "}
+        {targetEnabled ? "Enable kill switch" : "Disable kill switch"}
       </Button>
       <DestructiveConfirmModal
         open={open}
@@ -33,7 +40,7 @@ export function KillSwitchPanel({ currentEnabled }: { currentEnabled: boolean })
         targetLabel={`Type "${targetName}" to confirm`}
         confirmLabel={targetEnabled ? "Enable" : "Disable"}
         action={async (p) => {
-          await toggleKillSwitch({ enabled: targetEnabled, ...p });
+          return await toggleKillSwitch({ enabled: targetEnabled, ...p });
         }}
       />
     </div>

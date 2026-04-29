@@ -11,7 +11,10 @@ import {
   type LeaderboardRow,
   type ProjectHeader,
 } from "@/lib/queries/project-page";
-import { BentoTickerCell } from "../_components/BentoTicker";
+import {
+  BentoTickerCell,
+  getLandingTickerCellKeys,
+} from "../_components/BentoTicker";
 
 const FEATURED_OWNER = "SYMBaiEX";
 const FEATURED_REPO = "gitshipt";
@@ -64,6 +67,7 @@ export default async function LandingPage() {
         featuredHeader.payoutConfig,
       )
     : [];
+  const tickerCellKeys = getLandingTickerCellKeys(ticker);
 
   return (
     <div className="flex flex-col gap-3 lg:h-[calc(100vh-4.5rem)] lg:gap-3 lg:overflow-hidden lg:pt-8">
@@ -80,11 +84,11 @@ export default async function LandingPage() {
       <div className="grid grid-cols-1 gap-4 lg:mb-8 lg:min-h-0 lg:grid-cols-[minmax(0,520px)_minmax(0,760px)] lg:justify-center lg:gap-8">
         <div className="contents lg:flex lg:flex-col lg:min-h-0 lg:justify-center lg:gap-10">
           <section className="order-1 flex flex-col items-start gap-4 lg:order-none lg:gap-5">
-            <h1 className="text-[1.75rem] font-semibold leading-[1.02] text-fg sm:text-[2.25rem] lg:whitespace-nowrap lg:text-[3.25rem]">
+            <h1 className="text-display text-fg">
               Your repo, <span className="text-fg-muted">tokenized.</span>
             </h1>
 
-            <p className="max-w-xl text-body-md text-fg-secondary lg:text-body-lg">
+            <p className="max-w-xl text-body-md text-fg-secondary">
               GitShipt mints a Bags.fm token for any GitHub repo and streams the
               trading fees back to its contributors — ranked daily, paid
               on-chain in SOL.
@@ -158,17 +162,16 @@ export default async function LandingPage() {
       {/* ── Row 2: live KPI strip (4 cells) ──────────────────────── */}
       <section
         aria-label="Live platform metrics"
-        className="grid grid-cols-2 gap-2 lg:shrink-0 lg:grid-cols-4 lg:gap-3"
+        className={
+          tickerCellKeys.length === 4
+            ? "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:shrink-0 lg:grid-cols-4 lg:gap-3"
+            : "grid grid-cols-1 gap-2 sm:grid-cols-3 lg:shrink-0 lg:gap-3"
+        }
       >
-        <BentoTickerCell initial={ticker} cellKey="fees" />
-        <BentoTickerCell initial={ticker} cellKey="volume" />
-        <BentoTickerCell initial={ticker} cellKey="projects" />
-        <BentoTickerCell initial={ticker} cellKey="earning" />
+        {tickerCellKeys.map((cellKey) => (
+          <BentoTickerCell key={cellKey} initial={ticker} cellKey={cellKey} />
+        ))}
       </section>
-      <p className="text-caption text-fg-muted lg:shrink-0">
-        24h volume is simulated until Bags market data is configured; fees and
-        earners come from payout records.
-      </p>
     </div>
   );
 }

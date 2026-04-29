@@ -165,7 +165,7 @@ export default async function AdminReconciliationPage() {
     <div className="space-y-4">
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-headline-md tracking-tight">
+          <h1 className="text-headline-md">
             Bags ↔ DB reconciliation
           </h1>
           <p className="text-body-sm text-fg-secondary">

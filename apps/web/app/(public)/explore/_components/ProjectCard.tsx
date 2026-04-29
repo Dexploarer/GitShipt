@@ -114,7 +114,7 @@ function Avatar({
   return (
     <span
       aria-hidden
-      className="grid size-14 shrink-0 place-items-center rounded-xl border border-border/60 bg-primary-soft text-headline-sm font-semibold text-primary"
+      className="grid size-14 shrink-0 place-items-center rounded-xl border border-border/60 bg-primary-soft text-headline-sm font-semibold text-primary-readable"
     >
       {fallback}
     </span>

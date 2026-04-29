@@ -4,7 +4,7 @@ import { cn } from "@repo/lib";
 
 /**
  * Badge — small status chip. Per DESIGN.md, badge-live shows a 6px pulsing
- * green dot prefix. Use the `dot` prop to enable it for any semantic variant.
+ * status dot prefix. Use the `dot` prop to enable it for any semantic variant.
  */
 const badgeVariants = cva(
   "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full text-label-sm font-medium",
@@ -12,7 +12,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "bg-surface-elevated text-fg-secondary border border-border",
-        primary: "bg-primary-soft text-primary",
+        primary: "bg-primary-soft text-primary-readable",
         success: "bg-success-soft text-success",
         warning: "bg-warning-soft text-warning",
         danger: "bg-danger-soft text-danger",

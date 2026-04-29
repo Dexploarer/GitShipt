@@ -153,7 +153,7 @@ function SettingsLink({
       className="group grid gap-3 px-6 py-4 transition-colors hover:bg-surface-elevated/50 sm:grid-cols-[minmax(0,1fr)_auto]"
     >
       <div className="flex min-w-0 items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-md border border-border bg-surface text-primary">
+        <span className="grid size-9 shrink-0 place-items-center rounded-md border border-border bg-surface text-primary-readable">
           <Icon className="size-4" aria-hidden />
         </span>
         <div className="min-w-0">
