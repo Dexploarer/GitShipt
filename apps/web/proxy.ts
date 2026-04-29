@@ -72,6 +72,7 @@ function buildContentSecurityPolicy({ isEmbed }: { isEmbed: boolean }) {
     "'unsafe-inline'",
     "https://va.vercel-scripts.com",
     "https://vitals.vercel-insights.com",
+    "https://vercel.live",
     ...(isDev ? ["'unsafe-eval'"] : []),
   ].join(" ");
 

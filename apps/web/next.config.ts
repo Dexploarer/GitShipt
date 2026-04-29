@@ -189,6 +189,27 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  async redirects() {
+    // Canonical host pin: gitbags.com is a legacy alias kept registered for
+    // ownership/SEO. Production lives at gitshipt.com — better-auth's origin
+    // check rejects sign-in from any host that isn't `BETTER_AUTH_URL`, so
+    // any traffic that lands on gitbags.com gets a 308 to gitshipt.com.
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "gitbags.com" }],
+        destination: "https://gitshipt.com/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.gitbags.com" }],
+        destination: "https://gitshipt.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     return [
       // Default — X-Frame-Options DENY for everything except /embed/*.
