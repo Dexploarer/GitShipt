@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { AlertTriangle, Clock, X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui";
 import { Card } from "@repo/ui";
 import { cn } from "@repo/lib";
@@ -45,6 +46,18 @@ export interface DestructiveConfirmModalProps {
     idempotencyKey: string;
     pendingActionId?: string;
   }) => Promise<unknown>;
+  /**
+   * Optional toast surfaced on the success branch (after the modal closes).
+   * Skip for actions that redirect on success — the toaster host unmounts
+   * before sonner can render.
+   */
+  successToast?: string;
+  /**
+   * Optional toast surfaced when the action returns a pending-cosign
+   * result (the second approver still needs to approve). Defaults to a
+   * generic "Awaiting cosign" message if not provided.
+   */
+  pendingApprovalToast?: string;
 }
 
 const REASON_MIN = 20;
@@ -61,6 +74,8 @@ export function DestructiveConfirmModal({
   busyLabel = "Working...",
   cosignRequired = false,
   action,
+  successToast,
+  pendingApprovalToast,
 }: DestructiveConfirmModalProps) {
   const [reason, setReason] = React.useState("");
   const [typed, setTyped] = React.useState("");
@@ -190,13 +205,18 @@ export function DestructiveConfirmModal({
         setApprovalId(result.pendingActionId);
         setMfa("");
         setBusy(false);
+        toast.info(
+          pendingApprovalToast ?? "Awaiting cosign from another super-admin",
+        );
         return;
       }
       onOpenChange(false);
+      if (successToast) toast.success(successToast);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
       setBusy(false);
+      toast.error(msg);
     }
   }
 

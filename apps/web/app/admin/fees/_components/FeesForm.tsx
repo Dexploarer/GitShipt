@@ -63,6 +63,7 @@ export function FeesForm({ currentBps }: { currentBps: number }) {
         action={async (p) => {
           return await updateFeesBps({ bps, ...p });
         }}
+        successToast={`Platform fee updated to ${bps} bps`}
       />
     </div>
   );
