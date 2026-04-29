@@ -16,7 +16,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
-import { formatRelativeTime, formatAddress } from "@repo/lib";
+import { RelativeTime } from "@/components/shared/RelativeTime";
+import { formatAddress } from "@repo/lib";
 import { languageColor } from "@repo/lib";
 
 type Params = Promise<{ org: string; repo: string }>;
@@ -133,17 +134,21 @@ async function ProjectRepositoryPageContent({
             label="Last incremental sync"
             icon={<RefreshCw className="size-3.5" />}
             value={
-              indexerRow?.lastIncrementalSyncAt
-                ? formatRelativeTime(indexerRow.lastIncrementalSyncAt)
-                : "Never"
+              indexerRow?.lastIncrementalSyncAt ? (
+                <RelativeTime date={indexerRow.lastIncrementalSyncAt} />
+              ) : (
+                "Never"
+              )
             }
           />
           <Stat
             label="Last full sync"
             value={
-              indexerRow?.lastFullSyncAt
-                ? formatRelativeTime(indexerRow.lastFullSyncAt)
-                : "Never"
+              indexerRow?.lastFullSyncAt ? (
+                <RelativeTime date={indexerRow.lastFullSyncAt} />
+              ) : (
+                "Never"
+              )
             }
           />
           <Stat
@@ -224,7 +229,7 @@ function Stat({
   mono = false,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   icon?: React.ReactNode;
   dotColor?: string | null;
   mono?: boolean;
