@@ -5,6 +5,8 @@ import { dbHttp } from "@/db";
 import { users } from "@/db/schema";
 import {
   getRlsContext,
+  getRlsOverride,
+  setRlsOverride,
   enterRlsContext,
   withRlsContext,
   type RlsContext,
@@ -12,23 +14,37 @@ import {
 
 export { withRlsContext };
 
+// The "enter" / "with" service- and anon-mode helpers use the lightweight
+// override path on `db/rls-context.ts` instead of AsyncLocalStorage. This
+// keeps the call graph free of `node:async_hooks` so workflow step helpers
+// (which import this module to call `enterDbWorkflowContext`) compile cleanly
+// under the Workflow DevKit's analyzer. User-mode callers still go through
+// AsyncLocalStorage via `establishDbUserContext` below — that path requires
+// `@/db/rls-storage-init` to be loaded by the entry point.
+
 export function enterDbAnonymousContext(reason = "anonymous"): void {
-  enterRlsContext({ mode: "anon", reason });
+  setRlsOverride({ mode: "anon", reason });
 }
 
 export function enterDbServiceContext(reason: string): void {
-  enterRlsContext({ mode: "service", reason });
+  setRlsOverride({ mode: "service", reason });
 }
 
 export function enterDbWorkflowContext(workflowName: string): void {
   enterDbServiceContext(`workflow:${workflowName}`);
 }
 
-export function withDbServiceContext<T>(
+export async function withDbServiceContext<T>(
   reason: string,
   fn: () => Promise<T>,
 ): Promise<T> {
-  return withRlsContext({ mode: "service", reason }, fn);
+  const prev = getRlsOverride();
+  setRlsOverride({ mode: "service", reason });
+  try {
+    return await fn();
+  } finally {
+    setRlsOverride(prev);
+  }
 }
 
 interface RlsExecutable {
@@ -52,6 +68,9 @@ export async function applyDbRlsContext(
   `);
 }
 
+// User-mode context propagation across concurrent requests requires real
+// AsyncLocalStorage. Callers must ensure `@/db/rls-storage-init` has been
+// loaded — `lib/auth/index.ts` does this on import.
 export async function establishDbUserContext(
   userId: string,
   reason = "session",

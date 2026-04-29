@@ -25,7 +25,6 @@ import {
 } from "@/lib/payouts/distribution";
 import { computeMerkleRoot } from "@/lib/payouts/merkle";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
-import { isKillSwitchEnabled } from "@/lib/payouts/safety";
 import { withIdempotency } from "@/lib/idempotency";
 import {
   executeFeeShareUpdateAttempt,
@@ -61,6 +60,7 @@ export interface LoadedProjectForSnapshot {
 
 /** Projects with status='live' that have at least one ranked contributor. */
 export async function loadEligibleProjectIds(): Promise<string[]> {
+  "use step";
   enterDbWorkflowContext("snapshot-helpers:loadEligibleProjectIds");
   const rows = await dbHttp.execute<{ id: string }>(sql`
     select p.id::text as id
@@ -79,6 +79,7 @@ export async function loadEligibleProjectIds(): Promise<string[]> {
 export async function loadProjectForSnapshot(
   projectId: string,
 ): Promise<LoadedProjectForSnapshot | null> {
+  "use step";
   enterDbWorkflowContext("snapshot-helpers:loadProjectForSnapshot");
   const [row] = await dbHttp
     .select({
@@ -105,6 +106,7 @@ export async function loadRankedContributors(
   projectId: string,
   topN: number,
 ): Promise<SnapshotContributor[]> {
+  "use step";
   enterDbWorkflowContext("snapshot-helpers:loadRankedContributors");
   const limit = Math.max(0, Math.floor(topN));
   if (limit === 0) return [];
@@ -186,6 +188,7 @@ export async function freezeSnapshot(args: {
   snapshotPeriod?: string;
   takenAtISO?: string;
 }): Promise<FreezeSnapshotResult> {
+  "use step";
   enterDbWorkflowContext("snapshot-helpers:freezeSnapshot");
   const takenAt = args.takenAtISO ? new Date(args.takenAtISO) : new Date();
   const snapshotPeriod = normalizeSnapshotPeriod(args.snapshotPeriod, takenAt);
@@ -273,6 +276,7 @@ export async function freezeSnapshot(args: {
 export async function loadContributorWallets(
   contributorIds: string[],
 ): Promise<Record<string, string>> {
+  "use step";
   enterDbWorkflowContext("snapshot-helpers:loadContributorWallets");
   if (contributorIds.length === 0) return {};
   const rows = await dbHttp
@@ -327,6 +331,9 @@ export async function snapshotReleaseLockStep(
 export async function snapshotAssertNotKilled(): Promise<void> {
   "use step";
   enterDbWorkflowContext("takeSnapshot:assertNotKilled");
+  // @/lib/payouts/safety transitively imports @solana/web3.js; lazy-load
+  // so the workflow bundle's static graph never touches it.
+  const { isKillSwitchEnabled } = await import("@/lib/payouts/safety");
   const killed = await isKillSwitchEnabled();
   if (killed) {
     throw new FatalError("kill_switch_enabled: takeSnapshot aborted");

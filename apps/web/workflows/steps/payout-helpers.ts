@@ -16,7 +16,6 @@ import {
 import type { LeaderboardEntry } from "@/db/schema/snapshots";
 import type { PayoutConfig, ScoringConfig } from "@/db/schema/projects";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { bags } from "@/lib/bags/client";
 import {
   hasCredentials,
   canLaunchOnBags,
@@ -26,14 +25,8 @@ import {
 import { computeMerkleRoot, sha256Hex } from "@/lib/payouts/merkle";
 import { computeDistributionPlan } from "@/lib/payouts/distribution";
 import { loadContributorWallets } from "./snapshot-helpers";
-import {
-  isKillSwitchEnabled,
-  preflightSafety,
-  getCycleCap,
-  type SnapshotContextLike,
-} from "@/lib/payouts/safety";
+import type { SnapshotContextLike } from "@/lib/payouts/safety";
 import { applyDbRlsContext, enterDbWorkflowContext } from "@/lib/db-rls";
-import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { withIdempotency } from "@/lib/idempotency";
 import type { WorkflowLock } from "@/lib/workflow-locks";
 
@@ -109,6 +102,7 @@ export async function recipientIdempotencyKey(
   snapshotPeriod: string,
   contributorId: string,
 ): Promise<string> {
+  "use step";
   return sha256Hex(`${projectId}|${snapshotPeriod}|${contributorId}`);
 }
 
@@ -135,6 +129,7 @@ export function isStubMode(): boolean {
 export async function loadFrozenSnapshotsAwaitingPayout(): Promise<
   Array<{ id: string }>
 > {
+  "use step";
   enterDbWorkflowContext("payout-helpers:loadFrozenSnapshotsAwaitingPayout");
   const rows = await dbHttp.execute<{ id: string }>(sql`
     select distinct on (s.project_id, s.snapshot_period) s.id::text as id
@@ -163,6 +158,7 @@ export async function loadFrozenSnapshotsAwaitingPayout(): Promise<
 export async function loadSnapshotContext(
   snapshotId: string,
 ): Promise<SnapshotContextJson | null> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:loadSnapshotContext");
   const [row] = await dbHttp
     .select({
@@ -231,7 +227,11 @@ export type PreflightJson =
 export async function runPreflight(
   ctxJson: SnapshotContextJson,
 ): Promise<PreflightJson> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:runPreflight");
+  // @/lib/payouts/safety transitively imports @solana/web3.js; lazy-load
+  // here so the workflow bundle never sees it statically.
+  const { preflightSafety } = await import("@/lib/payouts/safety");
   const ctx: SnapshotContextLike = {
     snapshot: {
       id: ctxJson.snapshot.id,
@@ -250,7 +250,9 @@ export async function runPreflight(
 }
 
 export async function killSwitchAborted(): Promise<boolean> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:killSwitchAborted");
+  const { isKillSwitchEnabled } = await import("@/lib/payouts/safety");
   return isKillSwitchEnabled();
 }
 
@@ -264,6 +266,7 @@ export async function checkClaimableLamports(args: {
   walletAddress: string | null;
   tokenMint: string | null;
 }): Promise<{ lamports: string; positionCount: number }> {
+  "use step";
   if (isStubMode()) {
     // STUB-MODE SYNTHESIS — no on-chain claim is performed. We return a
     // deterministic fake amount (1 SOL) so the planning pipeline can run
@@ -275,6 +278,7 @@ export async function checkClaimableLamports(args: {
   if (!args.walletAddress || !args.tokenMint) {
     return { lamports: "0", positionCount: 0 };
   }
+  const { bags } = await import("@/lib/bags/client");
   const positions = await bags.getClaimablePositions(args.walletAddress);
   let total = 0n;
   let count = 0;
@@ -304,6 +308,7 @@ export async function claimBagsFees(args: {
    */
   payoutId?: string;
 }): Promise<{ signature: string | null; txCount: number }> {
+  "use step";
   const { bags } = await import("@/lib/bags/client");
   const { transactions } = (await bags.getClaimTransactions(
     args.walletAddress,
@@ -371,6 +376,7 @@ export async function buildPlan(
   ctxJson: SnapshotContextJson,
   claimedLamportsStr: string,
 ): Promise<DistributionPlanRowJson[]> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:buildPlan");
   const claimedLamports = BigInt(claimedLamportsStr);
   const contributorIds = ctxJson.snapshot.leaderboard.map(
@@ -415,11 +421,13 @@ export async function buildPlan(
 export async function assertCycleUnderCap(
   planRowsJson: DistributionPlanRowJson[],
 ): Promise<{ ok: true; total: string } | { ok: false; reason: string }> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:assertCycleUnderCap");
   const total = planRowsJson.reduce(
     (acc, r) => acc + BigInt(r.amountLamports),
     0n,
   );
+  const { getCycleCap } = await import("@/lib/payouts/safety");
   const cap = await getCycleCap();
   if (total > cap) {
     return {
@@ -449,6 +457,7 @@ export async function persistPayoutPlan(args: {
   reserveClaimFirst?: boolean;
   merkleRootOverride?: string;
 }): Promise<{ payoutId: string; recipientCount: number }> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:persistPayoutPlan");
   const db = dbPool();
   const now = new Date();
@@ -592,6 +601,7 @@ export async function markPayoutClaimed(
   payoutId: string,
   claimSignature: string | null,
 ): Promise<void> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:markPayoutClaimed");
   await dbHttp
     .update(payouts)
@@ -613,6 +623,7 @@ export async function markPayoutFailed(
   reason: string,
   options: { claimSignature?: string | null } = {},
 ): Promise<void> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:markPayoutFailed");
   const claimSignature =
     options.claimSignature ??
@@ -629,6 +640,8 @@ export async function markPayoutFailed(
 }
 
 async function payoutCanDispatch(payoutId: string): Promise<boolean> {
+  "use step";
+  const { isKillSwitchEnabled } = await import("@/lib/payouts/safety");
   if (await isKillSwitchEnabled()) return false;
   const [row] = await dbHttp
     .select({ status: payouts.status })
@@ -655,6 +668,7 @@ export async function dispatchRecipient(args: {
   status: "sent" | "escrow" | "skipped" | "failed";
   sig?: string;
 }> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:dispatchRecipient");
   const amount = BigInt(args.recipient.amountLamports);
   if (amount <= 0n) return { status: "skipped" };
@@ -770,6 +784,7 @@ export async function dispatchRecipient(args: {
     .returning({ id: payoutRecipients.id });
   if (!claimed) return { status: "skipped" };
 
+  const { isKillSwitchEnabled } = await import("@/lib/payouts/safety");
   if (await isKillSwitchEnabled()) {
     await dbHttp
       .update(payoutRecipients)
@@ -829,6 +844,7 @@ async function markRecipientConfirmedWithRetry(
   recipientId: string,
   signature: string,
 ): Promise<void> {
+  "use step";
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -864,6 +880,7 @@ async function markStaleSendingRecipientForReconciliation(existing: {
   sendingAt: Date | null;
   txSignature: string | null;
 }): Promise<void> {
+  "use step";
   if (existing.txSignature) {
     await markRecipientConfirmedWithRetry(existing.id, existing.txSignature);
     return;
@@ -906,6 +923,7 @@ export async function finalizePayout(payoutId: string): Promise<{
     pending: number;
   };
 }> {
+  "use step";
   enterDbWorkflowContext("payout-helpers:finalizePayout");
   const stub = isStubMode();
   const [payout] = await dbHttp
@@ -967,6 +985,7 @@ export async function finalizePayout(payoutId: string): Promise<{
  * Lightweight no-op tx assembly. Kept so static imports stay live during dev.
  */
 export async function noopForBuild(): Promise<void> {
+  "use step";
   void and;
 }
 
@@ -983,6 +1002,7 @@ export type ClaimFeesStepResult =
 export async function payoutAssertNotKilled(): Promise<void> {
   "use step";
   enterDbWorkflowContext("executePayout:assertNotKilled");
+  const { isKillSwitchEnabled } = await import("@/lib/payouts/safety");
   if (await isKillSwitchEnabled()) {
     throw new FatalError("kill_switch_enabled: executePayout aborted");
   }
@@ -1054,6 +1074,7 @@ export async function preflightStep(
 
 export async function platformWalletStep(): Promise<string | null> {
   "use step";
+  const { payoutSignerPublicKey } = await import("@/lib/solana/signer");
   return payoutSignerPublicKey();
 }
 

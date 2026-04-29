@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withWorkflow } from "workflow/next";
 
 /**
  * Shared headers — applied to every route.
@@ -169,11 +170,21 @@ const nextConfig: NextConfig = {
   },
   devIndicators: { position: "top-right" },
   allowedDevOrigins: ["127.0.0.1"],
-  // better-auth fans into kysely/prisma/mongo adapters via its package
-  // exports map; Turbopack pulls those into the SSR chunk graph and emits
-  // unresolvable chunk refs at page-data collection. Loading better-auth via
-  // Node require() at runtime keeps the chunk graph clean.
-  serverExternalPackages: ["better-auth"],
+  // serverExternalPackages doubles as the workflow step-bundle externals
+  // list. Each entry stays out of the static bundle graph and is resolved
+  // by Node's require at runtime — required for:
+  //
+  //   - better-auth: package's exports map fans into kysely/prisma/mongo
+  //     adapters that Turbopack would pull into the SSR chunk graph.
+  //   - @solana/web3.js: peer deps (@solana/codecs-numbers, rpc-websockets)
+  //     that esbuild can't statically resolve in the workflow step bundle
+  //     even with a hoisted node_modules layout.
+  serverExternalPackages: [
+    "better-auth",
+    "@solana/web3.js",
+    "@solana/codecs-numbers",
+    "rpc-websockets",
+  ],
   transpilePackages: ["@repo/lib", "@repo/shared", "@repo/ui"],
 
   images: {
@@ -231,16 +242,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// `withWorkflow(nextConfig)` is intentionally NOT applied. To enable it,
-// two more refactors are required (see WORKFLOW_INTEGRATION_NOTES.md):
-//   1. Helper files must use a service-mode DB client that doesn't import
-//      `db/rls-context.ts` (which has a static `node:async_hooks` import).
-//      The Workflow DevKit's bundler emits CJS output, so the lazy
-//      top-level-await pattern doesn't apply.
-//   2. All `@solana/web3.js`, `@/lib/bags/*`, `@/lib/solana/*` imports in
-//      step bodies must be converted to dynamic `await import()` so the
-//      step bundle doesn't try to statically resolve `@solana/codecs-numbers`
-//      and `rpc-websockets` from inside Bun's deduped node_modules layout.
-// Until then, crons fall through to `safeStartWorkflow()` and return a
-// graceful 200 with `{ ok: false, error: "workflow_unavailable" }`.
-export default nextConfig;
+export default withWorkflow(nextConfig);

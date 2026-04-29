@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { dbHttp } from "@/db";
 import { platformConfig } from "@/db/schema";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
-import { runFundReconciliation } from "@/lib/funds/reconciliation";
+import type { runFundReconciliation } from "@/lib/funds/reconciliation";
 import {
   acquireWorkflowLock,
   releaseWorkflowLock,
@@ -28,6 +28,9 @@ export async function releaseLockStep(lock: WorkflowLock): Promise<void> {
 export async function reconcileStep(): ReturnType<typeof runFundReconciliation> {
   "use step";
   enterDbWorkflowContext("reconcileFunds:reconcile");
+  // @/lib/funds/reconciliation transitively imports @solana/web3.js;
+  // lazy-load so the workflow bundle's static graph never touches it.
+  const { runFundReconciliation } = await import("@/lib/funds/reconciliation");
   return await runFundReconciliation();
 }
 

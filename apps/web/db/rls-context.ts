@@ -1,5 +1,4 @@
 import "server-only";
-import { AsyncLocalStorage } from "node:async_hooks";
 import type { NeonQueryFunction } from "@neondatabase/serverless";
 
 export type RlsContext =
@@ -7,26 +6,81 @@ export type RlsContext =
   | { mode: "user"; userId: string; role: string; reason?: string }
   | { mode: "service"; reason: string };
 
-const _storage = new AsyncLocalStorage<RlsContext>();
-function getStorage(): AsyncLocalStorage<RlsContext> {
-  return _storage;
+// Async-context propagation works one of two ways depending on the caller:
+//
+//   1. Concurrent user requests (auth, route handlers, server actions) need
+//      AsyncLocalStorage so simultaneous requests in a Fluid Compute instance
+//      don't leak each other's RLS context. Those entries import
+//      `@/db/rls-storage-init` at module load (see below) which stashes a
+//      real `AsyncLocalStorage` instance under `STORE_KEY` on globalThis.
+//      `getRlsContext` reads from that storage when present.
+//
+//   2. Sequential / single-shot callers (workflow steps, webhooks, cron
+//      handlers) don't need cross-async propagation — each runs in its own
+//      isolated request/process. Those use the lightweight `_override`
+//      mechanism (settable via `enterDbServiceContext` / `enterDbWorkflowContext`
+//      in `@/lib/db-rls`) so they never have to import `node:async_hooks`.
+//      The Workflow DevKit's build analyzer rejects any reachable static
+//      `node:async_hooks` import, so workflow helpers MUST stay on the
+//      override path.
+//
+// Order of resolution in `getRlsContext`: AsyncLocalStorage > override > anon.
+
+const STORE_KEY = Symbol.for("gitshipt.rls-storage");
+
+interface AsyncLocalStorageLike<T> {
+  getStore(): T | undefined;
+  enterWith(value: T): void;
+  run<R>(value: T, fn: () => R): R;
+}
+
+function getStorage(): AsyncLocalStorageLike<RlsContext> | null {
+  const slot = (
+    globalThis as unknown as {
+      [k: symbol]: AsyncLocalStorageLike<RlsContext> | undefined;
+    }
+  )[STORE_KEY];
+  return slot ?? null;
+}
+
+let _override: RlsContext | null = null;
+
+export function setRlsOverride(ctx: RlsContext | null): void {
+  _override = ctx;
+}
+
+export function getRlsOverride(): RlsContext | null {
+  return _override;
 }
 
 export function getRlsContext(): RlsContext {
-  return getStorage().getStore() ?? { mode: "anon" };
+  const fromStorage = getStorage()?.getStore();
+  if (fromStorage) return fromStorage;
+  if (_override) return _override;
+  return { mode: "anon" };
+}
+
+function requireStorage(): AsyncLocalStorageLike<RlsContext> {
+  const s = getStorage();
+  if (!s) {
+    throw new Error(
+      "[rls-context] AsyncLocalStorage is not initialized. Import " +
+        '"@/db/rls-storage-init" from your entry point (layout, route ' +
+        "handler, or auth setup) before calling enterRlsContext / withRlsContext.",
+    );
+  }
+  return s;
 }
 
 export function enterRlsContext(ctx: RlsContext): void {
-  getStorage().enterWith(ctx);
+  requireStorage().enterWith(ctx);
 }
 
 export function withRlsContext<T>(
   ctx: RlsContext,
   fn: () => Promise<T>,
 ): Promise<T> {
-  // The AsyncLocalStorage `run` typing returns the callback's return
-  // type, which is `Promise<T>` here.
-  return getStorage().run(ctx, fn) as Promise<T>;
+  return requireStorage().run(ctx, fn) as Promise<T>;
 }
 
 /**

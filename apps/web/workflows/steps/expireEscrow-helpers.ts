@@ -3,7 +3,6 @@ import { sql } from "drizzle-orm";
 import { dbHttp } from "@/db";
 import { platformConfig } from "@/db/schema";
 import { audit } from "@/lib/audit";
-import { isKillSwitchEnabled } from "@/lib/payouts/safety";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
 import {
   acquireWorkflowLock,
@@ -21,6 +20,9 @@ export type { WorkflowLock, ExpiredEscrowRow };
 export async function assertNotKilled(): Promise<void> {
   "use step";
   enterDbWorkflowContext("expireEscrow:assertNotKilled");
+  // @/lib/payouts/safety transitively imports @solana/web3.js; lazy-load
+  // here so the workflow bundle's static graph never touches it.
+  const { isKillSwitchEnabled } = await import("@/lib/payouts/safety");
   if (await isKillSwitchEnabled()) {
     throw new FatalError("kill_switch_enabled: expireEscrow aborted");
   }

@@ -1,3 +1,9 @@
+// Side-effect import: registers the global AsyncLocalStorage instance the
+// RLS context layer reads from. Auth is loaded by every server-side path
+// that needs user-mode context propagation (Server Components, route
+// handlers, server actions), so importing it here is the most reliable
+// place to ensure storage is ready before `enterRlsContext` runs.
+import "@/db/rls-storage-init";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { eq } from "drizzle-orm";

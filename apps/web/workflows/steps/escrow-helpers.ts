@@ -20,6 +20,7 @@ export interface ExpiredEscrowRow {
 
 /** Holdings whose expiresAt < now and which haven't been drained or reviewed. */
 export async function loadExpiredEscrow(): Promise<ExpiredEscrowRow[]> {
+  "use step";
   enterDbWorkflowContext("escrow-helpers:loadExpiredEscrow");
   const rows = await dbHttp
     .select({
@@ -58,6 +59,7 @@ export async function sweepBackToTreasury(
   sentinel?: string;
   reason?: string;
 }> {
+  "use step";
   enterDbWorkflowContext("escrow-helpers:sweepBackToTreasury");
   const [row] = await dbHttp
     .select({
@@ -104,6 +106,7 @@ export async function linkContributorWallet(args: {
   userId: string;
   walletAddress: string;
 }): Promise<void> {
+  "use step";
   enterDbWorkflowContext("escrow-helpers:linkContributorWallet");
   const now = new Date();
   await dbHttp
@@ -133,6 +136,7 @@ export interface ActiveEscrowRow {
 export async function loadActiveEscrowFor(
   contributorId: string,
 ): Promise<ActiveEscrowRow[]> {
+  "use step";
   enterDbWorkflowContext("escrow-helpers:loadActiveEscrowFor");
   const rows = await dbHttp
     .select({
@@ -165,6 +169,7 @@ export async function drainHoldingToWallet(args: {
   holdingId: string;
   walletAddress: string;
 }): Promise<{ status: "drained" | "skipped" | "failed"; sig?: string }> {
+  "use step";
   const claim = await dbPool().transaction(async (tx) => {
     await applyDbRlsContext(tx, {
       mode: "service",
@@ -309,6 +314,7 @@ async function markHoldingDrainedWithRetry(args: {
   attemptId: string;
   signature: string;
 }): Promise<void> {
+  "use step";
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {

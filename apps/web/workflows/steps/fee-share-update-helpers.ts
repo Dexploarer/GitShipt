@@ -7,8 +7,6 @@ import {
 } from "@/db/schema";
 import type { PayoutConfig, ScoringConfig } from "@/db/schema/projects";
 import type { LeaderboardEntry } from "@/db/schema/snapshots";
-import { bags } from "@/lib/bags/client";
-import { buildBagsFeeShareDistributionPlan } from "@/lib/bags/fee-share-distribution";
 import { applyDbRlsContext, enterDbWorkflowContext } from "@/lib/db-rls";
 import {
   canLaunchOnBags,
@@ -16,9 +14,6 @@ import {
   serverEnv,
   stubsAllowed,
 } from "@/lib/env";
-import { isKillSwitchEnabled } from "@/lib/payouts/safety";
-import { solanaConnection } from "@/lib/solana/connection";
-import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { loadContributorWallets } from "./snapshot-helpers";
 
@@ -86,7 +81,13 @@ export async function prepareFeeShareUpdateAttempt(args: {
   snapshotPeriod: string;
   leaderboard: ReadonlyArray<LeaderboardEntry>;
 }): Promise<PreparedFeeShareUpdate> {
+  "use step";
   enterDbWorkflowContext("fee-share-update:prepare");
+  const [{ buildBagsFeeShareDistributionPlan }, { payoutSignerPublicKey }] =
+    await Promise.all([
+      import("@/lib/bags/fee-share-distribution"),
+      import("@/lib/solana/signer"),
+    ]);
   if (args.project.status !== "live") return skipped("project_not_live");
   if (!args.project.tokenMint) return skipped("project_missing_token_mint");
   if (!args.project.bagsPoolClaimerWallet) {
@@ -184,7 +185,19 @@ export async function prepareFeeShareUpdateAttempt(args: {
 export async function executeFeeShareUpdateAttempt(
   attemptId: string,
 ): Promise<ExecutedFeeShareUpdate> {
+  "use step";
   enterDbWorkflowContext("fee-share-update:execute");
+  const [
+    { bags },
+    { solanaConnection },
+    { payoutSignerPublicKey },
+    { isKillSwitchEnabled },
+  ] = await Promise.all([
+    import("@/lib/bags/client"),
+    import("@/lib/solana/connection"),
+    import("@/lib/solana/signer"),
+    import("@/lib/payouts/safety"),
+  ]);
   if (await isKillSwitchEnabled()) {
     return {
       attemptId,
@@ -316,6 +329,7 @@ async function markAttemptFailed(
   reason: string,
   signatures: ReadonlyArray<string> = [],
 ): Promise<ExecutedFeeShareUpdate> {
+  "use step";
   await dbHttp
     .update(feeShareUpdateAttempts)
     .set({
@@ -333,6 +347,7 @@ async function persistFeeShareSignatures(
   attemptId: string,
   signatures: ReadonlyArray<string>,
 ): Promise<void> {
+  "use step";
   await dbHttp
     .update(feeShareUpdateAttempts)
     .set({
