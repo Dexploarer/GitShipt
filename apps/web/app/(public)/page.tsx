@@ -92,10 +92,7 @@ async function LandingPageContent() {
                 SYMBaiEX/gitshipt
                 <ArrowUpRight className="size-3" />
               </Link>
-              <LiveIndicator
-                lastSyncAt={indexerHeartbeat}
-                label="Indexer"
-              />
+              <LiveIndicator lastSyncAt={indexerHeartbeat} label="Indexer" />
             </div>
           </section>
 
@@ -128,9 +125,9 @@ async function LandingPageContent() {
               alt=""
               fill
               priority
-              sizes="(max-width: 640px) 420px, (max-width: 1024px) 540px, 900px"
+              quality={72}
+              sizes="(max-width: 640px) 420px, (max-width: 1024px) 540px, 620px"
               className="gitshipt-mia-art z-[1] object-contain object-bottom"
-              unoptimized
             />
             <div
               aria-hidden="true"
@@ -141,9 +138,9 @@ async function LandingPageContent() {
                 alt=""
                 width={480}
                 height={640}
+                quality={72}
                 sizes="(max-width: 640px) 140px, (max-width: 1024px) 180px, 240px"
                 className="gitshipt-flag-art h-auto w-full select-none object-contain"
-                unoptimized
               />
             </div>
           </div>
@@ -161,9 +158,9 @@ async function LandingPageContent() {
             alt=""
             width={440}
             height={293}
+            quality={72}
             sizes="(max-width: 640px) 140px, (max-width: 1024px) 180px, 220px"
             className="gitshipt-ship-art h-auto w-full select-none object-contain"
-            unoptimized
           />
         </div>
         <section
