@@ -1,8 +1,12 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getGlobalLeaderboard } from "@/lib/queries/global";
+import {
+  getGlobalLeaderboard,
+  getPlatformIndexerHeartbeat,
+} from "@/lib/queries/global";
 import { GlobalLeaderboardTable } from "./_components/GlobalLeaderboardTable";
 import { LeaderboardFilters } from "./_components/LeaderboardFilters";
+import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import type {
   GlobalLeaderboardEntry,
   GlobalProjectEntry,
@@ -53,7 +57,10 @@ async function LeaderboardPageContent({
   const params = await searchParams;
   const mode = parseMode(params.mode);
   const query = parseQuery(params.q);
-  const data = await getGlobalLeaderboard();
+  const [data, indexerHeartbeat] = await Promise.all([
+    getGlobalLeaderboard(),
+    getPlatformIndexerHeartbeat(),
+  ]);
   const contributorRows = filterContributors(data.byContributor, query);
   const projectRows = filterProjects(data.byProject, query);
   const emptyMessage = query
@@ -63,7 +70,10 @@ async function LeaderboardPageContent({
   return (
     <div className="flex flex-col gap-6 lg:gap-8">
       <h1 className="sr-only">Global leaderboard</h1>
-      <LeaderboardFilters mode={mode} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <LeaderboardFilters mode={mode} />
+        <LiveIndicator lastSyncAt={indexerHeartbeat} label="Indexer" />
+      </div>
 
       {mode === "contributor" ? (
         <GlobalLeaderboardTable
