@@ -609,12 +609,12 @@ async function getRecentProjectAuditUncached(
       id: sql<string>`al.id`,
       action: sql<string>`al.action`,
       actorUserId: sql<string | null>`al.actor_user_id`,
-      actorName: sql<string | null>`u.name`,
+      actorName: users.name,
       metadata: sql<Record<string, unknown>>`al.metadata`,
       createdAt: sql<Date>`al.created_at`,
     })
     .from(sql`audit_logs al`)
-    .leftJoin(users, sql`u.id = al.actor_user_id`)
+    .leftJoin(users, sql`${users.id} = al.actor_user_id`)
     .where(sql`al.target_type = 'project' and al.target_id = ${projectId}`)
     .orderBy(sql`al.created_at desc`)
     .limit(safe);
