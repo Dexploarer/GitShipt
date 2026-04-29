@@ -157,6 +157,13 @@ function StatusBadge({ status }: { status: PublicProjectRow["status"] }) {
       </Badge>
     );
   }
+  if (status === "tracked") {
+    return (
+      <Badge variant="default" size="sm">
+        Tracked
+      </Badge>
+    );
+  }
   return (
     <Badge variant="default" size="sm">
       Draft

@@ -38,6 +38,7 @@
     "db:migrate": "cd apps/web && bun --env-file=../../.env.local run db:migrate",
     "db:push": "cd apps/web && bun --env-file=../../.env.local run db:push",
     "db:studio": "cd apps/web && bun --env-file=../../.env.local run db:studio",
+    "db:seed:tracked": "cd apps/web && bun --env-file=../../.env.local run scripts/seed-tracked-projects.ts",
     "env:check": "NODE_ENV=production bun scripts/check-production-env.mjs",
     "env:template": "bun scripts/check-production-env.mjs --print-template",
     "bun:http3:check": "bun scripts/check-bun-http3.mjs",

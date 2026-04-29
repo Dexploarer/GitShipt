@@ -24,6 +24,10 @@ export const projectStatusEnum = pgEnum("project_status", [
   // real launch promotes this row by clearing those columns and setting
   // status back to 'draft' (see app/api/admin/promote-from-stub).
   "simulated_live",
+  // Externally-launched Bags token we index for explore/search but do not
+  // operate. No payouts, no snapshots, no fee claims — workflows must
+  // exclude this status. Owned by the synthetic system user.
+  "tracked",
 ]);
 
 export const projectMemberRoleEnum = pgEnum("project_member_role", [

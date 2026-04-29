@@ -31,7 +31,7 @@ export interface ProjectHeader {
   imageUrl: string | null;
   tokenMint: string | null;
   bagsLaunchId: string | null;
-  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
+  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live" | "tracked";
   platformFeeBps: number;
   scoringConfig: ScoringConfig;
   payoutConfig: PayoutConfig;
@@ -327,7 +327,10 @@ async function getPoolOverviewUncached(
   let lifetimeUsd: number | null = null;
   let isStub = !bags.hasCredentials();
 
-  if (header.tokenMint && header.status === "live") {
+  if (
+    header.tokenMint &&
+    (header.status === "live" || header.status === "tracked")
+  ) {
     try {
       const lifetime = await bags.getLifetimeFees(header.tokenMint);
       lifetimeLamports = lifetime.totalLifetimeLamports;
@@ -357,7 +360,8 @@ async function getPoolOverviewUncached(
     feeShareBps: 10_000 - header.platformFeeBps, // contributor pool BPS
     sparkline,
     bagsUrl:
-      header.tokenMint && header.status === "live"
+      header.tokenMint &&
+      (header.status === "live" || header.status === "tracked")
         ? bags.bagsTokenUrl(header.tokenMint)
         : null,
     isStub,

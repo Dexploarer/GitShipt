@@ -36,7 +36,14 @@ export interface PublicProjectRow {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  status: "draft" | "launch_configured" | "live" | "paused" | "killed" | "simulated_live";
+  status:
+    | "draft"
+    | "launch_configured"
+    | "live"
+    | "paused"
+    | "killed"
+    | "simulated_live"
+    | "tracked";
   contributorsCount: number;
   /** Lifetime SOL paid out across all completed payouts. */
   lifetimeFeesLamports: bigint;
@@ -48,7 +55,7 @@ export interface PublicProjectRow {
 }
 
 export interface ExploreFilters {
-  status?: "all" | "live" | "paused";
+  status?: "all" | "live" | "paused" | "tracked";
   sort?: "trending" | "lifetime" | "contributors" | "newest";
   search?: string;
   /** Max rows returned. Defaults to 60. */
@@ -76,24 +83,34 @@ async function getAllPublicProjectsUncached(
 
   // Status filter — never show 'killed' or 'draft' on the public explore.
   // Project becomes visible the moment it goes live (or is temp paused).
+  // 'tracked' is for externally-launched Bags tokens we index but don't
+  // operate; included in the default 'all' view so they're discoverable.
   const statusValues =
     status === "live"
       ? ["live"]
       : status === "paused"
         ? ["paused"]
-        : ["live", "paused"];
+        : status === "tracked"
+          ? ["tracked"]
+          : ["live", "paused", "tracked"];
 
   const search = filters.search?.trim();
 
   const whereParts = [
-    inArray(projects.status, statusValues as ("live" | "paused")[]),
+    inArray(
+      projects.status,
+      statusValues as ("live" | "paused" | "tracked")[],
+    ),
   ];
   if (search) {
+    // Token mint addresses are case-sensitive base58, so an exact match on
+    // tokenMint is the right shape for "search by contract address".
     whereParts.push(
       or(
         ilike(projects.name, `%${search}%`),
         ilike(projects.ghOwner, `%${search}%`),
         ilike(projects.ghRepo, `%${search}%`),
+        eq(projects.tokenMint, search),
       )!,
     );
   }

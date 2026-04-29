@@ -6,13 +6,14 @@ import { Search } from "lucide-react";
 import { cn } from "@repo/lib";
 import { Input } from "@repo/ui";
 
-type StatusKey = "all" | "live" | "paused";
+type StatusKey = "all" | "live" | "paused" | "tracked";
 type SortKey = "trending" | "lifetime" | "contributors" | "newest";
 
 const STATUS_OPTIONS: Array<{ key: StatusKey; label: string }> = [
   { key: "all", label: "All" },
   { key: "live", label: "Live" },
   { key: "paused", label: "Paused" },
+  { key: "tracked", label: "Tracked" },
 ];
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
@@ -77,7 +78,7 @@ export function ExploreFilters() {
         type="search"
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
-        placeholder="Search by repo, name, or owner…"
+        placeholder="Search by repo, name, owner, or token mint…"
         leadingIcon={<Search className="size-4" />}
         clearable
         onClear={() => setSearchValue("")}

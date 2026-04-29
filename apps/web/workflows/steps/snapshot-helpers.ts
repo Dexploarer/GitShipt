@@ -37,6 +37,7 @@ export interface LoadedProjectForSnapshot {
     | "live"
     | "paused"
     | "killed"
+    | "tracked"
     | "simulated_live";
   tokenMint: string | null;
   bagsPoolClaimerWallet: string | null;

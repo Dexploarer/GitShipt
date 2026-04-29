@@ -211,7 +211,8 @@ function StatusBadge({
     | "live"
     | "paused"
     | "killed"
-    | "simulated_live";
+    | "simulated_live"
+    | "tracked";
 }) {
   switch (status) {
     case "live":
@@ -224,6 +225,8 @@ function StatusBadge({
       return <Badge variant="warning">Paused</Badge>;
     case "killed":
       return <Badge variant="danger">Killed</Badge>;
+    case "tracked":
+      return <Badge variant="default">Tracked</Badge>;
     default:
       return <Badge variant="default">Draft</Badge>;
   }

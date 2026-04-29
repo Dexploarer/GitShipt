@@ -27,7 +27,8 @@ type Status =
   | "live"
   | "paused"
   | "killed"
-  | "simulated_live";
+  | "simulated_live"
+  | "tracked";
 
 export function ProjectGodModeControls({
   projectId,

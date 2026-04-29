@@ -172,9 +172,15 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
       platformFeeBps: leaderboard.platformFeeBps,
     };
 
+    // Fresh idempotency key per click so we never replay a cached result
+    // from a prior failed/incomplete attempt on the same (user, repo) pair
+    // (TTL is 24h on the server). React's useTransition + isPending state
+    // already prevents concurrent in-flight clicks within a single render.
+    const idempotencyKey = `wizard-${crypto.randomUUID()}`;
+
     startTransition(async () => {
       try {
-        const result = await createAndLaunchAction(body);
+        const result = await createAndLaunchAction(body, idempotencyKey);
 
         if (!result.ok) {
           failSubmit(formatActionError(result.error, result.message));

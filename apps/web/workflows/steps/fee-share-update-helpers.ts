@@ -34,7 +34,8 @@ export interface FeeShareProjectContext {
     | "live"
     | "paused"
     | "killed"
-    | "simulated_live";
+    | "simulated_live"
+    | "tracked";
   tokenMint: string | null;
   bagsPoolClaimerWallet: string | null;
   platformFeeBps: number;

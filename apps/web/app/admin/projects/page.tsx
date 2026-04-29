@@ -177,7 +177,8 @@ function StatusBadge({
     | "live"
     | "paused"
     | "killed"
-    | "simulated_live";
+    | "simulated_live"
+    | "tracked";
 }) {
   switch (status) {
     case "live":
@@ -196,6 +197,12 @@ function StatusBadge({
       return (
         <Badge variant="danger" size="sm">
           Killed
+        </Badge>
+      );
+    case "tracked":
+      return (
+        <Badge variant="default" size="sm">
+          Tracked
         </Badge>
       );
     default:

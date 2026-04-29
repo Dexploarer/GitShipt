@@ -26,7 +26,8 @@ type DbProjectStatus =
   | "live"
   | "paused"
   | "killed"
-  | "simulated_live";
+  | "simulated_live"
+  | "tracked";
 
 type BagsStatus = "PRE_LAUNCH" | "PRE_GRAD" | "MIGRATING" | "MIGRATED";
 

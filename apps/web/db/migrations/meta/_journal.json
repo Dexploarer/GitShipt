@@ -127,6 +127,13 @@
       "when": 1777414000000,
       "tag": "0017_payout_recipients_weight_numeric",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1777415000000,
+      "tag": "0018_project_status_tracked",
+      "breakpoints": true
     }
   ]
 }

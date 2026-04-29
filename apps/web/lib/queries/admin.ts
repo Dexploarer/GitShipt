@@ -360,7 +360,8 @@ export interface AdminProjectRow {
     | "live"
     | "paused"
     | "killed"
-    | "simulated_live";
+    | "simulated_live"
+    | "tracked";
   contributorsCount: number;
   imageUrl: string | null;
   tokenMint: string | null;

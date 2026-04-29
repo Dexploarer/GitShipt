@@ -38,7 +38,8 @@ export interface LandingProject {
     | "live"
     | "paused"
     | "killed"
-    | "simulated_live";
+    | "simulated_live"
+    | "tracked";
   contributorsCount: number;
   lifetimeFeesLamports: bigint;
   dailyFeeLamports: bigint;

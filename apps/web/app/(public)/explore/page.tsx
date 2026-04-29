@@ -25,7 +25,10 @@ type SearchParams = Promise<{
 
 function parseFilters(raw: Awaited<SearchParams>): ExploreFilters {
   const status =
-    raw.status === "live" || raw.status === "paused" || raw.status === "all"
+    raw.status === "live" ||
+    raw.status === "paused" ||
+    raw.status === "tracked" ||
+    raw.status === "all"
       ? raw.status
       : "all";
   const sort =

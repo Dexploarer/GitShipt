@@ -60,13 +60,15 @@ async function ProjectTokenPageContent({ params }: { params: Params }) {
 
   const { header } = data;
   const stats = await getTokenStats(header);
-  const [creators, claimEvents] =
-    header.tokenMint && header.status === "live"
-      ? await Promise.all([
-          getTokenCreators(header.id, header.tokenMint),
-          getTokenClaimEvents(header.id, header.tokenMint, 5),
-        ])
-      : [[], []];
+  const hasLiveToken =
+    header.tokenMint &&
+    (header.status === "live" || header.status === "tracked");
+  const [creators, claimEvents] = hasLiveToken
+    ? await Promise.all([
+        getTokenCreators(header.id, header.tokenMint!),
+        getTokenClaimEvents(header.id, header.tokenMint!, 5),
+      ])
+    : [[], []];
   const platformFeePct = (header.platformFeeBps / 100).toFixed(1);
   const contributorPoolPct = ((10_000 - header.platformFeeBps) / 100).toFixed(
     1,
@@ -85,7 +87,7 @@ async function ProjectTokenPageContent({ params }: { params: Params }) {
         ]}
       />
 
-      {!header.tokenMint || header.status !== "live" || !stats ? (
+      {!hasLiveToken || !stats || !header.tokenMint ? (
         <Card depth="raised" padding="default" className="text-center">
           <Coins className="mx-auto size-10 text-fg-muted" aria-hidden />
           <CardTitle className="mt-3 justify-center">
