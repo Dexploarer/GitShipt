@@ -1,0 +1,84 @@
+# SPEC.md — frozen product invariants
+
+This file is the contract. Every feature, refactor, or audit must respect these
+invariants. If something is not listed here as in-scope, it is out-of-scope by
+default — surface it as a question rather than building it.
+
+`DESIGN.md` and `gitshipt-prd.md` are the authoritative long-form docs. This
+file is the short, hard list of what is true and what is forbidden, written
+specifically because past sessions invented adjacent features that contradicted
+the product model.
+
+## Product invariants (do not violate)
+
+- **SOL-only payouts.** No SPL token logic, no multi-token branches, no
+  token-type abstractions. Payouts are SOL via `@solana/web3.js@^1.98.x`.
+- **All launches are community launches.** There is exactly one launch type.
+- **Bags handles Incorporation.** We do not re-implement, mirror, or wrap it.
+- **No grace windows. No claim windows.** Snapshots are daily, payouts dispatch
+  on the same cadence. The product flow is: GitHub activity → ranked contributors
+  → daily snapshot → Bags fee claim → SOL payout by rank. Do not add
+  intermediate windows.
+- **Stub-safe by default.** External clients (Bags, Helius, payout keypair)
+  must keep deterministic stub fallbacks based on env-var presence. Never
+  invent secrets to make a flow "work" — stop and name the missing env var.
+- **Step idempotency is manual.** Vercel Workflows do not auto-dedupe step
+  side effects. Pass `getStepMetadata().stepId` as the idempotency key for
+  every external API call.
+- **`proxy.ts` is for redirects + CSP nonces only.** Auth must be revalidated
+  in-process inside every protected Server Component, Server Action, and
+  route handler (CVE-2025-29927).
+- **No raw hex in components.** Use design tokens (`bg-surface`, `text-fg`,
+  `text-rank-gold`, etc.). Both palettes resolve via CSS variables.
+- **Numeric values use mono.** SOL, USD, BPS, scores, timestamps, tx
+  signatures: `text-mono-md` / `text-mono-sm`. Body copy is never mono.
+- **TypeScript strict, `noUncheckedIndexedAccess` on.** No `any` outside
+  justified, commented type holes.
+- **Mutations follow the same checklist** every time: revalidate session →
+  `requirePermission` → Zod-validate input → respect `Idempotency-Key` →
+  audit log on success → revalidate cache tags.
+- **Two-super-admin cosign for irreversible admin actions.** Single approval
+  is not sufficient for destructive operations.
+
+## Explicit non-goals (do not build)
+
+- A 7-day or N-day grace/claim window for contributors who haven't linked a
+  wallet. (Specifically forbidden — invented in a past session, reverted.)
+- A custom Incorporation feature, signing flow, or KYC layer. Bags owns this.
+- SPL token support, "future-proofing" for non-SOL payouts, or generic
+  multi-asset abstractions.
+- Re-exporting / bridging Bags fee-claim functionality through our own
+  abstractions. Call `sdk.fee.*` directly from the workflow step.
+- A second auth realm or "lite" auth for any public action. There are exactly
+  two session realms: standard user and super-admin.
+- A custom CSP layer outside `proxy.ts`. The proxy mints per-request nonces;
+  do not introduce a parallel static policy.
+- A theme switcher hook in components. Only `theme-toggle.tsx` may call
+  `useTheme()`.
+
+## Boundaries that need confirmation before crossing
+
+If the user asks for something in this list, confirm scope and constraints
+before writing code. These are areas where past sessions drifted.
+
+- New Vercel Workflow files (`apps/web/workflows/*.ts`).
+- New Drizzle schema files or migration changes.
+- New top-level route realms under `apps/web/app/` (currently `(public)`,
+  `(auth)`, `dashboard/`, `admin/`, `r/[org]/[repo]`, `embed/`, `api/`).
+- New external client (anything that hits a third-party API).
+- Bundler / runtime changes (`next.config.ts`, `bun.lock` deps, Cloudflare
+  Workers compatibility, edge runtime adoption).
+- Auth flow changes (better-auth plugins, SIWS, TOTP, cosign).
+
+## How agents should use this file
+
+1. **Read SPEC.md before editing.** The full file fits in context; there is
+   no excuse to skip it.
+2. **If a task implies building something not listed in invariants or
+   confirmed-scope work, stop and ask.** Do not infer scope from adjacent
+   features.
+3. **When reviewing a diff (own or another agent's), reject anything that
+   contradicts an invariant or a non-goal**, even if it looks well-built.
+   The fastest path forward is to delete invented scope.
+4. **Updates to SPEC.md require explicit user approval.** It is the contract;
+   do not edit it as a side effect of feature work.

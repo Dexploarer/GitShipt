@@ -3,6 +3,9 @@
 # Dependencies
 /node_modules
 node_modules/
+
+# Architecture spikes (throwaway prototypes from /spike skill)
+/spikes/
 **/node_modules/
 .bun
 
@@ -32,7 +35,13 @@ apps/web/next-env.d.ts
 
 # Misc
 .DS_Store
-.claude/
+# Claude Code project config — share skills, hooks, and project settings;
+# keep per-developer settings.local.json out.
+.claude/*
+!.claude/settings.json
+!.claude/skills/
+!.claude/hooks/
+.claude/settings.local.json
 *.pem
 
 # Debug
