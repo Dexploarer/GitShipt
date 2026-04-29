@@ -1,4 +1,4 @@
-# GitBags Completeness and Integration Audit
+# GitShipt Completeness and Integration Audit
 
 Date: 2026-04-28
 Scope: repository completeness, product UX completeness, Bags Token Launch v2 integration, Solana transaction safety, and current verification state.
@@ -6,7 +6,7 @@ Skills applied: `$audit`, `$frontend-design`, `$bags`, `$solana-dev`.
 
 ## Anti-Patterns Verdict
 
-GitBags does not read like a generic AI scaffold. The app has a specific launchpad thesis, a consistent cypherpunk-dark visual language, real route/workflow/schema wiring, and meaningful Bags, GitHub, Solana, auth, audit-log, and payout surfaces.
+GitShipt does not read like a generic AI scaffold. The app has a specific launchpad thesis, a consistent cypherpunk-dark visual language, real route/workflow/schema wiring, and meaningful Bags, GitHub, Solana, auth, audit-log, and payout surfaces.
 
 Verdict: pass with launch-readiness caveats.
 
@@ -29,7 +29,7 @@ Passed:
 - `bun run theme:lint`
 - `bun run test`
 - `bun run build`
-- Playwright smoke against the already-running dev server on `/`, `/explore`, `/leaderboard`, `/launch`, `/docs`, and `/r/SYMBaiEX/gitbags`: all returned HTTP 200 with no console errors.
+- Playwright smoke against the already-running dev server on `/`, `/explore`, `/leaderboard`, `/launch`, `/docs`, and `/r/SYMBaiEX/gitshipt`: all returned HTTP 200 with no console errors.
 - Mobile smoke at 390 x 844 on the same route set: no horizontal page overflow found.
 
 Failed or blocked:
@@ -113,7 +113,7 @@ Evidence:
 
 Impact:
 
-The app has dashboard earnings and admin revenue surfaces, but the public contributor path for discovering and claiming passive earnings is not complete. That is a core GitBags product promise, not a secondary polish issue.
+The app has dashboard earnings and admin revenue surfaces, but the public contributor path for discovering and claiming passive earnings is not complete. That is a core GitShipt product promise, not a secondary polish issue.
 
 Recommendation:
 

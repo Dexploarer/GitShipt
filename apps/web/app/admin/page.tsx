@@ -133,8 +133,8 @@ async function fetchHotWalletLamports(): Promise<number | null> {
         return null;
       }
     },
-    ["gitbags:admin:hot-wallet-lamports:v1", pk],
-    { tags: ["gitbags:admin:hot-wallet"], revalidate: 30 },
+    ["gitshipt:admin:hot-wallet-lamports:v1", pk],
+    { tags: ["gitshipt:admin:hot-wallet"], revalidate: 30 },
   );
 }
 
@@ -163,8 +163,8 @@ async function pingBags(): Promise<{ ok: boolean; latencyMs: number | null }> {
         return { ok: false, latencyMs: null };
       }
     },
-    ["gitbags:admin:ping-bags:v2"],
-    { tags: ["gitbags:admin:health"], revalidate: 60 },
+    ["gitshipt:admin:ping-bags:v2"],
+    { tags: ["gitshipt:admin:health"], revalidate: 60 },
   );
 }
 
@@ -187,8 +187,8 @@ async function pingGitHub(): Promise<{
         return { ok: false, latencyMs: null };
       }
     },
-    ["gitbags:admin:ping-github:v1"],
-    { tags: ["gitbags:admin:health"], revalidate: 30 },
+    ["gitshipt:admin:ping-github:v1"],
+    { tags: ["gitshipt:admin:health"], revalidate: 30 },
   );
 }
 

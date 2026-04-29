@@ -57,14 +57,14 @@ function genId() {
   return id;
 }
 
-const demoEmail = "demo+gitbags@gitbags.local";
+const demoEmail = "demo+gitshipt@gitshipt.local";
 
 let [owner] = await sql`select * from users where email = ${demoEmail} limit 1`;
 if (!owner) {
   const id = genId();
   await sql`
     insert into users (id, name, email, email_verified, github_username, github_id, role)
-    values (${id}, 'GitBags Demo', ${demoEmail}, true, 'SYMBaiEX', 'demo-1000', 'user')
+    values (${id}, 'GitShipt Demo', ${demoEmail}, true, 'SYMBaiEX', 'demo-1000', 'user')
   `;
   owner = { id };
   console.log("Created demo owner:", id);
@@ -75,11 +75,11 @@ if (!owner) {
 // Fake but plausibly-shaped mint address (44 base58 chars). Real launches
 // fill this in via the Bags SDK. The Solscan link will 404 on this fake
 // — that's expected for the demo.
-const DEMO_TOKEN_MINT = "GBAGSdemoTokenMint11111111111111111111111111";
-const DEMO_BAGS_LAUNCH_ID = "bags_launch_demo_gitbags_v0";
+const DEMO_TOKEN_MINT = "GShiptDemoMint111111111111111111111111111111";
+const DEMO_BAGS_LAUNCH_ID = "bags_launch_demo_gitshipt_v0";
 
 let [project] = await sql`
-  select * from projects where gh_owner = 'SYMBaiEX' and gh_repo = 'gitbags' limit 1
+  select * from projects where gh_owner = 'SYMBaiEX' and gh_repo = 'gitshipt' limit 1
 `;
 if (!project) {
   const id = genId();
@@ -89,7 +89,7 @@ if (!project) {
       status, platform_fee_bps, scoring_config, payout_config,
       token_mint, bags_launch_id
     ) values (
-      ${id}, ${owner.id}, 'SYMBaiEX', 'gitbags', 'demo-repo-1', 'GitBags',
+      ${id}, ${owner.id}, 'SYMBaiEX', 'gitshipt', 'demo-repo-1', 'GitShipt',
       'Pump.fm for open source. Daily trading fees redistribute to top contributors.',
       'simulated_live', 500, ${JSON.stringify(DEFAULT_SCORING)}::jsonb, ${JSON.stringify(DEFAULT_PAYOUT)}::jsonb,
       ${DEMO_TOKEN_MINT}, ${DEMO_BAGS_LAUNCH_ID}
@@ -139,6 +139,6 @@ for (let i = 0; i < DEMO_CONTRIBUTORS.length; i++) {
 const [{ count }] =
   await sql`select count(*)::int as count from contributors where project_id = ${project.id}`;
 console.log(`Seeded ${count} contributors for project ${project.id}`);
-console.log(`Visit: http://localhost:3000/r/SYMBaiEX/gitbags`);
+console.log(`Visit: http://localhost:3000/r/SYMBaiEX/gitshipt`);
 
 await sql.end();

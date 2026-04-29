@@ -96,8 +96,8 @@ describe("destructiveAction", () => {
           permission: "project.delete",
           projectId: "project_1",
           reason: "Operator requested deletion after repository transfer.",
-          targetName: "SYMBaiEX/gitbags",
-          typedConfirmation: "symbiex/gitbags",
+          targetName: "SYMBaiEX/gitshipt",
+          typedConfirmation: "symbiex/gitshipt",
           mfaConfirmedAtMs: Date.now(),
         },
         {

@@ -46,7 +46,7 @@ export default async function TeamPage({
         <div className="space-y-2">
           <h2 className="text-headline-sm text-fg">Add moderator</h2>
           <p className="text-body-sm text-fg-secondary">
-            Add an existing GitBags user by GitHub username or email. Moderators
+            Add an existing GitShipt user by GitHub username or email. Moderators
             can read project data, inspect payouts, and help operate snapshots.
           </p>
           <MemberInviteForm projectId={id} />

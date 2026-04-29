@@ -24,7 +24,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { org, repo } = await params;
   return {
-    title: `${org}/${repo} · GitBags embed`,
+    title: `${org}/${repo} · GitShipt embed`,
     robots: { index: false, follow: false },
   };
 }

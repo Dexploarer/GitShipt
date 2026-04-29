@@ -360,7 +360,7 @@ export async function directLaunchProject(input: unknown): Promise<{
         );
       }
       const stubPoolWallet = isStub
-        ? (await bags.resolveWallet("github", "gitbags-platform")).wallet
+        ? (await bags.resolveWallet("github", "gitshipt-platform")).wallet
         : null;
       const poolClaimerWallet = payoutWallet ?? stubPoolWallet;
       if (!poolClaimerWallet) {

@@ -33,7 +33,7 @@ export async function acquireWorkflowLock(
     };
   }
 
-  const key = `gitbags:workflow-lock:${normalizePart(
+  const key = `gitshipt:workflow-lock:${normalizePart(
     workflowName,
   )}:${normalizePart(scope)}`;
   const token = randomUUID();

@@ -188,8 +188,8 @@ async function pingBags(): Promise<ServiceHealth> {
         return { ok: false, latencyMs: null, error: (e as Error).message };
       }
     },
-    ["gitbags:admin:integrations:ping-bags:v2"],
-    { tags: ["gitbags:admin:integrations:health"], revalidate: 60 },
+    ["gitshipt:admin:integrations:ping-bags:v2"],
+    { tags: ["gitshipt:admin:integrations:health"], revalidate: 60 },
   );
   if (probe.ok) {
     return {

@@ -50,7 +50,7 @@ export async function check(
     return { success: true, limit: cfg.limit, remaining: cfg.limit, reset: 0 };
   }
 
-  const key = `gitbags:rl:${kind}:${identifier}`;
+  const key = `gitshipt:rl:${kind}:${identifier}`;
   const now = Date.now();
   const windowMs = cfg.windowSeconds * 1000;
   const windowStart = now - windowMs;

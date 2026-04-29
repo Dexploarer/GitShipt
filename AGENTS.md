@@ -6,12 +6,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- END:nextjs-agent-rules -->
 
-# GitBags — agent context
+# GitShipt — agent context
 
-You are working in **GitBags**, a Solana token launchpad that pays out trading fees to a GitHub repo's top contributors daily. Read these two files first; they bind every decision:
+You are working in **GitShipt**, a Solana token launchpad that pays out trading fees to a GitHub repo's top contributors daily. Read these two files first; they bind every decision:
 
 1. **`DESIGN.md`** — Google Labs DESIGN.md spec defining the cypherpunk-dark visual system. Two palettes (dark canonical + light mirror).
-2. **`gitbags-prd.md`** — full product spec: architecture, data model, Bags integration, security model, page tree, permissions matrix.
+2. **`gitshipt-prd.md`** — full product spec: architecture, data model, Bags integration, security model, page tree, permissions matrix.
 
 If anything in these files conflicts with your training data, the file wins.
 
@@ -54,7 +54,7 @@ If anything in these files conflicts with your training data, the file wins.
 
 ## Day-1 status (April 25, 2026)
 
-Foundation in progress: scaffold + design system + DB schema + auth shells + first workflow. See plan at `~/.claude/plans/you-are-building-gitbags-moonlit-wand.md`.
+Foundation in progress: scaffold + design system + DB schema + auth shells + first workflow. See plan at `~/.claude/plans/you-are-building-gitshipt-moonlit-wand.md`.
 
 ## When you hit a credential blocker
 
@@ -63,41 +63,18 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-28 6:35pm CDT
+# [gitbags] recent context, 2026-04-28 7:01pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (23,411t read) | 1,654,440t work | 99% savings
+Stats: 50 obs (22,808t read) | 1,425,780t work | 98% savings
 
 ### Apr 28, 2026
-1724 3:32p 🟣 workflow-locks.ts — Redis Single-Flight Distributed Locks for All Cron Workflows
-1725 " 🟣 Payout/Escrow Partial-Success Recovery — MANUAL_RECONCILIATION_ERROR Sentinel + Retry Loops
-1726 " 🟣 read-through-cache.ts — Central Redis Read-Through Cache with BigInt/Date Serialization
-1727 " 🟣 github/http-cache.ts — ETag Conditional-Fetch Layer for GitHub API Calls
-1728 " 🔄 GitHub contributors.ts and users.ts — Octokit Removed, Migrated to ETag HTTP Cache
-1732 5:16p 🔵 Solana Dev Skill Loaded for Money-Flow Security Audit
-1733 5:17p 🔵 GitBags Money-Flow Audit — Working Tree Has In-Progress Fund Reconciliation System
-1734 " 🔵 GitBags SPL Escrow Drain — Not Yet Implemented at v0
-1735 " 🔵 GitBags Money-Flow Full File Inventory — Comprehensive Audit Surface
-1736 " 🔵 GitBags PRD Money-Flow Contract — Authoritative Design Reference
-1749 5:27p 🔵 GitBags Money-Flow Security Audit — Session S129 Initiated
-1750 5:28p 🔵 GitBags Money-Flow Audit — Pre-Audit Working Tree State (S129)
-1751 " 🔵 Bags API v3.0.0 Fee Claim Surface — Confirmed for Audit
-1758 " 🟣 4 Parallel Money-Flow Fix Agents Dispatched — Finding 1–4 Coverage
-1759 " 🔵 GitBags Money-Flow Code Map — Manual Reconciliation Sentinel Pattern
-1755 5:29p 🔵 GitBags Admin Direct Launch — Double-Spend Risk from Post-Chain DB Failure
-1756 " 🔴 retryPayout Does Not Resume Payout Pipeline — executePayout Skips Existing Rows
-1757 " ⚖️ Worker C File Boundary Discipline — Payout/Reconciliation Helpers Off-Limits
-1764 5:31p 🔵 Finding 4 Confirmed — retryPayout Cannot Resume Execution
-1765 " 🔵 Finding 2 Confirmed — Launch Double-Spend: Chain Tx Before DB Persistence
-1766 " 🔵 Finding 3 Confirmed — Fee-Share Update Loses Partial Signatures on Failure
-1767 " 🔵 GitBags Tech Stack Confirmed — Bun 1.3.12, Next.js 16.2.4, workflow@4.2.4, Vitest
 1760 5:32p 🔵 executePayout Workflow Only Processes Snapshots With No Payout Row — Failed Rows Are Dead Ends
 1761 " 🔵 API Route launch/route.ts Has launch_configured Resume Path — Admin directLaunchProject Does Not
 1762 " 🔵 Manual Reconciliation Sentinel Exists in payout-helpers.ts — retryPayout Must Guard Against It
-1763 " 🔵 GitBags Payout Retry Fix Direction — Trigger processSnapshotPayout for Existing Snapshot ID
 1768 5:33p 🔴 fee-share-update partial-success signature loss — hardening plan dispatched
 1769 " ⚖️ Incremental signature persistence + manual-reconciliation sentinel pattern chosen for fee-share retry safety
 1770 5:34p ⚖️ GitBags Launch Double-Spend Fix — Worker B Scope Assignment
@@ -122,6 +99,29 @@ Stats: 50 obs (23,411t read) | 1,654,440t work | 99% savings
 1798 " ✅ gitbags-prd.md + vercel.json Doc Pass — Neon Terminology, Env Var Canonicalization, Missing Cron Added
 1799 " ✅ apps/web dev/build/start Scripts Changed to `bun run --bun next` — Opt Into Bun Runtime for Next.js
 1806 6:34p 🔵 GitBags Post-Upgrade Quality Gate — All Green (S133 Final Verification)
+1807 6:37p 🔵 GitBags Working Tree — Full Multi-Session Diff Before Structured Commit
+1808 " ✅ GitBags Commit 5ceb13a — "Update Bun runtime and docs"
+1809 " 🔴 Zsh Glob Expansion Fails on [...all] Bracket Pattern in git add
+1810 " ✅ GitBags Commit a12326d — "Harden runtime env and database setup"
+1811 " 🔄 getTableRowCountsUncached — Single Parameterized Query Replaces Sequential pg_class Loop
+1812 " 🟣 claimPartnerFees — Admin Cache Revalidation After Successful Settlement
+1813 " 🔄 GitHub Health Ping in Admin Page — Moved to getCachedValue to Avoid Live Call Per Render
+1814 6:40p ✅ GitBags Commit d6b932f — "Add fund reconciliation workflow"
+1815 " ✅ GitBags Commit 807f949 — "Harden launch and payout money flows"
+1816 " ✅ GitBags 5-Commit Push — Full Multi-Session Work Landed to main (dbaae13..6e75954)
+1817 " 🟣 Cache-Control Hygiene — no-store-response.ts Utility + 6 Route Handler Patches
+1818 6:52p 🔵 GitBags Money-Flow Security Audit — Four Critical Findings
+1819 " ⚖️ Brand Rename: GitBags → GitShipt (Codex Task)
+1822 " 🔵 GitBags → GitShipt Brand Rename — Full Occurrence Map (425 lines)
+1824 6:53p ✅ GitBags → GitShipt Brand Rename — Bulk perl Substitution Across 65 Files
+1826 " ✅ GitBags → GitShipt Brand Rename — Verified Complete, Internal Identifiers Confirmed Unchanged
+1828 6:54p 🔴 Brand Rename Edge-Case Fixes — Apostrophe Corruption, Demo Email, Token Symbol
+1833 6:55p ✅ Token Symbol Fallback + Demo Mint Address Updated to GitShipt Brand
+1835 " ✅ GitBags → GitShipt Brand Rename — Final Verification Pass Complete
+1837 6:56p 🔴 Brand Rename Cleanup — Redis Test Fixture Revert + AGENTS.md Bun Version Correction
+1841 6:57p ✅ GitBags → GitShipt Brand Rename — Definitive Completion Verified
+1844 6:58p ✅ Full "gitbags" → "gitshipt" Rename Extended to Internal Identifiers + PRD File Renamed
+1845 7:00p 🔵 GitShipt Brand Rename Quality Gate — All 100 Tests Pass
 
-Access 1654k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 1426k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

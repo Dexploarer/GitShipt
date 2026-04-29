@@ -7,13 +7,13 @@ describe("parseBagsRestEnvelope", () => {
     const parsed = parseBagsRestEnvelope(
       {
         success: true,
-        response: { wallet: "GitBags1111111111111111111111111111111111111" },
+        response: { wallet: "GitShipt1111111111111111111111111111111111111" },
       },
       z.object({ wallet: z.string().min(32) }),
     );
 
     expect(parsed.wallet).toBe(
-      "GitBags1111111111111111111111111111111111111",
+      "GitShipt1111111111111111111111111111111111111",
     );
   });
 

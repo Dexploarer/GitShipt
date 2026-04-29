@@ -3,12 +3,12 @@ import { CreateProjectBodySchema, TokenMetadataSchema } from "@repo/shared";
 
 const validBody = {
   ghOwner: "sym",
-  ghRepo: "gitbags",
+  ghRepo: "gitshipt",
   ghRepoId: "42",
-  name: "GitBags",
-  symbol: "GBAGS",
-  description: "Token for sym/gitbags. Fees redistribute to contributors.",
-  imageUrl: "https://gitbags.com/og.png",
+  name: "GitShipt",
+  symbol: "GSHIPT",
+  description: "Token for sym/gitshipt. Fees redistribute to contributors.",
+  imageUrl: "https://gitshipt.com/og.png",
   scoringConfig: {
     formulaVersion: "v0",
     windowDays: 30,
@@ -35,10 +35,10 @@ describe("Bags launch schemas", () => {
   it("requires Bags-compatible token descriptions", () => {
     expect(
       TokenMetadataSchema.safeParse({
-        name: "GitBags",
-        symbol: "GBAGS",
+        name: "GitShipt",
+        symbol: "GSHIPT",
         description: "",
-        imageUrl: "https://gitbags.com/og.png",
+        imageUrl: "https://gitshipt.com/og.png",
       }).success,
     ).toBe(false);
 
@@ -62,7 +62,7 @@ describe("Bags launch schemas", () => {
       CreateProjectBodySchema.safeParse({
         ...validBody,
         twitter: "https://x.com/symbiex",
-        telegram: "https://t.me/gitbags",
+        telegram: "https://t.me/gitshipt",
       }).success,
     ).toBe(true);
   });

@@ -274,7 +274,7 @@ export async function drainHoldingToWallet(args: {
     const result = await transferSol(
       new PublicKey(args.walletAddress),
       BigInt(claim.amountLamports),
-      `gitbags:escrow-drain:${claim.holdingId}`,
+      `gitshipt:escrow-drain:${claim.holdingId}`,
     );
     signature = result.signature;
   } catch (err) {

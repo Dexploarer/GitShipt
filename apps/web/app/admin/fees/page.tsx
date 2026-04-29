@@ -74,7 +74,7 @@ export default async function AdminFeesPage() {
       <header>
         <h1 className="text-headline-md">Platform fees</h1>
         <p className="text-body-sm text-fg-secondary">
-          Operator view for GitBags fee share, Bags partner attribution, and
+          Operator view for GitShipt fee share, Bags partner attribution, and
           API-key security posture.
         </p>
       </header>

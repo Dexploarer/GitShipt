@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "gitbags",
+      "name": "gitshipt",
       "devDependencies": {
         "next": "16.2.4",
         "prettier": "^3.4.2",

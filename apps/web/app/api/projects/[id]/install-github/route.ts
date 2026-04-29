@@ -50,7 +50,7 @@ export async function GET(
       {
         error: "github_app_slug_missing",
         message:
-          "Set GITHUB_APP_SLUG in env (the App's URL slug, e.g. 'gitbags-app').",
+          "Set GITHUB_APP_SLUG in env (the App's URL slug, e.g. 'gitshipt-app').",
       },
       { status: 503 },
     );

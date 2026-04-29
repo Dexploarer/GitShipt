@@ -1,5 +1,5 @@
 /**
- * GitBags scoring formula v0 — pure functions, no I/O.
+ * GitShipt scoring formula v0 — pure functions, no I/O.
  *
  * Score = w_pr * mergedPRs
  *       + w_commit * commits

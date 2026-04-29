@@ -44,19 +44,19 @@ export interface SeedResult {
 }
 
 /**
- * Seed a demo project ("gitbags" by SYMBiEX & dEXploarer) with 10 ranked contributors
+ * Seed a demo project ("gitshipt" by SYMBiEX & dEXploarer) with 10 ranked contributors
  * so the public project page renders against real DB rows. Idempotent: if
  * the project already exists, only contributors are upserted.
  */
 export async function seedDemoProject(): Promise<SeedResult> {
   // Need an owner user. Find or create a synthetic user for demo seeding.
-  const demoEmail = "demo+gitbags@gitbags.local";
+  const demoEmail = "demo+gitshipt@gitshipt.local";
   let [owner] = await dbHttp.select().from(users).where(eq(users.email, demoEmail)).limit(1);
   if (!owner) {
     const inserted = await dbHttp
       .insert(users)
       .values({
-        name: "GitBags Demo",
+        name: "GitShipt Demo",
         email: demoEmail,
         emailVerified: true,
         githubUsername: "SYMBaiEX",
@@ -70,7 +70,7 @@ export async function seedDemoProject(): Promise<SeedResult> {
   let [project] = await dbHttp
     .select()
     .from(projects)
-    .where(and(eq(projects.ghOwner, "SYMBaiEX"), eq(projects.ghRepo, "gitbags")))
+    .where(and(eq(projects.ghOwner, "SYMBaiEX"), eq(projects.ghRepo, "gitshipt")))
     .limit(1);
 
   let created = false;
@@ -80,15 +80,15 @@ export async function seedDemoProject(): Promise<SeedResult> {
       .values({
         ownerUserId: owner.id,
         ghOwner: "SYMBaiEX",
-        ghRepo: "gitbags",
+        ghRepo: "gitshipt",
         ghRepoId: "demo-repo-1",
-        name: "GitBags",
+        name: "GitShipt",
         description:
           "Pump.fm for open source. Daily trading fees redistribute to top contributors.",
         imageUrl: null,
         status: "simulated_live",
-        tokenMint: "GBAGSdemoTokenMint11111111111111111111111111",
-        bagsLaunchId: "bags_launch_demo_gitbags_v0",
+        tokenMint: "GShiptDemoMint111111111111111111111111111111",
+        bagsLaunchId: "bags_launch_demo_gitshipt_v0",
         simulatedAt: new Date(),
         platformFeeBps: 500,
         scoringConfig: DEFAULT_SCORING,
@@ -101,8 +101,8 @@ export async function seedDemoProject(): Promise<SeedResult> {
     const [updated] = await dbHttp
       .update(projects)
       .set({
-        tokenMint: "GBAGSdemoTokenMint11111111111111111111111111",
-        bagsLaunchId: "bags_launch_demo_gitbags_v0",
+        tokenMint: "GShiptDemoMint111111111111111111111111111111",
+        bagsLaunchId: "bags_launch_demo_gitshipt_v0",
         status: "simulated_live",
         simulatedAt: project.simulatedAt ?? new Date(),
         updatedAt: new Date(),

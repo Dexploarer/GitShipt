@@ -159,7 +159,7 @@ export function deriveSymbolFromRepo(repoName: string): string {
       : (parts[0] ?? repoName);
   const cleaned = acronym.toUpperCase().replace(/[^A-Z0-9]/g, "");
   const fallback = repoName.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  return (cleaned || fallback).slice(0, 10) || "GBAGS";
+  return (cleaned || fallback).slice(0, 10) || "GSHIPT";
 }
 
 function defaultDescription(repo: GithubRepo): string {

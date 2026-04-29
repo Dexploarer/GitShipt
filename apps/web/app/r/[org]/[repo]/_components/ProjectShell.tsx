@@ -96,7 +96,7 @@ export function ProjectShell({
               >
                 <Github className="size-4" />
               </SocialLink>
-              <SocialLink href="https://x.com/GitBagsApp" label="GitBagsApp on X">
+              <SocialLink href="https://x.com/GitShiptApp" label="GitShiptApp on X">
                 <Twitter className="size-4" />
               </SocialLink>
             </div>

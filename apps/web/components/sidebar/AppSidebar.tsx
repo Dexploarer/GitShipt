@@ -517,7 +517,7 @@ function compose(
       if (signedIn && isPlatformAdmin) groups.push(platformShortcutGroup());
       return {
         brand: {
-          title: "GitBags",
+          title: "GitShipt",
           subtitle: "by SYMBiEX & dEXploarer",
           href: "/",
           logo: true,
@@ -554,7 +554,7 @@ function compose(
       return {
         brand: {
           title: "Admin console",
-          subtitle: "GitBags platform",
+          subtitle: "GitShipt platform",
           href: "/admin",
         },
         returnTo: resolveOrigin(fromOrigin),

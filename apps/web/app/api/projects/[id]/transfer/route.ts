@@ -53,7 +53,7 @@ const BodySchema = z
   });
 
 /**
- * POST /api/projects/{id}/transfer — hand a project to another GitBags user.
+ * POST /api/projects/{id}/transfer — hand a project to another GitShipt user.
  *
  *   - Re-validates the better-auth session (CVE-2025-29927 mitigation).
  *   - Requires `project.transfer` for the project.
@@ -146,7 +146,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
   }
   if (!recipient) {
     return NextResponse.json(
-      { error: "recipient_not_found", message: "No GitBags user matched." },
+      { error: "recipient_not_found", message: "No GitShipt user matched." },
       { status: 404 },
     );
   }

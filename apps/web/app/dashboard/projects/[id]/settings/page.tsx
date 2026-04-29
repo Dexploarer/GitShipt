@@ -74,7 +74,7 @@ export default async function SettingsPage({
         <CardHeader className="border-b border-border px-6 py-4">
           <CardTitle>Transfer ownership</CardTitle>
           <CardDescription>
-            Hand the project to another GitBags user — by their GitHub username.
+            Hand the project to another GitShipt user — by their GitHub username.
             They must already have signed in at least once.
           </CardDescription>
         </CardHeader>

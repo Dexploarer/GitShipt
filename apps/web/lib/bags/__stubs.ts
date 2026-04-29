@@ -6,7 +6,7 @@ import type {
   LifetimeFees,
 } from "./types";
 
-const FAKE_PUBKEY = "GitBags1111111111111111111111111111111111111";
+const FAKE_PUBKEY = "GitShipt1111111111111111111111111111111111111";
 
 /**
  * Deterministic fakes used when BAGS_API_KEY is absent. Every response is
@@ -18,7 +18,7 @@ export const stubBags = {
     const tokenMint = `${symbol.padEnd(4, "X").slice(0, 4)}${FAKE_PUBKEY.slice(4)}`;
     return {
       tokenMint,
-      tokenMetadata: `https://stub.gitbags.local/metadata/${tokenMint}.json`,
+      tokenMetadata: `https://stub.gitshipt.local/metadata/${tokenMint}.json`,
       __stub: true,
     };
   },

@@ -25,15 +25,15 @@ import { createUiStore, useUiStoreValue, type UiStore } from "./ui-store";
  *
  * State:
  *  - `collapsed` — desktop (lg+) collapse to a 68px icon rail. Persisted to
- *    localStorage["gitbags:sidebar:collapsed"] after mount.
+ *    localStorage["gitshipt:sidebar:collapsed"] after mount.
  *  - `mobileOpen` — controls the slide-over drawer on small (< lg) viewports.
  *    Defaults to false; opened by `<MobileSidebarTrigger>` outside the sidebar
  *    (rendered in each app shell). Closes on backdrop click, Escape, or any
  *    `<SidebarItem>` click (so navigating dismisses the drawer).
  */
 
-const STORAGE_KEY = "gitbags:sidebar:collapsed";
-const SIDEBAR_COLLAPSED_COOKIE = "gitbags_sidebar_collapsed";
+const STORAGE_KEY = "gitshipt:sidebar:collapsed";
+const SIDEBAR_COLLAPSED_COOKIE = "gitshipt_sidebar_collapsed";
 
 function persistCollapsedPreference(v: boolean) {
   const value = v ? "1" : "0";
@@ -194,7 +194,7 @@ export function Sidebar({
       ) : null}
 
       <aside
-        data-gitbags-sidebar="true"
+        data-gitshipt-sidebar="true"
         data-collapsed={collapsed ? "true" : "false"}
         data-mobile-open={mobileOpen ? "true" : "false"}
         aria-label={ariaLabel}

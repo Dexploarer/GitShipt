@@ -3,13 +3,13 @@ import { CopyButton } from "@/components/shared";
 import { DocSection } from "./_components/DocSection";
 
 export const metadata: Metadata = {
-  title: "Docs · GitBags",
+  title: "Docs · GitShipt",
   description:
-    "How GitBags scoring, payouts, wallet linking, embedding, and security work.",
+    "How GitShipt scoring, payouts, wallet linking, embedding, and security work.",
 };
 
 const TOC: Array<{ id: string; title: string }> = [
-  { id: "what-is-gitbags", title: "What is GitBags?" },
+  { id: "what-is-gitshipt", title: "What is GitShipt?" },
   { id: "scoring", title: "How scoring works" },
   { id: "payouts", title: "Daily payout pipeline" },
   { id: "wallet-linking", title: "Linking your wallet (SIWS)" },
@@ -18,7 +18,7 @@ const TOC: Array<{ id: string; title: string }> = [
 ];
 
 const EMBED_SNIPPET = `<iframe
-  src="https://gitbags.com/embed/r/{org}/{repo}"
+  src="https://gitshipt.com/embed/r/{org}/{repo}"
   width="380"
   height="360"
   style="border:0;border-radius:12px;color-scheme:light dark"
@@ -54,16 +54,16 @@ export default async function DocsPage() {
 
       <article className="flex max-w-prose flex-col gap-12">
         <header className="flex flex-col gap-3">
-          <h1 className="text-headline-lg text-fg">GitBags documentation</h1>
+          <h1 className="text-headline-lg text-fg">GitShipt documentation</h1>
           <p className="text-body-lg text-fg-secondary">
             The mechanics behind the launchpad. How contributions become tokens,
             how tokens become payouts, and how to embed the widget anywhere.
           </p>
         </header>
 
-        <DocSection id="what-is-gitbags" title="What is GitBags?">
+        <DocSection id="what-is-gitshipt" title="What is GitShipt?">
           <p>
-            GitBags turns any GitHub repository into a tradeable Bags.fm token
+            GitShipt turns any GitHub repository into a tradeable Bags.fm token
             whose lifetime fees flow back to the people who actually build it. A
             repo owner connects GitHub, picks a payout config, and we mint a
             token that&apos;s tied 1:1 to that repo. As the token trades, fees

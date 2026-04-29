@@ -18,7 +18,7 @@ const isLatestStableOrNewer =
 console.log(`Bun ${version} (${revision})`);
 
 if (!isLatestStableOrNewer) {
-  console.error("GitBags requires Bun 1.3.13 or newer.");
+  console.error("GitShipt requires Bun 1.3.13 or newer.");
   process.exit(1);
 }
 

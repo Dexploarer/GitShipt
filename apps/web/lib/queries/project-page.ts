@@ -121,7 +121,7 @@ async function fetchGitHubRepoMeta(
   ghOwner: string,
   ghRepo: string,
 ): Promise<GitHubRepoMeta> {
-  const cacheKey = `gitbags:gh:repo:${ghOwner}/${ghRepo}`;
+  const cacheKey = `gitshipt:gh:repo:${ghOwner}/${ghRepo}`;
   const r = redis();
   if (r) {
     const cached = await r.get(cacheKey);
@@ -211,7 +211,7 @@ export async function getProjectBySlug(
   const slug = `${ghOwner}/${ghRepo}`;
   return getCachedValue(
     () => getProjectBySlugUncached(ghOwner, ghRepo),
-    ["gitbags:project-by-slug:v1", slug],
+    ["gitshipt:project-by-slug:v1", slug],
     {
       tags: [cacheTags.public, cacheTags.projectSlug(slug)],
       revalidate: CACHE_SECONDS.live,
@@ -274,7 +274,7 @@ export async function getProjectLeaderboard(
   return getCachedValue(
     () => getProjectLeaderboardUncached(projectId, payoutConfig),
     [
-      "gitbags:project-leaderboard:v1",
+      "gitshipt:project-leaderboard:v1",
       projectId,
       String(payoutConfig.topN),
       JSON.stringify(payoutConfig.tierWeights),
@@ -324,7 +324,7 @@ export async function getRecentPayouts(
 ): Promise<RecentPayoutRow[]> {
   return getCachedValue(
     () => getRecentPayoutsUncached(projectId, limit),
-    ["gitbags:recent-payouts:v1", projectId, String(limit)],
+    ["gitshipt:recent-payouts:v1", projectId, String(limit)],
     {
       tags: [
         cacheTags.public,
@@ -386,7 +386,7 @@ export async function getPoolOverview(
   return getCachedValue(
     () => getPoolOverviewUncached(header),
     [
-      "gitbags:pool-overview:v1",
+      "gitshipt:pool-overview:v1",
       header.id,
       header.tokenMint ?? "no-token",
       header.status,
@@ -449,7 +449,7 @@ export async function getProjectPageData(
   const slug = `${ghOwner}/${ghRepo}`;
   return getCachedValue(
     () => getProjectPageDataUncached(ghOwner, ghRepo),
-    ["gitbags:project-page-data:v1", slug],
+    ["gitshipt:project-page-data:v1", slug],
     {
       tags: [cacheTags.public, cacheTags.projectSlug(slug)],
       revalidate: CACHE_SECONDS.live,

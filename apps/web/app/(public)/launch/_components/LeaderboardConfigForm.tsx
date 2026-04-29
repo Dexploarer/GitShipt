@@ -238,7 +238,7 @@ export function LeaderboardConfigForm({
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-body-sm text-fg-muted">GitBags fee</span>
+              <span className="text-body-sm text-fg-muted">GitShipt fee</span>
               <span className="text-mono-sm text-fg">
                 {platformFeePercent}%
               </span>

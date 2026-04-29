@@ -288,7 +288,7 @@ export async function transferOwnership(
     .limit(1);
   if (!target) {
     throw new Error(
-      `No GitBags user with GitHub username "${data.newOwnerGithubUsername}".`,
+      `No GitShipt user with GitHub username "${data.newOwnerGithubUsername}".`,
     );
   }
 
@@ -588,7 +588,7 @@ export async function addProjectMember(
     .where(or(eq(users.email, data.lookup), eq(users.githubUsername, lookup)))
     .limit(1);
   if (!target) {
-    throw new Error("No GitBags user found for that email or GitHub username.");
+    throw new Error("No GitShipt user found for that email or GitHub username.");
   }
 
   const [project] = await dbHttp

@@ -38,7 +38,7 @@ export const SiwsMessageSchema = z.object({
 });
 export type SiwsMessage = z.infer<typeof SiwsMessageSchema>;
 
-const NONCE_KEY = (address: string, nonce: string) => `gitbags:siws:nonce:${address}:${nonce}`;
+const NONCE_KEY = (address: string, nonce: string) => `gitshipt:siws:nonce:${address}:${nonce}`;
 
 /**
  * Generate a fresh nonce and stash it in Redis with a 5min TTL keyed by

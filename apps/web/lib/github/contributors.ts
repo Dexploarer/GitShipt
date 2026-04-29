@@ -11,7 +11,7 @@ import {
  *
  * Used by the "refresh real contributors" admin path to populate the
  * `contributors` table for projects that haven't installed the GitHub App
- * yet (e.g. SYMBaiEX/gitbags during the hackathon). The App-based indexer
+ * yet (e.g. SYMBaiEX/gitshipt during the hackathon). The App-based indexer
  * is still the right path once installed; this is the fallback for public
  * repos when we just need a real list of contributors + their contribution
  * counts to show on the leaderboard.

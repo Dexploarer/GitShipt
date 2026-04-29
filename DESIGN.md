@@ -1,7 +1,7 @@
 ---
 version: alpha
-name: GitBags
-description: Cypherpunk dark-mode launchpad-leaderboard for open-source repos. Built for on-chain native builders. Density, precision, and a single signature GitBags green. Ships with mirrored light palette for accessibility and preference parity; dark is the default.
+name: GitShipt
+description: Cypherpunk dark-mode launchpad-leaderboard for open-source repos. Built for on-chain native builders. Density, precision, and a single signature GitShipt green. Ships with mirrored light palette for accessibility and preference parity; dark is the default.
 colors:
   # === DARK THEME (default) ===
   # Surfaces — deep blacks with subtle cool bias
@@ -12,7 +12,7 @@ colors:
   border: "#23232E"
   border-strong: "#33333F"
 
-  # Brand — GitBags logo green, tuned for dark mode
+  # Brand — GitShipt logo green, tuned for dark mode
   primary: "#4A9B3D"
   primary-hover: "#56A545"
   primary-pressed: "#408838"
@@ -59,7 +59,7 @@ colors-light:
   border: "#E5E5EC"
   border-strong: "#D4D4DD"
 
-  # Brand — darkened GitBags green for AA contrast on white
+  # Brand — darkened GitShipt green for AA contrast on white
   primary: "#176F3A"
   primary-hover: "#0F6B35"
   primary-pressed: "#084020"
@@ -419,7 +419,7 @@ components:
     padding: 8px 12px
     typography: "{typography.body-sm}"
 
-  # Avatars are NOT round in GitBags — they're rounded squares matching the
+  # Avatars are NOT round in GitShipt — they're rounded squares matching the
   # design system's radius family. The radius scales with avatar size so the
   # visual weight stays proportional to the surrounding cards.
   #   sidebar (260px wide): rounded-2xl (20px)
@@ -498,11 +498,11 @@ components:
     rounded: "{rounded.full}"
 ---
 
-# GitBags Design System
+# GitShipt Design System
 
 ## Overview
 
-GitBags is a launchpad-leaderboard hybrid for open-source repos on Solana, powered by Bags.fm. The visual identity sits squarely in the **cypherpunk-dark-neon** territory: near-black surfaces, a single signature green pulled from the GitBags mark, monospace numerics, and zero ornamental gradients. Every pixel is in service of conveying motion, money, and merit at a glance.
+GitShipt is a launchpad-leaderboard hybrid for open-source repos on Solana, powered by Bags.fm. The visual identity sits squarely in the **cypherpunk-dark-neon** territory: near-black surfaces, a single signature green pulled from the GitShipt mark, monospace numerics, and zero ornamental gradients. Every pixel is in service of conveying motion, money, and merit at a glance.
 
 Emotional target: A trader's terminal that respects the engineer behind every commit. It should feel late-night, focused, and slightly dangerous. Confident enough that putting your repo on it is a flex; legible enough that a maintainer who's never touched a wallet can still understand who is being paid and why.
 
@@ -512,11 +512,11 @@ This is **not** a playful product. No rounded illustrations, no mascot pages, no
 
 ## Colors
 
-The palette is built around a single signature accent (GitBags green) over a deep neutral substrate biased slightly toward cool. Every other color is utility. **Dark is the default and the canonical aesthetic**; a mirrored light palette ships for accessibility, preference parity, and presenters who demo on bright projectors.
+The palette is built around a single signature accent (GitShipt green) over a deep neutral substrate biased slightly toward cool. Every other color is utility. **Dark is the default and the canonical aesthetic**; a mirrored light palette ships for accessibility, preference parity, and presenters who demo on bright projectors.
 
 ### Theming model
 
-GitBags ships **two palettes** in this DESIGN.md:
+GitShipt ships **two palettes** in this DESIGN.md:
 
 - **`colors:`** is the dark palette and the canonical token set. All prose, all examples, and all default rendering targets dark.
 - **`colors-light:`** is a mirrored light palette. Token names match `colors:` exactly so every component automatically gets a correct light variant via CSS variable redirection. This key is a non-normative extension; the spec tolerates unknown YAML content and the lint passes cleanly.
@@ -637,7 +637,7 @@ Letter spacing is tight and negative on display/headline (-0.02 to -0.01em), neu
 
 ## Layout — App Shell
 
-GitBags uses a **viewport-locked app shell** for every authenticated page (`/r/[org]/[repo]`, `/dashboard/*`, `/admin/*`, `/launch`). The page itself never scrolls — only specific inner regions do. This lets the sidebar, the page footer, and any system-level chrome stay in view at all times while users browse content.
+GitShipt uses a **viewport-locked app shell** for every authenticated page (`/r/[org]/[repo]`, `/dashboard/*`, `/admin/*`, `/launch`). The page itself never scrolls — only specific inner regions do. This lets the sidebar, the page footer, and any system-level chrome stay in view at all times while users browse content.
 
 ```
 ┌─────────────────────────────────────────┐
@@ -672,7 +672,7 @@ Spacing rhythm follows a **4px base** with an **8px primary scale**. Component i
 
 ## Liquid Glass / Depth System
 
-GitBags ships a **macOS Tahoe-flavored Liquid Glass** depth system that complements the flat-by-default cards. Three classes of surface:
+GitShipt ships a **macOS Tahoe-flavored Liquid Glass** depth system that complements the flat-by-default cards. Three classes of surface:
 
 1. **Flat** (`bg-surface` + `border border-border`) — most cards, table rows, form fields. No shadow. Hierarchy from tonality and borders alone.
 2. **Raised** (`bg-surface` + `shadow-card-elevated`) — leaderboard card, token-info embed widget, stat tiles. Lifts subtly off the page bg.
@@ -804,7 +804,7 @@ The TokenInfoCard at `app/r/[org]/[repo]/_components/TokenInfoCard.tsx` doubles 
 
 ```html
 <iframe
-  src="https://gitbags.com/embed/r/{org}/{repo}"
+  src="https://gitshipt.com/embed/r/{org}/{repo}"
   width="380"
   height="360"
   style="border:0;border-radius:12px;color-scheme:light dark"
@@ -869,7 +869,7 @@ Structure:
 
 Items are 10×12 padded, `label-md` typography, `fg-secondary` by default. Active: `surface-elevated` background + `fg` text + `shadow-inset-light` (subtle inner highlight, no left-border accent). Hover: `surface-elevated/60`. Icons are 16px Lucide, left-aligned with 12px gap to label. When collapsed, item label becomes `sr-only`, icon centers, full text appears as a `title` tooltip on hover.
 
-State: `SidebarProvider` exposes `collapsed` + `toggle()` via React Context. Persisted to `localStorage["gitbags:sidebar:collapsed"]` after mount (hydration-safe).
+State: `SidebarProvider` exposes `collapsed` + `toggle()` via React Context. Persisted to `localStorage["gitshipt:sidebar:collapsed"]` after mount (hydration-safe).
 
 ### Inputs
 

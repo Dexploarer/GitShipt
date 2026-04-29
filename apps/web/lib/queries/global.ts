@@ -212,7 +212,7 @@ async function getLandingDataUncached(): Promise<LandingData> {
 }
 
 export function getLandingData(): Promise<LandingData> {
-  return getCachedValue(getLandingDataUncached, ["gitbags:landing-data:v1"], {
+  return getCachedValue(getLandingDataUncached, ["gitshipt:landing-data:v1"], {
     tags: [cacheTags.public, cacheTags.landing],
     revalidate: CACHE_SECONDS.live,
   });
@@ -383,7 +383,7 @@ export function getGlobalLeaderboard(): Promise<{
 }> {
   return getCachedValue(
     getGlobalLeaderboardUncached,
-    ["gitbags:global-leaderboard:v1"],
+    ["gitshipt:global-leaderboard:v1"],
     {
       tags: [cacheTags.public, cacheTags.globalLeaderboard],
       revalidate: CACHE_SECONDS.browse,
@@ -440,7 +440,7 @@ export async function getLiveTickerDataUncached(): Promise<LandingTicker> {
 }
 
 export function getLiveTickerData(): Promise<LandingTicker> {
-  return getCachedValue(getLiveTickerDataUncached, ["gitbags:live-ticker:v1"], {
+  return getCachedValue(getLiveTickerDataUncached, ["gitshipt:live-ticker:v1"], {
     tags: [cacheTags.public, cacheTags.liveTicker, cacheTags.landing],
     revalidate: CACHE_SECONDS.live,
   });
@@ -452,7 +452,7 @@ export function getLiveTickerData(): Promise<LandingTicker> {
  * from `workflows/`) so this module stays free of workflow-runtime code
  * and can be pulled into RSCs without dragging in the workflow client.
  */
-export const LANDING_TICKER_CACHE_KEY = "gitbags:ticker:landing";
+export const LANDING_TICKER_CACHE_KEY = "gitshipt:ticker:landing";
 
 const CachedLandingTickerPayloadSchema = z.object({
   ticker: z.object({

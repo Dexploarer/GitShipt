@@ -3,16 +3,16 @@ import Link from "next/link";
 import { LegalSection } from "@/app/legal/_components/LegalSection";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · GitBags",
+  title: "Privacy Policy · GitShipt",
   description:
-    "How GitBags collects, uses, and protects your data — GitHub identifiers, linked Solana wallet addresses, and audit logs from a hackathon-stage devnet launchpad.",
+    "How GitShipt collects, uses, and protects your data — GitHub identifiers, linked Solana wallet addresses, and audit logs from a hackathon-stage devnet launchpad.",
 };
 
 const LAST_UPDATED = "2026-04-26";
 
 /**
  * Privacy Policy — long-form, demo-grade copy honest about exactly
- * what GitBags stores: GitHub OAuth identifiers + email, linked
+ * what GitShipt stores: GitHub OAuth identifiers + email, linked
  * Solana wallet addresses, append-only audit logs, contributor
  * scoring inputs derived from public GitHub data. No analytics.
  */
@@ -28,7 +28,7 @@ export default async function PrivacyPage() {
           Last updated {LAST_UPDATED}
         </p>
         <p className="text-body-md text-fg-secondary">
-          GitBags is built to need as little of your data as possible. This
+          GitShipt is built to need as little of your data as possible. This
           policy describes exactly what we collect, why we collect it, who we
           share it with, and how you can have it deleted.
         </p>
@@ -37,9 +37,9 @@ export default async function PrivacyPage() {
       <div className="flex flex-col gap-10">
         <LegalSection index={1} title="Scope">
           <p>
-            This policy covers personal data processed by the GitBags service at
-            gitbags.com and its subdomains, including the public site, the
-            dashboard, the admin console, and any GitBags-operated webhook
+            This policy covers personal data processed by the GitShipt service at
+            gitshipt.com and its subdomains, including the public site, the
+            dashboard, the admin console, and any GitShipt-operated webhook
             receivers or background workflows.
           </p>
           <p>
@@ -50,7 +50,7 @@ export default async function PrivacyPage() {
         </LegalSection>
 
         <LegalSection index={2} title="Data we collect">
-          <p>The complete list of personal data GitBags stores:</p>
+          <p>The complete list of personal data GitShipt stores:</p>
           <ul className="ml-5 list-disc space-y-1.5">
             <li>
               <strong className="text-fg">GitHub identity:</strong> your GitHub
@@ -83,7 +83,7 @@ export default async function PrivacyPage() {
 
         <LegalSection index={3} title="Data we do not collect">
           <p>
-            GitBags does not collect payment instruments, banking information,
+            GitShipt does not collect payment instruments, banking information,
             off-chain financial data, government identifiers, Social Security
             numbers, biometrics, precise geolocation, or contents of private
             repositories. We do not run KYC or identity verification.
@@ -102,7 +102,7 @@ export default async function PrivacyPage() {
 
         <LegalSection index={5} title="Sharing">
           <p>
-            GitBags shares the minimum required data with the following
+            GitShipt shares the minimum required data with the following
             processors:
           </p>
           <ul className="ml-5 list-disc space-y-1.5">
@@ -117,7 +117,7 @@ export default async function PrivacyPage() {
               submissions.
             </li>
             <li>
-              <strong className="text-fg">GitHub:</strong> the GitBags GitHub
+              <strong className="text-fg">GitHub:</strong> the GitShipt GitHub
               App reads public repository metadata for indexing under the scopes
               you grant.
             </li>
@@ -143,7 +143,7 @@ export default async function PrivacyPage() {
             All other personal data — GitHub identifiers, linked wallets,
             scoring inputs — is deletable on request through account closure.
             On-chain transactions, including past payouts, remain on the Solana
-            blockchain and cannot be removed by GitBags.
+            blockchain and cannot be removed by GitShipt.
           </p>
         </LegalSection>
 
@@ -159,7 +159,7 @@ export default async function PrivacyPage() {
 
         <LegalSection index={8} title="Security measures">
           <p>
-            GitBags applies the following controls: HMAC verification on all
+            GitShipt applies the following controls: HMAC verification on all
             inbound webhooks, single-use SIWS nonces with short TTL, MFA prompts
             on destructive admin actions, append-only audit logging, per-route
             rate limiting via Upstash, Zod validation on every external API
@@ -174,7 +174,7 @@ export default async function PrivacyPage() {
 
         <LegalSection index={9} title="Cookies">
           <p>
-            GitBags sets one strictly necessary cookie: an authenticated session
+            GitShipt sets one strictly necessary cookie: an authenticated session
             cookie issued by our auth layer. We do not use analytics cookies,
             advertising cookies, or third-party trackers. No consent banner is
             required for strictly necessary session cookies in most
@@ -184,7 +184,7 @@ export default async function PrivacyPage() {
 
         <LegalSection index={10} title="International transfers">
           <p>
-            GitBags infrastructure is hosted in the United States (Vercel and
+            GitShipt infrastructure is hosted in the United States (Vercel and
             Neon, US-East regions). If you access the service from outside the
             United States, you consent to the transfer of your data to and
             processing in the United States.
@@ -204,19 +204,19 @@ export default async function PrivacyPage() {
           <p>
             Privacy requests, deletion requests, and security reports:{" "}
             <a
-              href="mailto:privacy@gitbags.com"
+              href="mailto:privacy@gitshipt.com"
               className="text-fg underline-offset-4 hover:underline"
             >
-              privacy@gitbags.com
+              privacy@gitshipt.com
             </a>
             . Public discussion and code-level issues:{" "}
             <Link
-              href="https://github.com/SYMBaiEX/gitbags"
+              href="https://github.com/SYMBaiEX/gitshipt"
               target="_blank"
               rel="noreferrer noopener"
               className="text-fg underline-offset-4 hover:underline"
             >
-              github.com/SYMBaiEX/gitbags
+              github.com/SYMBaiEX/gitshipt
             </Link>
             .
           </p>

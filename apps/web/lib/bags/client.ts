@@ -261,7 +261,7 @@ type BagsSdkModule = {
 let _sdk: BagsSdk | null = null;
 let _sdkModule: BagsSdkModule | null = null;
 
-const DEMO_TOKEN_MINT = "GBAGSdemoTokenMint11111111111111111111111111";
+const DEMO_TOKEN_MINT = "GShiptDemoMint111111111111111111111111111111";
 const STUB_TOKEN_SUFFIX = "ags1111111111111111111111111111111111111";
 
 function isPlaceholderTokenMint(tokenMint: string): boolean {

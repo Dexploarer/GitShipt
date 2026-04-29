@@ -120,7 +120,7 @@ export async function listApiKeysForProject(
 ): Promise<ApiKeyListItem[]> {
   return getCachedValue(
     () => listApiKeysForProjectUncached(projectId),
-    ["gitbags:dashboard:api-keys:v1", projectId],
+    ["gitshipt:dashboard:api-keys:v1", projectId],
     {
       tags: [
         cacheTags.dashboard,

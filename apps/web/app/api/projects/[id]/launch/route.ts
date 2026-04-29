@@ -28,7 +28,7 @@ export const maxDuration = 300;
  *
  * In stub mode this is just a placeholder string the stub doesn't care about.
  */
-const PLATFORM_GH_USERNAME = "gitbags-platform";
+const PLATFORM_GH_USERNAME = "gitshipt-platform";
 const LAUNCH_SUBMISSION_PENDING_PREFIX = "pending:";
 
 interface RouteContext {
@@ -291,7 +291,7 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
           description:
             project.description?.trim() ||
             defaultTokenDescription(project.ghOwner, project.ghRepo),
-          imageUrl: project.imageUrl ?? "https://gitbags.com/og/default.png",
+          imageUrl: project.imageUrl ?? "https://gitshipt.com/og/default.png",
           website: project.tokenWebsiteUrl ?? undefined,
           twitter: project.tokenTwitterUrl ?? undefined,
           telegram: project.tokenTelegramUrl ?? undefined,
@@ -532,7 +532,7 @@ function deriveSymbolFromName(name: string): string {
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "")
     .slice(0, 10);
-  return cleaned || "GBAGS";
+  return cleaned || "GSHIPT";
 }
 
 function defaultTokenDescription(owner: string, repo: string): string {

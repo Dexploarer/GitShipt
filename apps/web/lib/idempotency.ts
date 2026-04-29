@@ -54,7 +54,7 @@ export async function withIdempotency<T>(
   }
 
   const ttlSeconds = options.ttlSeconds ?? TTL_SECONDS;
-  const cacheKey = `gitbags:idem:${options.scope ?? "global"}:${key}`;
+  const cacheKey = `gitshipt:idem:${options.scope ?? "global"}:${key}`;
   const cachedRaw = await r.get(cacheKey);
   if (cachedRaw) {
     if (cachedRaw === RUNNING_VALUE) {

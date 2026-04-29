@@ -105,7 +105,7 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
                 Bags.fm
               </a>
               . Every trade on that token generates fees. {platformFeePct}% goes
-              to the GitBags platform; the remaining{" "}
+              to the GitShipt platform; the remaining{" "}
               <span className="text-mono-sm text-primary">
                 {contributorPoolPct}%
               </span>{" "}
@@ -138,7 +138,7 @@ export default async function ProjectDocsPage({ params }: { params: Params }) {
           </Section>
 
           <Section id="scoring-this-project" title="Scoring (this project)">
-            <p>This project uses the GitBags v0 scoring formula:</p>
+            <p>This project uses the GitShipt v0 scoring formula:</p>
             <pre className="overflow-x-auto rounded-md border border-border bg-surface px-4 py-3 text-mono-sm text-fg">
               {`score = ${header.scoringConfig.weights.mergedPRs} × mergedPRs
       + ${header.scoringConfig.weights.commits} × commits

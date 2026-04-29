@@ -33,7 +33,7 @@ function installAuthMocks(store = new Map<string, string>()) {
 }
 
 function nonceKey(address: string, nonce: string) {
-  return `gitbags:siws:nonce:${address}:${nonce}`;
+  return `gitshipt:siws:nonce:${address}:${nonce}`;
 }
 
 describe("SIWS nonce and verification", () => {
@@ -65,10 +65,10 @@ describe("SIWS nonce and verification", () => {
     const address = bs58.encode(keyPair.publicKey);
     const nonce = "nonce-12345678";
     const message = {
-      domain: "gitbags.test",
+      domain: "gitshipt.test",
       address,
-      statement: "Sign to link this wallet to your GitBags account.",
-      uri: "https://gitbags.test/auth/wallet",
+      statement: "Sign to link this wallet to your GitShipt account.",
+      uri: "https://gitshipt.test/auth/wallet",
       version: "1" as const,
       chainId: "solana:devnet",
       nonce,
@@ -84,7 +84,7 @@ describe("SIWS nonce and verification", () => {
       verifySiws({
         message,
         signatureBase58: signature,
-        expectedDomain: "gitbags.test",
+        expectedDomain: "gitshipt.test",
         expectedChainId: "solana:devnet",
       }),
     ).resolves.toEqual({ ok: true, address });
@@ -94,7 +94,7 @@ describe("SIWS nonce and verification", () => {
       verifySiws({
         message,
         signatureBase58: signature,
-        expectedDomain: "gitbags.test",
+        expectedDomain: "gitshipt.test",
         expectedChainId: "solana:devnet",
       }),
     ).resolves.toEqual({ ok: false, reason: "nonce" });

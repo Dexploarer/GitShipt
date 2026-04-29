@@ -30,7 +30,7 @@ export default async function WalletAuthPage() {
           <span className="grid size-8 place-items-center rounded-md bg-primary text-primary-fg">
             <Sparkles className="size-4" />
           </span>
-          <span className="text-headline-sm">GitBags</span>
+          <span className="text-headline-sm">GitShipt</span>
         </Link>
 
         <h1 className="text-headline-md">Link your wallet</h1>

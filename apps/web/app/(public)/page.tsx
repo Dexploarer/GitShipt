@@ -14,30 +14,30 @@ import {
 import { BentoTickerCell } from "../_components/BentoTicker";
 
 const FEATURED_OWNER = "SYMBaiEX";
-const FEATURED_REPO = "gitbags";
+const FEATURED_REPO = "gitshipt";
 const MIA_LOGO_OVERLAYS = [
   {
     position: "left-[25%] top-[32%]",
     size: "size-[72px] sm:size-[92px] lg:size-[132px]",
-    drift: "gitbags-logo-float-a",
+    drift: "gitshipt-logo-float-a",
     tilt: "-rotate-12 -skew-y-6",
   },
   {
     position: "right-[23%] top-[25%]",
     size: "size-16 sm:size-[84px] lg:size-[120px]",
-    drift: "gitbags-logo-float-b",
+    drift: "gitshipt-logo-float-b",
     tilt: "rotate-10 skew-y-6",
   },
   {
     position: "left-[37%] top-[45%]",
     size: "size-12 sm:size-[66px] lg:size-[88px]",
-    drift: "gitbags-logo-float-c",
+    drift: "gitshipt-logo-float-c",
     tilt: "rotate-6 -skew-y-3",
   },
   {
     position: "right-[19%] top-[35%]",
     size: "size-12 sm:size-[66px] lg:size-[92px]",
-    drift: "gitbags-logo-float-d",
+    drift: "gitshipt-logo-float-d",
     tilt: "-rotate-8 skew-y-3",
   },
 ] as const;
@@ -45,10 +45,10 @@ const MIA_LOGO_OVERLAYS = [
 /**
  * Landing page — viewport-locked bento on lg+, scrollable column on mobile.
  *
- *   Row 1 (flex-1): Hero (cols 1-8) | Featured project: GitBags (cols 9-12)
+ *   Row 1 (flex-1): Hero (cols 1-8) | Featured project: GitShipt (cols 9-12)
  *   Row 2 (auto):   4 live KPI cells, full width
  *
- * The featured project is the GitBags repo itself — debuts the project on
+ * The featured project is the GitShipt repo itself — debuts the project on
  * its own landing and shows the contributors who actually built it.
  */
 export const dynamic = "force-dynamic";
@@ -85,19 +85,19 @@ export default async function LandingPage() {
             </h1>
 
             <p className="max-w-xl text-body-md text-fg-secondary lg:text-body-lg">
-              GitBags mints a Bags.fm token for any GitHub repo and streams the
+              GitShipt mints a Bags.fm token for any GitHub repo and streams the
               trading fees back to its contributors — ranked daily, paid
               on-chain in SOL.
             </p>
 
             <Link
-              href="https://github.com/SYMBaiEX/gitbags"
+              href="https://github.com/SYMBaiEX/gitshipt"
               target="_blank"
               rel="noreferrer noopener"
               className="inline-flex items-center gap-1.5 text-caption text-fg-muted transition-colors hover:text-fg"
             >
               <Github className="size-3.5" aria-hidden />
-              SYMBaiEX/gitbags
+              SYMBaiEX/gitshipt
               <ArrowUpRight className="size-3" />
             </Link>
           </section>
@@ -125,28 +125,28 @@ export default async function LandingPage() {
         </div>
 
         <div className="contents lg:flex lg:min-h-0 lg:flex-col lg:justify-end lg:gap-0">
-          <div className="gitbags-mia-stage pointer-events-none relative order-2 mx-auto aspect-square w-full max-w-[360px] sm:max-w-[460px] lg:order-none lg:aspect-auto lg:mx-0 lg:h-[700px] lg:w-full lg:max-w-none lg:shrink-0">
+          <div className="gitshipt-mia-stage pointer-events-none relative order-2 mx-auto aspect-square w-full max-w-[360px] sm:max-w-[460px] lg:order-none lg:aspect-auto lg:mx-0 lg:h-[700px] lg:w-full lg:max-w-none lg:shrink-0">
             <Image
               src="/mia.png"
               alt=""
               fill
               priority
               sizes="(max-width: 640px) 360px, (max-width: 1024px) 460px, 700px"
-              className="gitbags-mia-art z-[1] object-contain object-bottom"
+              className="gitshipt-mia-art z-[1] object-contain object-bottom"
               unoptimized
             />
             {MIA_LOGO_OVERLAYS.map((logo) => (
               <span
                 key={`${logo.position}-${logo.size}`}
                 aria-hidden="true"
-                className={`${logo.position} ${logo.size} ${logo.drift} gitbags-logo-float absolute z-10 block`}
+                className={`${logo.position} ${logo.size} ${logo.drift} gitshipt-logo-float absolute z-10 block`}
               >
                 <Image
                   src="/logo.png"
                   alt=""
                   fill
                   sizes="(max-width: 640px) 72px, (max-width: 1024px) 92px, 132px"
-                  className={`${logo.tilt} gitbags-logo-mark select-none object-contain`}
+                  className={`${logo.tilt} gitshipt-logo-mark select-none object-contain`}
                   unoptimized
                 />
               </span>
@@ -174,7 +174,7 @@ export default async function LandingPage() {
 }
 
 /**
- * Featured-project bento card — debuts the GitBags repo on its own landing.
+ * Featured-project bento card — debuts the GitShipt repo on its own landing.
  * Top: project header (avatar, name, slug, status, stat row).
  * Bottom: scrollable list of top contributors with rank medal, avatar,
  * username, and score. Whole card links into the project page.

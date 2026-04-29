@@ -49,7 +49,7 @@ function buildSiwsMessage(args: {
   return {
     domain: args.domain,
     address: args.address,
-    statement: "Sign to link this wallet to your GitBags account.",
+    statement: "Sign to link this wallet to your GitShipt account.",
     uri: args.uri,
     version: "1",
     chainId: args.chainId,

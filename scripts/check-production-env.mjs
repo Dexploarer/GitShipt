@@ -312,7 +312,7 @@ function validate(env) {
 }
 
 function printTemplate() {
-  console.log("GitBags production variables");
+  console.log("GitShipt production variables");
   console.log("============================");
   for (const item of [...REQUIRED, ...RECOMMENDED]) {
     const visibility = item.sensitive ? "Sensitive" : "Plain";
@@ -321,7 +321,7 @@ function printTemplate() {
 }
 
 function printReport({ envFile, exists, missing, warnings }) {
-  console.log("GitBags production env check");
+  console.log("GitShipt production env check");
   console.log("============================");
   console.log(
     `Env file: ${envFile}${exists ? "" : " (not found, using process env only)"}`,

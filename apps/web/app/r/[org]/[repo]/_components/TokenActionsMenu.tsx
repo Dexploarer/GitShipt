@@ -61,9 +61,9 @@ export function TokenActionsMenu({
     const origin =
       typeof window !== "undefined"
         ? window.location.origin
-        : "https://gitbags.com";
+        : "https://gitshipt.com";
     const src = `${origin}/embed/r/${ghOwner}/${ghRepo}`;
-    const snippet = `<iframe src="${src}" width="380" height="360" style="border:0;border-radius:12px;color-scheme:light dark" loading="lazy" title="GitBags · ${ghOwner}/${ghRepo}"></iframe>`;
+    const snippet = `<iframe src="${src}" width="380" height="360" style="border:0;border-radius:12px;color-scheme:light dark" loading="lazy" title="GitShipt · ${ghOwner}/${ghRepo}"></iframe>`;
     try {
       await navigator.clipboard.writeText(snippet);
       setCopied("embed");

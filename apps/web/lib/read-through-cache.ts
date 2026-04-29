@@ -9,7 +9,7 @@ type CachePayload =
   | CachePayload[]
   | { [key: string]: CachePayload };
 
-const CACHE_TYPE_KEY = "__gitbags_cache_type";
+const CACHE_TYPE_KEY = "__gitshipt_cache_type";
 const CACHE_VALUE_KEY = "value";
 
 export interface ReadThroughCacheOptions<T> {
@@ -25,7 +25,7 @@ export async function readThroughCache<T>(
   const r = safeRedis();
   if (!r) return options.loader();
 
-  const cacheKey = `gitbags:read-through:${options.key}`;
+  const cacheKey = `gitshipt:read-through:${options.key}`;
   const cached = await r.get(cacheKey);
   if (cached) {
     try {
@@ -57,7 +57,7 @@ export async function getReadThroughPayload<T>(
 ): Promise<T | null> {
   const r = safeRedis();
   if (!r) return null;
-  const cached = await r.get(`gitbags:read-through:${key}`);
+  const cached = await r.get(`gitshipt:read-through:${key}`);
   if (!cached) return null;
   return fromCachePayload<T>(JSON.parse(cached) as CachePayload);
 }
@@ -70,7 +70,7 @@ export async function setReadThroughPayload<T>(
   const r = safeRedis();
   if (!r) return;
   await r.set(
-    `gitbags:read-through:${key}`,
+    `gitshipt:read-through:${key}`,
     JSON.stringify(toCachePayload(value)),
     "EX",
     Math.max(1, ttlSeconds),

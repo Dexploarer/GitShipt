@@ -53,16 +53,16 @@ export function AppShell({
           ].join(" ")}
         >
           <span className="truncate text-caption text-fg-muted">
-            {footerLeft ?? `GitBags Console · ${clusterLabel()} · BAGS.fm`}
+            {footerLeft ?? `GitShipt Console · ${clusterLabel()} · BAGS.fm`}
           </span>
           <div className="flex items-center gap-1">
             <SocialLink
-              href="https://github.com/SYMBaiEX/gitbags"
-              label="GitBags repo"
+              href="https://github.com/SYMBaiEX/gitshipt"
+              label="GitShipt repo"
             >
               <Github className="size-4" />
             </SocialLink>
-            <SocialLink href="https://x.com/GitBagsApp" label="GitBagsApp on X">
+            <SocialLink href="https://x.com/GitShiptApp" label="GitShiptApp on X">
               <Twitter className="size-4" />
             </SocialLink>
           </div>

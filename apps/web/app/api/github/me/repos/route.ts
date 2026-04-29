@@ -47,7 +47,7 @@ interface GithubRepoApiResponse {
  * Marks repos that already exist in `projects` (any status) as
  * `alreadyLaunched: true` so the UI can disable them.
  *
- * Cached 30s in Redis under `gitbags:gh:me:repos:{userId}`.
+ * Cached 30s in Redis under `gitshipt:gh:me:repos:{userId}`.
  */
 export async function GET(req: Request): Promise<Response> {
   if (!hasCredentials.github()) {
@@ -83,7 +83,7 @@ export async function GET(req: Request): Promise<Response> {
 
   // Cache hit?
   const r = redis();
-  const cacheKey = `gitbags:gh:me:repos:${userId}`;
+  const cacheKey = `gitshipt:gh:me:repos:${userId}`;
   if (r) {
     const cached = await r.get(cacheKey);
     if (cached) {

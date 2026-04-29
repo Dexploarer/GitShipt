@@ -81,8 +81,8 @@ function entryScaledWeight(
  * Builds the Bags fee-share config for the next accrual window.
  *
  * Linked contributors receive direct Bags claimers. Unlinked contributors,
- * max-claimer overflow, and rounding dust go to the GitBags contributor pool
- * wallet so the funds remain claimable through GitBags after verification.
+ * max-claimer overflow, and rounding dust go to the GitShipt contributor pool
+ * wallet so the funds remain claimable through GitShipt after verification.
  */
 export function buildBagsFeeShareDistributionPlan(
   input: BuildBagsFeeShareDistributionInput,

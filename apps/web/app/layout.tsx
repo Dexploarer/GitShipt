@@ -25,12 +25,12 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   ),
   title: {
-    default: "GitBags — tokenize your repo, pay your contributors",
-    template: "%s · GitBags",
+    default: "GitShipt — tokenize your repo, pay your contributors",
+    template: "%s · GitShipt",
   },
   description:
-    "GitBags turns any GitHub repo into a tradeable Bags.fm token. Swap fees fund a daily on-chain SOL payout to the top contributors — automatic, transparent, no committee.",
-  applicationName: "GitBags",
+    "GitShipt turns any GitHub repo into a tradeable Bags.fm token. Swap fees fund a daily on-chain SOL payout to the top contributors — automatic, transparent, no committee.",
+  applicationName: "GitShipt",
   authors: [{ name: "SYMBiEX" }],
   keywords: [
     "Solana",
@@ -43,10 +43,10 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: "website",
-    siteName: "GitBags",
-    title: "GitBags — tokenize your repo, pay your contributors",
+    siteName: "GitShipt",
+    title: "GitShipt — tokenize your repo, pay your contributors",
     description:
-      "GitBags turns any GitHub repo into a tradeable Bags.fm token. Swap fees fund a daily on-chain SOL payout to the top contributors — automatic, transparent, no committee.",
+      "GitShipt turns any GitHub repo into a tradeable Bags.fm token. Swap fees fund a daily on-chain SOL payout to the top contributors — automatic, transparent, no committee.",
   },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },

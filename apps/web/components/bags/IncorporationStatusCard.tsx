@@ -67,7 +67,7 @@ export function IncorporationStatusCard({
             </div>
 
             <p className="text-body-sm text-fg-secondary">
-              GitBags does not collect founder KYC, residential addresses, tax
+              GitShipt does not collect founder KYC, residential addresses, tax
               residency, or identity documents.
             </p>
 

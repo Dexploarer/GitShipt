@@ -87,7 +87,7 @@ export async function getTokenStats(
   return getCachedValue(
     () => getTokenStatsUncached(header),
     [
-      "gitbags:token-stats:v1",
+      "gitshipt:token-stats:v1",
       header.id,
       header.tokenMint ?? "no-token",
       header.status,
@@ -115,7 +115,7 @@ export async function getTokenCreators(
 ): Promise<TokenCreator[]> {
   return getCachedValue(
     () => getTokenCreatorsUncached(tokenMint),
-    ["gitbags:token-creators:v1", projectId, tokenMint],
+    ["gitshipt:token-creators:v1", projectId, tokenMint],
     {
       tags: [cacheTags.public, cacheTags.project(projectId)],
       revalidate: CACHE_SECONDS.profile,
@@ -137,7 +137,7 @@ export async function getTokenClaimEvents(
 ): Promise<TokenClaimEvent[]> {
   return getCachedValue(
     () => getTokenClaimEventsUncached(tokenMint, limit),
-    ["gitbags:token-claim-events:v1", projectId, tokenMint, String(limit)],
+    ["gitshipt:token-claim-events:v1", projectId, tokenMint, String(limit)],
     {
       tags: [
         cacheTags.public,

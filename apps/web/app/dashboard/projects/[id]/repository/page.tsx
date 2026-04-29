@@ -121,7 +121,7 @@ export default async function RepositoryPage({
                   </a>
                 </Button>
                 <p className="text-caption text-fg-muted">
-                  Required before GitBags can index commits, PRs, and reviews
+                  Required before GitShipt can index commits, PRs, and reviews
                   for this repo.
                 </p>
               </div>
@@ -134,7 +134,7 @@ export default async function RepositoryPage({
         <CardHeader className="border-b border-border px-6 py-4">
           <CardTitle>Indexer state</CardTitle>
           <CardDescription>
-            GitBags pulls events every 15 minutes via the GitHub App.
+            GitShipt pulls events every 15 minutes via the GitHub App.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-6 py-5">

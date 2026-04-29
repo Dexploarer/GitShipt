@@ -16,16 +16,16 @@ export function PublicFooter() {
         <div className="flex items-center gap-1">
           <SocialLink
             href="https://github.com/bagsdotfm"
-            label="GitBags on GitHub"
+            label="GitShipt on GitHub"
           >
             <Github className="size-4" />
           </SocialLink>
-          <SocialLink href="https://x.com/GitBagsApp" label="GitBagsApp on X">
+          <SocialLink href="https://x.com/GitShiptApp" label="GitShiptApp on X">
             <Twitter className="size-4" />
           </SocialLink>
         </div>
         <span>
-          © {year} GitBags <span aria-hidden>·</span> {clusterLabel()}
+          © {year} GitShipt <span aria-hidden>·</span> {clusterLabel()}
         </span>
       </div>
     </footer>

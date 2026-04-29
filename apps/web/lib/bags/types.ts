@@ -52,7 +52,7 @@ export const FeeShareConfigInputSchema = z.object({
   baseMint: z.string().min(32),
   feeClaimers: z.array(FeeClaimerSchema).min(1).max(100),
   /**
-   * GitBags platform fee taken from the fee-claimer rail. The wrapper appends
+   * GitShipt platform fee taken from the fee-claimer rail. The wrapper appends
    * this to SOLANA_TREASURY_ADDRESS (or payer as a local fallback) before
    * creating the Bags config. Bags partner revenue is configured separately
    * with BAGS_PARTNER_WALLET + BAGS_PARTNER_CONFIG_KEY.

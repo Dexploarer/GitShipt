@@ -58,7 +58,7 @@ export async function getProjectDocs(
 ): Promise<ProjectDocsValue> {
   return getCachedValue(
     () => getProjectDocsUncached(projectId),
-    ["gitbags:dashboard:project-docs:v1", projectId],
+    ["gitshipt:dashboard:project-docs:v1", projectId],
     {
       tags: [
         cacheTags.dashboard,

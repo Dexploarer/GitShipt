@@ -174,7 +174,7 @@ export async function getAllPublicProjects(
   return getCachedValue(
     () => getAllPublicProjectsUncached(normalized),
     [
-      "gitbags:public-projects:v1",
+      "gitshipt:public-projects:v1",
       normalized.status ?? "all",
       normalized.sort ?? "trending",
       normalized.search ?? "",
@@ -378,7 +378,7 @@ export async function getContributorProfile(
   const normalized = username.toLowerCase();
   return getCachedValue(
     () => getContributorProfileUncached(username),
-    ["gitbags:contributor-profile:v1", normalized],
+    ["gitshipt:contributor-profile:v1", normalized],
     {
       tags: [cacheTags.public, cacheTags.contributor(normalized)],
       revalidate: CACHE_SECONDS.profile,
@@ -461,7 +461,7 @@ export async function getProjectSnapshots(
 ): Promise<SnapshotRow[]> {
   return getCachedValue(
     () => getProjectSnapshotsUncached(projectId, limit),
-    ["gitbags:project-snapshots:v1", projectId, String(limit)],
+    ["gitshipt:project-snapshots:v1", projectId, String(limit)],
     {
       tags: [
         cacheTags.public,

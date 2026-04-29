@@ -42,9 +42,9 @@ export function clearLogoutStorage(): void {
   for (const storage of [window.localStorage, window.sessionStorage]) {
     for (const key of Object.keys(storage)) {
       if (
-        key.startsWith("gitbags:auth:") ||
-        key.startsWith("gitbags:session:") ||
-        key.startsWith("gitbags:user:")
+        key.startsWith("gitshipt:auth:") ||
+        key.startsWith("gitshipt:session:") ||
+        key.startsWith("gitshipt:user:")
       ) {
         storage.removeItem(key);
       }

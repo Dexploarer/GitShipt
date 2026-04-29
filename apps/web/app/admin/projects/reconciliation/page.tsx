@@ -88,9 +88,9 @@ export default async function AdminReconciliationPage() {
           image: it.image ?? null,
         }));
       },
-      ["gitbags:admin:reconciliation:feed:v1"],
+      ["gitshipt:admin:reconciliation:feed:v1"],
       {
-        tags: ["gitbags:admin:reconciliation"],
+        tags: ["gitshipt:admin:reconciliation"],
         revalidate: 300,
       },
     ),

@@ -156,7 +156,7 @@ async function getMyProjectsUncached(userId: string): Promise<MyProjectRow[]> {
 export async function getMyProjects(userId: string): Promise<MyProjectRow[]> {
   return getCachedValue(
     () => getMyProjectsUncached(userId),
-    ["gitbags:dashboard:my-projects:v1", userId],
+    ["gitshipt:dashboard:my-projects:v1", userId],
     {
       tags: [
         cacheTags.dashboard,
@@ -244,7 +244,7 @@ async function getProjectKPIsUncached(projectId: string): Promise<ProjectKPIs> {
 export async function getProjectKPIs(projectId: string): Promise<ProjectKPIs> {
   return getCachedValue(
     () => getProjectKPIsUncached(projectId),
-    ["gitbags:dashboard:project-kpis:v1", projectId],
+    ["gitshipt:dashboard:project-kpis:v1", projectId],
     {
       tags: [
         cacheTags.dashboard,
@@ -317,7 +317,7 @@ export async function getProjectPayoutHistory(
   const safe = safeLimit(limit, 50);
   return getCachedValue(
     () => getProjectPayoutHistoryUncached(projectId, safe),
-    ["gitbags:dashboard:payout-history:v1", projectId, String(safe)],
+    ["gitshipt:dashboard:payout-history:v1", projectId, String(safe)],
     {
       tags: [
         cacheTags.dashboard,
@@ -422,7 +422,7 @@ async function getMyEarningsUncached(userId: string): Promise<MyEarnings> {
 export async function getMyEarnings(userId: string): Promise<MyEarnings> {
   return getCachedValue(
     () => getMyEarningsUncached(userId),
-    ["gitbags:dashboard:my-earnings:v1", userId],
+    ["gitshipt:dashboard:my-earnings:v1", userId],
     {
       tags: [
         cacheTags.dashboard,
@@ -467,7 +467,7 @@ export async function getProjectIdsBySlug(
 
   return getCachedValue(
     () => getProjectIdsBySlugUncached(normalized),
-    ["gitbags:dashboard:project-ids-by-slug:v1", normalized.join(",")],
+    ["gitshipt:dashboard:project-ids-by-slug:v1", normalized.join(",")],
     {
       tags: [cacheTags.dashboard],
       revalidate: CACHE_SECONDS.auth,
@@ -507,7 +507,7 @@ export async function getMyLinkedWallets(
 ): Promise<LinkedWallet[]> {
   return getCachedValue(
     () => getMyLinkedWalletsUncached(userId),
-    ["gitbags:dashboard:linked-wallets:v1", userId],
+    ["gitshipt:dashboard:linked-wallets:v1", userId],
     {
       tags: [
         cacheTags.dashboard,
@@ -612,7 +612,7 @@ export async function getProjectRecord(
 ): Promise<ProjectRecord | null> {
   return getCachedValue(
     () => getProjectRecordUncached(projectId),
-    ["gitbags:dashboard:project-record:v1", projectId],
+    ["gitshipt:dashboard:project-record:v1", projectId],
     {
       tags: [
         cacheTags.dashboard,
@@ -669,7 +669,7 @@ export async function getRecentProjectAudit(
   const safe = safeLimit(limit, 10);
   return getCachedValue(
     () => getRecentProjectAuditUncached(projectId, safe),
-    ["gitbags:dashboard:project-audit:v1", projectId, String(safe)],
+    ["gitshipt:dashboard:project-audit:v1", projectId, String(safe)],
     {
       tags: [
         cacheTags.dashboard,
@@ -715,7 +715,7 @@ export async function getIndexerState(
 ): Promise<IndexerState | null> {
   return getCachedValue(
     () => getIndexerStateUncached(projectId),
-    ["gitbags:dashboard:indexer-state:v1", projectId],
+    ["gitshipt:dashboard:indexer-state:v1", projectId],
     {
       tags: [
         cacheTags.dashboard,
@@ -760,7 +760,7 @@ export async function getFailedPayoutsForProject(
   const safe = safeLimit(limit, 5);
   return getCachedValue(
     () => getFailedPayoutsForProjectUncached(projectId, safe),
-    ["gitbags:dashboard:failed-payouts:v1", projectId, String(safe)],
+    ["gitshipt:dashboard:failed-payouts:v1", projectId, String(safe)],
     {
       tags: [
         cacheTags.dashboard,
@@ -806,7 +806,7 @@ export async function getProjectMembers(
 ): Promise<ProjectMemberRow[]> {
   return getCachedValue(
     () => getProjectMembersUncached(projectId),
-    ["gitbags:dashboard:project-members:v1", projectId],
+    ["gitshipt:dashboard:project-members:v1", projectId],
     {
       tags: [
         cacheTags.dashboard,

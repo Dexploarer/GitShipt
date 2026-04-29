@@ -53,8 +53,8 @@ describe("bags.getClaimTransactions", () => {
 
     const { bags } = await import("./client");
     const result = await bags.getClaimTransactions(
-      "GitBags1111111111111111111111111111111111111",
-      "GBAGS11111111111111111111111111111111111111",
+      "GitShipt1111111111111111111111111111111111111",
+      "GShipt11111111111111111111111111111111111111",
     );
 
     expect(result.transactions).toHaveLength(1);

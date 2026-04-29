@@ -7,7 +7,7 @@ export default function ProjectNotFound() {
       <EmptyState
         icon={SearchX}
         title="Project not found"
-        description="We couldn't find that GitHub repository on GitBags."
+        description="We couldn't find that GitHub repository on GitShipt."
         cta={{ label: "Browse projects", href: "/explore" }}
         secondary={{ label: "Go home", href: "/" }}
       />

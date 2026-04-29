@@ -28,9 +28,9 @@ export async function recordTradingMetric(metric: TradingMetric): Promise<void> 
     if (!r) return;
 
     const minute = Math.floor(Date.now() / 60_000);
-    const base = `gitbags:metrics:trading:${metric.route}:${metric.projectId}:${minute}`;
+    const base = `gitshipt:metrics:trading:${metric.route}:${metric.projectId}:${minute}`;
     const statusKey = `${base}:${metric.status}`;
-    const routeKey = `gitbags:metrics:trading:${metric.route}:all:${minute}`;
+    const routeKey = `gitshipt:metrics:trading:${metric.route}:all:${minute}`;
     const reasonKey = metric.reason
       ? `${base}:${metric.status}:${metricPart(metric.reason)}`
       : null;

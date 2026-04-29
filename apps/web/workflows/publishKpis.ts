@@ -17,7 +17,7 @@ import {
  *
  * Reads the same aggregates as `getLandingData()`'s ticker block via the
  * uncached ticker helper, then writes a JSON snapshot to
- * Redis at `gitbags:ticker:landing` with a 120s TTL so a single missed
+ * Redis at `gitshipt:ticker:landing` with a 120s TTL so a single missed
  * cron beat doesn't blank the homepage. The landing page reads this cache
  * inside `getLandingData()` and merges it into the response when present.
  *
@@ -26,7 +26,7 @@ import {
  * payload so duplicate runs are observable in the snapshot itself.
  */
 
-const TICKER_REDIS_KEY = "gitbags:ticker:landing";
+const TICKER_REDIS_KEY = "gitshipt:ticker:landing";
 const TICKER_TTL_SECONDS = 120;
 
 interface CachedTickerSnapshot {

@@ -17,7 +17,7 @@ async function getLaunchWizardConfigUncached(): Promise<LaunchWizardConfig> {
 export async function getLaunchWizardConfig(): Promise<LaunchWizardConfig> {
   return getCachedValue(
     () => getLaunchWizardConfigUncached(),
-    ["gitbags:launch:wizard-config:v1"],
+    ["gitshipt:launch:wizard-config:v1"],
     {
       tags: [cacheTags.launch],
       revalidate: CACHE_SECONDS.browse,

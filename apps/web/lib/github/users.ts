@@ -94,7 +94,7 @@ export async function getGitHubUser(
   const normalized = username.toLowerCase();
   return getCachedValue(
     () => getGitHubUserUncached(username),
-    ["gitbags:github-user:v1", normalized],
+    ["gitshipt:github-user:v1", normalized],
     {
       tags: [cacheTags.public, cacheTags.githubUser(normalized)],
       revalidate: CACHE_SECONDS.profile,

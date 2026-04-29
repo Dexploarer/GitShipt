@@ -22,7 +22,7 @@ import { serverEnv } from "@/lib/env";
  * 5-minute freshness window inside that TTL.
  */
 
-const ISSUER = "GitBags";
+const ISSUER = "GitShipt";
 const TOTP_ALGORITHM = "SHA1";
 const TOTP_DIGITS = 6;
 const TOTP_PERIOD = 30;

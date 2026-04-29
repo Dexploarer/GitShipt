@@ -17,7 +17,7 @@ const repo: GithubRepo = {
   forksCount: 3,
   ownerAvatarUrl: "https://avatars.githubusercontent.com/u/42?v=4",
   alreadyLaunched: false,
-  homepage: "https://gitbags.dev",
+  homepage: "https://gitshipt.dev",
   topics: ["solana", "bags"],
   license: "MIT",
   defaultBranch: "main",
@@ -39,7 +39,7 @@ describe("launch wizard store", () => {
       symbol: "GB",
       description: repo.description,
       imageUrl: repo.ownerAvatarUrl,
-      website: "https://gitbags.dev",
+      website: "https://gitshipt.dev",
     });
   });
 
@@ -68,7 +68,7 @@ describe("launch wizard store", () => {
       description:
         "Token for sym/open-source-launch-kit. Fees redistribute to top contributors daily.",
       imageUrl: repo.ownerAvatarUrl,
-      website: "https://gitbags.dev",
+      website: "https://gitshipt.dev",
     });
   });
 
@@ -122,7 +122,7 @@ describe("launch wizard store", () => {
       repo,
       metadata: {
         name: "git-bags",
-        symbol: "GITBAGS",
+        symbol: "GITSHIPT",
         description: "Resumed",
         imageUrl: repo.ownerAvatarUrl,
       },
@@ -155,7 +155,7 @@ describe("launch wizard store", () => {
     useLaunchWizardStore.getState().selectRepo(repo);
     useLaunchWizardStore.getState().setMetadata({
       name: "git-bags",
-      symbol: "GITBAGS",
+      symbol: "GITSHIPT",
       description: repo.description ?? "Daily fee payouts for repo contributors",
       imageUrl: repo.ownerAvatarUrl,
     });

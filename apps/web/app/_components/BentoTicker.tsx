@@ -9,7 +9,7 @@ import type { LandingTicker } from "@/lib/queries/global";
  * + mono value.
  *
  * The displayed value comes straight from `initial: LandingTicker`, which
- * the page hydrates from a cron-published Redis snapshot (`gitbags:ticker:
+ * the page hydrates from a cron-published Redis snapshot (`gitshipt:ticker:
  * landing`, refreshed every minute by `workflows/publishKpis.ts`) with a
  * graceful DB-derived fallback. The previous ±0.4% client-side drift on a
  * 10s setInterval was removed — that was simulated liveness, not data.

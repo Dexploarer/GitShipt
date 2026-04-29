@@ -29,7 +29,7 @@ function installEnvMocks(overrides: EnvOverrides = {}) {
 }
 
 const REAL_MINT = "So11111111111111111111111111111111111111112";
-const STUB_PLACEHOLDER_MINT = "GBAGSdemoTokenMint11111111111111111111111111";
+const STUB_PLACEHOLDER_MINT = "GShiptDemoMint111111111111111111111111111111";
 
 describe("bags.getPoolByTokenMint", () => {
   beforeEach(() => {

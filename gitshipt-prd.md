@@ -1,4 +1,4 @@
-# GitBags — Product Requirements Doc
+# GitShipt — Product Requirements Doc
 
 **Hackathon**: Bags.fm Hackathon (submissions close April 28, 2026)
 **Owner**: SYMBiEX
@@ -8,7 +8,7 @@
 
 ## TL;DR
 
-GitBags is a launchpad-leaderboard hybrid where any GitHub repo can spawn a Bags.fm token. Token fees auto-distribute daily to that repo's top contributors, with a configurable platform fee (default 5%). We ship the platform by launching its own token at the demo and rewarding our own contributors live.
+GitShipt is a launchpad-leaderboard hybrid where any GitHub repo can spawn a Bags.fm token. Token fees auto-distribute daily to that repo's top contributors, with a configurable platform fee (default 5%). We ship the platform by launching its own token at the demo and rewarding our own contributors live.
 
 **One-liner**: Pump.fun for open source. The repo is the project, the contributors are the rewards.
 
@@ -17,7 +17,7 @@ GitBags is a launchpad-leaderboard hybrid where any GitHub repo can spawn a Bags
 ## Hackathon constraints
 
 - Submission deadline: April 28, 2026 (3-day build)
-- Demo lever: meta-launch of GitBags' own token at submission
+- Demo lever: meta-launch of GitShipt's own token at submission
 - "Wow factor": every commit pushed during the hackathon turns the committer into a payout recipient on stage
 
 ---
@@ -26,8 +26,8 @@ GitBags is a launchpad-leaderboard hybrid where any GitHub repo can spawn a Bags
 
 This PRD has been verified against current platform docs. Material decisions and their sources:
 
-1. **Bags Token Launch v2 has native fee sharing with direct wallets and social identity lookup**. GitBags starts with a direct platform pool wallet claimer for the contributor pool, and can update future fee-share configs to route verified contributor wallets directly while routing unlinked contributors to the pool. Bags can also resolve supported social identities (`github`, `twitter`, `kick`, `tiktok`, and legacy `moltbook`) to wallets when a future flow needs identity-based fee recipients. Maximum 100 fee earners per token (including creator). Source: Bags API changelog, Bags skill, and SDK examples (`@bagsfm/bags-sdk`).
-2. **Fee shares are configured at launch and post-launch edits require a Bags fee-share admin update transaction**. This is the single biggest constraint. To support a daily-changing leaderboard, GitBags treats Bags fee-share updates as prospective accrual routing: verified wallets can become direct Bags claimers for future fees, while unlinked/overflow/rounding shares remain assigned to the platform contributor pool wallet and are paid from GitBags after verification. GitBags platform revenue is a second explicit treasury `feeClaimer` in the same Bags config. Bags partner revenue is a separate partner-key rail (`partner` + `partnerConfig`) attached to the launch, not part of the 10,000 BPS claimer envelope.
+1. **Bags Token Launch v2 has native fee sharing with direct wallets and social identity lookup**. GitShipt starts with a direct platform pool wallet claimer for the contributor pool, and can update future fee-share configs to route verified contributor wallets directly while routing unlinked contributors to the pool. Bags can also resolve supported social identities (`github`, `twitter`, `kick`, `tiktok`, and legacy `moltbook`) to wallets when a future flow needs identity-based fee recipients. Maximum 100 fee earners per token (including creator). Source: Bags API changelog, Bags skill, and SDK examples (`@bagsfm/bags-sdk`).
+2. **Fee shares are configured at launch and post-launch edits require a Bags fee-share admin update transaction**. This is the single biggest constraint. To support a daily-changing leaderboard, GitShipt treats Bags fee-share updates as prospective accrual routing: verified wallets can become direct Bags claimers for future fees, while unlinked/overflow/rounding shares remain assigned to the platform contributor pool wallet and are paid from GitShipt after verification. GitShipt platform revenue is a second explicit treasury `feeClaimer` in the same Bags config. Bags partner revenue is a separate partner-key rail (`partner` + `partnerConfig`) attached to the launch, not part of the 10,000 BPS claimer envelope.
 3. **Next.js 16.2 is current** (March 18, 2026). Cache Components, React Compiler, and Turbopack are all stable. **Critical**: `middleware.ts` is renamed to `proxy.ts` in Next.js 16. Patch level must be current to mitigate React Server Components RCE (CVE-2025-66478, CVSS 10.0, December 2025) and middleware bypass (CVE-2025-29927).
 4. **Vercel Postgres is deprecated**. Use Neon Postgres via Vercel Marketplace. The app prefers Neon's server-only `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) variables, with `POSTGRES_URL` aliases accepted for generic Postgres compatibility.
 5. **Vercel Workflows is GA, Vercel Queues is public beta** (no allowlist). Workflows is built on Queues + Fluid Compute + managed persistence. Configured via `experimentalTriggers` in `vercel.json`. Run-level limits: ~2000 events or ~1 GB storage before replay slows down. Fan out via child workflows.
@@ -242,22 +242,22 @@ const sdk = new BagsSDK(
 
 // Step 1: create token info (uploads metadata, returns tokenMint + metadataUrl)
 const tokenInfo = await sdk.tokenLaunch.createTokenInfoAndMetadata({
-  name: "GitBags",
-  symbol: "GBAGS",
+  name: "GitShipt",
+  symbol: "GSHIPT",
   description:
-    "Token for the gitbags repo. Fees redistribute to top contributors daily.",
-  imageUrl: "https://gitbags.com/og/gbags.png",
+    "Token for the gitshipt repo. Fees redistribute to top contributors daily.",
+  imageUrl: "https://gitshipt.com/og/gitshipt.png",
 });
 
 // Step 2: create fee share config
 // MVP model: direct wallet claimers total 10,000 bps. Partner attribution is
-// separate from GitBags' own fee-claimer rail.
+// separate from GitShipt's own fee-claimer rail.
 const { meteoraConfigKey } = await sdk.config.createBagsFeeShareConfig({
   payer: launchWallet.publicKey,
   baseMint: tokenInfo.tokenMint,
   feeClaimers: [
     { user: poolClaimerWallet, userBps: 9500 }, // pool
-    { user: treasuryWallet, userBps: 500 }, // GitBags platform rail
+    { user: treasuryWallet, userBps: 500 }, // GitShipt platform rail
   ],
   partner: new PublicKey(process.env.BAGS_PARTNER_WALLET!),
   partnerConfig: process.env.BAGS_PARTNER_CONFIG_KEY
@@ -287,7 +287,7 @@ const signature = await signAndSendTransaction(
 
 `BAGS_API_KEY` is the private server credential for the Bags public API. It is
 not the partner key. Token launches and Bags-hosted handoff URLs also attach
-the GitBags partner wallet `HXs58Qa6YtgJfWVkQVnpFmw6WoEdFEL4LLD1ArZjMvTH` and
+the GitShipt partner wallet `HXs58Qa6YtgJfWVkQVnpFmw6WoEdFEL4LLD1ArZjMvTH` and
 referral code `symbiex` (`https://bags.fm/?ref=symbiex`) unless an explicit
 override is passed for a specialized partner campaign.
 
@@ -333,17 +333,17 @@ export async function processProjectPayout(projectId: string) {
 
 ### Constraints to design around
 
-- **Max 100 fee claimers per token** including creator. GitBags must reserve room for the treasury and contributor pool, then route any excess ranked contributors back into the pool instead of exceeding Bags limits.
+- **Max 100 fee claimers per token** including creator. GitShipt must reserve room for the treasury and contributor pool, then route any excess ranked contributors back into the pool instead of exceeding Bags limits.
 - **Bags rate limit**: 1,000 requests/hour per API key. With cron driving most calls, this is plenty. Workflows step retries don't compound (each step is idempotent).
 - **JWT tokens last 365 days, rotate if compromised**. API keys are separate from JWT tokens. We use API keys for backend, never JWTs.
 - **Token launches require fee sharing config**: the old no-share flow is no longer supported.
-- **Fee claimers support direct wallets**: GitBags registers the platform hot wallet as the initial pool claimer. For later config updates, verified contributor wallets can receive direct Bags BPS. Unlinked contributors, overflow contributors, and BPS rounding dust remain in the GitBags contributor pool so no earned fees disappear.
+- **Fee claimers support direct wallets**: GitShipt registers the platform hot wallet as the initial pool claimer. For later config updates, verified contributor wallets can receive direct Bags BPS. Unlinked contributors, overflow contributors, and BPS rounding dust remain in the GitShipt contributor pool so no earned fees disappear.
 
 ---
 
 ## Payout math
 
-The Bags fee-share config allocates 10000 BPS explicitly. For the default GitBags launch, 500 BPS accrues directly to the GitBags treasury wallet and 9500 BPS accrues to the platform hot wallet as the contributor pool. After a project has verified contributor wallets, a prospective Bags fee-share update may split the 9500 BPS contributor budget across direct contributor wallets and the GitBags contributor pool. The pool receives unlinked contributors' shares, max-claimer overflow, and BPS rounding dust. Separately, launches include the GitBags Bags partner key so the platform can also claim partner revenue from Bags.
+The Bags fee-share config allocates 10000 BPS explicitly. For the default GitShipt launch, 500 BPS accrues directly to the GitShipt treasury wallet and 9500 BPS accrues to the platform hot wallet as the contributor pool. After a project has verified contributor wallets, a prospective Bags fee-share update may split the 9500 BPS contributor budget across direct contributor wallets and the GitShipt contributor pool. The pool receives unlinked contributors' shares, max-claimer overflow, and BPS rounding dust. Separately, launches include the GitShipt Bags partner key so the platform can also claim partner revenue from Bags.
 
 The daily contributor payout workflow redistributes only the contributor-pool wallet's claimable fees:
 
@@ -359,7 +359,7 @@ Default tier weights (top 10): `[0.30, 0.20, 0.15, 0.05, 0.05, 0.05, 0.05, 0.05,
 
 If a contributor has no linked wallet at payout time, allocation lands in `escrow_holdings` as a claimable liability. Wallet link drains that liability on next cron tick (or on-demand via `processClaim` workflow). Expiry is an admin-review signal, not permission to silently retire contributor rewards.
 
-**Why hybrid Bags-direct + GitBags-pool routing**: Bags direct wallets reduce custody for verified contributors, but Bags configs are prospective and capped. The GitBags pool remains necessary for contributors who have not registered yet, contributors beyond Bags' claimer limit, and any policy-controlled fallback where GitHub verification must happen before payout.
+**Why hybrid Bags-direct + GitShipt-pool routing**: Bags direct wallets reduce custody for verified contributors, but Bags configs are prospective and capped. The GitShipt pool remains necessary for contributors who have not registered yet, contributors beyond Bags' claimer limit, and any policy-controlled fallback where GitHub verification must happen before payout.
 
 ---
 
@@ -444,7 +444,7 @@ All background work runs as **Vercel Workflows** triggered by **Vercel Cron Jobs
 - Contributor claim flow with escrow
 - Super-admin console: Ops dashboard, kill switch, fee config, audit log, payout retry, treasury (read-only)
 - DESIGN.md committed and Tailwind theme generated from it
-- "Eat our own dog food" - GitBags repo launches first token at demo
+- "Eat our own dog food" - GitShipt repo launches first token at demo
 
 **Out (v1.1+)**:
 
@@ -484,7 +484,7 @@ All background work runs as **Vercel Workflows** triggered by **Vercel Cron Jobs
 
 ## Design system (DESIGN.md)
 
-GitBags ships a `DESIGN.md` file at the repo root, conforming to **Google Labs' DESIGN.md spec** (open-sourced April 21, 2026, Apache 2.0). DESIGN.md gives every coding agent (Claude Code, Cursor, Copilot, Stitch) a persistent, structured understanding of the visual identity. Drop a request like "build the Payouts page" into any agent and the output is on-brand without per-prompt design briefing.
+GitShipt ships a `DESIGN.md` file at the repo root, conforming to **Google Labs' DESIGN.md spec** (open-sourced April 21, 2026, Apache 2.0). DESIGN.md gives every coding agent (Claude Code, Cursor, Copilot, Stitch) a persistent, structured understanding of the visual identity. Drop a request like "build the Payouts page" into any agent and the output is on-brand without per-prompt design briefing.
 
 ### Why this matters for hackathon velocity
 
@@ -492,7 +492,7 @@ Every component generated during the 3-day sprint pulls from the same token tabl
 
 ### Aesthetic direction
 
-**Cypherpunk dark-green.** Near-black surfaces (`#08080C`), single signature GitBags-green accent (`#4A9B3D`), Geist + Geist Mono typography, flat depth model (no glow halos, no gradients, no neumorphism), monospace numerics for every economically-meaningful figure. Trader's terminal density meets engineer-respecting legibility. See `DESIGN.md` for full token table and rationale.
+**Cypherpunk dark-green.** Near-black surfaces (`#08080C`), single signature GitShipt-green accent (`#4A9B3D`), Geist + Geist Mono typography, flat depth model (no glow halos, no gradients, no neumorphism), monospace numerics for every economically-meaningful figure. Trader's terminal density meets engineer-respecting legibility. See `DESIGN.md` for full token table and rationale.
 
 ### Token highlights (excerpt — see file for complete schema)
 
@@ -502,7 +502,7 @@ colors:
   surface: "#101015"
   surface-elevated: "#16161E"
   border: "#23232E"
-  primary: "#4A9B3D" # GitBags green, one per viewport
+  primary: "#4A9B3D" # GitShipt green, one per viewport
   primary-fg: "#F5F5F7" # off-white text/icon color on green controls
   fg: "#F5F5F7"
   fg-secondary: "#9494A0"
@@ -547,7 +547,7 @@ The full spec context can be injected into agent prompts via `bunx @google/desig
 
 ### Theming (dark default, light mirror)
 
-GitBags ships **two themes**: dark (canonical, default) and light (mirrored). Both palettes live in `DESIGN.md` (`colors:` for dark, `colors-light:` for light). Theme is selected via `data-theme="dark"` or `data-theme="light"` on `<html>`, switched with `next-themes`.
+GitShipt ships **two themes**: dark (canonical, default) and light (mirrored). Both palettes live in `DESIGN.md` (`colors:` for dark, `colors-light:` for light). Theme is selected via `data-theme="dark"` or `data-theme="light"` on `<html>`, switched with `next-themes`.
 
 **Why both**: dark is the brand and the trader-terminal aesthetic. Light exists for accessibility (some users have vestibular sensitivities to dark UIs), preference parity with the rest of the OS, and projector demos where dark UIs are unreadable. Default to `system` so first-load matches the user's OS preference; fallback is dark.
 
@@ -672,7 +672,7 @@ The project page (`/r/[org]/[repo]`) is the canonical surface for both public vi
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ SIDEBAR (240px)        │  CONTENT AREA (max 1440px, 32px padding)           │
 │                        │  ┌──────────────────────────┬──────────────────┐  │
-│ GitBags by SYMBiEX & dEXploarer     │  │  Project header card     │  Next Payout     │  │
+│ GitShipt by SYMBiEX & dEXploarer     │  │  Project header card     │  Next Payout     │  │
 │                        │  │  (avatar, name, repo↗,   │  countdown card  │  │
 │ ▸ Overview             │  │   description, stat      │  (12h 34m 56s)   │  │
 │ ● Leaderboard          │  │   chips: language,       │  + Cron Active   │  │
@@ -695,7 +695,7 @@ The project page (`/r/[org]/[repo]`) is the canonical surface for both public vi
 │                        │                                                    │
 │ ┌────────────────────┐ │  Right column (380px, gap 24px between cards):    │
 │ │ TOKEN INFO CARD    │ │  ┌──────────────────────┐                         │
-│ │ GITBAGS · BAGS Tok │ │  │ Pool Overview        │                         │
+│ │ GITSHIPT · BAGS Tok │ │  │ Pool Overview        │                         │
 │ │ [icon]             │ │  │ Daily Fee Pool       │                         │
 │ │ $0.00420 +12.4%    │ │  │ 49.80 SOL [sparkline]│                         │
 │ │ 24H Vol $124,532   │ │  │ $6,135.36            │                         │
@@ -758,10 +758,10 @@ The same visual layout is shared, with progressive enhancement:
 
 ## Admin & permissions
 
-GitBags has a multi-tier admin system. The two most important things to internalize:
+GitShipt has a multi-tier admin system. The two most important things to internalize:
 
 1. **Project admins (repo owners) get a rich admin console for their own project**, NOT the full platform. They are the day-to-day operators of their leaderboard.
-2. **Super-admins (GitBags platform team) get global override across every project**, plus platform-only surfaces (treasury, fee bounds, kill switches, abuse review).
+2. **Super-admins (GitShipt platform team) get global override across every project**, plus platform-only surfaces (treasury, fee bounds, kill switches, abuse review).
 
 ### Role hierarchy
 
@@ -810,7 +810,7 @@ Routes live under `/dashboard/projects/[id]/*`. The sidebar shown in the project
 #### What project admins **cannot** do
 
 - Change the platform fee BPS (set globally by super-admin within bounds).
-- Withdraw funds from the platform pool (Bags routes fees, GitBags redistributes; project admins never touch the wallet).
+- Withdraw funds from the platform pool (Bags routes fees, GitShipt redistributes; project admins never touch the wallet).
 - Re-launch the token or change the on-chain fee share config (immutable post-launch).
 - Override the global kill switch.
 - Access other projects' data.
@@ -919,7 +919,7 @@ Enforced via a `requirePermission(permission, { projectId? })` helper in every s
 ## File tree
 
 ```
-gitbags/
+gitshipt/
 ├── DESIGN.md                         # Google Labs DESIGN.md spec, source of truth for visual identity
 ├── AGENTS.md                         # Agent context: links to DESIGN.md spec + project conventions
 ├── .theme/tokens.json                # Generated from apps/web/app/globals.css
@@ -1037,7 +1037,7 @@ SOLANA_TREASURY_ADDRESS
 CRON_SECRET               # 32+ random chars, marked Sensitive
 
 # App
-NEXT_PUBLIC_APP_URL=https://gitbags.com
+NEXT_PUBLIC_APP_URL=https://gitshipt.com
 PLATFORM_FEE_BPS_DEFAULT=500
 ADMIN_EMAIL_ALLOWLIST
 ```
@@ -1115,7 +1115,7 @@ export async function GET(req: Request) {
 
 ### April 28 morning
 
-- Launch GitBags' own token live
+- Launch GitShipt's own token live
 - Push final commits, redistribute first payout on stage
 - Demo recording + submission
 

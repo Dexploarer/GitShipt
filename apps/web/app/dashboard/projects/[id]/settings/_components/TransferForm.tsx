@@ -115,7 +115,7 @@ export function TransferForm({ projectId, slug }: TransferFormProps) {
 
       <Field
         label="Recipient (email or GitHub username)"
-        hint="Must already have signed in to GitBags at least once."
+        hint="Must already have signed in to GitShipt at least once."
       >
         <Input
           type="text"

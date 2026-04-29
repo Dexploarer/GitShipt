@@ -114,7 +114,7 @@ export function AccountPreferencesForm({
         />
         <ToggleRow
           label="Product email"
-          detail="Launchpad updates, workflow changes, and GitBags release notes."
+          detail="Launchpad updates, workflow changes, and GitShipt release notes."
           checked={productEmails}
           onCheckedChange={setProductEmails}
         />

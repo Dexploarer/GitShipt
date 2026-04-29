@@ -59,7 +59,7 @@ export default async function SettingsPage() {
           <CardHeader className="border-b border-border px-6 py-4">
             <CardTitle>Preferences</CardTitle>
             <CardDescription>
-              Stored on your GitBags account and applied to account navigation.
+              Stored on your GitShipt account and applied to account navigation.
             </CardDescription>
           </CardHeader>
           <CardContent className="px-6 py-5">

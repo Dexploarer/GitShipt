@@ -37,7 +37,7 @@ import { applyDbRlsContext } from "@/lib/db-rls";
  * action just composes them with shared logic.
  */
 
-const PLATFORM_GH_USERNAME = "gitbags-platform";
+const PLATFORM_GH_USERNAME = "gitshipt-platform";
 const LAUNCH_SUBMISSION_PENDING_PREFIX = "pending:";
 
 export interface LaunchProgressUpdate {

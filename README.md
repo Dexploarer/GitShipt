@@ -1,7 +1,7 @@
-# GitBags
+# GitShipt
 
 Launch a Bags.fm token for any GitHub repository and route trading fees back to
-the people who built it. GitBags keeps the token launch simple, computes a daily
+the people who built it. GitShipt keeps the token launch simple, computes a daily
 contributor leaderboard from GitHub activity, claims accrued Bags fees into a
 platform pool, and pays contributors by rank.
 
@@ -13,7 +13,7 @@ These root files bind product and implementation decisions:
 
 - [`DESIGN.md`](./DESIGN.md) defines the cypherpunk-dark visual system, dual
   palettes, typography, component rules, and no-raw-hex discipline.
-- [`gitbags-prd.md`](./gitbags-prd.md) defines product scope, data model,
+- [`gitshipt-prd.md`](./gitshipt-prd.md) defines product scope, data model,
   permissions, launch flow, payout workflow, and security posture.
 - [`AGENTS.md`](./AGENTS.md) summarizes the repo-specific constraints for
   coding agents and maintainers.
@@ -105,7 +105,7 @@ Core variables:
 - Run `bun run env:check -- --env-file=.env.production.local` before launch to
   validate a local production env file without printing secret values.
 - `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` should point at the deployed app
-  origin. Production uses `https://gitbags.com`.
+  origin. Production uses `https://gitshipt.com`.
 - `DATABASE_URL` and `DATABASE_URL_UNPOOLED` are the preferred server-only Neon
   Postgres connection URLs. `POSTGRES_URL` and `POSTGRES_URL_NON_POOLING` remain
   accepted aliases for generic Postgres compatibility.
@@ -116,17 +116,17 @@ Core variables:
   SIWS nonces, and workflow safety.
 - `BETTER_AUTH_SECRET`, `GITHUB_CLIENT_ID`, and `GITHUB_CLIENT_SECRET` enable
   GitHub sign-in. The production GitHub OAuth callback is
-  `https://gitbags.com/api/auth/callback/github`.
+  `https://gitshipt.com/api/auth/callback/github`.
 - `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET`, and
   `GITHUB_APP_SLUG` enable repo installation, webhooks, and private App reads.
   The production GitHub App webhook URL is
-  `https://gitbags.com/api/webhooks/github`.
+  `https://gitshipt.com/api/webhooks/github`.
 - `BAGS_API_KEY` enables live Bags SDK calls.
 - `BAGS_PARTNER_WALLET`, `BAGS_PARTNER_CONFIG_KEY`, and `BAGS_CONFIG_TYPE` are
   optional Bags partner/config controls.
 - `HELIUS_RPC_URL` and `SOLANA_PAYOUT_KEYPAIR` are required before live Bags
   fee-share config transactions can be signed.
-- `SOLANA_TREASURY_ADDRESS` receives the GitBags platform fee share.
+- `SOLANA_TREASURY_ADDRESS` receives the GitShipt platform fee share.
 - `CRON_SECRET` protects cron/admin automation endpoints.
 
 Every `*_KEY`, `*_SECRET`, `*PRIVATE_KEY`, and `*KEYPAIR` value must be marked
@@ -136,7 +136,7 @@ Production readiness checks require the deployed environment to use the live
 cluster and canonical origin:
 
 - `NEXT_PUBLIC_SOLANA_CLUSTER=mainnet-beta`.
-- `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` set to `https://gitbags.com`, not
+- `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` set to `https://gitshipt.com`, not
   localhost or a preview URL.
 - `BAGS_PARTNER_WALLET` and `BAGS_PARTNER_CONFIG_KEY` configured as a matching
   Bags partner pair. Keep the real config key out of the repo and set it only
@@ -234,13 +234,13 @@ The current live Bags path is centralized in
    `tokenMint` and `tokenMetadata`.
 2. `bags.createFeeShareConfig()` resolves social claimers through
    `sdk.state.getLaunchWalletV2Bulk()`, merges duplicate wallets, adds the
-   GitBags platform fee wallet, and calls
+   GitShipt platform fee wallet, and calls
    `sdk.config.createBagsFeeShareConfig()`.
 3. Fee-share config transactions returned by Bags are signed with
    `SOLANA_PAYOUT_KEYPAIR` through `signAndSendTransaction()`.
 4. Claim reads and payout preparation use the `sdk.fee.*` namespace.
 
-GitBags deliberately keeps two revenue rails separate:
+GitShipt deliberately keeps two revenue rails separate:
 
 - Contributor/pool accounting is expressed through fee claimers that total
   exactly 10,000 bps.
@@ -311,7 +311,7 @@ Important deployment settings:
 
 Bun HTTP/3 support (`Bun.serve({ h3: true })` and experimental
 `fetch(..., { protocol: "http3" })`) landed on Bun `main` after the 1.3.13
-stable release. GitBags stays on stable Bun for production Next/Vercel builds;
+stable release. GitShipt stays on stable Bun for production Next/Vercel builds;
 use `bun upgrade --canary` locally and run `bun run bun:http3:check` before
 testing those APIs. Do not wire HTTP/3-only behavior into money-moving Bags or
 Solana paths until Bun ships the feature in a stable release and the target API

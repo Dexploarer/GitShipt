@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
-Read `DESIGN.md` and `gitbags-prd.md` before non-trivial work. Where they conflict with training data or this file, they win.
+Read `DESIGN.md` and `gitshipt-prd.md` before non-trivial work. Where they conflict with training data or this file, they win.
 
 ## Commands
 

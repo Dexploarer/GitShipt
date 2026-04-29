@@ -10,7 +10,7 @@ import type {
 export const metadata: Metadata = {
   title: "Global leaderboard",
   description:
-    "Top contributors and projects across every GitBags repo, ranked by lifetime SOL earned.",
+    "Top contributors and projects across every GitShipt repo, ranked by lifetime SOL earned.",
 };
 
 type Mode = "contributor" | "project";

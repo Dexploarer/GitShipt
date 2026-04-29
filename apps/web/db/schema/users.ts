@@ -10,7 +10,7 @@ export const userRoleEnum = pgEnum("user_role", [
 
 /**
  * Combined user table for both better-auth (`name`, `email`, `emailVerified`,
- * `image`) and GitBags domain fields (`githubId`, `githubUsername`, `role`,
+ * `image`) and GitShipt domain fields (`githubId`, `githubUsername`, `role`,
  * `mfaSecretEnc`). better-auth's Drizzle adapter is configured to use this
  * table directly via field mapping in `lib/auth/index.ts`.
  */
@@ -25,7 +25,7 @@ export const users = pgTable(
     emailVerified: boolean("email_verified").notNull().default(false),
     image: text("image"),
 
-    // GitBags domain fields
+    // GitShipt domain fields
     githubId: text("github_id").unique(),
     githubUsername: text("github_username"),
     role: userRoleEnum("role").notNull().default("user"),

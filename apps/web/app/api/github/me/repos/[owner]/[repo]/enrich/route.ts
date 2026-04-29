@@ -71,7 +71,7 @@ export async function GET(
   }
 
   const r = redis();
-  const cacheKey = `gitbags:gh:enrich:${owner}/${repo}`;
+  const cacheKey = `gitshipt:gh:enrich:${owner}/${repo}`;
   if (r) {
     const cached = await r.get(cacheKey);
     if (cached) {

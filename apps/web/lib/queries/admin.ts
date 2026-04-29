@@ -137,7 +137,7 @@ export async function getOpsKpis(
 ): Promise<OpsKpis> {
   return getCachedValue(
     () => getOpsKpisUncached(hotWalletLamports),
-    ["gitbags:admin:ops-kpis:v1", String(hotWalletLamports ?? "unknown")],
+    ["gitshipt:admin:ops-kpis:v1", String(hotWalletLamports ?? "unknown")],
     {
       tags: [cacheTags.admin],
       revalidate: CACHE_SECONDS.admin,
@@ -189,7 +189,7 @@ async function getHeartbeatsUncached(): Promise<HeartbeatRow[]> {
 export async function getHeartbeats(): Promise<HeartbeatRow[]> {
   return getCachedValue(
     () => getHeartbeatsUncached(),
-    ["gitbags:admin:heartbeats:v1"],
+    ["gitshipt:admin:heartbeats:v1"],
     {
       tags: [cacheTags.admin, cacheTags.platformConfig],
       revalidate: CACHE_SECONDS.admin,
@@ -244,7 +244,7 @@ export async function getRecentFailedPayouts(
   const safeLimit = z.number().int().min(1).max(100).catch(10).parse(limit);
   return getCachedValue(
     () => getRecentFailedPayoutsUncached(safeLimit),
-    ["gitbags:admin:recent-failed-payouts:v1", String(safeLimit)],
+    ["gitshipt:admin:recent-failed-payouts:v1", String(safeLimit)],
     {
       tags: [cacheTags.admin],
       revalidate: CACHE_SECONDS.admin,
@@ -344,7 +344,7 @@ export async function getAuditLogs(
   const safeFilter = AuditFilterSchema.parse(filter);
   return getCachedValue(
     () => getAuditLogsUncached(safeFilter),
-    ["gitbags:admin:audit:v1", JSON.stringify(safeFilter)],
+    ["gitshipt:admin:audit:v1", JSON.stringify(safeFilter)],
     {
       tags: [cacheTags.admin, cacheTags.adminAudit],
       revalidate: CACHE_SECONDS.admin,
@@ -421,7 +421,7 @@ export async function getAllProjects(filter?: {
   const safeFilter = normalizeProjectStatusFilter(filter);
   return getCachedValue(
     () => getAllProjectsUncached(safeFilter),
-    ["gitbags:admin:projects:v1", safeFilter.status ?? "all"],
+    ["gitshipt:admin:projects:v1", safeFilter.status ?? "all"],
     {
       tags: [cacheTags.admin],
       revalidate: CACHE_SECONDS.admin,
@@ -494,7 +494,7 @@ async function getPartnerFeeShareSummaryUncached(): Promise<PartnerFeeShareSumma
 export async function getPartnerFeeShareSummary(): Promise<PartnerFeeShareSummary> {
   return getCachedValue(
     () => getPartnerFeeShareSummaryUncached(),
-    ["gitbags:admin:partner-fee-share-summary:v1"],
+    ["gitshipt:admin:partner-fee-share-summary:v1"],
     {
       tags: [cacheTags.admin],
       revalidate: CACHE_SECONDS.admin,
@@ -567,7 +567,7 @@ export async function getProjectAdminDetail(projectId: string): Promise<{
 } | null> {
   return getCachedValue(
     () => getProjectAdminDetailUncached(projectId),
-    ["gitbags:admin:project-detail:v1", projectId],
+    ["gitshipt:admin:project-detail:v1", projectId],
     {
       tags: [
         cacheTags.admin,
@@ -621,7 +621,7 @@ async function getAllUsersUncached(): Promise<AdminUserRow[]> {
 export async function getAllUsers(): Promise<AdminUserRow[]> {
   return getCachedValue(
     () => getAllUsersUncached(),
-    ["gitbags:admin:users:v1"],
+    ["gitshipt:admin:users:v1"],
     {
       tags: [cacheTags.admin, cacheTags.adminUsers],
       revalidate: CACHE_SECONDS.admin,
@@ -702,7 +702,7 @@ export async function getAllPayouts(filter?: {
   const safeFilter = normalizePayoutStatusFilter(filter);
   return getCachedValue(
     () => getAllPayoutsUncached(safeFilter),
-    ["gitbags:admin:payouts:v1", safeFilter.status ?? "all"],
+    ["gitshipt:admin:payouts:v1", safeFilter.status ?? "all"],
     {
       tags: [cacheTags.admin],
       revalidate: CACHE_SECONDS.admin,
@@ -760,7 +760,7 @@ async function getAllSnapshotsUncached(): Promise<AdminSnapshotRow[]> {
 export async function getAllSnapshots(): Promise<AdminSnapshotRow[]> {
   return getCachedValue(
     () => getAllSnapshotsUncached(),
-    ["gitbags:admin:snapshots:v1"],
+    ["gitshipt:admin:snapshots:v1"],
     {
       tags: [cacheTags.admin],
       revalidate: CACHE_SECONDS.admin,
@@ -790,7 +790,7 @@ export async function getSnapshotDetail(snapshotId: string) {
   const safeSnapshotId = z.string().min(1).max(128).parse(snapshotId);
   return getCachedValue(
     () => getSnapshotDetailUncached(safeSnapshotId),
-    ["gitbags:admin:snapshot-detail:v1", safeSnapshotId],
+    ["gitshipt:admin:snapshot-detail:v1", safeSnapshotId],
     {
       tags: [cacheTags.admin],
       revalidate: CACHE_SECONDS.admin,
@@ -804,7 +804,7 @@ export async function getPlatformConfigValue<T = Record<string, unknown>>(
   const safeKey = PlatformConfigKeySchema.parse(key);
   return getCachedValue(
     () => getPlatformConfigValueUncached<T>(safeKey),
-    ["gitbags:admin:platform-config:v1", safeKey],
+    ["gitshipt:admin:platform-config:v1", safeKey],
     {
       tags: [cacheTags.admin, cacheTags.platformConfig],
       revalidate: CACHE_SECONDS.admin,
@@ -878,7 +878,7 @@ export async function getTableRowCounts(): Promise<
 > {
   return getCachedValue(
     () => getTableRowCountsUncached(),
-    ["gitbags:admin:table-row-counts:v1"],
+    ["gitshipt:admin:table-row-counts:v1"],
     {
       tags: [cacheTags.admin],
       revalidate: CACHE_SECONDS.admin,
@@ -988,7 +988,7 @@ export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {
   const sortedIds = [...safeIds].sort();
   return getCachedValue(
     () => getUsersByIdsUncached(sortedIds),
-    ["gitbags:admin:users-by-ids:v1", sortedIds.join(",")],
+    ["gitshipt:admin:users-by-ids:v1", sortedIds.join(",")],
     {
       tags: [cacheTags.admin, cacheTags.adminUsers],
       revalidate: CACHE_SECONDS.admin,
@@ -997,7 +997,7 @@ export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {
 }
 
 /**
- * Hand a project's ownership to another GitBags user.
+ * Hand a project's ownership to another GitShipt user.
  *
  *  - Updates `projects.ownerUserId` to `newOwnerUserId`.
  *  - Upserts the new owner into `project_memberships` with role

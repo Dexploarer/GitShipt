@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const DEMO_PROJECT_PATH = "/r/SYMBaiEX/gitbags";
+const DEMO_PROJECT_PATH = "/r/SYMBaiEX/gitshipt";
 const HYDRATION_RE =
   /hydration|hydrated|server rendered|server-rendered|did not match/i;
 

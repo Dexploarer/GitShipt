@@ -130,7 +130,7 @@ export function ReviewAndSign({
               }
             />
             <StatusLine
-              label="GitBags treasury"
+              label="GitShipt treasury"
               value={<span className="text-mono-sm">{platformFeePct}%</span>}
             />
             <StatusLine

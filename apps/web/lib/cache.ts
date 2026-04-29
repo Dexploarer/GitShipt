@@ -12,7 +12,7 @@ type CachePayload =
   | CachePayload[]
   | { [key: string]: CachePayload };
 
-const CACHE_TYPE_KEY = "__gitbags_cache_type";
+const CACHE_TYPE_KEY = "__gitshipt_cache_type";
 const CACHE_VALUE_KEY = "value";
 
 export const CACHE_SECONDS = {
@@ -24,30 +24,30 @@ export const CACHE_SECONDS = {
 } as const;
 
 export const cacheTags = {
-  public: "gitbags:public",
-  landing: "gitbags:landing",
-  explore: "gitbags:explore",
-  globalLeaderboard: "gitbags:global-leaderboard",
-  liveTicker: "gitbags:live-ticker",
-  launch: "gitbags:launch",
-  dashboard: "gitbags:dashboard",
-  admin: "gitbags:admin",
-  adminAudit: "gitbags:admin-audit",
-  adminUsers: "gitbags:admin-users",
-  platformConfig: "gitbags:platform-config",
-  user: (userId: string) => `gitbags:user:${userId}`,
-  dashboardUser: (userId: string) => `gitbags:dashboard-user:${userId}`,
+  public: "gitshipt:public",
+  landing: "gitshipt:landing",
+  explore: "gitshipt:explore",
+  globalLeaderboard: "gitshipt:global-leaderboard",
+  liveTicker: "gitshipt:live-ticker",
+  launch: "gitshipt:launch",
+  dashboard: "gitshipt:dashboard",
+  admin: "gitshipt:admin",
+  adminAudit: "gitshipt:admin-audit",
+  adminUsers: "gitshipt:admin-users",
+  platformConfig: "gitshipt:platform-config",
+  user: (userId: string) => `gitshipt:user:${userId}`,
+  dashboardUser: (userId: string) => `gitshipt:dashboard-user:${userId}`,
   dashboardProject: (projectId: string) =>
-    `gitbags:dashboard-project:${projectId}`,
-  project: (projectId: string) => `gitbags:project:${projectId}`,
-  projectSlug: (slug: string) => `gitbags:project-slug:${slug}`,
-  projectPayouts: (projectId: string) => `gitbags:project-payouts:${projectId}`,
+    `gitshipt:dashboard-project:${projectId}`,
+  project: (projectId: string) => `gitshipt:project:${projectId}`,
+  projectSlug: (slug: string) => `gitshipt:project-slug:${slug}`,
+  projectPayouts: (projectId: string) => `gitshipt:project-payouts:${projectId}`,
   projectSnapshots: (projectId: string) =>
-    `gitbags:project-snapshots:${projectId}`,
+    `gitshipt:project-snapshots:${projectId}`,
   contributor: (username: string) =>
-    `gitbags:contributor:${username.toLowerCase()}`,
+    `gitshipt:contributor:${username.toLowerCase()}`,
   githubUser: (username: string) =>
-    `gitbags:github-user:${username.toLowerCase()}`,
+    `gitshipt:github-user:${username.toLowerCase()}`,
 } as const;
 
 interface CachedValueOptions {

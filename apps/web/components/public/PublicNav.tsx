@@ -44,7 +44,7 @@ export function PublicNav({ active }: { active?: PublicNavActive }) {
             <Sparkles className="size-4" />
           </span>
           <span className="text-headline-sm">
-            GitBags
+            GitShipt
             <span className="ml-2 text-label-sm font-normal text-fg-muted">
               by SYMBiEX & dEXploarer
             </span>

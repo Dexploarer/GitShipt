@@ -3,15 +3,15 @@ import Link from "next/link";
 import { LegalSection } from "@/app/legal/_components/LegalSection";
 
 export const metadata: Metadata = {
-  title: "Terms of Service · GitBags",
+  title: "Terms of Service · GitShipt",
   description:
-    "Terms governing use of GitBags — a Solana token launchpad that pays trading fees back to GitHub repository contributors.",
+    "Terms governing use of GitShipt — a Solana token launchpad that pays trading fees back to GitHub repository contributors.",
 };
 
 const LAST_UPDATED = "2026-04-26";
 
 /**
- * Terms of Service — long-form copy specific to GitBags' operating model:
+ * Terms of Service — long-form copy specific to GitShipt's operating model:
  * Solana launches, daily contributor payouts via Bags.fm, GitHub OAuth + SIWS.
  */
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ export default async function TermsPage() {
           Last updated {LAST_UPDATED}
         </p>
         <p className="text-body-md text-fg-secondary">
-          These terms govern your use of GitBags, a hackathon-stage launchpad
+          These terms govern your use of GitShipt, a hackathon-stage launchpad
           that mints Solana tokens for open-source repositories and routes a
           share of trading fees to the repository&apos;s top contributors. Read
           carefully before launching a project or linking a wallet.
@@ -37,26 +37,26 @@ export default async function TermsPage() {
         <LegalSection index={1} title="Acceptance and scope">
           <p>
             By signing in, linking a GitHub repository, linking a Solana wallet,
-            or trading a token launched on GitBags, you accept these Terms. If
+            or trading a token launched on GitShipt, you accept these Terms. If
             you do not agree, do not use the service.
           </p>
           <p>
-            GitBags is provided strictly on an &ldquo;as is&rdquo; and &ldquo;as
+            GitShipt is provided strictly on an &ldquo;as is&rdquo; and &ldquo;as
             available&rdquo; basis with no warranty of any kind. These Terms
-            apply to the website at gitbags.com, all subdomains, and any
-            associated APIs or webhooks operated by the GitBags team.
+            apply to the website at gitshipt.com, all subdomains, and any
+            associated APIs or webhooks operated by the GitShipt team.
           </p>
         </LegalSection>
 
-        <LegalSection index={2} title="What GitBags does">
+        <LegalSection index={2} title="What GitShipt does">
           <p>
-            GitBags lets a GitHub repository owner mint a token whose metadata,
+            GitShipt lets a GitHub repository owner mint a token whose metadata,
             branding, and royalty splits are bound to that repository. Tokens
             are launched through the Bags.fm SDK on the Solana network.
           </p>
           <p>
             When the token trades, a configured share of the swap fees is
-            claimed by GitBags on behalf of the project and redistributed to the
+            claimed by GitShipt on behalf of the project and redistributed to the
             repository&apos;s top contributors, ranked by an automated scoring
             workflow that runs on a daily cadence. Payouts settle directly to
             each contributor&apos;s linked Solana wallet.
@@ -66,7 +66,7 @@ export default async function TermsPage() {
         <LegalSection index={3} title="Eligibility">
           <p>
             You must be at least the age of legal majority in your jurisdiction
-            and have a valid GitHub account in good standing to use GitBags. You
+            and have a valid GitHub account in good standing to use GitShipt. You
             must not be located in, a resident of, or accessing the service from
             any country or region subject to comprehensive U.S. sanctions, and
             you must not be a person designated on any U.S. or applicable
@@ -81,11 +81,11 @@ export default async function TermsPage() {
 
         <LegalSection index={4} title="Token launches">
           <p>
-            By initiating a launch you authorize GitBags to mint a Bags.fm token
+            By initiating a launch you authorize GitShipt to mint a Bags.fm token
             bound to the GitHub repository you select and to register the
             resulting royalty split with the repository&apos;s top contributors
             as recipients. You retain full ownership of your repository, its
-            source code, and its license. GitBags takes no equity in your
+            source code, and its license. GitShipt takes no equity in your
             project and acquires no rights to your code.
           </p>
           <p>
@@ -99,14 +99,14 @@ export default async function TermsPage() {
 
         <LegalSection index={5} title="Trading fees and payouts">
           <p>
-            GitBags does not custody user funds. Trades occur on-chain through
+            GitShipt does not custody user funds. Trades occur on-chain through
             Bags.fm liquidity. Fee claims are executed by an automated workflow
             that pulls accrued fees into a short-lived hot escrow wallet and
             immediately distributes them to contributor wallets in the same
             workflow run.
           </p>
           <p>
-            The escrow window is the only period during which GitBags
+            The escrow window is the only period during which GitShipt
             technically holds funds, and it exists solely to batch a single
             on-chain transaction. We do not promise any specific payout amount,
             frequency beyond &ldquo;daily best effort,&rdquo; or transaction
@@ -144,7 +144,7 @@ export default async function TermsPage() {
 
         <LegalSection index={7} title="Pause and kill rights">
           <p>
-            GitBags reserves the right, at its sole discretion, to pause or
+            GitShipt reserves the right, at its sole discretion, to pause or
             permanently kill any project, suspend any account, freeze pending
             payouts, or activate the platform-wide kill switch — including in
             response to suspected abuse, security incidents, legal demands, or
@@ -164,8 +164,8 @@ export default async function TermsPage() {
           title="No financial advice, no securities, no guarantees"
         >
           <p>
-            Nothing in GitBags constitutes financial, investment, tax, or legal
-            advice. Tokens launched on GitBags are not offered as securities,
+            Nothing in GitShipt constitutes financial, investment, tax, or legal
+            advice. Tokens launched on GitShipt are not offered as securities,
             and no statement on the platform should be read as a solicitation to
             invest. We make no representation about the value, liquidity, or
             future performance of any token.
@@ -179,13 +179,13 @@ export default async function TermsPage() {
 
         <LegalSection index={9} title="Network and demo-mode disclaimer">
           <p>
-            GitBags may run in local, devnet, testnet, or mainnet mode depending
+            GitShipt may run in local, devnet, testnet, or mainnet mode depending
             on deployment configuration. Non-mainnet SOL and tokens have no
             monetary value, and any &ldquo;USD&rdquo; figure shown for a
             non-mainnet project is a synthetic display value.
           </p>
           <p>
-            Because GitBags is hackathon-stage software, the database, the
+            Because GitShipt is hackathon-stage software, the database, the
             indexer, and the on-chain state may be reset, migrated, or wiped at
             any time without notice outside explicitly announced production
             environments. Mainnet activation is controlled by production
@@ -198,13 +198,13 @@ export default async function TermsPage() {
           title="Indemnity, limitation of liability, governing law"
         >
           <p>
-            You agree to indemnify and hold harmless the GitBags team and
+            You agree to indemnify and hold harmless the GitShipt team and
             contributors from any claim, loss, or expense arising from your use
             of the service, your launches, your repository&apos;s contents, or
             your violation of these Terms.
           </p>
           <p>
-            To the maximum extent permitted by law, GitBags and its contributors
+            To the maximum extent permitted by law, GitShipt and its contributors
             are not liable for any indirect, incidental, consequential, or
             punitive damages, or for any loss of tokens, missed payouts, RPC
             failures, or third-party outages (including GitHub, Bags.fm, Helius,
@@ -225,7 +225,7 @@ export default async function TermsPage() {
             We may update these Terms at any time. The &ldquo;last
             updated&rdquo; date at the top of this page reflects the most recent
             revision. Material changes will be announced in the product or via
-            the project repository. Your continued use of GitBags after a change
+            the project repository. Your continued use of GitShipt after a change
             constitutes acceptance of the updated Terms.
           </p>
         </LegalSection>
@@ -234,20 +234,20 @@ export default async function TermsPage() {
           <p>
             Questions, security reports, and abuse complaints:{" "}
             <a
-              href="mailto:legal@gitbags.com"
+              href="mailto:legal@gitshipt.com"
               className="text-fg underline-offset-4 hover:underline"
             >
-              legal@gitbags.com
+              legal@gitshipt.com
             </a>
             . Bugs, feature requests, and source-level discussion happen in the
             public repository at{" "}
             <Link
-              href="https://github.com/SYMBaiEX/gitbags"
+              href="https://github.com/SYMBaiEX/gitshipt"
               target="_blank"
               rel="noreferrer noopener"
               className="text-fg underline-offset-4 hover:underline"
             >
-              github.com/SYMBaiEX/gitbags
+              github.com/SYMBaiEX/gitshipt
             </Link>
             .
           </p>

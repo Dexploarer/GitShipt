@@ -45,7 +45,7 @@ export async function GET(
 
   const response = NextResponse.json(payload);
   if (hasApiKey) {
-    response.headers.set("x-gitbags-api-key-auth", "read:leaderboard");
+    response.headers.set("x-gitshipt-api-key-auth", "read:leaderboard");
   }
   return response;
 }

@@ -222,7 +222,7 @@ export async function getAccountProfile(
 ): Promise<AccountProfile | null> {
   return getCachedValue(
     () => getAccountProfileUncached(userId),
-    ["gitbags:account:profile:v2", userId],
+    ["gitshipt:account:profile:v2", userId],
     {
       tags: [
         cacheTags.dashboard,
@@ -273,7 +273,7 @@ export async function getAccountSecurityState(
 ): Promise<AccountSecurityState | null> {
   return getCachedValue(
     () => getAccountSecurityStateUncached(userId),
-    ["gitbags:account:security:v1", userId],
+    ["gitshipt:account:security:v1", userId],
     {
       tags: [
         cacheTags.dashboard,
@@ -320,7 +320,7 @@ async function getAccountSettingsUncached(
 export async function getAccountSettings(userId: string): Promise<AccountSettings> {
   return getCachedValue(
     () => getAccountSettingsUncached(userId),
-    ["gitbags:account:settings:v1", userId],
+    ["gitshipt:account:settings:v1", userId],
     {
       tags: [
         cacheTags.dashboard,

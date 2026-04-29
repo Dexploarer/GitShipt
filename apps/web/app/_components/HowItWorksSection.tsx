@@ -17,7 +17,7 @@ const STEPS = [
     n: 2,
     title: "Launch a Bags token",
     Icon: Sparkles,
-    body: "GitBags mints a Bags.fm token bound to the repo and makes it tradeable on the configured Solana cluster.",
+    body: "GitShipt mints a Bags.fm token bound to the repo and makes it tradeable on the configured Solana cluster.",
   },
   {
     n: 3,
@@ -31,7 +31,7 @@ export function HowItWorksSection() {
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <h2 className="text-headline-md text-fg">How GitBags works</h2>
+        <h2 className="text-headline-md text-fg">How GitShipt works</h2>
         <p className="text-body-md text-fg-secondary">
           Three steps from a public repo to recurring on-chain payouts for the
           people who built it.

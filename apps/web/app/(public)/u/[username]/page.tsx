@@ -44,7 +44,7 @@ export async function generateMetadata({
     title: `${name} (@${username})`,
     description: gh?.bio
       ? gh.bio
-      : `Earnings, projects, and contributions for @${username} on GitBags.`,
+      : `Earnings, projects, and contributions for @${username} on GitShipt.`,
   };
 }
 
@@ -131,7 +131,7 @@ export default async function ContributorProfilePage({
               {formatSol(profile?.totalLifetimeLamports ?? 0n, 4)}
             </span>
           </KpiCell>
-          <KpiCell label="Projects on GitBags">
+          <KpiCell label="Projects on GitShipt">
             <span className="text-mono-md text-fg">
               {(profile?.projectsCount ?? 0).toLocaleString("en-US")}
             </span>
@@ -183,7 +183,7 @@ function ContributorClaimCta({
   signedInUsername: string | null;
   hasLinkedWallet: boolean;
 }) {
-  const hasGitBagsRows = (profile?.projectsCount ?? 0) > 0;
+  const hasGitShiptRows = (profile?.projectsCount ?? 0) > 0;
   const hasEarnings = (profile?.totalLifetimeLamports ?? 0n) > 0n;
   const isOwnProfile =
     signedInUsername?.toLowerCase() === username.toLowerCase();
@@ -195,16 +195,16 @@ function ContributorClaimCta({
         title={
           hasEarnings
             ? "Set up contributor claiming"
-            : hasGitBagsRows
+            : hasGitShiptRows
               ? "Link a wallet for future payouts"
-              : "No GitBags earnings recorded yet"
+              : "No GitShipt earnings recorded yet"
         }
         description={
           hasEarnings
             ? "Sign in with GitHub, link a Solana wallet, and use the earnings dashboard to review payouts or claim any available escrow."
-            : hasGitBagsRows
-              ? "This profile is on GitBags leaderboards. Sign in and link a wallet so future payouts have a direct destination."
-              : "This GitHub account is public, but GitBags has not indexed contributor earnings for it yet."
+            : hasGitShiptRows
+              ? "This profile is on GitShipt leaderboards. Sign in and link a wallet so future payouts have a direct destination."
+              : "This GitHub account is public, but GitShipt has not indexed contributor earnings for it yet."
         }
         primaryHref={`/auth/signin?next=${encodeURIComponent("/auth/wallet")}`}
         primaryLabel="Sign in and link wallet"
@@ -240,7 +240,7 @@ function ContributorClaimCta({
         description={
           hasEarnings
             ? "Your GitHub identity is signed in. Add a Solana wallet so dashboard earnings can route claimable escrow to you."
-            : "No claimable earnings are visible on this public profile yet. Linking a wallet prepares your account for future GitBags payouts."
+            : "No claimable earnings are visible on this public profile yet. Linking a wallet prepares your account for future GitShipt payouts."
         }
         primaryHref="/auth/wallet"
         primaryLabel="Link wallet"

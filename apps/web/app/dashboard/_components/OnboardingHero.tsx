@@ -46,7 +46,7 @@ export function OnboardingHero() {
       <div className="text-center">
         <h2 className="text-headline-md text-fg">Get started in 3 steps</h2>
         <p className="mx-auto mt-1 max-w-xl text-body-md text-fg-secondary">
-          GitBags pays out trading fees to your repo&rsquo;s top contributors
+          GitShipt pays out trading fees to your repo&rsquo;s top contributors
           every day. Here&rsquo;s how to launch your first token.
         </p>
       </div>

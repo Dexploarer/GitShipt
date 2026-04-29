@@ -5,7 +5,7 @@ describe("redisOptionsFromUrl", () => {
   it("parses redis URLs into ioredis options without the URL-string constructor", () => {
     expect(
       redisOptionsFromUrl(
-        "redis://default:p%40ssword@redis.example.com:6380/2?family=4&connectionName=gitbags",
+        "redis://default:p%40ssword@redis.example.com:6380/2?family=4&connectionName=gitshipt",
       ),
     ).toMatchObject({
       host: "redis.example.com",
@@ -14,7 +14,7 @@ describe("redisOptionsFromUrl", () => {
       password: "p@ssword",
       db: 2,
       family: 4,
-      connectionName: "gitbags",
+      connectionName: "gitshipt",
     });
   });
 
