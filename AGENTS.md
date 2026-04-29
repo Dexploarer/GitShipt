@@ -63,26 +63,17 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-28 11:49pm CDT
+# [gitbags] recent context, 2026-04-28 11:54pm CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (24,469t read) | 1,456,279t work | 98% savings
+Stats: 50 obs (25,230t read) | 2,377,531t work | 99% savings
 
 ### Apr 28, 2026
-1972 9:06p 🟣 PublicNav Mobile Collapse Implemented via Sheet Component
-1976 9:08p 🔵 PublicNav.tsx Patch Review — Finding 3 Scope and Criteria Defined
-1977 " 🔵 E2E Stale-Lock Patch (Finding 4) — Code Review Scope and Audit Criteria
-1978 9:11p 🔵 Worker 5 Patch Review — Finding 5: Simulated Landing Volume Removal Audit
-1979 " 🔵 prepare-e2e-build.mjs Full Implementation — Stale Lock Removal with Active-Build Guard
-1980 " 🔵 Playwright webServer CWD — Command Launches from apps/web/, Making process.cwd() Correct
-1981 " 🔵 looksLikeNextBuild Regex — Broad "bun run build" Pattern Is a Potential False-Positive Risk
-1982 " 🔵 playwright.config.ts webServer Patch — &&-Chain Correctly Propagates Script Failures
 1983 9:13p 🔴 CSP Nonce Enforcement Activated — script-src 'unsafe-inline' Removed from Production
 1984 " 🟣 PublicNav Mobile Collapse — Sheet-Based Hamburger Menu Added
-1985 " 🔴 Playwright E2E Stale Build Lock — prepare-e2e-build.mjs Preflight Script Added
 1986 9:14p 🔴 Landing KPI Strip — 3-Cell Orphan Layout Fixed, Volume Guard Added
 1987 9:16p 🔴 Simulated 24h Volume Removed From Landing — volumeSource Guard Prevents Future Leakage
 1988 " 🟣 Admin Cosign Gate Implemented — Irreversible Actions Require Second super_admin Approval
@@ -122,6 +113,15 @@ Stats: 50 obs (24,469t read) | 1,456,279t work | 98% savings
 2086 " 🔵 GitShipt Codebase Contains No Legacy gitbags References; AGENTS.md Has One Uncommitted Local Change
 2299 11:47p 🔵 GitShipt Full System Review Initiated — April 2026 Production Readiness Audit
 2300 11:49p 🔵 GitShipt Full System Review — April 2026 Audit Initiated Against 2025/2026 Standards
+2301 11:50p ✅ AGENTS.md Committed and Pushed to origin/main
+2302 11:51p 🔵 GitShipt Repository Structure Fully Mapped — Routes, Schema, Auth, CI, Security Architecture
+2303 " 🔵 Security Architecture Confirmed — proxy.ts CSP Nonce, CVE Defense, env.ts Zod Validation
+2304 " 🔵 CI/CD Pipeline Confirmed — 4 GitHub Workflows Including SLSA v1.2 Provenance and Lighthouse CI
+2305 " 🔵 Stub Mode Architecture — Full Payout/Launch System Operates Without Production Credentials
+2306 " 🔵 cacheComponents Mode Fully Adopted — 5 Named cacheLife Profiles, 'use cache' Migration Complete
+2307 " 🔵 Playwright E2E Suite Includes WCAG Contrast Test, Auth Gate Test, and Hydration Regression Tests
+2308 " 🔵 Production Env Tooling — check-production-env.mjs, .env.production.example, env:check and env:template Scripts
+2309 " 🔵 Vercel Deployment Config — Fluid Compute, 8 Crons, Single Region iad1, Bun 1.x Runtime
 
-Access 1456k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 2378k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
