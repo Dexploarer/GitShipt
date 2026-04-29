@@ -1,0 +1,84 @@
+name: Release (SLSA v1.2 build provenance)
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Reproducible build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
+      subjects: ${{ steps.digest.outputs.subjects }}
+    env:
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      # Bundle the production build output and its lockfile so the provenance
+      # subject is deterministic and reproducible. We do not publish this
+      # artifact anywhere — the SLSA attestation binds the build to the
+      # source commit, which is what consumers verify against.
+      - name: Bundle build output
+        run: |
+          tar -czf gitshipt-build.tar.gz \
+            apps/web/.next \
+            apps/web/package.json \
+            bun.lock \
+            package.json
+
+      - name: Compute artifact digest + SLSA subjects
+        id: digest
+        run: |
+          DIGEST=$(sha256sum gitshipt-build.tar.gz | awk '{print $1}')
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          # SLSA generator expects a base64-encoded `<sha256>  <name>` line.
+          SUBJECTS=$(printf "%s  %s\n" "$DIGEST" "gitshipt-build.tar.gz" | base64 -w0)
+          echo "subjects=${SUBJECTS}" >> "$GITHUB_OUTPUT"
+          echo "Build digest: sha256:${DIGEST}"
+
+      - name: Upload bundled build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitshipt-build
+          path: gitshipt-build.tar.gz
+          retention-days: 30
+
+  provenance:
+    needs: [build]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    # Pinned to a tagged release of the SLSA generic generator so the
+    # workflow itself is verifiable. Bump deliberately, not via Dependabot.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    with:
+      base64-subjects: ${{ needs.build.outputs.subjects }}
+      provenance-name: gitshipt-build.intoto.jsonl
+      upload-assets: true
+      compile-generator: true
