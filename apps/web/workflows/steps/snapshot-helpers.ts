@@ -5,6 +5,7 @@
  * All return values are JSON-serializable (no Date instances; bigints as
  * decimal strings) so they survive workflow step boundaries.
  */
+import { FatalError, getStepMetadata } from "workflow";
 import { dbHttp } from "@/db";
 import {
   contributors,
@@ -12,6 +13,7 @@ import {
   snapshots,
   contributorClaims,
   wallets,
+  platformConfig,
 } from "@/db/schema";
 import type { ScoringConfig, PayoutConfig } from "@/db/schema/projects";
 import type { LeaderboardEntry } from "@/db/schema/snapshots";
@@ -23,6 +25,17 @@ import {
 } from "@/lib/payouts/distribution";
 import { computeMerkleRoot } from "@/lib/payouts/merkle";
 import { enterDbWorkflowContext } from "@/lib/db-rls";
+import { isKillSwitchEnabled } from "@/lib/payouts/safety";
+import { withIdempotency } from "@/lib/idempotency";
+import {
+  executeFeeShareUpdateAttempt,
+  prepareFeeShareUpdateAttempt,
+  type ExecutedFeeShareUpdate,
+  type PreparedFeeShareUpdate,
+} from "./fee-share-update-helpers";
+import type { WorkflowLock } from "@/lib/workflow-locks";
+
+export type { WorkflowLock };
 
 const SNAPSHOT_PERIOD_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const activeSnapshotPeriodPredicate = sql`status in ('pending', 'frozen', 'paid')`;
@@ -286,3 +299,129 @@ export async function loadContributorWallets(
 
 // Re-export pure helpers for workflow callsites.
 export { buildLeaderboardEntries };
+
+// ============================================================
+// Workflow step wrappers — each carries the `"use step"` directive
+// so workflows/takeSnapshot.ts can import them and stay free of
+// Node-only imports at the file top.
+// ============================================================
+
+export async function snapshotAcquireLockStep(
+  workflowName: string,
+  scope: string,
+  ttlSeconds: number,
+): Promise<WorkflowLock> {
+  "use step";
+  const { acquireWorkflowLock } = await import("@/lib/workflow-locks");
+  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
+}
+
+export async function snapshotReleaseLockStep(
+  lock: WorkflowLock,
+): Promise<void> {
+  "use step";
+  const { releaseWorkflowLock } = await import("@/lib/workflow-locks");
+  await releaseWorkflowLock(lock);
+}
+
+export async function snapshotAssertNotKilled(): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:assertNotKilled");
+  const killed = await isKillSwitchEnabled();
+  if (killed) {
+    throw new FatalError("kill_switch_enabled: takeSnapshot aborted");
+  }
+}
+
+export async function snapshotHeartbeatStep(name: string): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:heartbeat");
+  const at = new Date().toISOString();
+  await dbHttp
+    .insert(platformConfig)
+    .values({
+      key: `heartbeat.${name}`,
+      value: { lastBeatAt: at, source: "takeSnapshot" },
+    })
+    .onConflictDoUpdate({
+      target: platformConfig.key,
+      set: {
+        value: sql`excluded.value`,
+        updatedAt: sql`now()`,
+      },
+    });
+}
+
+export async function loadEligibleProjectIdsStep(): Promise<string[]> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:loadEligibleProjectIds");
+  return await loadEligibleProjectIds();
+}
+
+export async function loadProjectStep(
+  projectId: string,
+): ReturnType<typeof loadProjectForSnapshot> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:loadProject");
+  return await loadProjectForSnapshot(projectId);
+}
+
+export async function loadContributorsStep(
+  projectId: string,
+  topN: number,
+): ReturnType<typeof loadRankedContributors> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:loadContributors");
+  return await loadRankedContributors(projectId, topN);
+}
+
+export async function freezeStep(
+  args: Parameters<typeof freezeSnapshot>[0],
+): ReturnType<typeof freezeSnapshot> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:freeze");
+  return await freezeSnapshot(args);
+}
+
+export async function prepareFeeShareUpdateStep(
+  args: Parameters<typeof prepareFeeShareUpdateAttempt>[0],
+): Promise<PreparedFeeShareUpdate> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:prepareFeeShareUpdate");
+  return await prepareFeeShareUpdateAttempt(args);
+}
+
+export async function executeFeeShareUpdateStep(
+  attemptId: string,
+): Promise<ExecutedFeeShareUpdate> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:executeFeeShareUpdate");
+  const { stepId } = getStepMetadata();
+  return await withIdempotency(
+    `${stepId}:${attemptId}`,
+    () => executeFeeShareUpdateAttempt(attemptId),
+    { scope: "workflow:fee-share-update" },
+  );
+}
+
+export async function snapshotRevalidateProjectCachesStep(
+  projectId: string,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:revalidateProjectCaches");
+  const { revalidateProjectCaches } = await import("@/lib/cache");
+  await revalidateProjectCaches(projectId);
+}
+
+/**
+ * `start()` cannot run inside workflow context — wrap it in a step. Spawns the
+ * per-project child workflow for each eligible project.
+ */
+export async function startTakeProjectSnapshotStep(
+  projectId: string,
+): Promise<void> {
+  "use step";
+  const { start } = await import("workflow/api");
+  const { takeProjectSnapshot } = await import("../takeSnapshot");
+  await start(takeProjectSnapshot, [projectId]);
+}

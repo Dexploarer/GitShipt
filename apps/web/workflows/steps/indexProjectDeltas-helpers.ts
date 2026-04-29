@@ -1,0 +1,190 @@
+import { dbHttp } from "@/db";
+import { projects, ghIndexerState, contributors } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
+import { start } from "workflow/api";
+import { installationOctokit } from "@/lib/github/app";
+import {
+  fetchCommitsByAuthor,
+  fetchMergedPRsByAuthor,
+  fetchRepoContributorsLeaderboard,
+  mergeAggregates,
+  applyBotFlags,
+  type ContributorAggregate,
+} from "@/lib/github/indexer";
+import type { ScoringConfig } from "@/db/schema/projects";
+import { computeLeaderboard } from "@/workflows/computeLeaderboard";
+import { enterDbWorkflowContext } from "@/lib/db-rls";
+import {
+  acquireWorkflowLock,
+  releaseWorkflowLock,
+  type WorkflowLock,
+} from "@/lib/workflow-locks";
+
+export type LoadedProject = {
+  id: string;
+  ghOwner: string;
+  ghRepo: string;
+  ghInstallationId: string | null;
+  scoringConfig: ScoringConfig;
+};
+
+const TREASURY_ROUTED_AGENT_REASON = "treasury_routed_agent";
+
+export async function acquireLockStep(
+  workflowName: string,
+  scope: string,
+  ttlSeconds: number,
+): Promise<WorkflowLock> {
+  "use step";
+  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
+}
+
+export async function releaseLockStep(lock: WorkflowLock): Promise<void> {
+  "use step";
+  await releaseWorkflowLock(lock);
+}
+
+export async function loadProject(
+  projectId: string,
+): Promise<LoadedProject | null> {
+  "use step";
+  enterDbWorkflowContext("indexProjectDeltas:loadProject");
+  const [row] = await dbHttp
+    .select({
+      id: projects.id,
+      ghOwner: projects.ghOwner,
+      ghRepo: projects.ghRepo,
+      ghInstallationId: projects.ghInstallationId,
+      scoringConfig: projects.scoringConfig,
+    })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function loadSinceCursor(
+  projectId: string,
+  scoringConfig: ScoringConfig,
+): Promise<string> {
+  "use step";
+  enterDbWorkflowContext("indexProjectDeltas:loadSinceCursor");
+  const [row] = await dbHttp
+    .select({
+      lastIncrementalSyncAt: ghIndexerState.lastIncrementalSyncAt,
+    })
+    .from(ghIndexerState)
+    .where(eq(ghIndexerState.projectId, projectId))
+    .limit(1);
+
+  if (row?.lastIncrementalSyncAt) {
+    return row.lastIncrementalSyncAt.toISOString();
+  }
+  // Cold start: cover the project's scoring window.
+  const days = Math.max(1, scoringConfig.windowDays);
+  const since = new Date(Date.now() - days * 86_400_000);
+  return since.toISOString();
+}
+
+export async function fetchAndAggregate(
+  ghOwner: string,
+  ghRepo: string,
+  installationId: string,
+  sinceISO: string,
+  scoringConfig: ScoringConfig,
+): Promise<ContributorAggregate[]> {
+  "use step";
+  const octo = await installationOctokit(installationId);
+
+  // Get default branch (cheap call).
+  const repoInfo = await octo.rest.repos.get({ owner: ghOwner, repo: ghRepo });
+  const defaultBranch = repoInfo.data.default_branch;
+
+  const [commitsMap, prsMap] = await Promise.all([
+    fetchCommitsByAuthor(octo, ghOwner, ghRepo, sinceISO, defaultBranch),
+    fetchMergedPRsByAuthor(octo, ghOwner, ghRepo, sinceISO),
+  ]);
+
+  let merged = mergeAggregates(commitsMap, prsMap);
+  if (merged.length === 0) {
+    const fallbackMap = await fetchRepoContributorsLeaderboard(
+      octo,
+      ghOwner,
+      ghRepo,
+    );
+    merged = mergeAggregates(fallbackMap);
+  }
+  return applyBotFlags(
+    merged,
+    scoringConfig.botAllowlist,
+    scoringConfig.botBlocklist,
+  );
+}
+
+export async function upsertContributors(
+  projectId: string,
+  aggregates: ContributorAggregate[],
+): Promise<{ count: number }> {
+  "use step";
+  enterDbWorkflowContext("indexProjectDeltas:upsertContributors");
+  if (aggregates.length === 0) return { count: 0 };
+
+  const now = new Date();
+  const rows = aggregates.map((a) => ({
+    projectId,
+    ghUserId: a.ghUserId,
+    ghUsername: a.ghUsername,
+    avatarUrl: a.avatarUrl,
+    inputs: a.inputs,
+    excluded: "false",
+    excludedReason: a.isBot ? TREASURY_ROUTED_AGENT_REASON : null,
+    lastIndexedAt: now,
+  }));
+
+  await dbHttp
+    .insert(contributors)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: [contributors.projectId, contributors.ghUserId],
+      set: {
+        ghUsername: sql`excluded.gh_username`,
+        avatarUrl: sql`excluded.avatar_url`,
+        inputs: sql`excluded.inputs`,
+        excluded: sql`excluded.excluded`,
+        excludedReason: sql`excluded.excluded_reason`,
+        lastIndexedAt: sql`excluded.last_indexed_at`,
+      },
+    });
+
+  return { count: aggregates.length };
+}
+
+export async function markCursor(
+  projectId: string,
+  atISO: string,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("indexProjectDeltas:markCursor");
+  const at = new Date(atISO);
+  await dbHttp
+    .insert(ghIndexerState)
+    .values({
+      projectId,
+      lastIncrementalSyncAt: at,
+      updatedAt: at,
+    })
+    .onConflictDoUpdate({
+      target: ghIndexerState.projectId,
+      set: {
+        lastIncrementalSyncAt: at,
+        updatedAt: at,
+      },
+    });
+}
+
+export async function startComputeLeaderboardStep(
+  projectId: string,
+): Promise<void> {
+  "use step";
+  await start(computeLeaderboard, [projectId]);
+}

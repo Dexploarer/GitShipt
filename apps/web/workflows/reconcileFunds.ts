@@ -1,21 +1,16 @@
-"use workflow";
-
-import { dbHttp } from "@/db";
-import { platformConfig } from "@/db/schema";
-import { enterDbWorkflowContext } from "@/lib/db-rls";
-import { runFundReconciliation } from "@/lib/funds/reconciliation";
 import {
-  acquireWorkflowLock,
-  releaseWorkflowLock,
-  type WorkflowLock,
-} from "@/lib/workflow-locks";
-import { sql } from "drizzle-orm";
+  acquireLockStep,
+  releaseLockStep,
+  reconcileStep,
+  heartbeatStep,
+} from "@/workflows/steps/reconcileFunds-helpers";
 
 export async function reconcileFunds(): Promise<{
   status: "clean" | "warning" | "critical";
   manualReviewCount: number;
   finalizedSignatureCount: number;
 }> {
+  "use workflow";
   const lock = await acquireLockStep("reconcileFunds", "root", 15 * 60);
   if (!lock.acquired) {
     return {
@@ -35,42 +30,4 @@ export async function reconcileFunds(): Promise<{
   } finally {
     await releaseLockStep(lock);
   }
-}
-
-async function acquireLockStep(
-  workflowName: string,
-  scope: string,
-  ttlSeconds: number,
-): Promise<WorkflowLock> {
-  "use step";
-  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
-}
-
-async function releaseLockStep(lock: WorkflowLock): Promise<void> {
-  "use step";
-  await releaseWorkflowLock(lock);
-}
-
-async function reconcileStep(): ReturnType<typeof runFundReconciliation> {
-  "use step";
-  enterDbWorkflowContext("reconcileFunds:reconcile");
-  return await runFundReconciliation();
-}
-
-async function heartbeatStep(status: string): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("reconcileFunds:heartbeat");
-  await dbHttp
-    .insert(platformConfig)
-    .values({
-      key: "heartbeat.fund_reconciliation",
-      value: { lastBeatAt: new Date().toISOString(), status },
-    })
-    .onConflictDoUpdate({
-      target: platformConfig.key,
-      set: {
-        value: sql`excluded.value`,
-        updatedAt: sql`now()`,
-      },
-    });
 }

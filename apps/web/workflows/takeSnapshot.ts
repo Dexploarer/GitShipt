@@ -1,32 +1,18 @@
-"use workflow";
-
-import { FatalError, getStepMetadata } from "workflow";
-import { start } from "workflow/api";
-import { dbHttp } from "@/db";
-import { platformConfig } from "@/db/schema";
-import { sql } from "drizzle-orm";
 import {
-  loadEligibleProjectIds,
-  loadProjectForSnapshot,
-  loadRankedContributors,
-  freezeSnapshot,
+  snapshotAcquireLockStep,
+  snapshotReleaseLockStep,
+  snapshotAssertNotKilled,
+  snapshotHeartbeatStep,
+  loadEligibleProjectIdsStep,
+  loadProjectStep,
+  loadContributorsStep,
+  freezeStep,
+  prepareFeeShareUpdateStep,
+  executeFeeShareUpdateStep,
+  snapshotRevalidateProjectCachesStep,
+  startTakeProjectSnapshotStep,
   buildLeaderboardEntries,
-} from "./steps/snapshot-helpers";
-import { isKillSwitchEnabled } from "@/lib/payouts/safety";
-import { revalidateProjectCaches } from "@/lib/cache";
-import { withIdempotency } from "@/lib/idempotency";
-import { enterDbWorkflowContext } from "@/lib/db-rls";
-import {
-  executeFeeShareUpdateAttempt,
-  prepareFeeShareUpdateAttempt,
-  type ExecutedFeeShareUpdate,
-  type PreparedFeeShareUpdate,
-} from "./steps/fee-share-update-helpers";
-import {
-  acquireWorkflowLock,
-  releaseWorkflowLock,
-  type WorkflowLock,
-} from "@/lib/workflow-locks";
+} from "@/workflows/steps/snapshot-helpers";
 
 /**
  * takeSnapshot — daily root, 00:00 UTC.
@@ -35,18 +21,19 @@ import {
  * eligible (live + has ranked contributors) project.
  */
 export async function takeSnapshot(): Promise<{ count: number }> {
-  const lock = await acquireLockStep("takeSnapshot", "root", 20 * 60);
+  "use workflow";
+  const lock = await snapshotAcquireLockStep("takeSnapshot", "root", 20 * 60);
   if (!lock.acquired) return { count: 0 };
   try {
-    await assertNotKilled();
-    await heartbeat("snapshot");
+    await snapshotAssertNotKilled();
+    await snapshotHeartbeatStep("snapshot");
     const projectIds = await loadEligibleProjectIdsStep();
     for (const id of projectIds) {
-      await start(takeProjectSnapshot, [id]);
+      await startTakeProjectSnapshotStep(id);
     }
     return { count: projectIds.length };
   } finally {
-    await releaseLockStep(lock);
+    await snapshotReleaseLockStep(lock);
   }
 }
 
@@ -59,7 +46,12 @@ export async function takeProjectSnapshot(projectId: string): Promise<{
   snapshotId: string;
   count: number;
 }> {
-  const lock = await acquireLockStep("takeProjectSnapshot", projectId, 20 * 60);
+  "use workflow";
+  const lock = await snapshotAcquireLockStep(
+    "takeProjectSnapshot",
+    projectId,
+    20 * 60,
+  );
   if (!lock.acquired) return { snapshotId: "", count: 0 };
   try {
     const project = await loadProjectStep(projectId);
@@ -92,114 +84,10 @@ export async function takeProjectSnapshot(projectId: string): Promise<{
       await executeFeeShareUpdateStep(preparedUpdate.attemptId);
     }
 
-    await revalidateProjectCachesStep(projectId);
+    await snapshotRevalidateProjectCachesStep(projectId);
 
     return { snapshotId: result.snapshotId, count: result.leaderboardCount };
   } finally {
-    await releaseLockStep(lock);
+    await snapshotReleaseLockStep(lock);
   }
-}
-
-async function acquireLockStep(
-  workflowName: string,
-  scope: string,
-  ttlSeconds: number,
-): Promise<WorkflowLock> {
-  "use step";
-  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
-}
-
-async function releaseLockStep(lock: WorkflowLock): Promise<void> {
-  "use step";
-  await releaseWorkflowLock(lock);
-}
-
-// ============================================================
-// Steps
-// ============================================================
-
-async function assertNotKilled(): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("takeSnapshot:assertNotKilled");
-  const killed = await isKillSwitchEnabled();
-  if (killed) {
-    throw new FatalError("kill_switch_enabled: takeSnapshot aborted");
-  }
-}
-
-async function heartbeat(name: string): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("takeSnapshot:heartbeat");
-  const at = new Date().toISOString();
-  await dbHttp
-    .insert(platformConfig)
-    .values({
-      key: `heartbeat.${name}`,
-      value: { lastBeatAt: at, source: "takeSnapshot" },
-    })
-    .onConflictDoUpdate({
-      target: platformConfig.key,
-      set: {
-        value: sql`excluded.value`,
-        updatedAt: sql`now()`,
-      },
-    });
-}
-
-async function loadEligibleProjectIdsStep(): Promise<string[]> {
-  "use step";
-  enterDbWorkflowContext("takeSnapshot:loadEligibleProjectIds");
-  return await loadEligibleProjectIds();
-}
-
-async function loadProjectStep(
-  projectId: string,
-): ReturnType<typeof loadProjectForSnapshot> {
-  "use step";
-  enterDbWorkflowContext("takeSnapshot:loadProject");
-  return await loadProjectForSnapshot(projectId);
-}
-
-async function loadContributorsStep(
-  projectId: string,
-  topN: number,
-): ReturnType<typeof loadRankedContributors> {
-  "use step";
-  enterDbWorkflowContext("takeSnapshot:loadContributors");
-  return await loadRankedContributors(projectId, topN);
-}
-
-async function freezeStep(
-  args: Parameters<typeof freezeSnapshot>[0],
-): ReturnType<typeof freezeSnapshot> {
-  "use step";
-  enterDbWorkflowContext("takeSnapshot:freeze");
-  return await freezeSnapshot(args);
-}
-
-async function prepareFeeShareUpdateStep(
-  args: Parameters<typeof prepareFeeShareUpdateAttempt>[0],
-): Promise<PreparedFeeShareUpdate> {
-  "use step";
-  enterDbWorkflowContext("takeSnapshot:prepareFeeShareUpdate");
-  return await prepareFeeShareUpdateAttempt(args);
-}
-
-async function executeFeeShareUpdateStep(
-  attemptId: string,
-): Promise<ExecutedFeeShareUpdate> {
-  "use step";
-  enterDbWorkflowContext("takeSnapshot:executeFeeShareUpdate");
-  const { stepId } = getStepMetadata();
-  return await withIdempotency(
-    `${stepId}:${attemptId}`,
-    () => executeFeeShareUpdateAttempt(attemptId),
-    { scope: "workflow:fee-share-update" },
-  );
-}
-
-async function revalidateProjectCachesStep(projectId: string): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("takeSnapshot:revalidateProjectCaches");
-  await revalidateProjectCaches(projectId);
 }

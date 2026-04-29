@@ -1,16 +1,10 @@
-"use workflow";
-
-import { dbHttp } from "@/db";
-import { projects, platformConfig } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
-import { start } from "workflow/api";
-import { indexProjectDeltas } from "./indexProjectDeltas";
-import { enterDbWorkflowContext } from "@/lib/db-rls";
 import {
-  acquireWorkflowLock,
-  releaseWorkflowLock,
-  type WorkflowLock,
-} from "@/lib/workflow-locks";
+  acquireLockStep,
+  releaseLockStep,
+  heartbeat,
+  loadActiveProjects,
+  startProjectIndex,
+} from "@/workflows/steps/indexGithubDeltas-helpers";
 
 /**
  * Top-level indexer — runs every 15 minutes. Fans out to per-project
@@ -18,59 +12,17 @@ import {
  * "indexer alive".
  */
 export async function indexGithubDeltas(): Promise<{ count: number }> {
+  "use workflow";
   const lock = await acquireLockStep("indexGithubDeltas", "root", 15 * 60);
   if (!lock.acquired) return { count: 0 };
   try {
     await heartbeat();
     const ids = await loadActiveProjects();
     for (const id of ids) {
-      await start(indexProjectDeltas, [id]);
+      await startProjectIndex(id);
     }
     return { count: ids.length };
   } finally {
     await releaseLockStep(lock);
   }
-}
-
-async function acquireLockStep(
-  workflowName: string,
-  scope: string,
-  ttlSeconds: number,
-): Promise<WorkflowLock> {
-  "use step";
-  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
-}
-
-async function releaseLockStep(lock: WorkflowLock): Promise<void> {
-  "use step";
-  await releaseWorkflowLock(lock);
-}
-
-async function heartbeat(): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("indexGithubDeltas:heartbeat");
-  const at = new Date().toISOString();
-  await dbHttp
-    .insert(platformConfig)
-    .values({
-      key: "heartbeat.indexer",
-      value: { lastBeatAt: at, source: "indexGithubDeltas" },
-    })
-    .onConflictDoUpdate({
-      target: platformConfig.key,
-      set: {
-        value: sql`excluded.value`,
-        updatedAt: sql`now()`,
-      },
-    });
-}
-
-async function loadActiveProjects(): Promise<string[]> {
-  "use step";
-  enterDbWorkflowContext("indexGithubDeltas:loadActiveProjects");
-  const rows = await dbHttp
-    .select({ id: projects.id })
-    .from(projects)
-    .where(eq(projects.status, "live"));
-  return rows.map((r) => r.id);
 }

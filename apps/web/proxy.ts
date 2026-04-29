@@ -142,8 +142,9 @@ export const config = {
      * Match all request paths except:
      *  - Next.js internals (_next, image optimisation)
      *  - API routes (handled per-route with their own auth + CSRF logic)
+     *  - Vercel Workflows runtime endpoints (.well-known/workflow/*)
      *  - Static assets
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|\\.well-known/workflow/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

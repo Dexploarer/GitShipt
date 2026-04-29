@@ -1,62 +1,49 @@
-"use workflow";
-
-import { FatalError, getStepMetadata } from "workflow";
-import { start } from "workflow/api";
-import { dbHttp } from "@/db";
-import { platformConfig } from "@/db/schema";
-import { sql } from "drizzle-orm";
-import { audit } from "@/lib/audit";
-import { isKillSwitchEnabled } from "@/lib/payouts/safety";
-import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import {
-  loadFrozenSnapshotsAwaitingPayout,
-  loadSnapshotContext,
-  runPreflight,
-  isStubMode,
-  checkClaimableLamports,
-  claimBagsFees,
-  extractManualReconciliationClaimSignatures,
-  buildPlan,
-  assertCycleUnderCap,
-  persistPayoutPlan,
-  dispatchRecipient,
-  finalizePayout,
-  isManualReconciliationError,
-  type SnapshotContextJson,
-  type DistributionPlanRowJson,
-} from "./steps/payout-helpers";
-import { revalidateProjectCaches } from "@/lib/cache";
-import { withIdempotency } from "@/lib/idempotency";
-import { enterDbWorkflowContext } from "@/lib/db-rls";
-import {
-  acquireWorkflowLock,
-  releaseWorkflowLock,
-  type WorkflowLock,
-} from "@/lib/workflow-locks";
+  payoutAcquireLockStep,
+  payoutReleaseLockStep,
+  payoutAssertNotKilled,
+  payoutHeartbeatStep,
+  loadAwaitingStep,
+  loadCtxStep,
+  stubModeStep,
+  preflightStep,
+  platformWalletStep,
+  claimableStep,
+  claimFeesStep,
+  buildPlanStep,
+  capCheckStep,
+  persistStep,
+  markPayoutClaimedStep,
+  markPayoutFailedStep,
+  dispatchStep,
+  finalizeStep,
+  revalidateProjectCachesStep,
+  payoutAuditAbort,
+  payoutAuditCompleted,
+  startProcessSnapshotPayoutStep,
+  type ClaimFeesStepResult,
+} from "@/workflows/steps/payout-helpers";
 
 const ESCROW_DAYS = 30;
-
-type ClaimFeesStepResult =
-  | { ok: true; signature: string | null; txCount: number }
-  | { ok: false; reason: string; claimSignature: string | null };
 
 /**
  * executePayout — daily root, 00:30 UTC. Fans out one child workflow per
  * frozen snapshot awaiting payout.
  */
 export async function executePayout(): Promise<{ count: number }> {
-  const lock = await acquireLockStep("executePayout", "root", 20 * 60);
+  "use workflow";
+  const lock = await payoutAcquireLockStep("executePayout", "root", 20 * 60);
   if (!lock.acquired) return { count: 0 };
   try {
-    await assertNotKilled();
-    await heartbeat("payouts");
+    await payoutAssertNotKilled();
+    await payoutHeartbeatStep("payouts");
     const snapshots = await loadAwaitingStep();
     for (const s of snapshots) {
-      await start(processSnapshotPayout, [s.id]);
+      await startProcessSnapshotPayoutStep(s.id);
     }
     return { count: snapshots.length };
   } finally {
-    await releaseLockStep(lock);
+    await payoutReleaseLockStep(lock);
   }
 }
 
@@ -84,7 +71,8 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
     | "cancelled"
     | "skipped";
 }> {
-  const lock = await acquireLockStep(
+  "use workflow";
+  const lock = await payoutAcquireLockStep(
     "processSnapshotPayout",
     snapshotId,
     30 * 60,
@@ -113,7 +101,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
 
   const preflight = await preflightStep(ctx);
   if (!preflight.ok) {
-    await auditAbort(snapshotId, `preflight:${preflight.reason}`);
+    await payoutAuditAbort(snapshotId, `preflight:${preflight.reason}`);
     return {
       payoutId: "",
       recipientCount: 0,
@@ -130,7 +118,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
 
   const threshold = BigInt(ctx.project.payoutConfig.claimThresholdLamports);
   if (BigInt(claim.lamports) < threshold) {
-    await auditAbort(snapshotId, `below_threshold:${claim.lamports}`);
+    await payoutAuditAbort(snapshotId, `below_threshold:${claim.lamports}`);
     return {
       payoutId: "",
       recipientCount: 0,
@@ -143,7 +131,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
 
   const capCheck = await capCheckStep(plan);
   if (!capCheck.ok) {
-    await auditAbort(snapshotId, capCheck.reason);
+    await payoutAuditAbort(snapshotId, capCheck.reason);
     return {
       payoutId: "",
       recipientCount: 0,
@@ -166,7 +154,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
   if (!stub) {
     if (!platformWallet || !ctx.project.tokenMint) {
       await markPayoutFailedStep(persisted.payoutId, "missing_wallet_or_mint");
-      await auditAbort(snapshotId, "missing_wallet_or_mint");
+      await payoutAuditAbort(snapshotId, "missing_wallet_or_mint");
       return {
         payoutId: persisted.payoutId,
         recipientCount: persisted.recipientCount,
@@ -186,7 +174,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await markPayoutFailedStep(persisted.payoutId, message);
-      await auditAbort(snapshotId, `claim_failed:${message.slice(0, 200)}`);
+      await payoutAuditAbort(snapshotId, `claim_failed:${message.slice(0, 200)}`);
       return {
         payoutId: persisted.payoutId,
         recipientCount: persisted.recipientCount,
@@ -200,7 +188,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
         claimResult.reason,
         claimResult.claimSignature,
       );
-      await auditAbort(
+      await payoutAuditAbort(
         snapshotId,
         `claim_failed:${claimResult.reason.slice(0, 200)}`,
       );
@@ -225,7 +213,12 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
 
   const finalized = await finalizeStep(persisted.payoutId);
   await revalidateProjectCachesStep(ctx.project.id);
-  await auditCompleted(snapshotId, persisted.payoutId, stub, finalized.status);
+  await payoutAuditCompleted(
+    snapshotId,
+    persisted.payoutId,
+    stub,
+    finalized.status,
+  );
 
   return {
     payoutId: persisted.payoutId,
@@ -234,248 +227,6 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
     status: finalized.status,
   };
   } finally {
-    await releaseLockStep(lock);
+    await payoutReleaseLockStep(lock);
   }
-}
-
-// ============================================================
-// Steps
-// ============================================================
-
-async function assertNotKilled(): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("executePayout:assertNotKilled");
-  if (await isKillSwitchEnabled()) {
-    throw new FatalError("kill_switch_enabled: executePayout aborted");
-  }
-}
-
-async function acquireLockStep(
-  workflowName: string,
-  scope: string,
-  ttlSeconds: number,
-): Promise<WorkflowLock> {
-  "use step";
-  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
-}
-
-async function releaseLockStep(lock: WorkflowLock): Promise<void> {
-  "use step";
-  await releaseWorkflowLock(lock);
-}
-
-async function heartbeat(name: string): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("executePayout:heartbeat");
-  const at = new Date().toISOString();
-  await dbHttp
-    .insert(platformConfig)
-    .values({
-      key: `heartbeat.${name}`,
-      value: { lastBeatAt: at, source: "executePayout" },
-    })
-    .onConflictDoUpdate({
-      target: platformConfig.key,
-      set: {
-        value: sql`excluded.value`,
-        updatedAt: sql`now()`,
-      },
-    });
-}
-
-async function loadAwaitingStep(): Promise<Array<{ id: string }>> {
-  "use step";
-  enterDbWorkflowContext("executePayout:loadAwaiting");
-  return await loadFrozenSnapshotsAwaitingPayout();
-}
-
-async function loadCtxStep(
-  snapshotId: string,
-): Promise<SnapshotContextJson | null> {
-  "use step";
-  enterDbWorkflowContext("executePayout:loadContext");
-  return await loadSnapshotContext(snapshotId);
-}
-
-async function stubModeStep(): Promise<boolean> {
-  "use step";
-  return isStubMode();
-}
-
-async function preflightStep(
-  ctx: SnapshotContextJson,
-): Promise<
-  { ok: true; balanceLamports: string } | { ok: false; reason: string }
-> {
-  "use step";
-  enterDbWorkflowContext("executePayout:preflight");
-  return await runPreflight(ctx);
-}
-
-async function platformWalletStep(): Promise<string | null> {
-  "use step";
-  return payoutSignerPublicKey();
-}
-
-async function claimableStep(args: {
-  walletAddress: string | null;
-  tokenMint: string | null;
-}): Promise<{ lamports: string; positionCount: number }> {
-  "use step";
-  enterDbWorkflowContext("executePayout:claimable");
-  return await checkClaimableLamports(args);
-}
-
-async function claimFeesStep(args: {
-  walletAddress: string;
-  tokenMint: string;
-  idempotencyKey: string;
-  payoutId: string;
-}): Promise<ClaimFeesStepResult> {
-  "use step";
-  const { stepId } = getStepMetadata();
-  return await withIdempotency(
-    `${stepId}:${args.idempotencyKey}`,
-    async () => {
-      try {
-        const result = await claimBagsFees({
-          walletAddress: args.walletAddress,
-          tokenMint: args.tokenMint,
-          payoutId: args.payoutId,
-        });
-        return { ok: true, ...result };
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        if (!isManualReconciliationError(reason)) throw error;
-        return {
-          ok: false,
-          reason,
-          claimSignature:
-            extractManualReconciliationClaimSignatures(reason),
-        };
-      }
-    },
-    { scope: "workflow:payout:claim" },
-  );
-}
-
-async function buildPlanStep(
-  ctx: SnapshotContextJson,
-  claimedLamports: string,
-): Promise<DistributionPlanRowJson[]> {
-  "use step";
-  enterDbWorkflowContext("executePayout:buildPlan");
-  return await buildPlan(ctx, claimedLamports);
-}
-
-async function capCheckStep(
-  plan: DistributionPlanRowJson[],
-): Promise<{ ok: true; total: string } | { ok: false; reason: string }> {
-  "use step";
-  enterDbWorkflowContext("executePayout:capCheck");
-  return await assertCycleUnderCap(plan);
-}
-
-async function persistStep(args: {
-  snapshotId: string;
-  projectId: string;
-  snapshotPeriod: string;
-  plan: DistributionPlanRowJson[];
-  claimSignature: string | null;
-  totalLamportsStr: string;
-  stub: boolean;
-  reserveClaimFirst?: boolean;
-}): Promise<{ payoutId: string; recipientCount: number }> {
-  "use step";
-  enterDbWorkflowContext("executePayout:persist");
-  return await persistPayoutPlan(args);
-}
-
-async function markPayoutClaimedStep(
-  payoutId: string,
-  claimSignature: string | null,
-): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("executePayout:markClaimed");
-  const { markPayoutClaimed } = await import("./steps/payout-helpers");
-  await markPayoutClaimed(payoutId, claimSignature);
-}
-
-async function markPayoutFailedStep(
-  payoutId: string,
-  reason: string,
-  claimSignature?: string | null,
-): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("executePayout:markFailed");
-  const { markPayoutFailed } = await import("./steps/payout-helpers");
-  await markPayoutFailed(payoutId, reason, { claimSignature });
-}
-
-async function dispatchStep(args: {
-  payoutId: string;
-  recipient: DistributionPlanRowJson;
-  sourcePayoutId: string;
-  escrowDays: number;
-}): Promise<{ status: string; sig?: string }> {
-  "use step";
-  enterDbWorkflowContext("executePayout:dispatch");
-  const { stepId } = getStepMetadata();
-  return await withIdempotency(
-    `${stepId}:${args.recipient.idempotencyKey}`,
-    async () => {
-      try {
-        return await dispatchRecipient(args);
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        if (!isManualReconciliationError(reason)) throw error;
-        return { status: "failed" };
-      }
-    },
-    { scope: "workflow:payout:dispatch" },
-  );
-}
-
-async function finalizeStep(payoutId: string): Promise<{
-  status: "completed" | "failed" | "pending" | "simulated" | "cancelled";
-  totals: { sent: number; escrow: number; failed: number; pending: number };
-}> {
-  "use step";
-  enterDbWorkflowContext("executePayout:finalize");
-  return await finalizePayout(payoutId);
-}
-
-async function revalidateProjectCachesStep(projectId: string): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("executePayout:revalidateProjectCaches");
-  await revalidateProjectCaches(projectId);
-}
-
-async function auditAbort(snapshotId: string, reason: string): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("executePayout:auditAbort");
-  await audit({
-    actorUserId: null,
-    action: "payout.cancel",
-    targetType: "snapshot",
-    targetId: snapshotId,
-    metadata: { reason },
-  });
-}
-
-async function auditCompleted(
-  snapshotId: string,
-  payoutId: string,
-  stub: boolean,
-  status: string,
-): Promise<void> {
-  "use step";
-  enterDbWorkflowContext("executePayout:auditCompleted");
-  await audit({
-    actorUserId: null,
-    action: "payout.trigger",
-    targetType: "payout",
-    targetId: payoutId,
-    metadata: { snapshotId, stub, status },
-  });
 }

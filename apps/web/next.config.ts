@@ -231,4 +231,10 @@ const nextConfig: NextConfig = {
   },
 };
 
+// `withWorkflow(nextConfig)` is intentionally NOT applied yet. Enabling it
+// requires removing static `postgres` and `node:async_hooks` imports from
+// `@/db` and `@/lib/db-rls` so the workflow build-time analyzer doesn't
+// reject helper files. Until that cleanup is done, crons fall through to
+// `safeStartWorkflow()` which returns a graceful 200 with
+// `{ ok: false, error: "workflow_unavailable" }`.
 export default nextConfig;

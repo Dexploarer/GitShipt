@@ -3,6 +3,7 @@
  * workflows/executePayout.ts. Every function returns JSON-serializable
  * data; lamports are encoded as decimal strings.
  */
+import { FatalError, getStepMetadata } from "workflow";
 import { dbHttp, dbPool, schema } from "@/db";
 import {
   payouts,
@@ -10,6 +11,7 @@ import {
   snapshots,
   projects,
   escrowHoldings,
+  platformConfig,
 } from "@/db/schema";
 import type { LeaderboardEntry } from "@/db/schema/snapshots";
 import type { PayoutConfig, ScoringConfig } from "@/db/schema/projects";
@@ -31,6 +33,11 @@ import {
   type SnapshotContextLike,
 } from "@/lib/payouts/safety";
 import { applyDbRlsContext, enterDbWorkflowContext } from "@/lib/db-rls";
+import { payoutSignerPublicKey } from "@/lib/solana/signer";
+import { withIdempotency } from "@/lib/idempotency";
+import type { WorkflowLock } from "@/lib/workflow-locks";
+
+export type { WorkflowLock };
 
 void schema; // keep referenced for future use
 
@@ -961,4 +968,273 @@ export async function finalizePayout(payoutId: string): Promise<{
  */
 export async function noopForBuild(): Promise<void> {
   void and;
+}
+
+// ============================================================
+// Workflow step wrappers — each carries the `"use step"` directive
+// so workflows/executePayout.ts can import them and stay free of
+// Node-only imports at the file top.
+// ============================================================
+
+export type ClaimFeesStepResult =
+  | { ok: true; signature: string | null; txCount: number }
+  | { ok: false; reason: string; claimSignature: string | null };
+
+export async function payoutAssertNotKilled(): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("executePayout:assertNotKilled");
+  if (await isKillSwitchEnabled()) {
+    throw new FatalError("kill_switch_enabled: executePayout aborted");
+  }
+}
+
+export async function payoutAcquireLockStep(
+  workflowName: string,
+  scope: string,
+  ttlSeconds: number,
+): Promise<WorkflowLock> {
+  "use step";
+  const { acquireWorkflowLock } = await import("@/lib/workflow-locks");
+  return await acquireWorkflowLock(workflowName, scope, ttlSeconds);
+}
+
+export async function payoutReleaseLockStep(lock: WorkflowLock): Promise<void> {
+  "use step";
+  const { releaseWorkflowLock } = await import("@/lib/workflow-locks");
+  await releaseWorkflowLock(lock);
+}
+
+export async function payoutHeartbeatStep(name: string): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("executePayout:heartbeat");
+  const at = new Date().toISOString();
+  await dbHttp
+    .insert(platformConfig)
+    .values({
+      key: `heartbeat.${name}`,
+      value: { lastBeatAt: at, source: "executePayout" },
+    })
+    .onConflictDoUpdate({
+      target: platformConfig.key,
+      set: {
+        value: sql`excluded.value`,
+        updatedAt: sql`now()`,
+      },
+    });
+}
+
+export async function loadAwaitingStep(): Promise<Array<{ id: string }>> {
+  "use step";
+  enterDbWorkflowContext("executePayout:loadAwaiting");
+  return await loadFrozenSnapshotsAwaitingPayout();
+}
+
+export async function loadCtxStep(
+  snapshotId: string,
+): Promise<SnapshotContextJson | null> {
+  "use step";
+  enterDbWorkflowContext("executePayout:loadContext");
+  return await loadSnapshotContext(snapshotId);
+}
+
+export async function stubModeStep(): Promise<boolean> {
+  "use step";
+  return isStubMode();
+}
+
+export async function preflightStep(
+  ctx: SnapshotContextJson,
+): Promise<
+  { ok: true; balanceLamports: string } | { ok: false; reason: string }
+> {
+  "use step";
+  enterDbWorkflowContext("executePayout:preflight");
+  return await runPreflight(ctx);
+}
+
+export async function platformWalletStep(): Promise<string | null> {
+  "use step";
+  return payoutSignerPublicKey();
+}
+
+export async function claimableStep(args: {
+  walletAddress: string | null;
+  tokenMint: string | null;
+}): Promise<{ lamports: string; positionCount: number }> {
+  "use step";
+  enterDbWorkflowContext("executePayout:claimable");
+  return await checkClaimableLamports(args);
+}
+
+export async function claimFeesStep(args: {
+  walletAddress: string;
+  tokenMint: string;
+  idempotencyKey: string;
+  payoutId: string;
+}): Promise<ClaimFeesStepResult> {
+  "use step";
+  const { stepId } = getStepMetadata();
+  return await withIdempotency(
+    `${stepId}:${args.idempotencyKey}`,
+    async () => {
+      try {
+        const result = await claimBagsFees({
+          walletAddress: args.walletAddress,
+          tokenMint: args.tokenMint,
+          payoutId: args.payoutId,
+        });
+        return { ok: true as const, ...result };
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        if (!isManualReconciliationError(reason)) throw error;
+        return {
+          ok: false as const,
+          reason,
+          claimSignature:
+            extractManualReconciliationClaimSignatures(reason),
+        };
+      }
+    },
+    { scope: "workflow:payout:claim" },
+  );
+}
+
+export async function buildPlanStep(
+  ctx: SnapshotContextJson,
+  claimedLamports: string,
+): Promise<DistributionPlanRowJson[]> {
+  "use step";
+  enterDbWorkflowContext("executePayout:buildPlan");
+  return await buildPlan(ctx, claimedLamports);
+}
+
+export async function capCheckStep(
+  plan: DistributionPlanRowJson[],
+): Promise<{ ok: true; total: string } | { ok: false; reason: string }> {
+  "use step";
+  enterDbWorkflowContext("executePayout:capCheck");
+  return await assertCycleUnderCap(plan);
+}
+
+export async function persistStep(args: {
+  snapshotId: string;
+  projectId: string;
+  snapshotPeriod: string;
+  plan: DistributionPlanRowJson[];
+  claimSignature: string | null;
+  totalLamportsStr: string;
+  stub: boolean;
+  reserveClaimFirst?: boolean;
+}): Promise<{ payoutId: string; recipientCount: number }> {
+  "use step";
+  enterDbWorkflowContext("executePayout:persist");
+  return await persistPayoutPlan(args);
+}
+
+export async function markPayoutClaimedStep(
+  payoutId: string,
+  claimSignature: string | null,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("executePayout:markClaimed");
+  await markPayoutClaimed(payoutId, claimSignature);
+}
+
+export async function markPayoutFailedStep(
+  payoutId: string,
+  reason: string,
+  claimSignature?: string | null,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("executePayout:markFailed");
+  await markPayoutFailed(payoutId, reason, { claimSignature });
+}
+
+export async function dispatchStep(args: {
+  payoutId: string;
+  recipient: DistributionPlanRowJson;
+  sourcePayoutId: string;
+  escrowDays: number;
+}): Promise<{ status: string; sig?: string }> {
+  "use step";
+  enterDbWorkflowContext("executePayout:dispatch");
+  const { stepId } = getStepMetadata();
+  return await withIdempotency(
+    `${stepId}:${args.recipient.idempotencyKey}`,
+    async () => {
+      try {
+        return await dispatchRecipient(args);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        if (!isManualReconciliationError(reason)) throw error;
+        return { status: "failed" };
+      }
+    },
+    { scope: "workflow:payout:dispatch" },
+  );
+}
+
+export async function finalizeStep(payoutId: string): Promise<{
+  status: "completed" | "failed" | "pending" | "simulated" | "cancelled";
+  totals: { sent: number; escrow: number; failed: number; pending: number };
+}> {
+  "use step";
+  enterDbWorkflowContext("executePayout:finalize");
+  return await finalizePayout(payoutId);
+}
+
+export async function revalidateProjectCachesStep(
+  projectId: string,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("executePayout:revalidateProjectCaches");
+  const { revalidateProjectCaches } = await import("@/lib/cache");
+  await revalidateProjectCaches(projectId);
+}
+
+export async function payoutAuditAbort(
+  snapshotId: string,
+  reason: string,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("executePayout:auditAbort");
+  const { audit } = await import("@/lib/audit");
+  await audit({
+    actorUserId: null,
+    action: "payout.cancel",
+    targetType: "snapshot",
+    targetId: snapshotId,
+    metadata: { reason },
+  });
+}
+
+export async function payoutAuditCompleted(
+  snapshotId: string,
+  payoutId: string,
+  stub: boolean,
+  status: string,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("executePayout:auditCompleted");
+  const { audit } = await import("@/lib/audit");
+  await audit({
+    actorUserId: null,
+    action: "payout.trigger",
+    targetType: "payout",
+    targetId: payoutId,
+    metadata: { snapshotId, stub, status },
+  });
+}
+
+/**
+ * `start()` cannot run inside workflow context — wrap it in a step. Spawns the
+ * per-snapshot child workflow for each frozen snapshot.
+ */
+export async function startProcessSnapshotPayoutStep(
+  snapshotId: string,
+): Promise<void> {
+  "use step";
+  const { start } = await import("workflow/api");
+  const { processSnapshotPayout } = await import("../executePayout");
+  await start(processSnapshotPayout, [snapshotId]);
 }
