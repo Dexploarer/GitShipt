@@ -1,3 +1,5 @@
+import { timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
+
 import { serverEnv } from "@/lib/env";
 
 export type VerifyOk = {
@@ -11,28 +13,21 @@ export type VerifyErr = { ok: false; reason: string };
 
 const encoder = new TextEncoder();
 
-function hexToBytes(hex: string): Uint8Array {
-  const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i++) {
-    out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  }
-  return out;
-}
-
 function bytesToHex(bytes: ArrayBuffer): string {
   return Array.from(new Uint8Array(bytes))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
-function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.byteLength !== b.byteLength) return false;
-  let diff = 0;
-  for (let i = 0; i < a.byteLength; i++) {
-    // Use non-null assertion: bounds checked above.
-    diff |= (a[i] as number) ^ (b[i] as number);
-  }
-  return diff === 0;
+function hexEqual(aHex: string, bHex: string): boolean {
+  if (aHex.length !== bHex.length) return false;
+  // Buffer.from rejects malformed hex by silently dropping odd nibbles.
+  // We've already length-checked above; the explicit length match below
+  // catches mismatched buffers from malformed hex.
+  const a = Buffer.from(aHex, "hex");
+  const b = Buffer.from(bHex, "hex");
+  if (a.length !== b.length || a.length === 0) return false;
+  return nodeTimingSafeEqual(a, b);
 }
 
 /**
@@ -75,10 +70,7 @@ export async function verifyAndParse(
   const expectedHex = bytesToHex(macBuffer);
   const providedHex = sigHeader.slice("sha256=".length);
 
-  if (
-    providedHex.length !== expectedHex.length ||
-    !timingSafeEqual(hexToBytes(providedHex), hexToBytes(expectedHex))
-  ) {
+  if (!hexEqual(providedHex, expectedHex)) {
     return { ok: false, reason: "bad_signature" };
   }
 

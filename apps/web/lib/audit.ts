@@ -1,5 +1,6 @@
 import { dbHttp } from "@/db";
 import { auditLogs } from "@/db/schema";
+import { captureException } from "@/lib/observability";
 
 export type AuditAction =
   | "auth.signin"
@@ -58,13 +59,26 @@ export interface AuditEntry {
  * The DB role used by the app should NOT have UPDATE/DELETE on `audit_logs`.
  */
 export async function audit(entry: AuditEntry): Promise<void> {
-  await dbHttp.insert(auditLogs).values({
-    actorUserId: entry.actorUserId,
-    action: entry.action,
-    targetType: entry.targetType,
-    targetId: entry.targetId,
-    metadata: entry.metadata ?? {},
-    ip: entry.ip ?? null,
-    userAgent: entry.userAgent ?? null,
-  });
+  try {
+    await dbHttp.insert(auditLogs).values({
+      actorUserId: entry.actorUserId,
+      action: entry.action,
+      targetType: entry.targetType,
+      targetId: entry.targetId,
+      metadata: entry.metadata ?? {},
+      ip: entry.ip ?? null,
+      userAgent: entry.userAgent ?? null,
+    });
+  } catch (err) {
+    // Audit writes must never silently disappear. Surface to the
+    // observability sink so an alerting rule can fire on tamper / DB
+    // outage. We rethrow so callers (destructiveAction, payout helpers)
+    // can decide whether to fail closed — most should.
+    captureException(err, {
+      area: "audit.insert",
+      severity: "error",
+      tags: { action: entry.action, targetType: entry.targetType },
+    });
+    throw err;
+  }
 }
