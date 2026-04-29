@@ -154,7 +154,7 @@ export function TransferForm({ projectId, slug }: TransferFormProps) {
           className={cn(
             "w-full max-w-md resize-none rounded-md border border-border-strong bg-surface px-3 py-2",
             "text-body-md text-fg placeholder:text-fg-muted",
-            "focus:outline-none focus:border-primary focus:shadow-inset-light",
+            "focus-visible:outline-none focus-visible:border-primary focus-visible:shadow-inset-light",
           )}
           placeholder="Why are you handing this project off? Tickets, agreements, links."
         />

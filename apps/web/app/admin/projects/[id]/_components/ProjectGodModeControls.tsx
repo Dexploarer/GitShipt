@@ -191,7 +191,7 @@ export function ProjectGodModeControls({
             value={scoring}
             onChange={(e) => setScoring(e.target.value)}
             rows={10}
-            className="w-full rounded-md border border-border bg-bg px-3 py-2 text-mono-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full rounded-md border border-border bg-bg px-3 py-2 text-mono-sm text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             spellCheck={false}
           />
           {scoringErr ? (

@@ -17,6 +17,7 @@ export function FormError({ message, onDismiss, className }: FormErrorProps) {
   return (
     <Card
       role="alert"
+      aria-live="assertive"
       depth="flat"
       padding="none"
       className={cn(
@@ -31,7 +32,7 @@ export function FormError({ message, onDismiss, className }: FormErrorProps) {
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss error"
-          className="gb-control gb-control-icon gb-control-ghost rounded-sm text-danger/80 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/60"
+          className="gb-control gb-control-icon gb-control-ghost rounded-sm text-danger/80 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
         >
           <X className="size-4" aria-hidden />
         </button>

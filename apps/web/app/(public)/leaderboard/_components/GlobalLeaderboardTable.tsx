@@ -61,30 +61,49 @@ export function GlobalLeaderboardTable(
 function ContributorList({ rows }: { rows: GlobalLeaderboardEntry[] }) {
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[760px]">
-        <div className="grid grid-cols-[56px_minmax(0,1fr)_140px_88px_minmax(0,200px)] items-center gap-3 border-y border-border bg-surface-elevated/40 px-5 py-2.5 text-label-sm text-fg-muted lg:px-6">
-          <div>#</div>
-          <div>Contributor</div>
-          <div className="text-right">Lifetime SOL</div>
-          <div className="text-right">Projects</div>
-          <div className="truncate">Top project</div>
+      <div
+        role="table"
+        aria-label="Global contributor rankings"
+        aria-rowcount={rows.length + 1}
+        className="min-w-[760px]"
+      >
+        <div role="rowgroup">
+          <div
+            role="row"
+            className="grid grid-cols-[56px_minmax(0,1fr)_140px_88px_minmax(0,200px)] items-center gap-3 border-y border-border bg-surface-elevated/40 px-5 py-2.5 text-label-sm text-fg-muted lg:px-6"
+          >
+            <div role="columnheader">#</div>
+            <div role="columnheader">Contributor</div>
+            <div role="columnheader" className="text-right">
+              Lifetime SOL
+            </div>
+            <div role="columnheader" className="text-right">
+              Projects
+            </div>
+            <div role="columnheader" className="truncate">
+              Top project
+            </div>
+          </div>
         </div>
 
         <div
+          role="rowgroup"
           className="max-h-[640px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent]"
           aria-label="Global contributor rankings, scrollable"
         >
           {rows.map((row) => (
             <div
               key={row.ghUsername}
+              role="row"
               className="grid grid-cols-[56px_minmax(0,1fr)_140px_88px_minmax(0,200px)] items-center gap-3 border-b border-border px-5 py-3 last:border-b-0 hover:bg-surface-elevated lg:px-6"
             >
-              <div className="flex items-center">
+              <div role="cell" className="flex items-center">
                 <RankMedal rank={row.rank} />
               </div>
               <Link
                 href={`/u/${row.ghUsername}`}
-                className="flex min-w-0 items-center gap-3 transition-colors hover:text-fg"
+                role="cell"
+                className="flex min-w-0 items-center gap-3 transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Image
                   src={row.avatarUrl}
@@ -103,17 +122,20 @@ function ContributorList({ rows }: { rows: GlobalLeaderboardEntry[] }) {
                   </div>
                 </div>
               </Link>
-              <div className="text-right text-mono-md text-fg">
+              <div role="cell" className="text-right text-mono-md text-fg">
                 {formatSol(row.totalLifetimeLamports)}
               </div>
-              <div className="text-right text-mono-sm text-fg-muted">
+              <div
+                role="cell"
+                className="text-right text-mono-sm text-fg-muted"
+              >
                 {row.activeProjectsCount}
               </div>
-              <div className="min-w-0">
+              <div role="cell" className="min-w-0">
                 {row.topProjectSlug ? (
                   <Link
                     href={`/r/${row.topProjectSlug}?from=leaderboard`}
-                    className="block truncate text-body-sm text-fg-secondary transition-colors hover:text-fg"
+                    className="block truncate text-body-sm text-fg-secondary transition-colors hover:text-fg focus-visible:outline-none focus-visible:underline"
                   >
                     {row.topProjectSlug}
                   </Link>
@@ -132,16 +154,33 @@ function ContributorList({ rows }: { rows: GlobalLeaderboardEntry[] }) {
 function ProjectList({ rows }: { rows: GlobalProjectEntry[] }) {
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[720px]">
-        <div className="grid grid-cols-[56px_minmax(0,1fr)_140px_120px_120px] items-center gap-3 border-y border-border bg-surface-elevated/40 px-5 py-2.5 text-label-sm text-fg-muted lg:px-6">
-          <div>#</div>
-          <div>Project</div>
-          <div className="text-right">Lifetime fees</div>
-          <div className="text-right">Contributors</div>
-          <div className="text-right">Daily pool</div>
+      <div
+        role="table"
+        aria-label="Global project rankings"
+        aria-rowcount={rows.length + 1}
+        className="min-w-[720px]"
+      >
+        <div role="rowgroup">
+          <div
+            role="row"
+            className="grid grid-cols-[56px_minmax(0,1fr)_140px_120px_120px] items-center gap-3 border-y border-border bg-surface-elevated/40 px-5 py-2.5 text-label-sm text-fg-muted lg:px-6"
+          >
+            <div role="columnheader">#</div>
+            <div role="columnheader">Project</div>
+            <div role="columnheader" className="text-right">
+              Lifetime fees
+            </div>
+            <div role="columnheader" className="text-right">
+              Contributors
+            </div>
+            <div role="columnheader" className="text-right">
+              Daily pool
+            </div>
+          </div>
         </div>
 
         <div
+          role="rowgroup"
           className="max-h-[640px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent]"
           aria-label="Global project rankings, scrollable"
         >
@@ -153,12 +192,14 @@ function ProjectList({ rows }: { rows: GlobalProjectEntry[] }) {
               <Link
                 key={row.id}
                 href={`/r/${row.slug}?from=leaderboard`}
-                className="grid grid-cols-[56px_minmax(0,1fr)_140px_120px_120px] items-center gap-3 border-b border-border px-5 py-3 last:border-b-0 transition-colors hover:bg-surface-elevated lg:px-6"
+                role="row"
+                aria-label={`Rank ${row.rank} ${row.name}`}
+                className="grid grid-cols-[56px_minmax(0,1fr)_140px_120px_120px] items-center gap-3 border-b border-border px-5 py-3 last:border-b-0 transition-colors hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:px-6"
               >
-                <div className="flex items-center">
+                <div role="cell" className="flex items-center">
                   <RankMedal rank={row.rank} />
                 </div>
-                <div className="flex min-w-0 items-center gap-3">
+                <div role="cell" className="flex min-w-0 items-center gap-3">
                   <Image
                     src={avatar}
                     alt=""
@@ -176,13 +217,19 @@ function ProjectList({ rows }: { rows: GlobalProjectEntry[] }) {
                     </div>
                   </div>
                 </div>
-                <div className="text-right text-mono-md text-fg">
+                <div role="cell" className="text-right text-mono-md text-fg">
                   {formatSol(row.lifetimeFeesLamports)}
                 </div>
-                <div className="text-right text-mono-sm text-fg-muted">
+                <div
+                  role="cell"
+                  className="text-right text-mono-sm text-fg-muted"
+                >
                   {row.contributorsPaid}
                 </div>
-                <div className="text-right text-mono-sm text-fg-muted">
+                <div
+                  role="cell"
+                  className="text-right text-mono-sm text-fg-muted"
+                >
                   {formatSol(row.dailyFeeLamports)}
                 </div>
               </Link>

@@ -40,12 +40,14 @@ export function ContributorRow({
   return (
     <Link
       href={`/u/${row.ghUsername}`}
-      className="grid grid-cols-[56px_minmax(0,1fr)_96px_88px_140px] items-center gap-4 border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-surface-elevated"
+      role="row"
+      aria-label={`Rank ${row.rank} ${row.ghUsername}`}
+      className="grid grid-cols-[56px_minmax(0,1fr)_96px_88px_140px] items-center gap-4 border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-surface-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
-      <div className="flex items-center">
+      <div role="cell" className="flex items-center">
         <RankMedal rank={row.rank} />
       </div>
-      <div className="flex min-w-0 items-center gap-3">
+      <div role="cell" className="flex min-w-0 items-center gap-3">
         <span className="relative size-8 shrink-0 overflow-hidden rounded-lg bg-surface-elevated">
           <Image
             src={avatar}
@@ -63,13 +65,13 @@ export function ContributorRow({
           </div>
         </div>
       </div>
-      <div className="text-right text-mono-md text-fg">
+      <div role="cell" className="text-right text-mono-md text-fg">
         {formatScore(row.score)}
       </div>
-      <div className="text-right text-mono-md text-fg">
+      <div role="cell" className="text-right text-mono-md text-fg">
         {formatPercent(row.weightPercent)}
       </div>
-      <div className="text-right">
+      <div role="cell" className="text-right">
         <div className="text-mono-md text-fg">{formatSol(earnedLamports)}</div>
         <div className="text-mono-sm text-fg-muted">
           {formatUsd(earnedUsd)}

@@ -215,9 +215,10 @@ export function DestructiveConfirmModal({
         glass="glass"
         padding="default"
         className="w-full max-w-md"
-        role="dialog"
+        role="alertdialog"
         aria-modal="true"
         aria-labelledby="destructive-confirm-title"
+        aria-describedby="destructive-confirm-description"
         tabIndex={-1}
       >
         <header className="mb-3 flex items-start justify-between gap-3">
@@ -229,7 +230,10 @@ export function DestructiveConfirmModal({
               <h3 id="destructive-confirm-title" className="text-headline-sm">
                 {title}
               </h3>
-              <p className="mt-1 text-body-sm text-fg-secondary">
+              <p
+                id="destructive-confirm-description"
+                className="mt-1 text-body-sm text-fg-secondary"
+              >
                 {description}
               </p>
             </div>
@@ -257,7 +261,7 @@ export function DestructiveConfirmModal({
               className={cn(
                 "w-full resize-none rounded-md border border-border bg-surface-elevated px-3 py-2",
                 "text-body-sm text-fg placeholder:text-fg-muted",
-                "focus:outline-none focus:ring-2 focus:ring-primary",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               )}
               placeholder="Why is this action necessary? Tickets, links, context."
               required
@@ -275,7 +279,7 @@ export function DestructiveConfirmModal({
               className={cn(
                 "w-full rounded-md border border-border bg-surface-elevated px-3 py-2",
                 "text-mono-sm text-fg placeholder:text-fg-muted",
-                "focus:outline-none focus:ring-2 focus:ring-primary",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               )}
               placeholder={targetName}
               autoComplete="off"
@@ -301,7 +305,7 @@ export function DestructiveConfirmModal({
               className={cn(
                 "w-full rounded-md border border-border bg-surface-elevated px-3 py-2",
                 "text-mono-sm text-fg placeholder:text-fg-muted",
-                "focus:outline-none focus:ring-2 focus:ring-primary",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               )}
               placeholder="000000"
               autoComplete="off"
@@ -357,7 +361,11 @@ export function DestructiveConfirmModal({
           ) : null}
 
           {error ? (
-            <p className="rounded-md border border-danger/40 bg-danger-soft px-3 py-2 text-body-sm text-danger">
+            <p
+              role="alert"
+              aria-live="assertive"
+              className="rounded-md border border-danger/40 bg-danger-soft px-3 py-2 text-body-sm text-danger"
+            >
               {error}
             </p>
           ) : null}
@@ -487,16 +495,49 @@ function Field({
   error?: string | null;
   children: React.ReactNode;
 }) {
+  const baseId = React.useId();
+  const hintId = `${baseId}-hint`;
+  const errorId = `${baseId}-error`;
+
+  // Inject aria-describedby + aria-invalid into the wrapped input/textarea so
+  // assistive tech announces hint and error text alongside the field.
+  const enhancedChild = React.isValidElement(children)
+    ? React.cloneElement(
+        children as React.ReactElement<{
+          "aria-describedby"?: string;
+          "aria-invalid"?: boolean;
+        }>,
+        {
+          "aria-describedby":
+            [error ? errorId : null, hint ? hintId : null]
+              .filter(Boolean)
+              .join(" ") || undefined,
+          "aria-invalid": error ? true : undefined,
+        },
+      )
+    : children;
+
   return (
     <label className="block space-y-1.5">
       <span className="flex items-center justify-between text-label-sm text-fg-secondary">
         <span>{label}</span>
         {hint ? (
-          <span className="text-caption text-fg-muted">{hint}</span>
+          <span id={hintId} className="text-caption text-fg-muted">
+            {hint}
+          </span>
         ) : null}
       </span>
-      {children}
-      {error ? <span className="text-caption text-danger">{error}</span> : null}
+      {enhancedChild}
+      {error ? (
+        <span
+          id={errorId}
+          role="alert"
+          aria-live="polite"
+          className="text-caption text-danger"
+        >
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }

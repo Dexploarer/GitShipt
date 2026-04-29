@@ -20,6 +20,20 @@ const ignoredSegments = new Set([
   "build",
 ]);
 
+// Files that legitimately need raw hex because they render outside the CSS
+// runtime. next/og's Satori cannot resolve CSS variables, so OG / Twitter
+// image generators are inlined SVG-like JSX with literal colours.
+const ignoredFilenamePrefixes = [
+  "opengraph-image",
+  "twitter-image",
+  "icon.",
+  "apple-icon.",
+];
+
+function isAllowedFilename(name) {
+  return ignoredFilenamePrefixes.some((prefix) => name.startsWith(prefix));
+}
+
 async function* walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     if (ignoredSegments.has(entry.name)) continue;
@@ -28,7 +42,11 @@ async function* walk(dir) {
       yield* walk(fullPath);
       continue;
     }
-    if (entry.isFile() && sourceExtensions.has(path.extname(entry.name))) {
+    if (
+      entry.isFile() &&
+      sourceExtensions.has(path.extname(entry.name)) &&
+      !isAllowedFilename(entry.name)
+    ) {
       yield fullPath;
     }
   }
