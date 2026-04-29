@@ -63,41 +63,15 @@ Stop and tell the user exactly what env var you need in one sentence. Do not inv
 <claude-mem-context>
 # Memory Context
 
-# [gitbags] recent context, 2026-04-28 11:54pm CDT
+# [gitbags] recent context, 2026-04-29 12:40am CDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (25,230t read) | 2,377,531t work | 99% savings
+Stats: 50 obs (22,515t read) | 3,226,748t work | 99% savings
 
 ### Apr 28, 2026
-1983 9:13p 🔴 CSP Nonce Enforcement Activated — script-src 'unsafe-inline' Removed from Production
-1984 " 🟣 PublicNav Mobile Collapse — Sheet-Based Hamburger Menu Added
-1986 9:14p 🔴 Landing KPI Strip — 3-Cell Orphan Layout Fixed, Volume Guard Added
-1987 9:16p 🔴 Simulated 24h Volume Removed From Landing — volumeSource Guard Prevents Future Leakage
-1988 " 🟣 Admin Cosign Gate Implemented — Irreversible Actions Require Second super_admin Approval
-1989 " 🔵 prepare-e2e-build.mjs Fails Open When lsof Inspection Fails on macOS
-1990 " 🔴 Landing 3-Cell KPI Grid Orphan Fixed — sm:grid-cols-3 for No-Volume State
-1991 " 🔵 Admin Cosign UX Gap — DestructiveConfirmModal Does Not Surface pendingActionId for Second Approver
-1993 9:19p 🔵 GitShipt Admin Cosign Gate Architecture — Pending Action Server-Side Infrastructure
-1994 " ⚖️ Admin Cosign UX — Pending State Must Stay Open, Not Close on First Submit
-1995 9:20p 🔵 GitShipt Two-Super-Admin Cosign Flow — Architecture Review Scope
-1996 9:21p 🔵 prepare-e2e-build.mjs Stale Lock Cleanup — Fails Closed Correctly, No False-Positive Risk
-1997 9:23p 🔵 prepare-e2e-build.mjs Live Smoke Tests — All Failure-Closed and False-Positive Cases Verified
-1998 9:24p 🔵 GitShipt Full Repo Completeness Audit Requested — Deep Pass Initiated
-1999 9:25p 🔵 Global Query Tests Pass Clean After Landing KPI Review
-2000 9:27p 🔴 destructive-action.test.ts — Cosign Crash-Resume Test Corrected
-2001 " 🔵 GitShipt Production Build — 87 Routes Confirmed Clean After Cosign Fixes
-2002 9:29p ⚖️ E2E Stale Lock Helper classifyBuildCommand — Reviewer Approved, False-Positive Resolved
-2003 " 🔵 classifyBuildCommand Resolves False-Positive in E2E Stale Lock Helper
-2004 " 🔵 Cosign Resumed-Row Execution Not Atomically Claimed — New Medium Finding
-2005 9:31p 🔵 prepare-e2e-build.mjs Full Implementation Confirmed — Line-Level Code Review Complete
-2006 9:32p 🔴 Cosign Duplicate-Execution Window Fixed — Stored Idempotency Key Now Forwarded to Action fn
-2009 " ⚖️ Cosign Duplicate-Execution Fix — Reviewer Beauvoir Full Approval
-2010 9:35p 🔵 Landing Page Simulated Volume Removed — Reviewer Approved With Runtime Verification
-2011 " 🔵 prepare-e2e-build.mjs Residual Open Finding — Unrelated Process cwd-Inspection Failure Still Blocks E2E
-2012 " 🔵 GitShipt Full Working Tree — 54 Modified Files, 6 Untracked, Uncommitted Before Push
 2013 9:38p 🔵 Cosign Duplicate-Execution Fix — Final Re-Review Confirmed Correct
 2036 9:59p ✅ GitShipt Bone Palette Migration — All Changes Committed and Pushed
 2037 " ✅ GitShipt "Harden production readiness" Commit — 60 Files, New DB Migration
@@ -122,6 +96,33 @@ Stats: 50 obs (25,230t read) | 2,377,531t work | 99% savings
 2307 " 🔵 Playwright E2E Suite Includes WCAG Contrast Test, Auth Gate Test, and Hydration Regression Tests
 2308 " 🔵 Production Env Tooling — check-production-env.mjs, .env.production.example, env:check and env:template Scripts
 2309 " 🔵 Vercel Deployment Config — Fluid Compute, 8 Crons, Single Region iad1, Bun 1.x Runtime
+2316 11:55p 🔵 GitShipt April 2026 Full System Audit — Scope and Standards Established
+2322 11:58p 🔵 DestructiveConfirmModal — MFA-Gated Destructive Action Gate with Full A11y Implementation
+2323 " 🔵 Dependency Audit — 2 Vulnerabilities Found (1 High, 1 Moderate) via Transitive Solana/Bags SDK Deps
+2334 11:59p 🔵 Production Env Check — 2 Missing Vars and 3 Warnings Block Production Launch
+2335 " 🔵 Test Suite — 163 Tests Across 38 Files All Pass in 943ms (Vitest)
+2336 " 🔵 CI Pipeline — quality + audit + e2e Jobs on GitHub Actions with Playwright E2E Suite
+2337 " 🔵 TokenSparkCard — Confirmed Stub Price/Volume Data for Token Display (Day 3 Feature Gap)
+2338 " 🔵 next.config.ts — Full Security Header Suite + nonce-CSP + cacheComponents with Named Profiles
+2339 " 🔵 proxy.ts — Per-Request Nonce CSP, CVE-2025-29927 Mitigation, Dashboard Auth Redirect
+2340 " 🔵 Cron Auth — All 8 Cron Routes Protected with Timing-Safe CRON_SECRET Comparison
+2341 " 🔵 Observability — Vendor-Neutral Structured JSON Logger with Pluggable Adapter Pattern
+2342 " 🔵 API Error Response Pattern — Uniform Error Code Shape Across All Routes, No Stack Trace Leakage
+### Apr 29, 2026
+2347 12:03a 🔵 Stub Mode Architecture — Deterministic Fallback System for All External Services
+2348 " 🔵 Production Build — 80 Routes, All PPR (Partial Prerender), Build Passes Clean
+2349 " 🔵 E2E Tests — 4/6 Pass, 2 Fail Due to Missing Demo Seed Data (Not Code Bugs)
+2350 " 🔵 Critical CSP Bug — Strict-Dynamic Blocks Async Script Tags Missing Nonces in Production Server
+2351 " 🔵 Health Check — Live Service Status Confirmed: DB/Redis/Bags/GitHub/Solana All OK, Production Fails on 3 Missing Vars
+2352 " 🔵 SLSA v1.2 Supply Chain — Release Workflow with Build Provenance + Dependabot Configured
+2353 " 🔵 Root Layout — Suspense{fallback:null} Pattern Applied Across 57 Pages for cacheComponents Compat
+2354 " 🔵 POST /api/projects — Full Mutation Pattern: Auth → Rate Limit → Zod → Repo Admin Verify → DB Transaction → Audit → Idempotency
+2368 12:23a 🔵 GitShipt April 2026 Production Readiness Audit — 67/100 Score With Critical Runtime Blockers
+2369 " 🔵 Critical Blocker — Nonce CSP + PPR/cacheComponents Architecture Is Incompatible at Runtime
+2370 " 🔵 Critical Blocker — Project Route Renders Blank (Only "Skip to content") at Runtime
+2371 " 🔵 High Blocker — /api/health Always Returns 200 Even When Production Readiness Fails
+2372 " 🔵 High Blocker — Env Parity Gap: IDEMPOTENCY_KEY_SECRET Missing From Production Preflight Script
+2373 " ⚖️ GitShipt Phase 1–3 Implementation Plan Defined — Four P0 Fixes Gate Beta Readiness
 
-Access 2378k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 3227k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

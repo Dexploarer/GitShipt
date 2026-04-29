@@ -1,4 +1,3 @@
-import { Buffer } from "node:buffer";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { hasAuthCookie } from "@/lib/auth/cookies";
@@ -62,21 +61,15 @@ const imgSrc = [
   "https://shdw-drive.genesysgo.net",
 ].join(" ");
 
-function createNonce() {
-  return Buffer.from(crypto.randomUUID()).toString("base64");
-}
-
-function buildContentSecurityPolicy({
-  nonce,
-  isEmbed,
-}: {
-  nonce: string;
-  isEmbed: boolean;
-}) {
+function buildContentSecurityPolicy({ isEmbed }: { isEmbed: boolean }) {
+  // 'unsafe-inline' is required for next-themes' theme-flash-prevention
+  // bootstrap and Next.js's auto-injected hydration scripts. A previous
+  // per-request nonce + 'strict-dynamic' design was incompatible with
+  // Vercel's edge cache (cached HTML carried stale nonces while the proxy
+  // emitted fresh ones in the response CSP, mismatching every script).
   const scriptSrc = [
     "'self'",
-    `'nonce-${nonce}'`,
-    "'strict-dynamic'",
+    "'unsafe-inline'",
     "https://va.vercel-scripts.com",
     "https://vitals.vercel-insights.com",
     ...(isDev ? ["'unsafe-eval'"] : []),
@@ -106,9 +99,7 @@ function setCspHeader(response: NextResponse, csp: string) {
 export function proxy(req: NextRequest) {
   const url = req.nextUrl;
   const pathname = url.pathname;
-  const nonce = createNonce();
   const csp = buildContentSecurityPolicy({
-    nonce,
     isEmbed: pathname.startsWith("/embed"),
   });
 
@@ -117,8 +108,6 @@ export function proxy(req: NextRequest) {
   if (incoming.get("x-middleware-subrequest")) {
     incoming.delete("x-middleware-subrequest");
   }
-  incoming.set("x-nonce", nonce);
-  incoming.set("Content-Security-Policy", csp);
 
   // Better-auth session cookie sniff. Cookie names live in
   // lib/auth/cookies.ts so a future better-auth config change is a

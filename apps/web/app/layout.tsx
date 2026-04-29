@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -65,13 +64,16 @@ export const metadata: Metadata = {
 };
 
 /**
- * Cache Components ('use cache' / cacheComponents=true) requires every
- * uncached data fetch in a Server Component to live inside a Suspense
- * boundary. The root layout reads the per-request CSP nonce from
- * `headers()` and resolves the better-auth session — both are dynamic.
- * We defer those awaits into `<RootLayoutShell>` and wrap that in a
- * Suspense so the static `<html>`/`<body>` shell can prerender while the
- * dynamic providers stream in.
+ * Root layout is sync so the static <html>/<body> shell can prerender
+ * under Cache Components. The dynamic chrome (session, providers) is
+ * deferred behind a Suspense boundary so cached pages still cache.
+ *
+ * CSP: we previously minted a per-request nonce + 'strict-dynamic' here,
+ * but that was incompatible with Vercel's edge cache — the cached HTML
+ * served stale nonces while the proxy stamped fresh nonces in the response
+ * CSP, mismatching every script. CSP now uses 'self' + 'unsafe-inline'
+ * for script-src (the standard Next/Vercel default). Nonce hardening can
+ * return once we adopt build-time hash-based CSP.
  */
 export default function RootLayout({
   children,
@@ -85,32 +87,25 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-app-gradient text-fg antialiased">
         <SkipLink />
-        <Suspense fallback={null}>
-          <RootLayoutShell>{children}</RootLayoutShell>
-        </Suspense>
+        <ThemeProvider>
+          <Suspense fallback={null}>
+            <SessionShell>{children}</SessionShell>
+          </Suspense>
+          <Toaster />
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>
   );
 }
 
-async function RootLayoutShell({
+async function SessionShell({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [user, headerList] = await Promise.all([
-    getSessionUser(),
-    headers(),
-  ]);
-  const nonce = headerList.get("x-nonce") ?? undefined;
-
+  const user = await getSessionUser();
   return (
-    <ThemeProvider nonce={nonce}>
-      <SessionChromeProvider user={user}>
-        <SolanaWalletProvider>
-          <div>{children}</div>
-        </SolanaWalletProvider>
-      </SessionChromeProvider>
-      <Toaster />
-    </ThemeProvider>
+    <SessionChromeProvider user={user}>
+      <SolanaWalletProvider>{children}</SolanaWalletProvider>
+    </SessionChromeProvider>
   );
 }
