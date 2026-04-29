@@ -11,7 +11,7 @@ interface AuthState {
   /**
    * Client-side mirror of the server session chrome. This is not an authority
    * for access control; routes and mutations still revalidate the cookie-backed
-   * better-auth session on the server.
+   * Supabase session on the server.
    */
   user: AuthStoreUser | null;
   status: AuthStatus;

@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { updateSession } from "@/lib/supabase/proxy";
 import { hasAuthCookie } from "@/lib/auth/cookies";
 
 /**
@@ -12,16 +13,13 @@ import { hasAuthCookie } from "@/lib/auth/cookies";
  * and Server Component.
  *
  * What this file does:
- *   1. Generate a per-request CSP nonce and pass it through request headers.
- *   2. Set the matching enforced response CSP. Production script-src has no
+ *   1. Refresh Supabase auth session (token rotation) on every request.
+ *   2. Generate a per-request CSP nonce and pass it through request headers.
+ *   3. Set the matching enforced response CSP. Production script-src has no
  *      'unsafe-inline'; development keeps React's required 'unsafe-eval'.
- *   3. Send unauthenticated requests to /dashboard/* to /auth/signin?next=...
- *   4. Strip `x-middleware-subrequest` if a client tries to set it (defense
+ *   4. Send unauthenticated requests to /dashboard/* to /auth/signin?next=...
+ *   5. Strip `x-middleware-subrequest` if a client tries to set it (defense
  *      in depth).
- *   4. Mint a per-request CSP nonce + set the response CSP. The root layout
- *      reads `x-nonce` via `headers()` and threads it into ThemeProvider's
- *      inline theme bootstrap. Together with `'strict-dynamic'` this closes
- *      the `'unsafe-inline'` script-src gap the audit flagged.
  */
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -103,7 +101,7 @@ function setCspHeader(response: NextResponse, csp: string) {
   return response;
 }
 
-export function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const url = req.nextUrl;
   const pathname = url.pathname;
   const nonce = createNonce();
@@ -120,10 +118,13 @@ export function proxy(req: NextRequest) {
   incoming.set("x-nonce", nonce);
   incoming.set("Content-Security-Policy", csp);
 
-  // Better-auth session cookie sniff. Cookie names live in
-  // lib/auth/cookies.ts so a future better-auth config change is a
-  // one-file diff. This is a UX shortcut for redirect behaviour;
-  // authorization always happens inside the route handler.
+  // Refresh Supabase session (token rotation) - this ensures the access token
+  // is always fresh and sets updated cookies on the response.
+  const supabaseResponse = await updateSession(req);
+
+  // Supabase session cookie sniff. Cookie names live in lib/auth/cookies.ts
+  // so a future config change is a one-file diff. This is a UX shortcut for
+  // redirect behaviour; authorization always happens inside the route handler.
   const hasSession = hasAuthCookie(req.cookies);
 
   if (pathname.startsWith("/dashboard")) {
@@ -139,10 +140,11 @@ export function proxy(req: NextRequest) {
   // session and confirms the global role. We do nothing extra here so the
   // route's own revalidation is the security boundary.
 
-  return setCspHeader(
-    NextResponse.next({ request: { headers: incoming } }),
-    csp,
-  );
+  // Merge CSP and nonce headers into the Supabase response
+  supabaseResponse.headers.set("Content-Security-Policy", csp);
+  supabaseResponse.headers.set("x-nonce", nonce);
+
+  return supabaseResponse;
 }
 
 export const config = {
