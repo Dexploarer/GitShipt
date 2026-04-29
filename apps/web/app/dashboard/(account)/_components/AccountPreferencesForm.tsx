@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
+import { toast } from "sonner";
 import {
   Button,
   Select,
@@ -60,9 +61,13 @@ export function AccountPreferencesForm({
           idempotencyKey: `settings-${Date.now()}`,
         });
         setSaved(true);
+        toast.success("Preferences saved");
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Settings save failed.");
+        const message =
+          err instanceof Error ? err.message : "Settings save failed.";
+        setError(message);
+        toast.error(message);
       }
     });
   }
