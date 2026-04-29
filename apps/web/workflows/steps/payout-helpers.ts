@@ -289,6 +289,13 @@ export async function checkClaimableLamports(args: {
 export async function claimBagsFees(args: {
   walletAddress: string;
   tokenMint: string;
+  /**
+   * When set, the most recent claim simulation digest is persisted to
+   * `payouts.last_claim_simulation` for postmortem visibility. Failures of
+   * this side-write are best-effort: simulation has already passed, so the
+   * broadcast proceeds; persistence errors surface on the observability sink.
+   */
+  payoutId?: string;
 }): Promise<{ signature: string | null; txCount: number }> {
   const { bags } = await import("@/lib/bags/client");
   const { transactions } = (await bags.getClaimTransactions(
@@ -319,12 +326,22 @@ export async function claimBagsFees(args: {
     throw new Error("Bags returned an unsupported claim transaction type.");
   }
 
+  const persistDigest = args.payoutId
+    ? async (digest: unknown) => {
+        await dbHttp
+          .update(payouts)
+          .set({ lastClaimSimulation: digest })
+          .where(eq(payouts.id, args.payoutId!));
+      }
+    : undefined;
+
   const sigs: string[] = [];
   for (const tx of claimTransactions) {
     try {
       const sig = await bags.signAndSubmitTransaction(tx, {
         operation: "Bags fee claim transaction",
         bagsInstructionPolicy: "fee-claim",
+        onSimulation: persistDigest,
       });
       sigs.push(sig);
       await conn.confirmTransaction(sig, "confirmed");

@@ -83,7 +83,11 @@ import {
   type BagsTransaction,
 } from "./transactions";
 import { solanaConnection } from "@/lib/solana/connection";
-import { assertTransactionSimulation } from "@/lib/solana/simulation";
+import {
+  assertTransactionSimulation,
+  digestSimulation,
+  type SimulationDigest,
+} from "@/lib/solana/simulation";
 import { readThroughCache } from "@/lib/read-through-cache";
 
 /**
@@ -425,6 +429,15 @@ async function signAndSubmitViaBags(
     operation?: string;
     allowSignerSystemTransfer?: boolean;
     bagsInstructionPolicy?: BagsInstructionPolicy;
+    /**
+     * Optional hook invoked with the bounded SimulationDigest right before
+     * the transaction is broadcast. Use this in money-flow paths to persist
+     * the evidence on the corresponding row (e.g. payouts.last_claim_simulation).
+     * Errors thrown from the hook do not abort the broadcast — they only
+     * surface as captured exceptions on the observability sink, since the
+     * simulation itself has already passed.
+     */
+    onSimulation?: (digest: SimulationDigest) => void | Promise<void>;
   },
 ): Promise<string> {
   const { Transaction, VersionedTransaction } = await import("@solana/web3.js");
@@ -449,11 +462,26 @@ async function signAndSubmitViaBags(
     throw new Error("Bags returned an unsupported transaction type.");
   }
 
-  await assertTransactionSimulation(
+  const evidence = await assertTransactionSimulation(
     solanaConnection("processed"),
     normalized,
     operation,
   );
+  if (options?.onSimulation) {
+    try {
+      await options.onSimulation(digestSimulation(evidence));
+    } catch (err) {
+      // Persistence is best-effort; the simulation already passed and the
+      // broadcast will proceed. Capture so we notice silent persistence
+      // failures.
+      const { captureException } = await import("@/lib/observability");
+      captureException(err, {
+        area: "bags.signAndSubmit.onSimulation",
+        severity: "warning",
+        tags: { operation },
+      });
+    }
+  }
 
   const raw = await bagsRestRaw("solana/send-transaction", {
     method: "POST",
@@ -953,6 +981,7 @@ export const bags = {
       operation?: string;
       allowSignerSystemTransfer?: boolean;
       bagsInstructionPolicy?: BagsInstructionPolicy;
+      onSimulation?: (digest: SimulationDigest) => void | Promise<void>;
     },
   ): Promise<string> {
     return signAndSubmitViaBags(transaction, options);

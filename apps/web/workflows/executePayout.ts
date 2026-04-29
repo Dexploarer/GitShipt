@@ -181,6 +181,7 @@ export async function processSnapshotPayout(snapshotId: string): Promise<{
         walletAddress: platformWallet,
         tokenMint: ctx.project.tokenMint,
         idempotencyKey: `payout:claim:${ctx.project.id}:${ctx.snapshot.snapshotPeriod}`,
+        payoutId: persisted.payoutId,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -329,6 +330,7 @@ async function claimFeesStep(args: {
   walletAddress: string;
   tokenMint: string;
   idempotencyKey: string;
+  payoutId: string;
 }): Promise<ClaimFeesStepResult> {
   "use step";
   const { stepId } = getStepMetadata();
@@ -339,6 +341,7 @@ async function claimFeesStep(args: {
         const result = await claimBagsFees({
           walletAddress: args.walletAddress,
           tokenMint: args.tokenMint,
+          payoutId: args.payoutId,
         });
         return { ok: true, ...result };
       } catch (error) {
