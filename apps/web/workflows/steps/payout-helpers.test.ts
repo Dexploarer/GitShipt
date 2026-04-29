@@ -24,6 +24,17 @@ function entry(
   };
 }
 
+function sqlText(query: unknown): string {
+  const chunks = (query as { queryChunks?: unknown[] }).queryChunks ?? [];
+  return chunks
+    .map((chunk) => {
+      if (typeof chunk === "string") return chunk;
+      const value = (chunk as { value?: unknown }).value;
+      return Array.isArray(value) ? value.join("") : "";
+    })
+    .join("");
+}
+
 async function importHelpers(args?: {
   wallets?: Record<string, string | null>;
   treasury?: string;
@@ -31,11 +42,12 @@ async function importHelpers(args?: {
   bagsClient?: Record<string, unknown>;
   confirmTransaction?: (signature: string) => Promise<unknown>;
   dbHttp?: Record<string, unknown>;
+  dbPool?: () => unknown;
 }) {
   vi.resetModules();
   vi.doMock("@/db", () => ({
     dbHttp: args?.dbHttp ?? {},
-    dbPool: vi.fn(),
+    dbPool: args?.dbPool ?? vi.fn(),
     schema: {},
   }));
   vi.doMock("@/lib/bags/client", () => ({ bags: args?.bagsClient ?? {} }));
@@ -185,6 +197,29 @@ describe("payout helpers", () => {
       ok: false,
       reason: "cycle_over_cap:total=100,cap=99",
     });
+  });
+
+  it("loads new frozen snapshots and retry-reserved payout rows for payout execution", async () => {
+    const executedSql: string[] = [];
+    const dbHttp = {
+      execute: vi.fn(async (query: unknown) => {
+        executedSql.push(sqlText(query));
+        return { rows: [{ id: "snapshot-1" }, { id: "snapshot-retry" }] };
+      }),
+    };
+    const { loadFrozenSnapshotsAwaitingPayout } = await importHelpers({
+      dbHttp,
+    });
+
+    await expect(loadFrozenSnapshotsAwaitingPayout()).resolves.toEqual([
+      { id: "snapshot-1" },
+      { id: "snapshot-retry" },
+    ]);
+
+    expect(executedSql[0]).toContain("p.id is null");
+    expect(executedSql[0]).toContain("p.status in ('pending', 'claiming')");
+    expect(executedSql[0]).toContain("p.claim_signature is null");
+    expect(executedSql[0]).toContain("p.last_error not like");
   });
 
   it("marks ambiguous Bags claim failures for manual reconciliation with known signatures", async () => {

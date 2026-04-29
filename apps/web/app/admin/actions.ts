@@ -540,6 +540,12 @@ function isLaunchSubmissionPending(signature: string | null): boolean {
   return signature?.startsWith(LAUNCH_SUBMISSION_PENDING_PREFIX) ?? false;
 }
 
+function directLaunchPendingSignature(
+  config: DirectLaunchPendingConfig,
+): string {
+  return `${LAUNCH_SUBMISSION_PENDING_PREFIX}${config.configKey}`;
+}
+
 async function markDirectLaunchSubmissionPending(
   projectId: string,
   config: DirectLaunchPendingConfig,
@@ -549,7 +555,7 @@ async function markDirectLaunchSubmissionPending(
     .set({
       tokenMint: config.tokenMint,
       bagsConfigKey: config.configKey,
-      bagsLaunchSignature: `${LAUNCH_SUBMISSION_PENDING_PREFIX}${Date.now()}`,
+      bagsLaunchSignature: directLaunchPendingSignature(config),
       bagsLaunchWallet: config.launchWallet,
       bagsTokenMetadata: config.metadataUrl,
       bagsInitialBuyLamports: config.initialBuyLamports,

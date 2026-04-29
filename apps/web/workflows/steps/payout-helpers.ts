@@ -124,7 +124,7 @@ export function isStubMode(): boolean {
   return !launch.ok;
 }
 
-/** Frozen snapshots that don't yet have a corresponding payout row. */
+/** Frozen snapshots that have no payout row, plus already-reserved rows that are safe to resume. */
 export async function loadFrozenSnapshotsAwaitingPayout(): Promise<
   Array<{ id: string }>
 > {
@@ -135,7 +135,19 @@ export async function loadFrozenSnapshotsAwaitingPayout(): Promise<
     left join payouts p
       on p.project_id = s.project_id
      and p.snapshot_period = s.snapshot_period
-    where s.status = 'frozen' and p.id is null
+    where s.status = 'frozen'
+      and (
+        p.id is null
+        or (
+          p.snapshot_id = s.id
+          and p.status in ('pending', 'claiming')
+          and p.claim_signature is null
+          and (
+            p.last_error is null
+            or p.last_error not like ${`%${MANUAL_RECONCILIATION_ERROR}%`}
+          )
+        )
+      )
     order by s.project_id, s.snapshot_period, s.taken_at asc, s.id asc
   `);
   return rows.rows.map((r) => ({ id: r.id }));
@@ -463,7 +475,13 @@ export async function persistPayoutPlan(args: {
       payoutSnapshotId = inserted.snapshotId;
     } else {
       const [existing] = await tx
-        .select({ id: payouts.id, snapshotId: payouts.snapshotId })
+        .select({
+          id: payouts.id,
+          snapshotId: payouts.snapshotId,
+          status: payouts.status,
+          claimSignature: payouts.claimSignature,
+          lastError: payouts.lastError,
+        })
         .from(payouts)
         .where(
           and(
@@ -475,14 +493,33 @@ export async function persistPayoutPlan(args: {
       if (!existing) throw new Error("persistPayoutPlan: payout row missing");
       payoutId = existing.id;
       payoutSnapshotId = existing.snapshotId;
-    }
 
-    if (!inserted) {
-      const [existingRecipients] = await tx
-        .select({ count: sql<number>`count(*)::int` })
-        .from(payoutRecipients)
-        .where(eq(payoutRecipients.payoutId, payoutId));
-      return { payoutId, recipientCount: existingRecipients?.count ?? 0 };
+      if (payoutSnapshotId !== args.snapshotId) {
+        const [existingRecipients] = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(payoutRecipients)
+          .where(eq(payoutRecipients.payoutId, payoutId));
+        return { payoutId, recipientCount: existingRecipients?.count ?? 0 };
+      }
+
+      const retryableClaimReserve =
+        !args.stub &&
+        args.reserveClaimFirst === true &&
+        existing.claimSignature === null &&
+        !isManualReconciliationError(existing.lastError ?? "") &&
+        (existing.status === "pending" || existing.status === "failed");
+
+      if (retryableClaimReserve) {
+        await tx
+          .update(payouts)
+          .set({
+            status: "claiming",
+            attemptCount: sql`${payouts.attemptCount} + 1`,
+            lastError: null,
+            startedAt: now,
+          })
+          .where(eq(payouts.id, payoutId));
+      }
     }
 
     // Update snapshot with claim total + amount-tree merkle root.
@@ -516,7 +553,14 @@ export async function persistPayoutPlan(args: {
         .onConflictDoNothing({ target: payoutRecipients.idempotencyKey });
     }
 
-    return { payoutId, recipientCount: args.plan.length };
+    const [recipientCount] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(payoutRecipients)
+      .where(eq(payoutRecipients.payoutId, payoutId));
+    return {
+      payoutId,
+      recipientCount: recipientCount?.count ?? args.plan.length,
+    };
   });
 }
 
@@ -532,7 +576,12 @@ export async function markPayoutClaimed(
       status: "distributing",
       lastError: null,
     })
-    .where(and(eq(payouts.id, payoutId), eq(payouts.status, "claiming")));
+    .where(
+      and(
+        eq(payouts.id, payoutId),
+        inArray(payouts.status, ["pending", "claiming"]),
+      ),
+    );
 }
 
 export async function markPayoutFailed(
@@ -778,7 +827,8 @@ async function markRecipientConfirmedWithRetry(
       await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
     }
   }
-  const message = lastError instanceof Error ? lastError.message : String(lastError);
+  const message =
+    lastError instanceof Error ? lastError.message : String(lastError);
   throw new Error(
     `${MANUAL_RECONCILIATION_ERROR}:recipient=${recipientId};signature=${signature};${message}`,
   );
@@ -795,7 +845,10 @@ async function markStaleSendingRecipientForReconciliation(existing: {
     return;
   }
   if (!existing.sendingAt) return;
-  if (Date.now() - existing.sendingAt.getTime() < SENDING_RECONCILIATION_AFTER_MS) {
+  if (
+    Date.now() - existing.sendingAt.getTime() <
+    SENDING_RECONCILIATION_AFTER_MS
+  ) {
     return;
   }
   await dbHttp

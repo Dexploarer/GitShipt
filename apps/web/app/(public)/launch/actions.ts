@@ -1214,23 +1214,35 @@ function isLaunchSubmissionPending(signature: string | null): boolean {
   return signature?.startsWith(LAUNCH_SUBMISSION_PENDING_PREFIX) ?? false;
 }
 
+function launchSubmissionPendingSignature(config: ConfiguredLaunch): string {
+  return `${LAUNCH_SUBMISSION_PENDING_PREFIX}${config.configKey}`;
+}
+
 async function markLaunchSubmissionPending(
   projectId: string,
   config: ConfiguredLaunch,
 ): Promise<void> {
-  await dbHttp
+  const [updated] = await dbHttp
     .update(projects)
     .set({
       tokenMint: config.tokenMint,
       bagsConfigKey: config.configKey,
-      bagsLaunchSignature: `${LAUNCH_SUBMISSION_PENDING_PREFIX}${Date.now()}`,
+      bagsLaunchSignature: launchSubmissionPendingSignature(config),
       bagsLaunchWallet: config.launchWallet,
       bagsTokenMetadata: config.metadataUrl,
       bagsInitialBuyLamports: config.initialBuyLamports,
       status: "launch_configured",
       updatedAt: new Date(),
     })
-    .where(eq(projects.id, projectId));
+    .where(eq(projects.id, projectId))
+    .returning({ id: projects.id });
+  if (!updated) {
+    throw new ActionError(
+      "launch_pending_persist_failed",
+      "Failed to durably mark final Bags launch submission pending before broadcast.",
+      500,
+    );
+  }
 }
 
 function serverEnvCluster(): string {
