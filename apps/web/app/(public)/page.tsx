@@ -6,7 +6,11 @@ import { ArrowUpRight, Trophy } from "lucide-react";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Card } from "@repo/ui";
-import { getLandingData } from "@/lib/queries/global";
+import {
+  getLandingData,
+  getPlatformIndexerHeartbeat,
+} from "@/lib/queries/global";
+import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import {
   getProjectBySlug,
   getProjectLeaderboard,
@@ -39,9 +43,10 @@ export default function LandingPage() {
 }
 
 async function LandingPageContent() {
-  const [{ ticker }, featuredHeader] = await Promise.all([
+  const [{ ticker }, featuredHeader, indexerHeartbeat] = await Promise.all([
     getLandingData(),
     getProjectBySlug(FEATURED_OWNER, FEATURED_REPO),
+    getPlatformIndexerHeartbeat(),
   ]);
   const featuredContribs: LeaderboardRow[] = featuredHeader
     ? await getProjectLeaderboard(
@@ -76,16 +81,22 @@ async function LandingPageContent() {
               on-chain in SOL.
             </p>
 
-            <Link
-              href="https://github.com/SYMBaiEX/gitshipt"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-flex items-center gap-1.5 text-caption text-fg-muted transition-colors hover:text-fg"
-            >
-              <Github className="size-3.5" aria-hidden />
-              SYMBaiEX/gitshipt
-              <ArrowUpRight className="size-3" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-caption">
+              <Link
+                href="https://github.com/SYMBaiEX/gitshipt"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center gap-1.5 text-fg-muted transition-colors hover:text-fg"
+              >
+                <Github className="size-3.5" aria-hidden />
+                SYMBaiEX/gitshipt
+                <ArrowUpRight className="size-3" />
+              </Link>
+              <LiveIndicator
+                lastSyncAt={indexerHeartbeat}
+                label="Indexer"
+              />
+            </div>
           </section>
 
           <div className="order-3 flex w-full flex-col gap-10 lg:order-none lg:w-[440px]">
