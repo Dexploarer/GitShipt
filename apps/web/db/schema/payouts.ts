@@ -4,6 +4,8 @@ import {
   text,
   bigint,
   integer,
+  jsonb,
+  numeric,
   timestamp,
   uniqueIndex,
   index,
@@ -67,6 +69,12 @@ export const payouts = pgTable(
     claimFinalizedAt: timestamp("claim_finalized_at", { withTimezone: true }),
     /** Set when payout finished in stub mode (no on-chain side effects). */
     simulatedAt: timestamp("simulated_at", { withTimezone: true }),
+    /**
+     * Bounded SimulationDigest for the most recent claim broadcast.
+     * Shape: { ok, err, unitsConsumed, logCount, logSample, at }.
+     * See lib/solana/simulation.ts.
+     */
+    lastClaimSimulation: jsonb("last_claim_simulation"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -103,7 +111,10 @@ export const payoutRecipients = pgTable(
     walletAddress: text("wallet_address"), // null when paid into escrow
     amountLamports: bigint("amount_lamports", { mode: "bigint" }).notNull(),
     rank: integer("rank").notNull(),
-    weight: text("weight").notNull(), // stored as text decimal for precision
+    // Stored as numeric(10,6) since migration 0016, with a Postgres CHECK
+    // constraint pinning the value to [0, 1]. Drizzle's `numeric` returns
+    // strings (default) so callers don't lose precision through floats.
+    weight: numeric("weight", { precision: 10, scale: 6 }).notNull(),
     status: recipientStatusEnum("status").notNull().default("pending"),
     txSignature: text("tx_signature"),
     idempotencyKey: text("idempotency_key").notNull(),
@@ -124,5 +135,35 @@ export const payoutRecipients = pgTable(
     payoutIdx: index("recipients_payout_idx").on(t.payoutId),
     contributorIdx: index("recipients_contributor_idx").on(t.contributorId),
     statusIdx: index("recipients_status_idx").on(t.status),
+  }),
+);
+
+/**
+ * Append-only ledger of every status transition on `payouts`.
+ * Written by the BEFORE UPDATE trigger `payouts_status_guard` whenever the
+ * `status` column actually changes; backfilled with one row per existing
+ * payout by migration 0012. UPDATE / DELETE are denied via RLS policies.
+ */
+export const payoutStatusEvents = pgTable(
+  "payout_status_events",
+  {
+    id: text("id").primaryKey(),
+    payoutId: text("payout_id")
+      .notNull()
+      .references(() => payouts.id, { onDelete: "cascade" }),
+    fromStatus: payoutStatusEnum("from_status"),
+    toStatus: payoutStatusEnum("to_status").notNull(),
+    actor: text("actor"),
+    reason: text("reason"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    payoutIdx: index("payout_status_events_payout_idx").on(
+      t.payoutId,
+      t.createdAt,
+    ),
   }),
 );

@@ -92,6 +92,41 @@
       "when": 1777410000000,
       "tag": "0012_pending_admin_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1777410500000,
+      "tag": "0013_payout_status_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1777411000000,
+      "tag": "0014_escrow_expiry_constraint",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1777412000000,
+      "tag": "0015_payout_claim_simulation",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1777413000000,
+      "tag": "0016_audit_hash_chain",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1777414000000,
+      "tag": "0017_payout_recipients_weight_numeric",
+      "breakpoints": true
     }
   ]
 }
