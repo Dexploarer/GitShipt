@@ -13,8 +13,8 @@ import { audit } from "@/lib/audit";
 import { hasCredentials } from "@/lib/env";
 import { indexProjectDeltas } from "@/workflows/indexProjectDeltas";
 import { withIdempotency } from "@/lib/idempotency";
+import { check } from "@/lib/rate-limit";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
@@ -36,6 +36,14 @@ export async function POST(
   const session = await auth().api.getSession({ headers: await headers() });
   if (!session?.user) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  }
+
+  const rl = await check(
+    "project-mutate",
+    `reindex:${session.user.id}:${projectId}`,
+  );
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const project = await getProjectRecord(projectId);

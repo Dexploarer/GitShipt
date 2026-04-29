@@ -15,9 +15,9 @@ import { audit } from "@/lib/audit";
 import { hasCredentials, serverEnv } from "@/lib/env";
 import { promoteProjectFromStub } from "@/lib/queries/admin";
 import { withIdempotency } from "@/lib/idempotency";
+import { check } from "@/lib/rate-limit";
 import { revalidateProjectCaches } from "@/lib/cache";
 
-export const dynamic = "force-dynamic";
 
 const BodySchema = z
   .object({
@@ -87,6 +87,10 @@ export async function POST(req: Request): Promise<Response> {
       actorUserId = session.user.id;
     } catch {
       return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+    }
+    const rl = await check("admin-mutate", `promote:${actorUserId}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
     }
   }
 

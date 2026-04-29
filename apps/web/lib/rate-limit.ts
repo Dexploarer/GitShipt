@@ -5,18 +5,34 @@ type LimiterKind =
   | "auth"
   | "siws-verify"
   | "project-create"
+  | "project-mutate"
   | "force-snapshot"
   | "trade-quote"
   | "trade-swap"
+  | "claim"
+  | "api-key"
+  | "admin-mutate"
+  | "csp-report"
   | "default";
 
 const SLIDING: Record<LimiterKind, { limit: number; windowSeconds: number }> = {
   auth: { limit: 5, windowSeconds: 60 },
   "siws-verify": { limit: 10, windowSeconds: 60 },
   "project-create": { limit: 3, windowSeconds: 60 * 60 },
+  // Per-user mutations on owned projects: launch, transfer, reindex, etc.
+  "project-mutate": { limit: 12, windowSeconds: 60 },
   "force-snapshot": { limit: 1, windowSeconds: 60 * 60 },
   "trade-quote": { limit: 20, windowSeconds: 60 },
   "trade-swap": { limit: 6, windowSeconds: 60 },
+  // Money-flow endpoints (claim escrow, claim-link wallet binding). Tight.
+  claim: { limit: 6, windowSeconds: 60 },
+  // API-key minting / revocation per project owner.
+  "api-key": { limit: 10, windowSeconds: 60 * 60 },
+  // Admin destructive actions (promote-from-stub, refresh-contributors).
+  "admin-mutate": { limit: 30, windowSeconds: 60 },
+  // CSP reports: forgive bursts (page load fans out) but cap by IP so a
+  // hostile origin cannot spam the observability sink.
+  "csp-report": { limit: 30, windowSeconds: 60 },
   default: { limit: 60, windowSeconds: 60 },
 };
 

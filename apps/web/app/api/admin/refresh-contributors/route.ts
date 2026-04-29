@@ -16,8 +16,8 @@ import { hasCredentials, serverEnv } from "@/lib/env";
 import { refreshProjectContributors } from "@/lib/queries/refresh-contributors";
 import { revalidateProjectCaches } from "@/lib/cache";
 import { withIdempotency } from "@/lib/idempotency";
+import { check } from "@/lib/rate-limit";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const BodySchema = z
@@ -85,6 +85,13 @@ export async function POST(req: Request): Promise<Response> {
       actorUserId = session.user.id;
     } catch {
       return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+    }
+    const rl = await check(
+      "admin-mutate",
+      `refresh-contributors:${actorUserId}`,
+    );
+    if (!rl.success) {
+      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
     }
   }
 

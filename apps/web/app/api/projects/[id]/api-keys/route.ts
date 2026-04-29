@@ -11,12 +11,12 @@ import { getProjectRecord } from "@/lib/queries/dashboard";
 import { audit } from "@/lib/audit";
 import { hasCredentials } from "@/lib/env";
 import { IdempotencyReplayError, withIdempotency } from "@/lib/idempotency";
+import { check } from "@/lib/rate-limit";
 import { createApiKey, listApiKeysForProject } from "@/lib/queries/api-keys";
 import { ProjectApiKeyScopesSchema } from "@repo/shared";
 import { revalidateProjectCaches } from "@/lib/cache";
 import { privateNoStoreJson } from "@/lib/no-store-response";
 
-export const dynamic = "force-dynamic";
 
 const CreateBodySchema = z.object({
   name: z.string().min(1).max(64),
@@ -93,6 +93,11 @@ export async function POST(
   const authz = await authorize(projectId);
   if (!authz.ok) return authz.res;
   const userId = authz.userId;
+
+  const rl = await check("api-key", `mint:${userId}:${projectId}`);
+  if (!rl.success) {
+    return privateNoStoreJson({ error: "rate_limited" }, { status: 429 });
+  }
 
   let body: z.infer<typeof CreateBodySchema>;
   try {
