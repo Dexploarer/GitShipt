@@ -1,22 +1,14 @@
 import "server-only";
 import { cache } from "react";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "./index";
+import { getUser, type AuthUser } from "./index";
 import { isPlatformAdmin } from "./admin-check";
 import { hasCredentials } from "@/lib/env";
-import {
-  getAccountProfile,
-  getAccountSettings,
-} from "@/lib/queries/account";
+import { getAccountProfile, getAccountSettings } from "@/lib/queries/account";
 
-type BetterAuthSession = Awaited<
-  ReturnType<ReturnType<typeof auth>["api"]["getSession"]>
->;
-
-export type AuthSessionWithUser = NonNullable<BetterAuthSession> & {
-  user: NonNullable<NonNullable<BetterAuthSession>["user"]> & { id: string };
-};
+export interface AuthSessionWithUser {
+  user: AuthUser & { id: string };
+}
 
 /**
  * Session-derived user shape consumed by `<PublicAppShell>` and the
@@ -25,16 +17,11 @@ export type AuthSessionWithUser = NonNullable<BetterAuthSession> & {
  * Returns `null` when:
  *   - DB credentials are absent (stub mode)
  *   - No session cookie is present
- *   - Better-auth's getSession throws (network blip / cold start)
+ *   - Supabase's getUser throws (network blip / cold start)
  *
  * Root layout resolves this once per request and seeds the client chrome
  * context. Shells can still call it directly when they need server-side
  * decisions, but sidebars should not re-fetch it per page.
- *
- * Implementation note: this helper is the single source of truth for
- * "who is the current user, formatted for chrome". Anything that needs
- * permission checks should still use `requirePermission()` / `hasPermission()`
- * directly with the user id from the underlying session lookup.
  */
 export interface SessionUserChrome {
   id: string;
@@ -53,16 +40,16 @@ async function readAuthSession({
 }): Promise<AuthSessionWithUser | null> {
   if (!hasCredentials.db()) return null;
 
-  let session: BetterAuthSession;
+  let user: AuthUser | null;
   try {
-    session = await auth().api.getSession({ headers: await headers() });
+    user = await getUser();
   } catch (error) {
     if (catchErrors) return null;
     throw error;
   }
 
-  if (!session?.user?.id) return null;
-  return session as AuthSessionWithUser;
+  if (!user?.id) return null;
+  return { user: user as AuthUser & { id: string } };
 }
 
 export const getAuthSession = cache(async () =>
@@ -94,10 +81,7 @@ export function toSessionUserChrome(
     id: session.user.id,
     name: session.user.name ?? null,
     email: session.user.email ?? null,
-    username:
-      profile?.githubUsername ??
-      (session.user as { githubUsername?: string | null }).githubUsername ??
-      null,
+    username: profile?.githubUsername ?? session.user.githubUsername ?? null,
     imageUrl: profile?.image ?? session.user.image ?? null,
     defaultDashboardRoute: settings?.defaultDashboardRoute ?? "/dashboard",
     isPlatformAdmin: isAdmin,

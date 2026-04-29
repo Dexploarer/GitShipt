@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Github, Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { authClient } from "@/lib/auth/client";
+import { signInWithGitHub } from "@/lib/auth/client";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@repo/ui";
 
@@ -17,10 +17,7 @@ export function SignInForm() {
     setLoading(true);
     setError(null);
     try {
-      await authClient.signIn.social({
-        provider: "github",
-        callbackURL: next,
-      });
+      await signInWithGitHub(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign-in failed");
       setLoading(false);
