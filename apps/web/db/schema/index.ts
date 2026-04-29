@@ -14,3 +14,6 @@ export * from "./webhooks";
 export * from "./gh_state";
 export * from "./platform_config";
 export * from "./api-keys";
+export * from "./organizations";
+export * from "./contributor-penalties";
+export * from "./pending-draft-reviews";
