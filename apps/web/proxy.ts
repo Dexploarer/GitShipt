@@ -84,6 +84,7 @@ function buildContentSecurityPolicy({ isEmbed }: { isEmbed: boolean }) {
     `img-src ${imgSrc}`,
     "font-src 'self' data:",
     `connect-src ${connectSrc}`,
+    "frame-src 'self' https://vercel.live https://vercel.com",
     `frame-ancestors ${isEmbed ? "*" : "'none'"}`,
     "base-uri 'self'",
     "form-action 'self'",
