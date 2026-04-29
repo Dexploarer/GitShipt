@@ -56,6 +56,32 @@ the product model.
 - A theme switcher hook in components. Only `theme-toggle.tsx` may call
   `useTheme()`.
 
+## Acknowledged limitations — accepted, not defended
+
+These attacks exist on the contribution-economy spine. They are not solvable
+algorithmically without cross-platform identity / KYC / human-element
+verification. v1 mitigates with the social layer (penalty system, optional
+community verification, operator-share cap, audit log, peer override) but
+does not pretend to defeat them. The 80/15/5 rule: algorithm handles 80%,
+maintainers handle 15% via `/gitshipt flag` + `/gitshipt ban`, the remaining
+5% is the human-element cost of doing business.
+
+- **Maintainer-author collusion via alt accounts.** A maintainer with an
+  alt can author + self-approve + self-merge. Mitigated, not eliminated.
+- **Cross-repo single-human arbitrage.** One human admin of N GitShipt
+  repos scales the per-project cap by N. v2 platform-level cap planned.
+- **Owners writing biased CI rules to flag honest contributors.**
+  Mitigated by mandatory `evidenceUrl`, peer override, and the
+  contributor's right to walk.
+- **Community channels GitShipt does not run.** Per shipshape §6.7,
+  projects are advised to link Discord/Telegram/X for voice/video/stream
+  verification. GitShipt does not host, moderate, or attest to anything
+  that happens there.
+- **Substance-checking AI reviews.** Length+anchor+suggestion-density is
+  gameable by well-prompted bots. Real substance check (do comments
+  reference real diff symbols, do suggestions compile) needs LLM at
+  review time. v2.
+
 ## Boundaries that need confirmation before crossing
 
 If the user asks for something in this list, confirm scope and constraints

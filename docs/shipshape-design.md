@@ -352,24 +352,19 @@ auto-review"; "no-penalty closed").
   posts a reminder ping on the PR ("auto-elevated 7 days ago, awaiting
   maintainer; will be closed at 14 days if no action"). One full window
   for active projects to engage; sleepy projects get notified.
-- **Re-elevation abuse**: a PR closed via `gitshipt:no-penalty-close`
-  cannot be re-elevated within the same window unless its head commit is
-  *materially* different from prior rejections. Material =
-  (a) passes trivial-commit filter, AND
-  (b) (touches `priorityFileAreas` OR adds ≥10 substantive non-whitespace lines), AND
-  (c) the diff content-hash differs from every prior rejection on that PR.
-  Rate-limited to 1 reattempt per PR per period regardless.
 - **Maintainer manual review beats auto-review**. Maintainer approve →
   un-draft immediately, score under normal rules. Maintainer
   request-changes → pause the auto-review timer until the next push from
   the contributor (timer resets on push).
-- **`gitshipt:wip` opt-out label**. Contributor can apply this label to
-  pause the auto-review timer indefinitely — but only up to 30 days OR
-  one full window (whichever longer). After expiry, auto-review fires
-  regardless. Re-applying the label after expiry requires a material
-  commit (same definition as re-elevation, criterion a + b).
-- **Material-commit definition is shared** between re-elevation and
-  `gitshipt:wip` re-application so contributors learn one rule.
+- **`gitshipt:wip` opt-out label**. Contributor can apply to pause the
+  auto-review timer for up to 30 days (or one full window, whichever
+  longer). After expiry, auto-review runs.
+- **Re-elevation and gaming attempts are NOT defended algorithmically.**
+  See §6.6 — the penalty system is the catch-at-PR mechanism. If a
+  contributor games auto-review, the maintainer flags them with
+  `/gitshipt flag` and the penalty handles it. Trying to outsmart gamers
+  in auto-review code creates surface area for false positives and
+  produces an arms race we will lose. We trust the social layer.
 
 #### 6.5.5 New workflow: `processDraftQueue`
 
@@ -385,6 +380,155 @@ auto-review"; "no-penalty closed").
 
 Idempotency: per-PR-per-action key prevents repeat actions on the same
 review pass.
+
+### 6.6 Penalty system — catch at the PR
+
+**Philosophy**: maintainers know their repo's gaming patterns better than any
+heuristic ever will. Don't try to outsmart gamers algorithmically. Give
+maintainers tools to flag bad actors at the PR; make their judgment
+economically binding. Algorithm handles the 80%; maintainers handle the 15%;
+accept the 5%.
+
+#### 6.6.1 Slash commands
+
+Parsed from PR comments (and review comments) by a webhook handler at
+`/api/webhooks/github/issue_comment`. Comment author's permission is verified
+against the repo via `repos.getCollaboratorPermission` at the time of the
+command.
+
+| Command | Effect | Required perm |
+|---|---|---|
+| `/gitshipt flag` | Issue **yellow card** to PR author. Alignment ×0.5 for 30 days. | triage+ |
+| `/gitshipt ban` | Issue **red card**. No earnings on this project for 90 days; alignment forced to 0 for the rest of the current window. | triage+ |
+| `/gitshipt clear` | Clear an active yellow or red on the PR author. | triage+ |
+| `/gitshipt no-penalty-close` | Close PR with no alignment hit. | triage+ |
+| `/gitshipt confirm-quality` | Mark a review or PR as substantive even if heuristics doubt it. | triage+ |
+| `/gitshipt verify-community @user` | Mark contributor as community-verified (see §6.7). | triage+ |
+| `/gitshipt unverify-community @user` | Remove the community-verified flag. | triage+ |
+
+Repeat-red within 12 months auto-escalates to **black card** (permaban).
+Black cards are not issued by command; they're a system-recognized
+escalation. Lifting a black card requires two-super-admin cosign.
+
+CI workflows can issue yellow/red via the `penalty_issue` CI event (§10);
+black cards cannot be issued by CI.
+
+#### 6.6.2 Schema
+
+New table:
+
+```ts
+contributor_penalties (
+  id text pk,
+  contributor_id text not null fk,
+  project_id text not null fk,
+  level text not null check (level in ('yellow','red','black')),
+  reason text not null,
+  evidence_pr_url text,                    // nullable for human-issued
+  evidence_url text,                       // CI run URL — required when issued_by = 'ci_workflow'
+  issued_by text not null check (issued_by in ('human_maintainer','ci_workflow')),
+  issued_by_user_id text,                  // gh user id; null when ci-issued
+  issued_at timestamp not null default now(),
+  expires_at timestamp not null,           // computed: 30d for yellow, 90d for red, never for black
+  cleared_at timestamp,
+  cleared_by_user_id text
+)
+-- index on (contributor_id, project_id, expires_at, cleared_at)
+-- index on (project_id, level, expires_at)
+```
+
+#### 6.6.3 Enforcement
+
+Checked at the moment of compute/dispatch, never stored on score:
+
+- **Yellow active**: alignment ×0.5 in `computeAlignmentFactor`.
+- **Red active**: payout dispatcher skips this contributor; alignment forced
+  to 0 for stats display.
+- **Black active**: payout skipped; project-owner dashboard shows banner
+  asking whether to keep the contributor visible at all.
+
+A penalty is "active" iff `expires_at > now()` AND `cleared_at IS NULL`.
+
+#### 6.6.4 Visibility
+
+- **PR check** `gitshipt/penalty-status` on every PR the contributor opens
+  shows current state. Informational only — never blocks CI.
+- **Contributor dashboard** lists active penalties with reasons, evidence
+  URLs, and the maintainer who issued them. Appeal path: DM the project
+  owner.
+- **shipshape.md** (per-project) publishes the slash commands and the
+  consequences. Contributors must be able to read the rules.
+
+#### 6.6.5 Audit + idempotency
+
+Every issue/clear writes a `audit_log` entry with:
+`{ projectId, contributorId, action, level, issuedBy, evidenceUrl, prUrl, ts }`.
+
+Slash commands are idempotent on `(projectId, contributorId, prNumber, action)`
+within a 5-minute window — repeated `/gitshipt flag` from the same PR is
+a no-op.
+
+CI-issued penalties are rate-limited at the project level: if more than 10%
+of active contributors are flagged by CI in a window, further CI penalty
+events return `429 Rate Limited` and notify the project owner. Defends
+against runaway CI rules.
+
+### 6.7 Community verification — advised, not enforced
+
+**Philosophy**: GitShipt does not run, host, or verify community channels.
+But algorithm can't tell humans from Sybil farms; voice/video calls can.
+Owners run their own community for due diligence; we surface the links and
+provide an optional payout-threshold gate.
+
+#### 6.7.1 Schema
+
+```ts
+// projects
+communityLinks: jsonb {
+  discord?: { inviteUrl: string, verificationPolicy?: string };
+  telegram?: { inviteUrl: string };
+  x?: { handle: string };
+  custom?: Array<{ label: string; url: string }>;
+}
+
+// contributors
+communityVerified: boolean default false
+communityVerifiedBy: text                  // gh user id who marked, nullable
+communityVerifiedAt: timestamp             // nullable
+```
+
+#### 6.7.2 Optional payout gate
+
+Off by default. Per-project:
+
+```ts
+projects.payoutConfig.communityVerifiedThresholdLamports: number | null
+```
+
+If set: contributors whose period payout exceeds the threshold must have
+`communityVerified = true` to actually receive payout. Below threshold:
+paid normally. Lets owners require Discord-call verification for bigger
+fee-shares without gating tiny ones.
+
+Unverified contributors above threshold see their unpaid earnings held in
+a project-level escrow (`pendingCommunityVerification`) until either they
+get verified or the project owner waives the threshold.
+
+#### 6.7.3 shipshape.md disclosure
+
+shipshape gains a "Community" section that publishes:
+- Each declared community link
+- Whether community verification is required above any payout threshold
+- Plain-language note: GitShipt does not run, host, or verify these
+  channels — it's the project's own due diligence
+
+Sample render:
+
+> ## Community
+>
+> Maintainers do voice/video verification in our Discord at `<invite>`.
+> Required if your period earnings exceed 0.5 SOL; optional below.
+> GitShipt does not run or enforce this — it's our own due diligence.
 
 ## 7. Indexer v1
 
@@ -569,6 +713,13 @@ type CiEvent =
   | { type: "perf_delta";     prNumber: number; sha: string;
       metric: string; deltaBp: number;
       direction: "lower-is-better" | "higher-is-better" }
+  | { type: "penalty_issue";  prNumber: number; sha: string;       // §6.6
+      level: "yellow" | "red";          // CI cannot issue black
+      reason: string;                    // ≤200 char human-readable
+      evidenceUrl: string }              // REQUIRED — CI run URL
+  | { type: "penalty_clear";                                       // §6.6
+      contributorGhUserId: string;
+      reason: string }
 ```
 
 All events Zod-validated. Idempotency key = `(projectId, prNumber, sha, type)`.
@@ -577,7 +728,10 @@ Rejected events still emit an audit log entry.
 ### 10.4 Effect
 
 CI events feed `contributors.inputs.ci.*` aggregates per period for the PR's
-author. Aggregates feed alignment computation per §8.1.
+author. Aggregates feed alignment computation per §8.1. `penalty_issue` and
+`penalty_clear` write to `contributor_penalties` per §6.6 (with rate limit:
+> 10% of active contributors flagged in a window pauses further CI penalty
+events and notifies the project owner).
 
 ## 11. Existing-project policy (option b)
 
@@ -660,13 +814,43 @@ All three reference the canonical live URL
 
 ## 17. Out-of-scope (explicit non-goals for this branch)
 
+### 17.1 Deferred capabilities (will ship later)
+
 - Full agent routing enforcement (v2)
-- Substance-checking AI reviews (v2)
+- Substance-checking AI reviews — does the comment reference real diff
+  symbols, do suggestions compile (v2)
 - The `gitshipt/report-action` repository itself (PR 2)
 - Dashboard configurator UI (PR 3)
 - Hosted AI review service (not on roadmap)
 - Cross-repo / monorepo aggregation (v3)
 - Non-GitHub source forges (GitLab, Codeberg) — v3 minimum
+
+### 17.2 Acknowledged limitations — the "oh well" list
+
+These attacks exist, are not solvable algorithmically without
+cross-platform identity or KYC, and are accepted v1 limitations. Mitigated
+by the social layer (penalty system §6.6, community verification §6.7,
+operator-share cap, audit log, peer override) but not eliminated:
+
+- **Maintainer-author collusion via alt accounts.** A maintainer with an
+  alt can author + self-approve + self-merge. Mitigated by operator-share
+  cap (30%), audit log, peer override, and ultimately reputation pressure.
+  Real fix requires cross-account identity binding (v2+).
+- **Cross-repo single-human arbitrage.** One person who's admin on N
+  GitShipt-using repos can scale per-project caps by N. Same root cause,
+  same v2 fix.
+- **Project owners writing biased CI rules to flag honest contributors.**
+  Maintainer-side gaming. Mitigated by mandatory `evidenceUrl` on
+  CI-issued penalties, peer-maintainer override (`/gitshipt clear`), and
+  contributor's right to walk to a different repo.
+- **Community channels GitShipt does not run.** §6.7 advises projects
+  link Discord/Telegram/X for human verification, but GitShipt does not
+  host, moderate, or attest to anything that happens there. False
+  verification by a colluding maintainer in a Discord call is the same
+  Sybil problem as alt accounts.
+
+These are documented in `SPEC.md` non-goals so the system is honest about
+what it cannot enforce.
 
 ## 18. Open questions left for implementation time
 
@@ -689,17 +873,22 @@ Implementation does not start until this doc is reviewed. After approval,
 implementation lands as a series of commits on this branch in the order:
 
 1. Schema migration (incl. perWindowPrCap / draftQueueEnabled fields,
+   contributor_penalties table, communityLinks/communityVerified columns,
    pendingDraftReviews table)
 2. Scoring v1 + pacing cap logic + tests
-3. Indexer v1 + tests
-4. Alignment v1 (incl. no-penalty closure exception + auto-elevation
-   merge bonus) + tests
-5. Shipshape + logbook generators (incl. §9 Pacing section) + tests
-6. Public routes + tests
-7. CI ingest endpoint + tests
-8. processDraftQueue workflow + auto-review heuristics + tests
-9. Public docs honesty fix
-10. GitShipt's own `shipshape.md` at repo root
-11. GitShipt's own `.github/workflows/gitshipt-report.yml`
+3. Indexer v1 (incl. head-SHA check on review iteration bonus,
+   linkedOpenIssue author rule, co-author noreply verification) + tests
+4. Alignment v1 (incl. no-penalty closure exception, penalty-active
+   multipliers) + tests
+5. Penalty system + slash-command webhook handler + tests
+6. Community verification schema + payout gate enforcement + tests
+7. Shipshape + logbook generators (incl. §9 Pacing, §10 Community,
+   §11 Penalty rules) + tests
+8. Public routes + tests
+9. CI ingest endpoint (incl. penalty_issue / penalty_clear) + tests
+10. processDraftQueue workflow + auto-review heuristics + tests
+11. Public docs honesty fix
+12. GitShipt's own `shipshape.md` at repo root
+13. GitShipt's own `.github/workflows/gitshipt-report.yml`
 
 Each commit passes typecheck and tests independently.
