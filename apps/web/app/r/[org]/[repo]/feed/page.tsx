@@ -8,6 +8,7 @@ import { Card } from "@repo/ui";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { getProjectFeed } from "@/lib/queries/project-feed";
+import type { PeriodDigestSubjects } from "@/db/schema";
 import { PeriodDigestCard } from "./_components/PeriodDigestCard";
 
 type Params = Promise<{ org: string; repo: string }>;
@@ -95,10 +96,16 @@ async function ProjectFeedPageContent({
             const pinned =
               row.pinnedUntil != null && row.pinnedUntil.getTime() > now;
             if (row.kind === "period_digest") {
+              // The schema's `subjects` is the union FeedEntrySubjects;
+              // narrowing on `kind` lets us safely treat the payload as the
+              // PeriodDigestSubjects shape. Both the writer and the schema
+              // guarantee the discriminator agrees with the payload shape;
+              // any future drift surfaces at insert time, not at render.
+              const subjects = row.subjects as PeriodDigestSubjects;
               return (
                 <li key={row.id}>
                   <PeriodDigestCard
-                    subjects={row.subjects as never}
+                    subjects={subjects}
                     createdAt={row.createdAt}
                     pinned={pinned}
                   />

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjectPageData } from "@/lib/queries/project-page";
 import { getProjectFeedAtomData } from "@/lib/queries/project-feed";
+import { clientEnv } from "@/lib/env";
 
 /**
  * Atom 1.0 syndication for /r/[org]/[repo]/feed.
@@ -32,9 +33,21 @@ export async function GET(
 
   const { header } = data;
   const slug = `${header.ghOwner}/${header.ghRepo}`;
-  const siteUrl = `https://gitshipt.com/r/${slug}`;
+  // Resolve base URL from env so dev / preview / prod all generate
+  // correct self/alternate links. Falls back to localhost via the schema
+  // default in env.ts when the var isn't set.
+  const baseUrl = clientEnv().NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const siteUrl = `${baseUrl}/r/${slug}`;
   const selfUrl = `${siteUrl}/feed.atom`;
   const feedUrl = `${siteUrl}/feed`;
+
+  // Tag URN for the feed and per-entry IDs. RFC 4151 says the tag scheme
+  // gives you globally unique IDs that don't depend on URL stability — if
+  // we ever rename the domain or the path, atom readers won't see entries
+  // as "new" again. Authority is the platform domain at first launch
+  // (gitshipt.com); the date component pins the schema's birthdate so
+  // future re-coinings produce different namespaces.
+  const feedTagId = `tag:gitshipt.com,2026:project-feed/${header.id}`;
 
   const { entries } = await getProjectFeedAtomData(header.id, 30);
 
@@ -43,14 +56,16 @@ export async function GET(
     entries[0]?.createdAt.toISOString() ?? header.createdAt.toISOString();
 
   const xml = renderAtom({
-    feedId: selfUrl,
+    feedId: feedTagId,
     selfUrl,
     feedUrl,
     title: `${header.name} · GitShipt feed`,
     subtitle: `Daily digests + milestones for ${slug}, synthesized from the leaderboard and indexed git history.`,
     updated,
     entries: entries.map((e) => ({
-      id: `${selfUrl}#${e.id}`,
+      // Stable URN: doesn't depend on the public URL or the project's slug.
+      // Row id is opaque + immutable, so this id is permanent across renames.
+      id: `tag:gitshipt.com,2026:project-feed/entry/${e.id}`,
       url: feedUrl,
       title: titleFor(e),
       updated: e.createdAt.toISOString(),

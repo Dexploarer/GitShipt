@@ -60,9 +60,12 @@ export async function writePeriodDigestForSnapshot(
     subjects,
   );
 
-  // ON CONFLICT DO NOTHING because the partial unique index on
-  // (project_id, kind, period) WHERE period IS NOT NULL guarantees
-  // dedup — re-running for the same period is a noop.
+  // ON CONFLICT DO NOTHING against the partial unique index on
+  // (project_id, kind, period) WHERE period IS NOT NULL. Postgres requires
+  // the index predicate to be repeated in the ON CONFLICT clause so the
+  // planner can match the partial index — without it the query throws
+  // "there is no unique or exclusion constraint matching the ON CONFLICT
+  // specification" at runtime.
   const inserted = await dbHttp
     .insert(projectFeedEntries)
     .values({
@@ -78,6 +81,7 @@ export async function writePeriodDigestForSnapshot(
         projectFeedEntries.kind,
         projectFeedEntries.period,
       ],
+      where: sql`${projectFeedEntries.period} IS NOT NULL`,
     })
     .returning({ id: projectFeedEntries.id });
 
