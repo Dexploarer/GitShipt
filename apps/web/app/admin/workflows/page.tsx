@@ -4,7 +4,7 @@ import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { getHeartbeats } from "@/lib/queries/admin";
-import { formatRelativeTime } from "@repo/lib";
+import { RelativeTime } from "@/components/shared/RelativeTime";
 import { cn } from "@repo/lib";
 import vercelConfig from "../../../../../vercel.json";
 import { WorkflowRetriggerButton } from "./_components/WorkflowRetriggerButton";
@@ -232,9 +232,11 @@ async function AdminWorkflowsPageContent() {
                       </div>
                     </td>
                     <td className="px-4 py-2 text-mono-sm text-fg-muted">
-                      {beat?.lastBeatAt
-                        ? formatRelativeTime(beat.lastBeatAt)
-                        : "never"}
+                      {beat?.lastBeatAt ? (
+                        <RelativeTime date={beat.lastBeatAt} />
+                      ) : (
+                        "never"
+                      )}
                     </td>
                     <td className="px-4 py-2">
                       <span className="inline-flex items-center gap-1.5">
