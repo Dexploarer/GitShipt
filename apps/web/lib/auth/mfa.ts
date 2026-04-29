@@ -29,7 +29,13 @@ const TOTP_PERIOD = 30;
 const TOTP_WINDOW = 1; // accept current step ±1 to absorb clock skew
 
 const REDIS_KEY_PREFIX = "mfa:confirmed:";
-const REDIS_TTL_SECONDS = 600;
+// Aligned with the destructive-action and wallet-link freshness windows
+// (5 min). The Redis TTL is the hard ceiling — a confirmation that has
+// already aged past this is not just rejected by the application check,
+// it is gone from Redis entirely. Keeping the TTL longer than the
+// application window only widened the attacker's reuse opportunity if
+// they could bypass the in-process check.
+const REDIS_TTL_SECONDS = 300;
 
 export interface GeneratedSecret {
   /** Base32-encoded shared secret (for manual-entry display + storage). */

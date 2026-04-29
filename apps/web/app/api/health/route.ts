@@ -1,10 +1,9 @@
 import { redis } from "@/lib/redis";
 import { dbHttp } from "@/db";
 import { sql } from "drizzle-orm";
-import { hasCredentials, productionReadiness } from "@/lib/env";
+import { hasCredentials, productionReadiness, serverEnv } from "@/lib/env";
 import { noStoreJson } from "@/lib/no-store-response";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Lightweight health check. Probes:
@@ -55,10 +54,27 @@ export async function GET(): Promise<Response> {
     status.production = "ok";
   }
 
+  const env = serverEnv();
+  const overrides = {
+    emergencyKillSwitch: env.EMERGENCY_KILL_SWITCH,
+    killSwitchEnabled: env.KILL_SWITCH_ENABLED,
+    allowStubsInProd: env.ALLOW_STUBS_IN_PROD,
+    allowDemoSeed: env.ALLOW_DEMO_SEED,
+    allowNonNeonRlsOff: env.ALLOW_NON_NEON_RLS_OFF,
+    bagsAllowProdLaunch: env.BAGS_ALLOW_PROD_LAUNCH,
+  };
+  const stubMode = Object.fromEntries(
+    Object.entries(status)
+      .filter(([key]) => key !== "production")
+      .map(([key, value]) => [key, value === "stub"]),
+  );
+
   return noStoreJson({
     ok: !Object.values(status).some((v) => v === "fail"),
     status,
     production,
+    overrides,
+    stubMode,
     at: new Date().toISOString(),
   });
 }

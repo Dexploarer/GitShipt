@@ -1,6 +1,8 @@
 import { Buffer } from "node:buffer";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { hasAuthCookie } from "@/lib/auth/cookies";
+
 /**
  * Next.js 16 proxy (renamed from middleware.ts in Next 15-).
  *
@@ -16,6 +18,10 @@ import { NextResponse, type NextRequest } from "next/server";
  *   3. Send unauthenticated requests to /dashboard/* to /auth/signin?next=...
  *   4. Strip `x-middleware-subrequest` if a client tries to set it (defense
  *      in depth).
+ *   4. Mint a per-request CSP nonce + set the response CSP. The root layout
+ *      reads `x-nonce` via `headers()` and threads it into ThemeProvider's
+ *      inline theme bootstrap. Together with `'strict-dynamic'` this closes
+ *      the `'unsafe-inline'` script-src gap the audit flagged.
  */
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -114,10 +120,11 @@ export function proxy(req: NextRequest) {
   incoming.set("x-nonce", nonce);
   incoming.set("Content-Security-Policy", csp);
 
-  // Better-auth session cookie name follows the default convention.
-  const hasSession =
-    Boolean(req.cookies.get("better-auth.session_token")) ||
-    Boolean(req.cookies.get("__Secure-better-auth.session_token"));
+  // Better-auth session cookie sniff. Cookie names live in
+  // lib/auth/cookies.ts so a future better-auth config change is a
+  // one-file diff. This is a UX shortcut for redirect behaviour;
+  // authorization always happens inside the route handler.
+  const hasSession = hasAuthCookie(req.cookies);
 
   if (pathname.startsWith("/dashboard")) {
     if (!hasSession) {

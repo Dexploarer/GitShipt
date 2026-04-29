@@ -8,6 +8,28 @@ import {
   type PayoutConfig,
 } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { serverEnv } from "@/lib/env";
+
+/**
+ * Refuses to run unless ALLOW_DEMO_SEED=true AND NODE_ENV is non-production.
+ * The seeder writes a synthetic demo user, project, and 10 contributors;
+ * shipping that into a real environment would corrupt analytics, leaderboards,
+ * and any GitHub-derived contributor identity. Throwing here is a last-line
+ * defense — productionReadiness() also blocks ALLOW_DEMO_SEED in production.
+ */
+function assertSeederAllowed(): void {
+  const env = serverEnv();
+  if (env.NODE_ENV === "production") {
+    throw new Error(
+      "[seed] Demo seeder is disabled in production. Remove ALLOW_DEMO_SEED from prod env.",
+    );
+  }
+  if (!env.ALLOW_DEMO_SEED) {
+    throw new Error(
+      "[seed] ALLOW_DEMO_SEED=true is required to run the demo seeder.",
+    );
+  }
+}
 
 const DEFAULT_SCORING: ScoringConfig = {
   formulaVersion: "v0",
@@ -49,6 +71,7 @@ export interface SeedResult {
  * the project already exists, only contributors are upserted.
  */
 export async function seedDemoProject(): Promise<SeedResult> {
+  assertSeederAllowed();
   // Need an owner user. Find or create a synthetic user for demo seeding.
   const demoEmail = "demo+gitshipt@gitshipt.local";
   let [owner] = await dbHttp.select().from(users).where(eq(users.email, demoEmail)).limit(1);
