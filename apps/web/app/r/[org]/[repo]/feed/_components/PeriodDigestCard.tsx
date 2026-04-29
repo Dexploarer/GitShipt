@@ -29,10 +29,16 @@ export function PeriodDigestCard({
 }: PeriodDigestCardProps) {
   const t = subjects.totals;
   const activityChips: string[] = [];
-  if (t.mergedPRs > 0) activityChips.push(`${t.mergedPRs} merged PR${t.mergedPRs === 1 ? "" : "s"}`);
-  if (t.commits > 0) activityChips.push(`${t.commits} commit${t.commits === 1 ? "" : "s"}`);
-  if (t.reviews > 0) activityChips.push(`${t.reviews} review${t.reviews === 1 ? "" : "s"}`);
-  if (t.issues > 0) activityChips.push(`${t.issues} issue${t.issues === 1 ? "" : "s"}`);
+  if (t.mergedPRs > 0)
+    activityChips.push(
+      `${t.mergedPRs} merged PR${t.mergedPRs === 1 ? "" : "s"}`,
+    );
+  if (t.commits > 0)
+    activityChips.push(`${t.commits} commit${t.commits === 1 ? "" : "s"}`);
+  if (t.reviews > 0)
+    activityChips.push(`${t.reviews} review${t.reviews === 1 ? "" : "s"}`);
+  if (t.issues > 0)
+    activityChips.push(`${t.issues} issue${t.issues === 1 ? "" : "s"}`);
 
   return (
     <Card depth="raised" padding="none" className="overflow-hidden">
@@ -44,10 +50,7 @@ export function PeriodDigestCard({
           </Badge>
           <span className="text-mono-sm text-fg">{subjects.period}</span>
           {pinned ? (
-            <Pin
-              className="size-3.5 text-fg-muted"
-              aria-label="Pinned"
-            />
+            <Pin className="size-3.5 text-fg-muted" aria-label="Pinned" />
           ) : null}
         </div>
         <time
@@ -126,10 +129,17 @@ export function PeriodDigestCard({
   );
 }
 
-function detailLine(inputs: PeriodDigestSubjects["topContributors"][number]["inputs"]): string {
+function detailLine(
+  inputs: PeriodDigestSubjects["topContributors"][number]["inputs"],
+): string {
   const parts: string[] = [];
-  if (inputs.mergedPRs > 0) parts.push(`${inputs.mergedPRs} PR${inputs.mergedPRs === 1 ? "" : "s"}`);
-  if (inputs.commits > 0) parts.push(`${inputs.commits} commit${inputs.commits === 1 ? "" : "s"}`);
-  if (inputs.reviews > 0) parts.push(`${inputs.reviews} review${inputs.reviews === 1 ? "" : "s"}`);
+  if (inputs.mergedPRs > 0)
+    parts.push(`${inputs.mergedPRs} PR${inputs.mergedPRs === 1 ? "" : "s"}`);
+  if (inputs.commits > 0)
+    parts.push(`${inputs.commits} commit${inputs.commits === 1 ? "" : "s"}`);
+  if (inputs.reviews > 0)
+    parts.push(`${inputs.reviews} review${inputs.reviews === 1 ? "" : "s"}`);
+  if (inputs.issues > 0)
+    parts.push(`${inputs.issues} issue${inputs.issues === 1 ? "" : "s"}`);
   return parts.length > 0 ? parts.join(", ") : "—";
 }

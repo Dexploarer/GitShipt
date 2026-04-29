@@ -1,10 +1,10 @@
 import "server-only";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { dbHttp } from "@/db";
 import { projectFeedEntries, type FeedEntrySubjects } from "@/db/schema";
-import { cacheTags } from "@/lib/cache";
+import { cacheTags, revalidateProjectCaches } from "@/lib/cache";
 
 /**
  * Public feed reads. Backs /r/[org]/[repo]/feed and /r/[org]/[repo]/feed.atom.
@@ -17,13 +17,21 @@ import { cacheTags } from "@/lib/cache";
 
 export interface ProjectFeedRow {
   id: string;
-  kind: "period_digest" | "first_contributor" | "score_threshold" | "first_payout";
+  kind:
+    | "period_digest"
+    | "first_contributor"
+    | "score_threshold"
+    | "first_payout";
   period: string | null;
   subjects: FeedEntrySubjects;
   bodyMd: string;
   pinnedUntil: Date | null;
+  pinned: boolean;
   createdAt: Date;
 }
+
+const activePinSql = sql<boolean>`${projectFeedEntries.pinnedUntil} IS NOT NULL
+  AND ${projectFeedEntries.pinnedUntil} > now()`;
 
 async function getProjectFeedUncached(
   projectId: string,
@@ -39,13 +47,13 @@ async function getProjectFeedUncached(
       subjects: projectFeedEntries.subjects,
       bodyMd: projectFeedEntries.bodyMd,
       pinnedUntil: projectFeedEntries.pinnedUntil,
+      pinned: activePinSql,
       createdAt: projectFeedEntries.createdAt,
     })
     .from(projectFeedEntries)
     .where(eq(projectFeedEntries.projectId, projectId))
     .orderBy(
-      sql`CASE WHEN ${projectFeedEntries.pinnedUntil} IS NOT NULL
-                AND ${projectFeedEntries.pinnedUntil} > now() THEN 0 ELSE 1 END`,
+      sql`CASE WHEN ${activePinSql} THEN 0 ELSE 1 END`,
       desc(projectFeedEntries.createdAt),
     )
     .limit(limit);
@@ -56,6 +64,45 @@ async function getProjectFeedUncached(
     subjects: r.subjects,
     bodyMd: r.bodyMd,
     pinnedUntil: r.pinnedUntil,
+    pinned: Boolean(r.pinned),
+    createdAt: r.createdAt,
+  }));
+}
+
+async function getProjectFeedAtomUncached(
+  projectId: string,
+  limit: number,
+): Promise<ProjectFeedRow[]> {
+  const rows = await dbHttp
+    .select({
+      id: projectFeedEntries.id,
+      kind: projectFeedEntries.kind,
+      period: projectFeedEntries.period,
+      subjects: projectFeedEntries.subjects,
+      bodyMd: projectFeedEntries.bodyMd,
+      pinnedUntil: projectFeedEntries.pinnedUntil,
+      pinned: activePinSql,
+      createdAt: projectFeedEntries.createdAt,
+    })
+    .from(projectFeedEntries)
+    .where(
+      and(
+        eq(projectFeedEntries.projectId, projectId),
+        sql`length(trim(${projectFeedEntries.bodyMd})) > 0`,
+        sql`${projectFeedEntries.createdAt} > now() - interval '90 days'`,
+      ),
+    )
+    .orderBy(desc(projectFeedEntries.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    period: r.period,
+    subjects: r.subjects,
+    bodyMd: r.bodyMd,
+    pinnedUntil: r.pinnedUntil,
+    pinned: Boolean(r.pinned),
     createdAt: r.createdAt,
   }));
 }
@@ -88,8 +135,15 @@ export async function setFeedEntryPin(
     .update(projectFeedEntries)
     .set({ pinnedUntil })
     .where(eq(projectFeedEntries.id, entryId))
-    .returning({ id: projectFeedEntries.id });
-  return { ok: result.length > 0 };
+    .returning({
+      id: projectFeedEntries.id,
+      projectId: projectFeedEntries.projectId,
+    });
+  const [updated] = result;
+  if (!updated) return { ok: false };
+
+  await revalidateProjectCaches(updated.projectId);
+  return { ok: true };
 }
 
 /**
@@ -108,19 +162,9 @@ export async function getProjectFeedAtomData(
   cacheLife("browse");
   cacheTag(cacheTags.public);
   cacheTag(cacheTags.project(projectId));
-  const all = await getProjectFeedUncached(projectId, limit);
-  // Only entries with both a body and recent enough that they're worth
-  // syndicating. Pinned-forever entries can rot — we still ship them, but
-  // they get the same cap.
-  const valid = all.filter(
-    (r) =>
-      r.bodyMd.trim().length > 0 &&
-      // Keep entries from the last 90 days; everything older is archive.
-      Date.now() - r.createdAt.getTime() < 90 * 86_400_000,
-  );
+  const valid = await getProjectFeedAtomUncached(projectId, limit);
   return {
     entries: valid,
     validCount: valid.length,
   };
 }
-

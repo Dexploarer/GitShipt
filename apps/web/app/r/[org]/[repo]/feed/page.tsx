@@ -32,11 +32,7 @@ export async function generateMetadata({
   };
 }
 
-export default function ProjectFeedPage({
-  params,
-}: {
-  params: Params;
-}) {
+export default function ProjectFeedPage({ params }: { params: Params }) {
   return (
     <Suspense fallback={null}>
       <ProjectFeedPageContent params={params} />
@@ -44,11 +40,7 @@ export default function ProjectFeedPage({
   );
 }
 
-async function ProjectFeedPageContent({
-  params,
-}: {
-  params: Params;
-}) {
+async function ProjectFeedPageContent({ params }: { params: Params }) {
   const { org, repo } = await params;
   const data = await getProjectPageData(org, repo);
   if (!data) notFound();
@@ -56,7 +48,6 @@ async function ProjectFeedPageContent({
   const { header } = data;
   const slug = `${header.ghOwner}/${header.ghRepo}`;
   const entries = await getProjectFeed(header.id, 50);
-  const now = Date.now();
 
   return (
     <div className="flex flex-col gap-4">
@@ -93,21 +84,21 @@ async function ProjectFeedPageContent({
       ) : (
         <ul className="flex flex-col gap-3">
           {entries.map((row) => {
-            const pinned =
-              row.pinnedUntil != null && row.pinnedUntil.getTime() > now;
             if (row.kind === "period_digest") {
-              // The schema's `subjects` is the union FeedEntrySubjects;
-              // narrowing on `kind` lets us safely treat the payload as the
-              // PeriodDigestSubjects shape. Both the writer and the schema
-              // guarantee the discriminator agrees with the payload shape;
-              // any future drift surfaces at insert time, not at render.
-              const subjects = row.subjects as PeriodDigestSubjects;
+              if (!isPeriodDigestSubjects(row.subjects)) {
+                return (
+                  <li key={row.id} id={`entry-${row.id}`}>
+                    <FallbackMarkdownCard bodyMd={row.bodyMd} />
+                  </li>
+                );
+              }
+
               return (
-                <li key={row.id}>
+                <li key={row.id} id={`entry-${row.id}`}>
                   <PeriodDigestCard
-                    subjects={subjects}
+                    subjects={row.subjects}
                     createdAt={row.createdAt}
-                    pinned={pinned}
+                    pinned={row.pinned}
                   />
                 </li>
               );
@@ -116,7 +107,7 @@ async function ProjectFeedPageContent({
             // in v1. Falls back to the markdown body so the page never crashes
             // on a future kind that lands a row before its card component.
             return (
-              <li key={row.id}>
+              <li key={row.id} id={`entry-${row.id}`}>
                 <FallbackMarkdownCard bodyMd={row.bodyMd} />
               </li>
             );
@@ -152,5 +143,18 @@ function FallbackMarkdownCard({ bodyMd }: { bodyMd: string }) {
         {bodyMd}
       </pre>
     </Card>
+  );
+}
+
+function isPeriodDigestSubjects(value: unknown): value is PeriodDigestSubjects {
+  if (typeof value !== "object" || value == null) return false;
+
+  const subject = value as Record<string, unknown>;
+  return (
+    typeof subject.period === "string" &&
+    typeof subject.snapshotId === "string" &&
+    typeof subject.totals === "object" &&
+    subject.totals != null &&
+    Array.isArray(subject.topContributors)
   );
 }

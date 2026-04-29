@@ -23,6 +23,9 @@ import { clientEnv } from "@/lib/env";
 
 type Params = Promise<{ org: string; repo: string }>;
 
+const TAG_AUTHORITY = "gitshipt.com";
+const TAG_DATE = "2026";
+
 export async function GET(
   _req: Request,
   context: { params: Params },
@@ -47,7 +50,7 @@ export async function GET(
   // as "new" again. Authority is the platform domain at first launch
   // (gitshipt.com); the date component pins the schema's birthdate so
   // future re-coinings produce different namespaces.
-  const feedTagId = `tag:gitshipt.com,2026:project-feed/${header.id}`;
+  const feedTagId = `tag:${TAG_AUTHORITY},${TAG_DATE}:project-feed/${header.id}`;
 
   const { entries } = await getProjectFeedAtomData(header.id, 30);
 
@@ -65,8 +68,8 @@ export async function GET(
     entries: entries.map((e) => ({
       // Stable URN: doesn't depend on the public URL or the project's slug.
       // Row id is opaque + immutable, so this id is permanent across renames.
-      id: `tag:gitshipt.com,2026:project-feed/entry/${e.id}`,
-      url: feedUrl,
+      id: `tag:${TAG_AUTHORITY},${TAG_DATE}:project-feed/entry/${e.id}`,
+      url: `${feedUrl}#entry-${e.id}`,
       title: titleFor(e),
       updated: e.createdAt.toISOString(),
       published: e.createdAt.toISOString(),
@@ -82,7 +85,8 @@ export async function GET(
     headers: {
       "Content-Type": "application/atom+xml; charset=utf-8",
       // Match the cacheLife("browse") on the underlying query.
-      "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=600",
+      "Cache-Control":
+        "public, max-age=60, s-maxage=120, stale-while-revalidate=600",
     },
   });
 }
