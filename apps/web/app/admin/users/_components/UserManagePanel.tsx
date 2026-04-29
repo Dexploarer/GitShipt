@@ -130,6 +130,7 @@ export function UserManagePanel({
         action={async (p) => {
           return await grantRole({ userId, role: pendingRole, ...p });
         }}
+        successToast={`${userName} role updated to ${pendingRole}`}
       />
 
       <DestructiveConfirmModal
@@ -142,6 +143,7 @@ export function UserManagePanel({
         action={async (p) => {
           return await resetUserMfa({ userId, ...p });
         }}
+        successToast={`MFA secret reset for ${userName}`}
       />
     </>
   );
