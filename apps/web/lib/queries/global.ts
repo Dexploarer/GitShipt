@@ -9,6 +9,7 @@ import {
 } from "@/db/schema";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { redis } from "@/lib/redis";
+import { hasCredentials } from "@/lib/env";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { cacheTags } from "@/lib/cache";
@@ -117,11 +118,34 @@ function dailyFromLifetime(lifetimeLamports: bigint, createdAt: Date): bigint {
 }
 
 /**
+ * Empty landing payload returned when the DB isn't configured. Used by
+ * CI builds (no DATABASE_URL secret) so Next.js prerender doesn't crash
+ * accessing `dbHttp` proxy. Runtime requests in stub mode also hit this
+ * path until a DB is provisioned.
+ */
+const EMPTY_LANDING: LandingData = {
+  topProjects: [],
+  ticker: {
+    volume24hUsd: null,
+    volumeSource: "unavailable",
+    lifetimeFeesLamports: 0n,
+    activeProjects: 0,
+    contributorsEarning: 0,
+  },
+};
+
+/**
  * Top projects + global ticker for the landing page. Single round-trip
  * to the DB for each piece; ticker aggregates run as a few small COUNTs
  * + SUMs and should be sub-100ms even on a cold pool.
+ *
+ * Returns EMPTY_LANDING when DB is not configured — the dbHttp proxy
+ * would otherwise throw on any property access. Keeps `bun run build`
+ * green in CI environments without a DATABASE_URL secret while
+ * preserving the rich data path everywhere else.
  */
 async function getLandingDataUncached(): Promise<LandingData> {
+  if (!hasCredentials.db()) return EMPTY_LANDING;
   // Top 9 live projects, ranked by computed lifetime fees from the payouts
   // table (the canonical on-chain truth). LEFT JOIN so projects with zero
   // payouts still surface (they're the freshest launches).
