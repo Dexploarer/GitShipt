@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { CopyButton } from "@/components/shared/CopyButton";
 import { RelativeTime } from "@/components/shared/RelativeTime";
 import { formatAddress } from "@repo/lib";
 import { languageColor } from "@repo/lib";
@@ -150,9 +151,19 @@ async function ProjectRepositoryPageContent({
             label="Last commit indexed"
             icon={<GitBranch className="size-3.5" />}
             value={
-              indexerRow?.lastCommitSha
-                ? formatAddress(indexerRow.lastCommitSha, 7, 0)
-                : "—"
+              indexerRow?.lastCommitSha ? (
+                <span className="inline-flex items-center gap-1">
+                  <span title={indexerRow.lastCommitSha}>
+                    {formatAddress(indexerRow.lastCommitSha, 7, 0)}
+                  </span>
+                  <CopyButton
+                    value={indexerRow.lastCommitSha}
+                    label="Copy commit SHA"
+                  />
+                </span>
+              ) : (
+                "—"
+              )
             }
             mono
           />
