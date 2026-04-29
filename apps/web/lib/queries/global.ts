@@ -8,7 +8,16 @@ import {
   payoutRecipients,
   platformConfig,
 } from "@/db/schema";
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+
+/**
+ * Statuses that count as "operationally running" on public surfaces —
+ * landing top-projects, ticker active-projects count, global leaderboard,
+ * etc. `simulated_live` is included because stub-mode projects ARE running
+ * (just on fallback credentials); the UI distinguishes via a "Simulated"
+ * badge per ProjectCard.
+ */
+const PUBLIC_LIVE_STATUSES = ["live", "simulated_live"] as const;
 import { redis } from "@/lib/redis";
 import { cacheLife, cacheTag } from "next/cache";
 
@@ -140,7 +149,7 @@ async function getLandingDataUncached(): Promise<LandingData> {
     })
     .from(projects)
     .leftJoin(payouts, eq(payouts.projectId, projects.id))
-    .where(eq(projects.status, "live"))
+    .where(inArray(projects.status, PUBLIC_LIVE_STATUSES))
     .groupBy(projects.id)
     .orderBy(
       desc(
@@ -177,7 +186,7 @@ async function getLandingDataUncached(): Promise<LandingData> {
     dbHttp
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(projects)
-      .where(eq(projects.status, "live")),
+      .where(inArray(projects.status, PUBLIC_LIVE_STATUSES)),
     dbHttp
       .select({
         count: sql<number>`COUNT(DISTINCT ${contributorClaims.contributorId})::int`,
@@ -284,7 +293,7 @@ async function getGlobalLeaderboardUncached(): Promise<{
       })
       .from(projects)
       .leftJoin(payouts, eq(payouts.projectId, projects.id))
-      .where(eq(projects.status, "live"))
+      .where(inArray(projects.status, PUBLIC_LIVE_STATUSES))
       .groupBy(projects.id)
       .orderBy(
         desc(
@@ -431,7 +440,7 @@ export async function getLiveTickerDataUncached(): Promise<LandingTicker> {
     dbHttp
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(projects)
-      .where(eq(projects.status, "live")),
+      .where(inArray(projects.status, PUBLIC_LIVE_STATUSES)),
     dbHttp
       .select({
         count: sql<number>`COUNT(DISTINCT ${contributorClaims.contributorId})::int`,
