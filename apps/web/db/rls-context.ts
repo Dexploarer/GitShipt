@@ -7,21 +7,26 @@ export type RlsContext =
   | { mode: "user"; userId: string; role: string; reason?: string }
   | { mode: "service"; reason: string };
 
-const storage = new AsyncLocalStorage<RlsContext>();
+const _storage = new AsyncLocalStorage<RlsContext>();
+function getStorage(): AsyncLocalStorage<RlsContext> {
+  return _storage;
+}
 
 export function getRlsContext(): RlsContext {
-  return storage.getStore() ?? { mode: "anon" };
+  return getStorage().getStore() ?? { mode: "anon" };
 }
 
 export function enterRlsContext(ctx: RlsContext): void {
-  storage.enterWith(ctx);
+  getStorage().enterWith(ctx);
 }
 
 export function withRlsContext<T>(
   ctx: RlsContext,
   fn: () => Promise<T>,
 ): Promise<T> {
-  return storage.run(ctx, fn);
+  // The AsyncLocalStorage `run` typing returns the callback's return
+  // type, which is `Promise<T>` here.
+  return getStorage().run(ctx, fn) as Promise<T>;
 }
 
 /**

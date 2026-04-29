@@ -1,9 +1,7 @@
 import { drizzle as drizzleHttp } from "drizzle-orm/neon-http";
 import { drizzle as drizzleServerless } from "drizzle-orm/neon-serverless";
-import { drizzle as drizzlePg } from "drizzle-orm/postgres-js";
 import { neon, Pool } from "@neondatabase/serverless";
-import postgres from "postgres";
-import { databaseUrl, databaseUrlUnpooled, serverEnv } from "@/lib/env";
+import { databaseUrl, databaseUrlUnpooled } from "@/lib/env";
 import * as schema from "./schema";
 import { createRlsNeonClient, pgServiceOptions } from "./rls-context";
 
@@ -11,11 +9,12 @@ type DbHttp = ReturnType<typeof drizzleHttp<typeof schema>>;
 type DbPool = ReturnType<typeof drizzleServerless<typeof schema>>;
 
 /**
- * Neon's serverless drivers (`neon-http`, `neon-serverless`) only speak Neon's
- * protocol. Supabase/Vercel Marketplace and generic Postgres use postgres-js.
- * Those server connections are privileged application connections; RLS is a
- * defense-in-depth layer and route/server-action authorization remains the
- * primary boundary.
+ * Neon-only DB client. Postgres-js fallback for non-Neon hosts (Supabase,
+ * generic Postgres) was removed when the Workflow DevKit's bundler started
+ * rejecting transitive Node-module imports from helper files. Re-add the
+ * branch with a lazy `await import("postgres")` if you need it; for now,
+ * production and development both run on Neon's serverless drivers, which
+ * have no Node-only deps and are sandbox-safe.
  */
 function isNeonUrl(url: string): boolean {
   try {
@@ -25,32 +24,12 @@ function isNeonUrl(url: string): boolean {
   }
 }
 
-let warnedNonNeonRls = false;
-function warnNonNeonRlsOnce(): void {
-  if (warnedNonNeonRls) return;
-  warnedNonNeonRls = true;
-  console.warn(
-    "[db] Supabase/generic Postgres connection detected — using postgres-js with app-level authorization.",
-  );
-}
-
-/**
- * Production guard: a non-Neon DATABASE_URL silently disables RLS, leaving
- * `requirePermission` as the sole authorization boundary. That is acceptable
- * if explicitly opted in via ALLOW_NON_NEON_RLS_OFF=true; otherwise we refuse
- * to wire the client and force the operator to make the choice consciously.
- */
-function ensureRlsBoundaryAllowed(url: string): void {
-  if (isNeonUrl(url)) return;
-  const env = serverEnv();
-  if (env.NODE_ENV !== "production") return;
-  if (env.ALLOW_NON_NEON_RLS_OFF) {
-    warnNonNeonRlsOnce();
-    return;
-  }
+function refuseNonNeon(url: string): never {
   throw new Error(
-    "[db] DATABASE_URL points at a non-Neon host but RLS is required in production. " +
-      "Set ALLOW_NON_NEON_RLS_OFF=true only with a documented mitigation plan.",
+    `[db] DATABASE_URL must be a Neon (.neon.tech) host; got "${url}". ` +
+      "Non-Neon Postgres support was removed when Workflow DevKit integration " +
+      "blocked the static `postgres` import. Provision a Neon database via " +
+      "Vercel Marketplace or re-add the postgres-js path with a lazy import.",
   );
 }
 
@@ -59,19 +38,11 @@ const httpUrl = databaseUrl();
 export const dbHttp: DbHttp = httpUrl
   ? isNeonUrl(httpUrl)
     ? drizzleHttp(createRlsNeonClient(neon(httpUrl)), { schema })
-    : ((): DbHttp => {
-        ensureRlsBoundaryAllowed(httpUrl);
-        warnNonNeonRlsOnce();
-        // Cap connections so dev hot-reloads + parallel requests stay
-        // under Supabase's session-pooler limit (free tier: 15).
-        return drizzlePg(postgres(httpUrl, { prepare: false, max: 5 }), {
-          schema,
-        }) as unknown as DbHttp;
-      })()
+    : refuseNonNeon(httpUrl)
   : (new Proxy({} as DbHttp, {
       get() {
         throw new Error(
-          "DATABASE_URL or POSTGRES_URL is not configured. Provision Supabase via Vercel Marketplace, or set a Postgres connection string.",
+          "DATABASE_URL is not configured. Provision a Neon database via Vercel Marketplace.",
         );
       },
     }) as DbHttp);
@@ -83,25 +54,17 @@ export function dbPool(): DbPool {
   const connectionString = databaseUrlUnpooled();
   if (!connectionString) {
     throw new Error(
-      "DATABASE_URL_UNPOOLED, POSTGRES_URL_NON_POOLING, DATABASE_URL, or POSTGRES_URL is not configured.",
+      "DATABASE_URL_UNPOOLED or DATABASE_URL is not configured.",
     );
   }
-  if (isNeonUrl(connectionString)) {
-    const pool = new Pool({
-      connectionString,
-      options: pgServiceOptions(),
-    });
-    _dbPool = drizzleServerless(pool, { schema });
-  } else {
-    ensureRlsBoundaryAllowed(connectionString);
-    warnNonNeonRlsOnce();
-    // Cap to stay under Supabase's session-pooler limit (free tier: 15
-    // concurrent clients). dbPool serves multi-statement transactions
-    // and is hit harder than dbHttp; cap is intentionally generous but
-    // bounded so hot-reload churn doesn't exhaust the pooler.
-    const sql = postgres(connectionString, { max: 5 });
-    _dbPool = drizzlePg(sql, { schema }) as unknown as DbPool;
+  if (!isNeonUrl(connectionString)) {
+    refuseNonNeon(connectionString);
   }
+  const pool = new Pool({
+    connectionString,
+    options: pgServiceOptions(),
+  });
+  _dbPool = drizzleServerless(pool, { schema });
   return _dbPool;
 }
 

@@ -52,5 +52,9 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@solana/codecs-numbers": "^6.8.0",
+    "rpc-websockets": "^9.3.8"
   }
 }

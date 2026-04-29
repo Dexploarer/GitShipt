@@ -231,10 +231,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-// `withWorkflow(nextConfig)` is intentionally NOT applied yet. Enabling it
-// requires removing static `postgres` and `node:async_hooks` imports from
-// `@/db` and `@/lib/db-rls` so the workflow build-time analyzer doesn't
-// reject helper files. Until that cleanup is done, crons fall through to
-// `safeStartWorkflow()` which returns a graceful 200 with
-// `{ ok: false, error: "workflow_unavailable" }`.
+// `withWorkflow(nextConfig)` is intentionally NOT applied. To enable it,
+// two more refactors are required (see WORKFLOW_INTEGRATION_NOTES.md):
+//   1. Helper files must use a service-mode DB client that doesn't import
+//      `db/rls-context.ts` (which has a static `node:async_hooks` import).
+//      The Workflow DevKit's bundler emits CJS output, so the lazy
+//      top-level-await pattern doesn't apply.
+//   2. All `@solana/web3.js`, `@/lib/bags/*`, `@/lib/solana/*` imports in
+//      step bodies must be converted to dynamic `await import()` so the
+//      step bundle doesn't try to statically resolve `@solana/codecs-numbers`
+//      and `rpc-websockets` from inside Bun's deduped node_modules layout.
+// Until then, crons fall through to `safeStartWorkflow()` and return a
+// graceful 200 with `{ ok: false, error: "workflow_unavailable" }`.
 export default nextConfig;
