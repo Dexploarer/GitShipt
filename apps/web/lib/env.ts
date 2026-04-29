@@ -87,10 +87,23 @@ const serverEnvSchema = z.object({
   ),
 
   // Cron
+  // Generate with: openssl rand -base64 32
+  // Compared via crypto.timingSafeEqual at the cron edge.
   CRON_SECRET: z.preprocess(
     (value) =>
       typeof value === "string" && value.trim() === "" ? undefined : value,
-    z.string().min(16).optional(),
+    z.string().min(32).optional(),
+  ),
+
+  // Idempotency: HMAC key for tamper-evident replay cache. Without it, the
+  // idempotency cache stores values verbatim and a leaked key replays the
+  // cached response. With it, every cached value carries an HMAC bound to
+  // (scope|key|sha256(payload)) and mismatched reads are rejected.
+  // Generate with: openssl rand -base64 32
+  IDEMPOTENCY_KEY_SECRET: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.string().min(32).optional(),
   ),
 
   // Platform
@@ -102,6 +115,19 @@ const serverEnvSchema = z.object({
     .default(500),
   ADMIN_EMAIL_ALLOWLIST: z.string().optional(),
   KILL_SWITCH_ENABLED: z.coerce.boolean().default(false),
+
+  // Out-of-band emergency stop. When true, every entry into trading-controls
+  // returns halted=true regardless of the platform_config DB row. Use during
+  // an incident when the DB itself may be unhealthy.
+  EMERGENCY_KILL_SWITCH: z.coerce.boolean().default(false),
+
+  // Hard gate on the demo seeder. Refuses to run unless explicitly allowed
+  // AND NODE_ENV is non-production.
+  ALLOW_DEMO_SEED: z.coerce.boolean().default(false),
+
+  // Allow non-Neon DATABASE_URL in production (RLS becomes app-only). Off by
+  // default; set true only with a documented mitigation plan.
+  ALLOW_NON_NEON_RLS_OFF: z.coerce.boolean().default(false),
 });
 
 const clientEnvSchema = z.object({
@@ -313,6 +339,7 @@ export function productionReadiness(): ProductionReadiness {
     ["HELIUS_RPC_URL", env.HELIUS_RPC_URL],
     ["SOLANA_PAYOUT_KEYPAIR", env.SOLANA_PAYOUT_KEYPAIR],
     ["CRON_SECRET", env.CRON_SECRET],
+    ["IDEMPOTENCY_KEY_SECRET", env.IDEMPOTENCY_KEY_SECRET],
   ];
 
   for (const [name, value] of requiredServer) {
@@ -361,6 +388,23 @@ export function productionReadiness(): ProductionReadiness {
 
   if (env.ALLOW_STUBS_IN_PROD) {
     warnings.push("ALLOW_STUBS_IN_PROD=true leaves production in stub mode.");
+  }
+
+  if (env.ALLOW_DEMO_SEED) {
+    missing.push("ALLOW_DEMO_SEED=true must be removed in production");
+  }
+
+  const provider = databaseProvider();
+  if (provider !== "neon" && provider !== "none") {
+    if (env.ALLOW_NON_NEON_RLS_OFF) {
+      warnings.push(
+        "ALLOW_NON_NEON_RLS_OFF=true: RLS is disabled, app-layer requirePermission is the only authorization boundary.",
+      );
+    } else {
+      missing.push(
+        `DATABASE_URL must be a Neon URL for RLS (got provider=${provider}); set ALLOW_NON_NEON_RLS_OFF=true to override`,
+      );
+    }
   }
 
   if (env.BAGS_API_KEY && !env.BAGS_API_KEY.startsWith("bags_prod_")) {

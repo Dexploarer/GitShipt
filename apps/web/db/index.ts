@@ -3,7 +3,7 @@ import { drizzle as drizzleServerless } from "drizzle-orm/neon-serverless";
 import { drizzle as drizzlePg } from "drizzle-orm/postgres-js";
 import { neon, Pool } from "@neondatabase/serverless";
 import postgres from "postgres";
-import { databaseUrl, databaseUrlUnpooled } from "@/lib/env";
+import { databaseUrl, databaseUrlUnpooled, serverEnv } from "@/lib/env";
 import * as schema from "./schema";
 import { createRlsNeonClient, pgServiceOptions } from "./rls-context";
 
@@ -34,12 +34,33 @@ function warnNonNeonRlsOnce(): void {
   );
 }
 
+/**
+ * Production guard: a non-Neon DATABASE_URL silently disables RLS, leaving
+ * `requirePermission` as the sole authorization boundary. That is acceptable
+ * if explicitly opted in via ALLOW_NON_NEON_RLS_OFF=true; otherwise we refuse
+ * to wire the client and force the operator to make the choice consciously.
+ */
+function ensureRlsBoundaryAllowed(url: string): void {
+  if (isNeonUrl(url)) return;
+  const env = serverEnv();
+  if (env.NODE_ENV !== "production") return;
+  if (env.ALLOW_NON_NEON_RLS_OFF) {
+    warnNonNeonRlsOnce();
+    return;
+  }
+  throw new Error(
+    "[db] DATABASE_URL points at a non-Neon host but RLS is required in production. " +
+      "Set ALLOW_NON_NEON_RLS_OFF=true only with a documented mitigation plan.",
+  );
+}
+
 const httpUrl = databaseUrl();
 
 export const dbHttp: DbHttp = httpUrl
   ? isNeonUrl(httpUrl)
     ? drizzleHttp(createRlsNeonClient(neon(httpUrl)), { schema })
     : ((): DbHttp => {
+        ensureRlsBoundaryAllowed(httpUrl);
         warnNonNeonRlsOnce();
         // Cap connections so dev hot-reloads + parallel requests stay
         // under Supabase's session-pooler limit (free tier: 15).
@@ -72,6 +93,7 @@ export function dbPool(): DbPool {
     });
     _dbPool = drizzleServerless(pool, { schema });
   } else {
+    ensureRlsBoundaryAllowed(connectionString);
     warnNonNeonRlsOnce();
     // Cap to stay under Supabase's session-pooler limit (free tier: 15
     // concurrent clients). dbPool serves multi-statement transactions
