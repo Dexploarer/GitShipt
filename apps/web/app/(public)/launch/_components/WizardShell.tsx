@@ -10,6 +10,7 @@ import {
   FlaskConical,
   Rocket,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@repo/lib";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
@@ -177,7 +178,11 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
         const result = await createAndLaunchAction(body);
 
         if (!result.ok) {
-          failSubmit(formatActionError(result.error, result.message));
+          const message = formatActionError(result.error, result.message);
+          failSubmit(message);
+          // Inline FormError stays put for context, toast surfaces the
+          // failure persistently in case the user scrolled.
+          toast.error(message);
           return;
         }
 
@@ -192,8 +197,12 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
           ghOwner: result.ghOwner,
           ghRepo: result.ghRepo,
         });
+        // Success state replaces the wizard with <LaunchResult>; no toast
+        // needed (would be redundant with the page-level success view).
       } catch (e) {
-        failSubmit(e instanceof Error ? e.message : "Launch failed.");
+        const message = e instanceof Error ? e.message : "Launch failed.";
+        failSubmit(message);
+        toast.error(message);
       }
     });
   }
@@ -206,10 +215,9 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
    */
   async function handleSaveDraft() {
     if (!repo || !metadata) {
-      setSaveState({
-        status: "error",
-        message: "Pick a repo and fill the token metadata before saving.",
-      });
+      const message = "Pick a repo and fill the token metadata before saving.";
+      setSaveState({ status: "error", message });
+      toast.error(message);
       return;
     }
     setSaveState({ status: "saving" });
@@ -240,6 +248,7 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
       const result = await saveDraftAction(body, draftProjectId ?? undefined);
       if (!result.ok) {
         setSaveState({ status: "error", message: result.message });
+        toast.error(result.message);
         return;
       }
       setDraftProjectId(result.projectId);
@@ -248,11 +257,11 @@ export function WizardShell({ signedIn, isStubMode, draft }: WizardShellProps) {
       url.searchParams.set("draftId", result.projectId);
       window.history.replaceState({}, "", url.toString());
       setSaveState({ status: "saved", createdNew: result.created });
+      toast.success(result.created ? "Draft saved" : "Draft updated");
     } catch (e) {
-      setSaveState({
-        status: "error",
-        message: e instanceof Error ? e.message : "Save failed.",
-      });
+      const message = e instanceof Error ? e.message : "Save failed.";
+      setSaveState({ status: "error", message });
+      toast.error(message);
     }
   }
 
