@@ -175,7 +175,7 @@ export function RepoPicker({ selectedId, onSelect }: RepoPickerProps) {
                 const handleClick = () => {
                   if (isDisabled) return;
                   if (hasDraft && repo.draftProjectId) {
-                    router.push(`/dashboard/projects/${repo.draftProjectId}`);
+                    router.push(`/launch?draftId=${repo.draftProjectId}`);
                     return;
                   }
                   onSelect(repo);

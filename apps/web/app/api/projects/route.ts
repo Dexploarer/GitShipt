@@ -16,6 +16,7 @@ import {
   CreateProjectResponseSchema,
 } from "@repo/shared";
 import { applyDbRlsContext } from "@/lib/db-rls";
+import { isProjectsGhRepoUniqueViolation } from "@/lib/db-errors";
 
 
 /**
@@ -208,7 +209,7 @@ export async function POST(req: Request): Promise<Response> {
     // Most likely cause: ghRepoUq violation = repo already launched.
     const message =
       e instanceof Error ? e.message : "Failed to create project.";
-    if (/projects_gh_repo_uq/i.test(message)) {
+    if (isProjectsGhRepoUniqueViolation(e)) {
       return NextResponse.json(
         {
           error: "already_exists",

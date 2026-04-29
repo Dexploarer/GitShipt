@@ -29,6 +29,7 @@ import {
   type UpdateDraftBody,
 } from "@repo/shared";
 import { applyDbRlsContext } from "@/lib/db-rls";
+import { isProjectsGhRepoUniqueViolation } from "@/lib/db-errors";
 
 /**
  * Server action used by `<ReviewAndSign>` to drive the create + launch flow
@@ -228,8 +229,7 @@ export async function createAndLaunchAction(
           });
         } catch (e) {
           // UNIQUE violation on (ghOwner, ghRepo) → recover an existing project.
-          const message = e instanceof Error ? e.message : String(e);
-          if (/projects_gh_repo_uq/i.test(message)) {
+          if (isProjectsGhRepoUniqueViolation(e)) {
             const [existing] = await dbHttp
               .select({
                 id: projects.id,
@@ -1038,7 +1038,7 @@ export async function saveDraftAction(
       };
     }
     const message = e instanceof Error ? e.message : "Failed to save draft.";
-    if (/projects_gh_repo_uq/i.test(message)) {
+    if (isProjectsGhRepoUniqueViolation(e)) {
       return {
         ok: false,
         error: "already_exists",
