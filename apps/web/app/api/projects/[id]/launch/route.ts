@@ -6,8 +6,9 @@ import { auth } from "@/lib/auth";
 import { dbHttp } from "@/db";
 import { projects } from "@/db/schema";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
+import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
-import { withIdempotency } from "@/lib/idempotency";
+import { validateClientKey, withIdempotency } from "@/lib/idempotency";
 import {
   hasCredentials,
   canLaunchOnBags,
@@ -19,7 +20,6 @@ import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { LaunchProjectResponseSchema } from "@repo/shared";
 import { revalidateProjectCaches } from "@/lib/cache";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
@@ -78,6 +78,11 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
   }
   const userId = session.user.id;
 
+  const rl = await check("project-mutate", `launch:${userId}:${projectId}`);
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   try {
     await requirePermission("project.update", { userId, projectId });
   } catch (e) {
@@ -91,6 +96,16 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
   }
 
   const rawIdempotencyKey = req.headers.get("idempotency-key");
+  if (rawIdempotencyKey) {
+    try {
+      validateClientKey(rawIdempotencyKey);
+    } catch {
+      return NextResponse.json(
+        { error: "idempotency_key_format" },
+        { status: 400 },
+      );
+    }
+  }
 
   // Peek at project state BEFORE entering withIdempotency so we can namespace
   // the cache key per-mode. Otherwise a stub-mode response is cached and any

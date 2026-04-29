@@ -14,9 +14,9 @@ import {
   revalidateProjectCaches,
   revalidateUserCaches,
 } from "@/lib/cache";
-import { withIdempotency } from "@/lib/idempotency";
+import { validateClientKey, withIdempotency } from "@/lib/idempotency";
+import { check } from "@/lib/rate-limit";
 
-export const dynamic = "force-dynamic";
 
 /**
  * POST /api/claims/link
@@ -59,6 +59,11 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const userId = session.user.id;
+
+  const limit = await check("claim", `link:${userId}`);
+  if (!limit.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
 
   // Verify the wallet belongs to this user and is SIWS-verified.
   const [walletRow] = await dbHttp
@@ -115,9 +120,20 @@ export async function POST(req: Request): Promise<Response> {
 
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rawClientKey =
+    req.headers.get("idempotency-key") ?? req.headers.get("Idempotency-Key");
+  if (rawClientKey) {
+    try {
+      validateClientKey(rawClientKey);
+    } catch {
+      return NextResponse.json(
+        { error: "idempotency_key_format" },
+        { status: 400 },
+      );
+    }
+  }
   const idempotencyKey =
-    req.headers.get("idempotency-key") ??
-    req.headers.get("Idempotency-Key") ??
+    rawClientKey ??
     `claim-link:${parsed.data.contributorId}:${userId}:${parsed.data.walletAddress}`;
 
   const result = await withIdempotency(

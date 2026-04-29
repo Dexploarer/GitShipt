@@ -8,7 +8,7 @@ import { dbHttp, dbPool } from "@/db";
 import { accounts, projects, projectMemberships, users } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
-import { withIdempotency } from "@/lib/idempotency";
+import { validateClientKey, withIdempotency } from "@/lib/idempotency";
 import { hasCredentials, stubsAllowed } from "@/lib/env";
 import { revalidatePublicCaches, revalidateUserCaches } from "@/lib/cache";
 import {
@@ -17,7 +17,6 @@ import {
 } from "@repo/shared";
 import { applyDbRlsContext } from "@/lib/db-rls";
 
-export const dynamic = "force-dynamic";
 
 /**
  * POST /api/projects — create a draft project.
@@ -117,10 +116,19 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const idempotencyKey = req.headers.get("idempotency-key");
-  if (!idempotencyKey) {
+  const rawIdempotencyKey = req.headers.get("idempotency-key");
+  if (!rawIdempotencyKey) {
     return NextResponse.json(
       { error: "idempotency_key_required" },
+      { status: 400 },
+    );
+  }
+  let idempotencyKey: string;
+  try {
+    idempotencyKey = validateClientKey(rawIdempotencyKey);
+  } catch {
+    return NextResponse.json(
+      { error: "idempotency_key_format" },
       { status: 400 },
     );
   }

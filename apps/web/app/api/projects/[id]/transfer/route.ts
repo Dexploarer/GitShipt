@@ -7,18 +7,18 @@ import { auth } from "@/lib/auth";
 import { dbHttp } from "@/db";
 import { projects, users } from "@/db/schema";
 import { requirePermission, PermissionError } from "@/lib/auth/permissions";
+import { check } from "@/lib/rate-limit";
 import {
   destructiveAction,
   DestructiveActionError,
   MfaRequiredError,
 } from "@/lib/auth/destructive-action";
 import { audit } from "@/lib/audit";
-import { withIdempotency } from "@/lib/idempotency";
+import { validateClientKey, withIdempotency } from "@/lib/idempotency";
 import { hasCredentials } from "@/lib/env";
 import { transferProjectOwnership } from "@/lib/queries/admin";
 import { revalidateProjectCaches } from "@/lib/cache";
 
-export const dynamic = "force-dynamic";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -77,6 +77,11 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
   const actorUserId = session.user.id;
+
+  const rl = await check("project-mutate", `transfer:${actorUserId}:${projectId}`);
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
 
   try {
     await requirePermission("project.transfer", {
@@ -161,10 +166,19 @@ export async function POST(req: Request, ctx: RouteContext): Promise<Response> {
     );
   }
 
+  const rawClientKey = h.get("idempotency-key") ?? h.get("Idempotency-Key");
+  if (rawClientKey) {
+    try {
+      validateClientKey(rawClientKey);
+    } catch {
+      return NextResponse.json(
+        { error: "idempotency_key_format" },
+        { status: 400 },
+      );
+    }
+  }
   const idempotencyKey =
-    h.get("idempotency-key") ??
-    h.get("Idempotency-Key") ??
-    `transfer:${projectId}:${recipient.id}`;
+    rawClientKey ?? `transfer:${projectId}:${recipient.id}`;
   const ip = h.get("x-forwarded-for") ?? null;
   const userAgent = h.get("user-agent") ?? null;
   const fromUserId = proj.ownerUserId;

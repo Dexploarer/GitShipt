@@ -14,7 +14,8 @@ import {
 } from "@/db/schema";
 import { processClaim } from "@/workflows/processClaim";
 import { audit } from "@/lib/audit";
-import { withIdempotency } from "@/lib/idempotency";
+import { validateClientKey, withIdempotency } from "@/lib/idempotency";
+import { check } from "@/lib/rate-limit";
 import { hasCredentials } from "@/lib/env";
 import {
   revalidateContributorCaches,
@@ -23,7 +24,6 @@ import {
 } from "@/lib/cache";
 import { ClaimEscrowRequestSchema } from "@repo/shared";
 
-export const dynamic = "force-dynamic";
 
 interface DrainedItem {
   projectSlug: string;
@@ -67,6 +67,11 @@ export async function POST(req: Request): Promise<Response> {
   }
   const userId = session.user.id;
 
+  const limit = await check("claim", `escrow:${userId}`);
+  if (!limit.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   let raw: unknown = {};
   try {
     // Body is optional — empty POST is allowed (drain all eligible).
@@ -85,7 +90,18 @@ export async function POST(req: Request): Promise<Response> {
   }
   const projectFilter = parsed.data.projectId ?? null;
 
-  const idemKey = req.headers.get("idempotency-key");
+  const rawIdemKey = req.headers.get("idempotency-key");
+  let idemKey: string | null = null;
+  if (rawIdemKey) {
+    try {
+      idemKey = validateClientKey(rawIdemKey);
+    } catch {
+      return NextResponse.json(
+        { error: "idempotency_key_format" },
+        { status: 400 },
+      );
+    }
+  }
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const userAgent = req.headers.get("user-agent");

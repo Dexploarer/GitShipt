@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { verifySiws, SiwsMessageSchema } from "@/lib/auth/siws";
 import { auth } from "@/lib/auth";
 import { dbHttp } from "@/db";
-import { wallets } from "@/db/schema";
+import { users, wallets } from "@/db/schema";
 import { check } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { hasCredentials, serverEnv, clientEnv } from "@/lib/env";
-import { withIdempotency } from "@/lib/idempotency";
+import { validateClientKey, withIdempotency } from "@/lib/idempotency";
+import { getMfaConfirmedAt } from "@/lib/auth/mfa";
 import { headers } from "next/headers";
 import { WalletVerifyResponseSchema } from "@repo/shared";
 import { revalidateUserCaches } from "@/lib/cache";
 
-export const dynamic = "force-dynamic";
+const MFA_WALLET_LINK_WINDOW_MS = 5 * 60_000;
+
 
 const BodySchema = z.object({
   message: SiwsMessageSchema,
@@ -84,7 +87,60 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const idempotencyKey = req.headers.get("idempotency-key");
+  // MFA freshness gate — if the user has MFA enrolled, require a recent
+  // TOTP confirmation before binding a new wallet. Wallet linking grants
+  // long-lived signing authority over future SIWS sessions, so reusing a
+  // stolen GitHub session cookie to swap in an attacker wallet is the
+  // shortest privilege-escalation path. A user who has not enrolled MFA is
+  // allowed to proceed with the SIWS+session gate alone.
+  const [userRow] = await dbHttp
+    .select({ id: users.id, mfaSecretEnc: users.mfaSecretEnc })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+  const hasMfaEnrolled = Boolean(userRow?.mfaSecretEnc);
+  if (hasMfaEnrolled) {
+    const confirmedAtMs = await getMfaConfirmedAt(session.user.id);
+    if (
+      confirmedAtMs == null ||
+      Date.now() - confirmedAtMs >= MFA_WALLET_LINK_WINDOW_MS
+    ) {
+      await audit({
+        actorUserId: session.user.id,
+        action: "auth.wallet_link",
+        targetType: "wallet",
+        targetId: result.address!,
+        metadata: {
+          chain: "solana",
+          method: "siws",
+          phase: "rejected_mfa_required",
+        },
+        ip,
+        userAgent: req.headers.get("user-agent"),
+      });
+      return NextResponse.json(
+        {
+          error: "mfa_required",
+          message:
+            "Re-confirm MFA before linking a wallet. Enter a fresh TOTP code and retry.",
+        },
+        { status: 401 },
+      );
+    }
+  }
+
+  const rawIdempotencyKey = req.headers.get("idempotency-key");
+  let idempotencyKey: string | null = null;
+  if (rawIdempotencyKey) {
+    try {
+      idempotencyKey = validateClientKey(rawIdempotencyKey);
+    } catch {
+      return NextResponse.json(
+        { error: "idempotency_key_format" },
+        { status: 400 },
+      );
+    }
+  }
 
   const persisted = await withIdempotency(
     idempotencyKey,
