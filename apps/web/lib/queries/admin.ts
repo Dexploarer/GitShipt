@@ -28,7 +28,9 @@ import {
   inArray,
 } from "drizzle-orm";
 import { applyDbRlsContext } from "@/lib/db-rls";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
+
+import { cacheTags } from "@/lib/cache";
 import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
 import { z } from "zod";
 
@@ -135,14 +137,10 @@ async function getOpsKpisUncached(
 export async function getOpsKpis(
   hotWalletLamports: number | null,
 ): Promise<OpsKpis> {
-  return getCachedValue(
-    () => getOpsKpisUncached(hotWalletLamports),
-    ["gitshipt:admin:ops-kpis:v1", String(hotWalletLamports ?? "unknown")],
-    {
-      tags: [cacheTags.admin],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  return await getOpsKpisUncached(hotWalletLamports);
 }
 
 export interface HeartbeatRow {
@@ -155,6 +153,14 @@ export interface HeartbeatRow {
 
 const HEARTBEAT_GREEN_SEC = 120;
 const HEARTBEAT_YELLOW_SEC = 600;
+
+/**
+ * Hard cap on every unbounded admin list query. Cursor-based pagination via
+ * lib/pagination.ts is the long-term answer; this cap is the floor that
+ * prevents a single Drizzle call from materialising the entire `projects`
+ * or `users` table when those grow.
+ */
+const ADMIN_LIST_HARD_CAP = 500;
 
 async function getHeartbeatsUncached(): Promise<HeartbeatRow[]> {
   const rows = await dbHttp
@@ -187,14 +193,11 @@ async function getHeartbeatsUncached(): Promise<HeartbeatRow[]> {
 }
 
 export async function getHeartbeats(): Promise<HeartbeatRow[]> {
-  return getCachedValue(
-    () => getHeartbeatsUncached(),
-    ["gitshipt:admin:heartbeats:v1"],
-    {
-      tags: [cacheTags.admin, cacheTags.platformConfig],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  cacheTag(cacheTags.platformConfig);
+  return await getHeartbeatsUncached();
 }
 
 export interface AdminFailedPayoutRow {
@@ -241,14 +244,11 @@ async function getRecentFailedPayoutsUncached(
 export async function getRecentFailedPayouts(
   limit = 10,
 ): Promise<AdminFailedPayoutRow[]> {
-  const safeLimit = z.number().int().min(1).max(100).catch(10).parse(limit);
-  return getCachedValue(
-    () => getRecentFailedPayoutsUncached(safeLimit),
-    ["gitshipt:admin:recent-failed-payouts:v1", String(safeLimit)],
-    {
-      tags: [cacheTags.admin],
-      revalidate: CACHE_SECONDS.admin,
-    },
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  return await getRecentFailedPayoutsUncached(
+    z.number().int().min(1).max(100).catch(10).parse(limit),
   );
 }
 
@@ -341,15 +341,11 @@ async function getAuditLogsUncached(
 export async function getAuditLogs(
   filter: AuditFilter = {},
 ): Promise<AuditRow[]> {
-  const safeFilter = AuditFilterSchema.parse(filter);
-  return getCachedValue(
-    () => getAuditLogsUncached(safeFilter),
-    ["gitshipt:admin:audit:v1", JSON.stringify(safeFilter)],
-    {
-      tags: [cacheTags.admin, cacheTags.adminAudit],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  cacheTag(cacheTags.adminAudit);
+  return await getAuditLogsUncached(AuditFilterSchema.parse(filter));
 }
 
 export interface AdminProjectRow {
@@ -397,9 +393,18 @@ async function getAllProjectsUncached(filter?: {
     .from(projects)
     .leftJoin(users, eq(projects.ownerUserId, users.id));
 
+  // Hard cap so a runaway projects table cannot blow out the admin page
+  // memory footprint. Cursor pagination ships in lib/pagination.ts and is
+  // adopted incrementally; until then the admin UI sees the most recent
+  // ADMIN_LIST_HARD_CAP rows.
   const rows = conds.length
-    ? await baseQuery.where(and(...conds)).orderBy(desc(projects.createdAt))
-    : await baseQuery.orderBy(desc(projects.createdAt));
+    ? await baseQuery
+        .where(and(...conds))
+        .orderBy(desc(projects.createdAt))
+        .limit(ADMIN_LIST_HARD_CAP)
+    : await baseQuery
+        .orderBy(desc(projects.createdAt))
+        .limit(ADMIN_LIST_HARD_CAP);
 
   return rows.map((r) => ({
     id: r.id,
@@ -418,15 +423,10 @@ async function getAllProjectsUncached(filter?: {
 export async function getAllProjects(filter?: {
   status?: string;
 }): Promise<AdminProjectRow[]> {
-  const safeFilter = normalizeProjectStatusFilter(filter);
-  return getCachedValue(
-    () => getAllProjectsUncached(safeFilter),
-    ["gitshipt:admin:projects:v1", safeFilter.status ?? "all"],
-    {
-      tags: [cacheTags.admin],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  return await getAllProjectsUncached(normalizeProjectStatusFilter(filter));
 }
 
 export interface PartnerFeeShareSummary {
@@ -492,14 +492,10 @@ async function getPartnerFeeShareSummaryUncached(): Promise<PartnerFeeShareSumma
 }
 
 export async function getPartnerFeeShareSummary(): Promise<PartnerFeeShareSummary> {
-  return getCachedValue(
-    () => getPartnerFeeShareSummaryUncached(),
-    ["gitshipt:admin:partner-fee-share-summary:v1"],
-    {
-      tags: [cacheTags.admin],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  return await getPartnerFeeShareSummaryUncached();
 }
 
 async function getProjectAdminDetailUncached(projectId: string): Promise<{
@@ -565,18 +561,12 @@ export async function getProjectAdminDetail(projectId: string): Promise<{
   activeApiKeys: number;
   lastApiKeyUsedAt: Date | null;
 } | null> {
-  return getCachedValue(
-    () => getProjectAdminDetailUncached(projectId),
-    ["gitshipt:admin:project-detail:v1", projectId],
-    {
-      tags: [
-        cacheTags.admin,
-        cacheTags.project(projectId),
-        cacheTags.dashboardProject(projectId),
-      ],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.dashboardProject(projectId));
+  return await getProjectAdminDetailUncached(projectId);
 }
 
 export interface AdminUserRow {
@@ -619,14 +609,11 @@ async function getAllUsersUncached(): Promise<AdminUserRow[]> {
 }
 
 export async function getAllUsers(): Promise<AdminUserRow[]> {
-  return getCachedValue(
-    () => getAllUsersUncached(),
-    ["gitshipt:admin:users:v1"],
-    {
-      tags: [cacheTags.admin, cacheTags.adminUsers],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  cacheTag(cacheTags.adminUsers);
+  return await getAllUsersUncached();
 }
 
 export interface AdminPayoutRow {
@@ -699,15 +686,10 @@ async function getAllPayoutsUncached(filter?: {
 export async function getAllPayouts(filter?: {
   status?: string;
 }): Promise<AdminPayoutRow[]> {
-  const safeFilter = normalizePayoutStatusFilter(filter);
-  return getCachedValue(
-    () => getAllPayoutsUncached(safeFilter),
-    ["gitshipt:admin:payouts:v1", safeFilter.status ?? "all"],
-    {
-      tags: [cacheTags.admin],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  return await getAllPayoutsUncached(normalizePayoutStatusFilter(filter));
 }
 
 export interface AdminSnapshotRow {
@@ -758,14 +740,10 @@ async function getAllSnapshotsUncached(): Promise<AdminSnapshotRow[]> {
 }
 
 export async function getAllSnapshots(): Promise<AdminSnapshotRow[]> {
-  return getCachedValue(
-    () => getAllSnapshotsUncached(),
-    ["gitshipt:admin:snapshots:v1"],
-    {
-      tags: [cacheTags.admin],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  return await getAllSnapshotsUncached();
 }
 
 async function getSnapshotDetailUncached(snapshotId: string) {
@@ -787,28 +765,23 @@ async function getSnapshotDetailUncached(snapshotId: string) {
 }
 
 export async function getSnapshotDetail(snapshotId: string) {
-  const safeSnapshotId = z.string().min(1).max(128).parse(snapshotId);
-  return getCachedValue(
-    () => getSnapshotDetailUncached(safeSnapshotId),
-    ["gitshipt:admin:snapshot-detail:v1", safeSnapshotId],
-    {
-      tags: [cacheTags.admin],
-      revalidate: CACHE_SECONDS.admin,
-    },
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  return await getSnapshotDetailUncached(
+    z.string().min(1).max(128).parse(snapshotId),
   );
 }
 
 export async function getPlatformConfigValue<T = Record<string, unknown>>(
   key: string,
 ): Promise<T | null> {
-  const safeKey = PlatformConfigKeySchema.parse(key);
-  return getCachedValue(
-    () => getPlatformConfigValueUncached<T>(safeKey),
-    ["gitshipt:admin:platform-config:v1", safeKey],
-    {
-      tags: [cacheTags.admin, cacheTags.platformConfig],
-      revalidate: CACHE_SECONDS.admin,
-    },
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  cacheTag(cacheTags.platformConfig);
+  return await getPlatformConfigValueUncached<T>(
+    PlatformConfigKeySchema.parse(key),
   );
 }
 
@@ -876,14 +849,10 @@ async function getTableRowCountsUncached(): Promise<
 export async function getTableRowCounts(): Promise<
   Array<{ table: string; rows: number }>
 > {
-  return getCachedValue(
-    () => getTableRowCountsUncached(),
-    ["gitshipt:admin:table-row-counts:v1"],
-    {
-      tags: [cacheTags.admin],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  return await getTableRowCountsUncached();
 }
 
 /**
@@ -985,15 +954,17 @@ async function getUsersByIdsUncached(ids: string[]): Promise<AdminUserRow[]> {
 export async function getUsersByIds(ids: string[]): Promise<AdminUserRow[]> {
   const safeIds = IdListSchema.parse(ids);
   if (safeIds.length === 0) return [];
-  const sortedIds = [...safeIds].sort();
-  return getCachedValue(
-    () => getUsersByIdsUncached(sortedIds),
-    ["gitshipt:admin:users-by-ids:v1", sortedIds.join(",")],
-    {
-      tags: [cacheTags.admin, cacheTags.adminUsers],
-      revalidate: CACHE_SECONDS.admin,
-    },
-  );
+  return getUsersByIdsCached([...safeIds].sort());
+}
+
+async function getUsersByIdsCached(
+  sortedIds: string[],
+): Promise<AdminUserRow[]> {
+  "use cache";
+  cacheLife("admin");
+  cacheTag(cacheTags.admin);
+  cacheTag(cacheTags.adminUsers);
+  return await getUsersByIdsUncached(sortedIds);
 }
 
 /**
