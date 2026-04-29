@@ -139,6 +139,9 @@ export interface ScoringConfig {
   };
   decay: "off" | "linear" | "exponential";
   perPrCommitCap: number;           // NEW; default 5
+  perWindowPrCap: number;           // NEW; default 10 — see §6.5
+  draftQueueEnabled: boolean;       // NEW; default true — see §6.5
+  draftAutoReviewDelayHours: number;// NEW; default 24 — see §6.5
   trivialCommitFilter: boolean;     // NEW; default true
   substantiveReviewFloor: {         // NEW
     minBodyChars: number;            // default 200
@@ -264,6 +267,125 @@ whose SHA matches the PR's merge_commit_sha and whose message ends with
 `(#NNNN)`). These are skipped in the commit pass. Credit is attributed
 via the merged-PR pass to `pr.user`, not to the committer of record.
 
+### 6.5 Pacing and the draft queue
+
+**Goal**: honest contributors can ship as much as they want without losing
+work, but burst-grinding for points is naturally bounded. Two coordinated
+mechanisms — a soft scoring cap with carry-forward, and a draft auto-review
+queue — implement this without auto-converting any PR to a draft against
+the contributor's wishes. The mechanism is non-intrusive: GitShipt informs,
+contributors decide.
+
+#### 6.5.1 Per-window scoring cap (soft, carry-forward)
+
+`scoringConfig.perWindowPrCap` (default 10) is the max number of merged PRs
+per contributor per period that earn full credit toward score. Behavior:
+
+- Merged PRs sorted by `merged_at`. The first `perWindowPrCap` earn full
+  credit. Subsequent merged PRs **score 0 this period** but their counts
+  are still recorded for stats and CI/alignment signals.
+- PRs that merge in a *future* period earn full credit in that period,
+  per the normal rules. There is no double-counting and no permanent
+  penalty: a contributor who shipped 25 PRs but the cap was 10 sees 10
+  score now and 15 still-mergeable, deferred work that will score in the
+  periods they merge.
+- The carry-forward is the burnout-safety property: a contributor who
+  pushed 12 PRs then took a 30-day break still earns from those 2 over-cap
+  PRs in whatever period they get merged.
+
+#### 6.5.2 The draft queue (opt-in)
+
+Contributors who know they're over-cap have three ways to defer cleanly:
+
+1. **Leave the PR open**, let it merge whenever, score later.
+2. **Convert to draft** to explicitly defer maintainer review.
+3. **Close it themselves** if no longer relevant.
+
+For drafts: the `processDraftQueue` workflow (cron every 6h) auto-reviews
+drafts older than `draftAutoReviewDelayHours` (default 24h) and routes each
+to one of two outcomes:
+
+- **Elevate** — un-draft via the App, post `gitshipt-bot` comment requesting
+  maintainer review, audit-log. PR proceeds normally from there.
+- **No-penalty close** — close with label `gitshipt:no-penalty-close`,
+  post `gitshipt-bot` comment explaining why, audit-log. The closure does
+  NOT count toward the `closedWithoutMerge` alignment penalty (§8.1).
+
+Auto-review heuristics (cheap, no LLM):
+
+- `mergeable === true` per GitHub API
+- No file conflicts with PRs merged since the draft was created
+- Diff has substance (>5 non-whitespace lines; not just lockfile/dist)
+- Touches `priorityFileAreas` **OR** has `Fixes #N` to an open issue
+  **OR** has a maintainer label/review
+- Author has activity (push or comment) in last 7 days
+
+All five → elevate. Any failure → no-penalty close.
+
+#### 6.5.3 Non-intrusive enforcement
+
+GitShipt does **not** auto-convert any PR to draft. Instead, when a
+contributor's first over-cap PR is created in a window, `gitshipt-bot`
+posts a single comment on that PR (and any subsequent over-cap PRs in the
+same window):
+
+> You're over your scoring cap for this period (11/10). This PR will not
+> affect your score this period. Options:
+> 1. Leave as-is — it scores in whatever period it merges.
+> 2. Convert to draft — defer review explicitly; will be auto-reviewed
+>    after 24h.
+> 3. Close it yourself — if it's no longer relevant.
+>
+> Your work is welcome. The cap exists to prevent burst-spamming for
+> points, not to discourage contribution.
+
+A check named `gitshipt/score-status` shows the cap state on the PR.
+**Informational only** — always passes, never blocks CI. Status text
+reflects current state ("11/10 — defers to next period"; "elevated by
+auto-review"; "no-penalty closed").
+
+#### 6.5.4 Edge case decisions
+
+- **Stale auto-elevated PR**: an elevated PR that sits unreviewed by a
+  maintainer for 14 days is auto-closed with `gitshipt:stale-no-penalty`
+  (same alignment treatment as no-penalty close). At 7 days, `gitshipt-bot`
+  posts a reminder ping on the PR ("auto-elevated 7 days ago, awaiting
+  maintainer; will be closed at 14 days if no action"). One full window
+  for active projects to engage; sleepy projects get notified.
+- **Re-elevation abuse**: a PR closed via `gitshipt:no-penalty-close`
+  cannot be re-elevated within the same window unless its head commit is
+  *materially* different from prior rejections. Material =
+  (a) passes trivial-commit filter, AND
+  (b) (touches `priorityFileAreas` OR adds ≥10 substantive non-whitespace lines), AND
+  (c) the diff content-hash differs from every prior rejection on that PR.
+  Rate-limited to 1 reattempt per PR per period regardless.
+- **Maintainer manual review beats auto-review**. Maintainer approve →
+  un-draft immediately, score under normal rules. Maintainer
+  request-changes → pause the auto-review timer until the next push from
+  the contributor (timer resets on push).
+- **`gitshipt:wip` opt-out label**. Contributor can apply this label to
+  pause the auto-review timer indefinitely — but only up to 30 days OR
+  one full window (whichever longer). After expiry, auto-review fires
+  regardless. Re-applying the label after expiry requires a material
+  commit (same definition as re-elevation, criterion a + b).
+- **Material-commit definition is shared** between re-elevation and
+  `gitshipt:wip` re-application so contributors learn one rule.
+
+#### 6.5.5 New workflow: `processDraftQueue`
+
+`apps/web/workflows/processDraftQueue.ts`. Cron: every 6h. Per project:
+
+1. List open drafts on default repo via Octokit, filter to age >
+   `draftAutoReviewDelayHours` (and not labeled `gitshipt:wip`).
+2. For each, run §6.5.2 heuristics; route to elevate or no-penalty close.
+3. List elevated PRs from `pendingAdminAction`-equivalent table (new:
+   `pendingDraftReviews`) where elevation age > 7 days; if 7d → ping
+   reminder, if 14d → stale-close.
+4. Audit log + revalidate caches.
+
+Idempotency: per-PR-per-action key prevents repeat actions on the same
+review pass.
+
 ## 7. Indexer v1
 
 ### 7.1 Reviews populated
@@ -340,6 +462,16 @@ alignment_factor = clamp(0.0, 1.0, baseline + Σ(signal_value × signal_weight))
 Each signal value is averaged over the contributor's merged PRs in the
 window (so a single bad PR doesn't tank a 50-PR contributor).
 
+**No-penalty closure exception.** Per §6.5, PRs closed with
+`gitshipt:no-penalty-close` or `gitshipt:stale-no-penalty` labels are
+**excluded** from the `closedWithoutMerge` denominator and signal sum.
+Auto-review is the system's "this didn't work out" path; using it should
+not punish the contributor.
+
+**Auto-elevation merge bonus.** PRs that were elevated by auto-review and
+subsequently merged add `+0.05` to alignment in the period of merge. Small
+positive recognition that deferred work proved valuable when it landed.
+
 ### 8.2 Application — asymmetric multiplier (mode: "asymmetric")
 
 ```
@@ -385,6 +517,8 @@ Pure function over the project state. No live activity reads; that's logbook.
    issue-link policy, the asymmetric multiplier band)
 8. CI integration (the gitshipt/report-action interface — what events
    to emit and how they affect alignment)
+9. Pacing and the draft queue (per-window cap, carry-forward,
+   gitshipt-bot guidance, gitshipt:wip opt-out, no-penalty closure path)
 ```
 
 ### 9.3 Logbook (separate generator)
@@ -554,15 +688,18 @@ These don't block the design; flagging so they're not forgotten.
 Implementation does not start until this doc is reviewed. After approval,
 implementation lands as a series of commits on this branch in the order:
 
-1. Schema migration
-2. Scoring v1 + tests
+1. Schema migration (incl. perWindowPrCap / draftQueueEnabled fields,
+   pendingDraftReviews table)
+2. Scoring v1 + pacing cap logic + tests
 3. Indexer v1 + tests
-4. Alignment v1 + tests
-5. Shipshape + logbook generators + tests
+4. Alignment v1 (incl. no-penalty closure exception + auto-elevation
+   merge bonus) + tests
+5. Shipshape + logbook generators (incl. §9 Pacing section) + tests
 6. Public routes + tests
 7. CI ingest endpoint + tests
-8. Public docs honesty fix
-9. GitShipt's own `shipshape.md` at repo root
-10. GitShipt's own `.github/workflows/gitshipt-report.yml`
+8. processDraftQueue workflow + auto-review heuristics + tests
+9. Public docs honesty fix
+10. GitShipt's own `shipshape.md` at repo root
+11. GitShipt's own `.github/workflows/gitshipt-report.yml`
 
 Each commit passes typecheck and tests independently.
