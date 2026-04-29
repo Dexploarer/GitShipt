@@ -190,11 +190,17 @@ async function ProjectTokenPageContent({ params }: { params: Params }) {
                   </TokenMeta>
                   {header.bagsLaunchId ? (
                     <TokenMeta label="Launch">
-                      <span
-                        className="truncate text-mono-sm text-fg-secondary"
-                        title={header.bagsLaunchId}
-                      >
-                        {formatAddress(header.bagsLaunchId, 8, 4)}
+                      <span className="inline-flex min-w-0 items-center gap-1">
+                        <span
+                          className="truncate text-mono-sm text-fg-secondary"
+                          title={header.bagsLaunchId}
+                        >
+                          {formatAddress(header.bagsLaunchId, 8, 4)}
+                        </span>
+                        <CopyButton
+                          value={header.bagsLaunchId}
+                          label="Copy Bags launch id"
+                        />
                       </span>
                     </TokenMeta>
                   ) : null}
