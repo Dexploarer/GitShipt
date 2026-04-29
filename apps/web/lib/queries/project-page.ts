@@ -12,6 +12,7 @@ import {
 import { eq, and, desc, sql, asc, isNotNull } from "drizzle-orm";
 import { bags } from "@/lib/bags/client";
 import { redis } from "@/lib/redis";
+import { hasCredentials } from "@/lib/env";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { cacheTags } from "@/lib/cache";
@@ -168,6 +169,10 @@ async function getProjectBySlugUncached(
   ghOwner: string,
   ghRepo: string,
 ): Promise<ProjectHeader | null> {
+  // CI builds (no DATABASE_URL secret) prerender public pages and would
+  // otherwise hit the dbHttp Proxy throw. Match the lib/redis.ts +
+  // getLandingDataUncached idiom and short-circuit gracefully.
+  if (!hasCredentials.db()) return null;
   const [row] = await dbHttp
     .select()
     .from(projects)
@@ -221,6 +226,7 @@ async function getProjectLeaderboardUncached(
   projectId: string,
   payoutConfig: PayoutConfig,
 ): Promise<LeaderboardRow[]> {
+  if (!hasCredentials.db()) return [];
   const rows = await dbHttp
     .select({
       contributorId: contributors.id,
