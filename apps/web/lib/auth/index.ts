@@ -1,6 +1,15 @@
-import { betterAuth, type BetterAuthOptions } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { createRequire } from "node:module";
 import { eq } from "drizzle-orm";
+
+// Workaround for Turbopack + Bun runtime issue with serverExternalPackages.
+// Turbopack generates invalid chunk refs (e.g. better-auth-78c8936d87e27fab)
+// when resolving external packages under Bun. Using createRequire bypasses
+// Turbopack's bundling and loads the package via Node's native resolution.
+// See: https://github.com/vercel/next.js/issues/86866
+const require = createRequire(import.meta.url);
+const { betterAuth } = require("better-auth") as typeof import("better-auth");
+const { drizzleAdapter } = require("better-auth/adapters/drizzle") as typeof import("better-auth/adapters/drizzle");
+import type { BetterAuthOptions } from "better-auth";
 import { dbPool } from "@/db";
 import * as schema from "@/db/schema";
 import { serverEnv, hasCredentials } from "@/lib/env";

@@ -169,11 +169,9 @@ const nextConfig: NextConfig = {
   },
   devIndicators: { position: "top-right" },
   allowedDevOrigins: ["127.0.0.1"],
-  // better-auth fans into kysely/prisma/mongo adapters via its package
-  // exports map; Turbopack pulls those into the SSR chunk graph and emits
-  // unresolvable chunk refs at page-data collection. Loading better-auth via
-  // Node require() at runtime keeps the chunk graph clean.
-  serverExternalPackages: ["better-auth"],
+  // NOTE: better-auth is loaded via createRequire() in lib/auth/index.ts
+  // to work around Turbopack + Bun chunk resolution issues. Do NOT add it
+  // to serverExternalPackages — that causes conflicting resolution paths.
   transpilePackages: ["@repo/lib", "@repo/shared", "@repo/ui"],
 
   images: {

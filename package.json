@@ -51,5 +51,9 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "typescript": "^5"
+  },
+  "dependencies": {
+    "better-auth": "^1.6.9",
+    "drizzle-orm": "^0.45.2"
   }
 }
