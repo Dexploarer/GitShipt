@@ -14,3 +14,4 @@ export * from "./webhooks";
 export * from "./gh_state";
 export * from "./platform_config";
 export * from "./api-keys";
+export * from "./project-feed-entries";

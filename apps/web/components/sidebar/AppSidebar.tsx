@@ -2,7 +2,7 @@
 
 import { Github } from "@repo/ui";
 import * as React from "react";
-import { AlertTriangle, ArrowLeft, BarChart3, BookOpen, Coins, Compass, Eye, FileSearch, FileText, Flag, FlaskConical, FolderGit2, GitCompare, History, Home, KeyRound, Plug, Power, Rocket, Settings, ShieldAlert, Sparkles, Trophy, UserRound, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BarChart3, BookOpen, Coins, Compass, Eye, FileSearch, FileText, Flag, FlaskConical, FolderGit2, GitCompare, History, Home, KeyRound, Newspaper, Plug, Power, Rocket, Settings, ShieldAlert, Sparkles, Trophy, UserRound, Users, Wallet, Workflow, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -307,6 +307,12 @@ function publicProjectGroups(
       title: "Project",
       items: [
         { key: "leaderboard", label: "Leaderboard", icon: Trophy, href: base },
+        {
+          key: "feed",
+          label: "Feed",
+          icon: Newspaper,
+          href: `${base}/feed`,
+        },
         {
           key: "payouts",
           label: "Payouts",
