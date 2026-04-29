@@ -2,6 +2,7 @@
 
 import { useTransition, useState } from "react";
 import { RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui";
 import { retryPayout } from "../../actions";
 
@@ -24,8 +25,11 @@ export function RetryPayoutButton({
           payoutId,
           idempotencyKey: `retry-${payoutId}-${Date.now()}`,
         });
+        toast.success("Payout retry queued");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Retry failed");
+        const message = e instanceof Error ? e.message : "Retry failed";
+        setError(message);
+        toast.error(message);
       }
     });
   }
