@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { getIndexerState } from "@/lib/queries/dashboard";
-import { formatRelativeTime } from "@repo/lib";
 import { loadProjectFor } from "../../../_components/loadProject";
+import { RelativeTime } from "@/components/shared/RelativeTime";
 import {
   Card,
   CardHeader,
@@ -154,17 +154,21 @@ async function RepositoryPageContent({
         <CardContent className="space-y-3 px-6 py-5">
           <Row label="Last full sync">
             <span className="text-mono-sm text-fg">
-              {indexer?.lastFullSyncAt
-                ? formatRelativeTime(indexer.lastFullSyncAt)
-                : "never"}
+              {indexer?.lastFullSyncAt ? (
+                <RelativeTime date={indexer.lastFullSyncAt} />
+              ) : (
+                "never"
+              )}
             </span>
           </Row>
           <Row label="Last incremental sync">
             <div className="flex items-center gap-2">
               <span className="text-mono-sm text-fg">
-                {indexer?.lastIncrementalSyncAt
-                  ? formatRelativeTime(indexer.lastIncrementalSyncAt)
-                  : "never"}
+                {indexer?.lastIncrementalSyncAt ? (
+                  <RelativeTime date={indexer.lastIncrementalSyncAt} />
+                ) : (
+                  "never"
+                )}
               </span>
               {indexer?.isStale ? (
                 <Badge variant="warning" size="sm">

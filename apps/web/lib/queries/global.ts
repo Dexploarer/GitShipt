@@ -6,6 +6,7 @@ import {
   contributorClaims,
   payouts,
   payoutRecipients,
+  platformConfig,
 } from "@/db/schema";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { redis } from "@/lib/redis";
@@ -382,6 +383,29 @@ export async function getGlobalLeaderboard(): Promise<{
   cacheTag(cacheTags.public);
   cacheTag(cacheTags.globalLeaderboard);
   return await getGlobalLeaderboardUncached();
+}
+
+/**
+ * Platform-wide indexer heartbeat. Powers the public `<LiveIndicator>` on
+ * the global leaderboard so visitors can see the system is alive (or stale).
+ * Read from `platform_config['heartbeat.indexer']` which `indexGithubDeltas`
+ * writes on every tick.
+ */
+export async function getPlatformIndexerHeartbeat(): Promise<Date | null> {
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.platformConfig);
+  const [row] = await dbHttp
+    .select({ value: platformConfig.value })
+    .from(platformConfig)
+    .where(eq(platformConfig.key, "heartbeat.indexer"))
+    .limit(1);
+  if (!row) return null;
+  const v = row.value as { lastBeatAt?: string };
+  if (!v.lastBeatAt) return null;
+  const d = new Date(v.lastBeatAt);
+  return Number.isFinite(d.getTime()) ? d : null;
 }
 
 /**
