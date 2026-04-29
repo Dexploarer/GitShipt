@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { eq } from "drizzle-orm";
 import { hasCredentials } from "@/lib/env";
 import { getAuthSession } from "@/lib/auth/session";
@@ -13,7 +14,6 @@ export const metadata = {
     "Pick a GitHub repo, configure metadata and the leaderboard, and launch a Bags.fm token.",
 };
 
-export const dynamic = "force-dynamic";
 
 interface LaunchPageProps {
   searchParams: Promise<{ draftId?: string }>;
@@ -26,7 +26,15 @@ interface LaunchPageProps {
  * permission gate) and passes it to <WizardShell> for hydration. Otherwise
  * the wizard starts fresh at step 1.
  */
-export default async function LaunchPage({ searchParams }: LaunchPageProps) {
+export default function LaunchPage({ searchParams }: LaunchPageProps) {
+  return (
+    <Suspense fallback={null}>
+      <LaunchPageContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function LaunchPageContent({ searchParams }: LaunchPageProps) {
   const params = await searchParams;
   const draftId = params.draftId?.trim() ?? null;
 

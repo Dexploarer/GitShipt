@@ -14,7 +14,6 @@ import { withIdempotency } from "@/lib/idempotency";
 import { MfaEnrollResponseSchema } from "@repo/shared";
 import { revalidateUserCaches } from "@/lib/cache";
 
-export const dynamic = "force-dynamic";
 
 /**
  * POST /api/auth/mfa/enroll

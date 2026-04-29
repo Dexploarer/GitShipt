@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Compass } from "lucide-react";
@@ -41,9 +42,20 @@ function parseFilters(raw: Awaited<SearchParams>): ExploreFilters {
   };
 }
 
-export const dynamic = "force-dynamic";
 
-export default async function ExplorePage({
+export default function ExplorePage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ExplorePageContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ExplorePageContent({
   searchParams,
 }: {
   searchParams: SearchParams;

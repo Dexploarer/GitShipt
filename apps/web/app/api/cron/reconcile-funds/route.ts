@@ -3,7 +3,6 @@ import { start } from "workflow/api";
 import { isAuthorizedCron } from "@/lib/cron-auth";
 import { reconcileFunds } from "@/workflows/reconcileFunds";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 800;
 
 export async function GET(req: Request): Promise<Response> {

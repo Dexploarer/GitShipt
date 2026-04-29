@@ -3,7 +3,6 @@ import { start } from "workflow/api";
 import { expireEscrow } from "@/workflows/expireEscrow";
 import { isAuthorizedCron } from "@/lib/cron-auth";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 800;
 
 /**

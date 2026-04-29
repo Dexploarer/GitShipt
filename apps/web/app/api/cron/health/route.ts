@@ -3,7 +3,6 @@ import { start } from "workflow/api";
 import { healthPulse } from "@/workflows/healthPulse";
 import { isAuthorizedCron } from "@/lib/cron-auth";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 800;
 
 export async function GET(req: Request): Promise<Response> {

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   Database,
   Github,
@@ -14,11 +15,10 @@ import { dbHttp } from "@/db";
 import { sql } from "drizzle-orm";
 import { redis } from "@/lib/redis";
 import { bags } from "@/lib/bags/client";
-import { getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { hasSolanaConnection, solanaConnection } from "@/lib/solana/connection";
 import { cn } from "@repo/lib";
 
-export const dynamic = "force-dynamic";
 
 interface ServiceHealth {
   name: string;
@@ -28,7 +28,15 @@ interface ServiceHealth {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export default async function AdminIntegrationsPage() {
+export default function AdminIntegrationsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminIntegrationsPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminIntegrationsPageContent() {
   await requireAdminPage("admin.access", "/admin");
 
   const services = await Promise.all([
@@ -159,6 +167,22 @@ async function pingRedis(): Promise<ServiceHealth> {
   }
 }
 
+async function pingBagsAuthCached(): Promise<
+  | { ok: true; latencyMs: number }
+  | { ok: false; latencyMs: null; error: string }
+> {
+  "use cache";
+  cacheLife({ revalidate: 60, stale: 30, expire: 600 });
+  cacheTag("gitshipt:admin:integrations:health");
+  const start = Date.now();
+  try {
+    await bags.authMe();
+    return { ok: true, latencyMs: Date.now() - start };
+  } catch (e) {
+    return { ok: false, latencyMs: null, error: (e as Error).message };
+  }
+}
+
 async function pingBags(): Promise<ServiceHealth> {
   const env = serverEnv();
   const partnerDetail = `Partner ${shortWallet(env.BAGS_PARTNER_WALLET)}; ref=${env.BAGS_REF_CODE}.`;
@@ -175,22 +199,7 @@ async function pingBags(): Promise<ServiceHealth> {
   // No Solana RPC, unlike the legacy getLifetimeFees(SOL_MINT) probe which
   // derived an on-chain PDA and burned Helius credits per /admin/integrations
   // render. Cached 60s; throw on probe failure carries the error message.
-  const probe = await getCachedValue<
-    | { ok: true; latencyMs: number }
-    | { ok: false; latencyMs: null; error: string }
-  >(
-    async () => {
-      const start = Date.now();
-      try {
-        await bags.authMe();
-        return { ok: true, latencyMs: Date.now() - start };
-      } catch (e) {
-        return { ok: false, latencyMs: null, error: (e as Error).message };
-      }
-    },
-    ["gitshipt:admin:integrations:ping-bags:v2"],
-    { tags: ["gitshipt:admin:integrations:health"], revalidate: 60 },
-  );
+  const probe = await pingBagsAuthCached();
   if (probe.ok) {
     return {
       name: "Bags.fm",

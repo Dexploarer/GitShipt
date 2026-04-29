@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Sparkles, Users } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { getProjectMembers } from "@/lib/queries/dashboard";
@@ -18,9 +19,20 @@ import {
   MemberRemoveButton,
 } from "./_components/TeamControls";
 
-export const dynamic = "force-dynamic";
 
-export default async function TeamPage({
+export default function TeamPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <TeamPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function TeamPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

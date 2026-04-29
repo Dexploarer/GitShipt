@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -28,7 +29,21 @@ export async function generateMetadata({
 
 const PAGE_SIZE = 50;
 
-export default async function ProjectSnapshotsPage({
+export default function ProjectSnapshotsPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Promise<{ page?: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ProjectSnapshotsPageContent params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ProjectSnapshotsPageContent({
   params,
   searchParams,
 }: {

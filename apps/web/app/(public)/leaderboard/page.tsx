@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getGlobalLeaderboard } from "@/lib/queries/global";
 import { GlobalLeaderboardTable } from "./_components/GlobalLeaderboardTable";
@@ -31,9 +32,20 @@ function parseQuery(value: string | string[] | undefined): string {
  * — no client JS needed for navigation, and the active state survives
  * sharing/bookmarking the URL.
  */
-export const dynamic = "force-dynamic";
 
-export default async function LeaderboardPage({
+export default function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <LeaderboardPageContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function LeaderboardPageContent({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

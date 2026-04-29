@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ShieldAlert } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
@@ -5,9 +6,16 @@ import { Badge } from "@repo/ui";
 import { getAuditLogs } from "@/lib/queries/admin";
 import { AuditLogViewer } from "@/components/admin/AuditLogViewer";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminAbusePage() {
+export default function AdminAbusePage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminAbusePageContent />
+    </Suspense>
+  );
+}
+
+async function AdminAbusePageContent() {
   await requireAdminPage("admin.access", "/admin");
 
   const rows = await getAuditLogs({ actionPrefix: "abuse", limit: 100 });

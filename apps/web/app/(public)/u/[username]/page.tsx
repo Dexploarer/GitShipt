@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -48,9 +49,20 @@ export async function generateMetadata({
   };
 }
 
-export const dynamic = "force-dynamic";
 
-export default async function ContributorProfilePage({
+export default function ContributorProfilePage({
+  params,
+}: {
+  params: Params;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ContributorProfilePageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ContributorProfilePageContent({
   params,
 }: {
   params: Params;

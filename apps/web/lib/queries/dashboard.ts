@@ -15,7 +15,9 @@ import {
   type PayoutConfig,
 } from "@/db/schema";
 import type { ProjectRole } from "@/lib/auth/permissions";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
+
+import { cacheTags } from "@/lib/cache";
 import { and, desc, eq, sql, isNotNull, or, inArray } from "drizzle-orm";
 import { PayoutConfigSchema, ScoringConfigSchema } from "@repo/shared";
 import { z } from "zod";
@@ -154,18 +156,12 @@ async function getMyProjectsUncached(userId: string): Promise<MyProjectRow[]> {
 }
 
 export async function getMyProjects(userId: string): Promise<MyProjectRow[]> {
-  return getCachedValue(
-    () => getMyProjectsUncached(userId),
-    ["gitshipt:dashboard:my-projects:v1", userId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.user(userId),
-        cacheTags.dashboardUser(userId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.user(userId));
+  cacheTag(cacheTags.dashboardUser(userId));
+  return await getMyProjectsUncached(userId);
 }
 
 export interface ProjectKPIs {
@@ -242,19 +238,13 @@ async function getProjectKPIsUncached(projectId: string): Promise<ProjectKPIs> {
 }
 
 export async function getProjectKPIs(projectId: string): Promise<ProjectKPIs> {
-  return getCachedValue(
-    () => getProjectKPIsUncached(projectId),
-    ["gitshipt:dashboard:project-kpis:v1", projectId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.dashboardProject(projectId),
-        cacheTags.project(projectId),
-        cacheTags.projectPayouts(projectId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.dashboardProject(projectId));
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.projectPayouts(projectId));
+  return await getProjectKPIsUncached(projectId);
 }
 
 export interface PayoutHistoryRow {
@@ -314,20 +304,13 @@ export async function getProjectPayoutHistory(
   projectId: string,
   limit = 50,
 ): Promise<PayoutHistoryRow[]> {
-  const safe = safeLimit(limit, 50);
-  return getCachedValue(
-    () => getProjectPayoutHistoryUncached(projectId, safe),
-    ["gitshipt:dashboard:payout-history:v1", projectId, String(safe)],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.dashboardProject(projectId),
-        cacheTags.project(projectId),
-        cacheTags.projectPayouts(projectId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.dashboardProject(projectId));
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.projectPayouts(projectId));
+  return await getProjectPayoutHistoryUncached(projectId, safeLimit(limit, 50));
 }
 
 export interface MyEarnings {
@@ -420,18 +403,12 @@ async function getMyEarningsUncached(userId: string): Promise<MyEarnings> {
 }
 
 export async function getMyEarnings(userId: string): Promise<MyEarnings> {
-  return getCachedValue(
-    () => getMyEarningsUncached(userId),
-    ["gitshipt:dashboard:my-earnings:v1", userId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.user(userId),
-        cacheTags.dashboardUser(userId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.user(userId));
+  cacheTag(cacheTags.dashboardUser(userId));
+  return await getMyEarningsUncached(userId);
 }
 
 async function getProjectIdsBySlugUncached(
@@ -464,15 +441,16 @@ export async function getProjectIdsBySlug(
     .sort();
 
   if (normalized.length === 0) return [];
+  return getProjectIdsBySlugCached(normalized);
+}
 
-  return getCachedValue(
-    () => getProjectIdsBySlugUncached(normalized),
-    ["gitshipt:dashboard:project-ids-by-slug:v1", normalized.join(",")],
-    {
-      tags: [cacheTags.dashboard],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+async function getProjectIdsBySlugCached(
+  normalized: string[],
+): Promise<Array<{ slug: string; projectId: string }>> {
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  return await getProjectIdsBySlugUncached(normalized);
 }
 
 export interface LinkedWallet {
@@ -505,18 +483,12 @@ async function getMyLinkedWalletsUncached(
 export async function getMyLinkedWallets(
   userId: string,
 ): Promise<LinkedWallet[]> {
-  return getCachedValue(
-    () => getMyLinkedWalletsUncached(userId),
-    ["gitshipt:dashboard:linked-wallets:v1", userId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.user(userId),
-        cacheTags.dashboardUser(userId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.user(userId));
+  cacheTag(cacheTags.dashboardUser(userId));
+  return await getMyLinkedWalletsUncached(userId);
 }
 
 /**
@@ -610,18 +582,12 @@ async function getProjectRecordUncached(
 export async function getProjectRecord(
   projectId: string,
 ): Promise<ProjectRecord | null> {
-  return getCachedValue(
-    () => getProjectRecordUncached(projectId),
-    ["gitshipt:dashboard:project-record:v1", projectId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.dashboardProject(projectId),
-        cacheTags.project(projectId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.dashboardProject(projectId));
+  cacheTag(cacheTags.project(projectId));
+  return await getProjectRecordUncached(projectId);
 }
 
 export interface RecentAuditEntry {
@@ -666,20 +632,13 @@ export async function getRecentProjectAudit(
   projectId: string,
   limit = 10,
 ): Promise<RecentAuditEntry[]> {
-  const safe = safeLimit(limit, 10);
-  return getCachedValue(
-    () => getRecentProjectAuditUncached(projectId, safe),
-    ["gitshipt:dashboard:project-audit:v1", projectId, String(safe)],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.dashboardProject(projectId),
-        cacheTags.project(projectId),
-        cacheTags.adminAudit,
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.dashboardProject(projectId));
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.adminAudit);
+  return await getRecentProjectAuditUncached(projectId, safeLimit(limit, 10));
 }
 
 export interface IndexerState {
@@ -713,18 +672,12 @@ async function getIndexerStateUncached(
 export async function getIndexerState(
   projectId: string,
 ): Promise<IndexerState | null> {
-  return getCachedValue(
-    () => getIndexerStateUncached(projectId),
-    ["gitshipt:dashboard:indexer-state:v1", projectId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.dashboardProject(projectId),
-        cacheTags.project(projectId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.dashboardProject(projectId));
+  cacheTag(cacheTags.project(projectId));
+  return await getIndexerStateUncached(projectId);
 }
 
 export interface FailedPayoutAlert {
@@ -757,20 +710,13 @@ export async function getFailedPayoutsForProject(
   projectId: string,
   limit = 5,
 ): Promise<FailedPayoutAlert[]> {
-  const safe = safeLimit(limit, 5);
-  return getCachedValue(
-    () => getFailedPayoutsForProjectUncached(projectId, safe),
-    ["gitshipt:dashboard:failed-payouts:v1", projectId, String(safe)],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.dashboardProject(projectId),
-        cacheTags.project(projectId),
-        cacheTags.projectPayouts(projectId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.dashboardProject(projectId));
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.projectPayouts(projectId));
+  return await getFailedPayoutsForProjectUncached(projectId, safeLimit(limit, 5));
 }
 
 export interface ProjectMemberRow {
@@ -804,18 +750,12 @@ async function getProjectMembersUncached(
 export async function getProjectMembers(
   projectId: string,
 ): Promise<ProjectMemberRow[]> {
-  return getCachedValue(
-    () => getProjectMembersUncached(projectId),
-    ["gitshipt:dashboard:project-members:v1", projectId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.dashboardProject(projectId),
-        cacheTags.project(projectId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.dashboardProject(projectId));
+  cacheTag(cacheTags.project(projectId));
+  return await getProjectMembersUncached(projectId);
 }
 
 // Re-export so callers don't have to dual-import.

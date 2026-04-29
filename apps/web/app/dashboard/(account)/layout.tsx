@@ -1,10 +1,23 @@
+import { Suspense } from "react";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { AppShell } from "../_components/AppShell";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
 import { clusterLabel } from "@/lib/solana/explorer";
 
-export default async function DashboardAccountLayout({
+export default function DashboardAccountLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <DashboardAccountLayoutContent>{children}</DashboardAccountLayoutContent>
+    </Suspense>
+  );
+}
+
+async function DashboardAccountLayoutContent({
   children,
 }: {
   children: React.ReactNode;

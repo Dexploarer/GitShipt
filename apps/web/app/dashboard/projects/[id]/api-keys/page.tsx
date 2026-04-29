@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { loadProjectFor } from "../../../_components/loadProject";
@@ -7,9 +8,20 @@ import { listApiKeysForProject } from "@/lib/queries/api-keys";
 import { CreateApiKeyForm } from "./_components/CreateApiKeyForm";
 import { ApiKeyTable } from "./_components/ApiKeyTable";
 
-export const dynamic = "force-dynamic";
 
-export default async function ApiKeysPage({
+export default function ApiKeysPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ApiKeysPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ApiKeysPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import {
@@ -11,9 +12,20 @@ import { ScoringConfigEditor } from "./_components/ScoringConfigEditor";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
-export const dynamic = "force-dynamic";
 
-export default async function LeaderboardPage({
+export default function LeaderboardPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <LeaderboardPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function LeaderboardPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Users } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
@@ -6,9 +7,16 @@ import { getAllUsers } from "@/lib/queries/admin";
 import { formatRelativeTime } from "@repo/lib";
 import { UserManagePanel } from "./_components/UserManagePanel";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminUsersPage() {
+export default function AdminUsersPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminUsersPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminUsersPageContent() {
   await requireAdminPage("admin.access", "/admin");
 
   const rows = await getAllUsers();

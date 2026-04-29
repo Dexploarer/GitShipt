@@ -11,7 +11,6 @@ import { redis } from "@/lib/redis";
 import { privateNoStoreJson } from "@/lib/no-store-response";
 import { RepoEnrichmentSchema, type RepoEnrichment } from "@repo/shared";
 
-export const dynamic = "force-dynamic";
 
 const CACHE_TTL_SECONDS = 5 * 60;
 const README_EXCERPT_MAX = 600;

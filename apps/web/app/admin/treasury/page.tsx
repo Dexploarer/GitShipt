@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Vault, Wallet } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
@@ -9,9 +10,16 @@ import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { formatAddress } from "@repo/lib";
 import { clusterLabel, solscanAddressUrl } from "@/lib/solana/explorer";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminTreasuryPage() {
+export default function AdminTreasuryPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminTreasuryPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminTreasuryPageContent() {
   await requireAdminPage("platform.treasury.read", "/admin/treasury");
 
   const env = serverEnv();

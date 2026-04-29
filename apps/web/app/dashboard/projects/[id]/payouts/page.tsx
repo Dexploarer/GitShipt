@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Coins, ExternalLink, Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
@@ -17,9 +18,20 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { RetryPayoutButton } from "./_components/RetryPayoutButton";
 import { solscanTxUrl } from "@/lib/solana/explorer";
 
-export const dynamic = "force-dynamic";
 
-export default async function PayoutsPage({
+export default function PayoutsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <PayoutsPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function PayoutsPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

@@ -4,7 +4,9 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { dbHttp } from "@/db";
 import { accounts, sessions, userSettings, users } from "@/db/schema";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
+
+import { cacheTags } from "@/lib/cache";
 
 const UserRoleSchema = z.enum(["user", "moderator", "admin", "super_admin"]);
 const GitHubViewerSchema = z.object({
@@ -220,18 +222,12 @@ async function getAccountProfileUncached(
 export async function getAccountProfile(
   userId: string,
 ): Promise<AccountProfile | null> {
-  return getCachedValue(
-    () => getAccountProfileUncached(userId),
-    ["gitshipt:account:profile:v2", userId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.user(userId),
-        cacheTags.dashboardUser(userId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.user(userId));
+  cacheTag(cacheTags.dashboardUser(userId));
+  return await getAccountProfileUncached(userId);
 }
 
 async function getAccountSecurityStateUncached(
@@ -271,18 +267,12 @@ async function getAccountSecurityStateUncached(
 export async function getAccountSecurityState(
   userId: string,
 ): Promise<AccountSecurityState | null> {
-  return getCachedValue(
-    () => getAccountSecurityStateUncached(userId),
-    ["gitshipt:account:security:v1", userId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.user(userId),
-        cacheTags.dashboardUser(userId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.user(userId));
+  cacheTag(cacheTags.dashboardUser(userId));
+  return await getAccountSecurityStateUncached(userId);
 }
 
 async function getAccountSettingsUncached(
@@ -318,16 +308,10 @@ async function getAccountSettingsUncached(
 }
 
 export async function getAccountSettings(userId: string): Promise<AccountSettings> {
-  return getCachedValue(
-    () => getAccountSettingsUncached(userId),
-    ["gitshipt:account:settings:v1", userId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.user(userId),
-        cacheTags.dashboardUser(userId),
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.user(userId));
+  cacheTag(cacheTags.dashboardUser(userId));
+  return await getAccountSettingsUncached(userId);
 }

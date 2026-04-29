@@ -1,12 +1,20 @@
+import { Suspense } from "react";
 import { Database } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { getTableRowCounts } from "@/lib/queries/admin";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminDbPage() {
+export default function AdminDbPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminDbPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminDbPageContent() {
   await requireAdminPage("admin.access", "/admin");
 
   const tables = await getTableRowCounts();

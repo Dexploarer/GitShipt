@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { CopyButton } from "@/components/shared";
 import { DocSection } from "./_components/DocSection";
@@ -30,9 +31,16 @@ const EMBED_SNIPPET = `<iframe
  * v0 — keeps the build deterministic, lets us co-locate the copy with the
  * components that link to it, and ships zero extra client JS.
  */
-export const dynamic = "force-dynamic";
 
-export default async function DocsPage() {
+export default function DocsPage() {
+  return (
+    <Suspense fallback={null}>
+      <DocsPageContent />
+    </Suspense>
+  );
+}
+
+async function DocsPageContent() {
   return (
     <div className="grid grid-cols-1 gap-12 lg:grid-cols-[200px_minmax(0,1fr)]">
       <aside className="lg:sticky lg:top-24 lg:self-start">

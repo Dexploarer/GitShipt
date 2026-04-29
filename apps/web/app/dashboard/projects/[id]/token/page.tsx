@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ExternalLink, Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
@@ -26,9 +27,20 @@ import { StartIncorporationButton } from "./_components/StartIncorporationButton
 import { IncorporationStatusCard } from "@/components/bags/IncorporationStatusCard";
 import { solscanTokenUrl, solscanTxUrl } from "@/lib/solana/explorer";
 
-export const dynamic = "force-dynamic";
 
-export default async function TokenPage({
+export default function TokenPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <TokenPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function TokenPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

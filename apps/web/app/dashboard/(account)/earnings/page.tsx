@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Coins, Sparkles, Wallet } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
@@ -21,9 +22,16 @@ import { Button } from "@repo/ui";
 import { ClaimEscrowButton } from "./_components/ClaimEscrowButton";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
-export const dynamic = "force-dynamic";
 
-export default async function EarningsPage() {
+export default function EarningsPage() {
+  return (
+    <Suspense fallback={null}>
+      <EarningsPageContent />
+    </Suspense>
+  );
+}
+
+async function EarningsPageContent() {
   if (!hasCredentials.db()) {
     return (
       <div className="mx-auto w-full max-w-content">

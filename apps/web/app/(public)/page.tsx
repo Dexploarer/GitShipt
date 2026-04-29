@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Github, Trophy } from "lucide-react";
@@ -54,9 +55,16 @@ const MIA_LOGO_OVERLAYS = [
  * The featured project is the GitShipt repo itself — debuts the project on
  * its own landing and shows the contributors who actually built it.
  */
-export const dynamic = "force-dynamic";
 
-export default async function LandingPage() {
+export default function LandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <LandingPageContent />
+    </Suspense>
+  );
+}
+
+async function LandingPageContent() {
   const [{ ticker }, featuredHeader] = await Promise.all([
     getLandingData(),
     getProjectBySlug(FEATURED_OWNER, FEATURED_REPO),

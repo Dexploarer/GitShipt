@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
 import { getMfaConfirmedAt } from "@/lib/auth/mfa";
@@ -13,9 +14,16 @@ import { EnrollMfa } from "./_components/EnrollMfa";
 import { VerifyMfa } from "./_components/VerifyMfa";
 import { RevokeMfa } from "./_components/RevokeMfa";
 
-export const dynamic = "force-dynamic";
 
-export default async function SecurityPage() {
+export default function SecurityPage() {
+  return (
+    <Suspense fallback={null}>
+      <SecurityPageContent />
+    </Suspense>
+  );
+}
+
+async function SecurityPageContent() {
   if (!hasCredentials.db()) {
     return (
       <div className="mx-auto w-full max-w-content">

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Rocket, FolderGit2, Pencil } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
@@ -13,7 +14,6 @@ import {
 import { ProjectList } from "../../_components/ProjectList";
 import { DraftRow } from "../../_components/DraftRow";
 
-export const dynamic = "force-dynamic";
 
 /**
  * `/dashboard/projects` — drafts + launched projects.
@@ -21,7 +21,15 @@ export const dynamic = "force-dynamic";
  * Drafts get a dedicated card at the top with Continue/Discard actions.
  * Launched projects use the standard ProjectList rendering.
  */
-export default async function ProjectsPage() {
+export default function ProjectsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProjectsPageContent />
+    </Suspense>
+  );
+}
+
+async function ProjectsPageContent() {
   if (!hasCredentials.db()) {
     return (
       <div className="mx-auto w-full max-w-content">

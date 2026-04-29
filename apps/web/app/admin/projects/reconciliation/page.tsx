@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { desc, isNotNull } from "drizzle-orm";
 import {
@@ -15,10 +16,9 @@ import { StatTile } from "@/components/shared/StatTile";
 import { dbHttp } from "@/db";
 import { fundReconciliationRuns, projects } from "@/db/schema";
 import { bags } from "@/lib/bags/client";
-import { getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { formatRelativeTime } from "@repo/lib";
 
-export const dynamic = "force-dynamic";
 
 type DbProjectStatus =
   | "draft"
@@ -73,27 +73,19 @@ interface MismatchedRow {
  * This is a heuristic, not a spec. Future-you: refine when the migration
  * pipeline lands a richer status state machine.
  */
-export default async function AdminReconciliationPage() {
+export default function AdminReconciliationPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminReconciliationPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminReconciliationPageContent() {
   await requireAdminPage("admin.access", "/admin");
 
   const [feed, dbRows] = await Promise.all([
-    getCachedValue<BagsFeedItem[]>(
-      async () => {
-        const items = await bags.getLaunchFeed();
-        return items.map((it) => ({
-          name: it.name,
-          symbol: it.symbol,
-          tokenMint: it.tokenMint,
-          status: it.status,
-          image: it.image ?? null,
-        }));
-      },
-      ["gitshipt:admin:reconciliation:feed:v1"],
-      {
-        tags: ["gitshipt:admin:reconciliation"],
-        revalidate: 300,
-      },
-    ),
+    getReconciliationFeedCached(),
     dbHttp
       .select({
         id: projects.id,
@@ -261,6 +253,20 @@ export default async function AdminReconciliationPage() {
  * Heuristic mapping; see top-of-file comment for rationale.
  * Returns true when the two sides disagree enough to warrant operator review.
  */
+async function getReconciliationFeedCached(): Promise<BagsFeedItem[]> {
+  "use cache";
+  cacheLife({ revalidate: 300, stale: 60, expire: 1800 });
+  cacheTag("gitshipt:admin:reconciliation");
+  const items = await bags.getLaunchFeed();
+  return items.map((it) => ({
+    name: it.name,
+    symbol: it.symbol,
+    tokenMint: it.tokenMint,
+    status: it.status,
+    image: it.image ?? null,
+  }));
+}
+
 function isMismatch(db: DbProjectStatus, bags: BagsStatus): boolean {
   switch (db) {
     case "live":

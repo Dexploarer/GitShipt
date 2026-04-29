@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { hasCredentials } from "@/lib/env";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -16,7 +17,21 @@ import { clusterLabel } from "@/lib/solana/explorer";
  * navigation keeps the sidebar, footer, and provider state mounted. Pages
  * still re-check their own narrower permissions before reading data.
  */
-export default async function ProjectLayout({
+export default function ProjectLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ProjectLayoutContent params={params}>{children}</ProjectLayoutContent>
+    </Suspense>
+  );
+}
+
+async function ProjectLayoutContent({
   children,
   params,
 }: {

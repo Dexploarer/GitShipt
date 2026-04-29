@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalSection } from "@/app/legal/_components/LegalSection";
@@ -14,9 +15,16 @@ const LAST_UPDATED = "2026-04-26";
  * Terms of Service — long-form copy specific to GitShipt's operating model:
  * Solana launches, daily contributor payouts via Bags.fm, GitHub OAuth + SIWS.
  */
-export const dynamic = "force-dynamic";
 
-export default async function TermsPage() {
+export default function TermsPage() {
+  return (
+    <Suspense fallback={null}>
+      <TermsPageContent />
+    </Suspense>
+  );
+}
+
+async function TermsPageContent() {
   return (
     <article className="mx-auto flex max-w-prose flex-col gap-10 pb-16">
       <header className="flex flex-col gap-3">

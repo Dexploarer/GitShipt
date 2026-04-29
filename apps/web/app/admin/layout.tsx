@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
@@ -21,7 +22,19 @@ import { clusterLabel } from "@/lib/solana/explorer";
  *
  * Stub mode (no DB) → 404 to keep the surface area off the public web.
  */
-export default async function AdminLayout({
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </Suspense>
+  );
+}
+
+async function AdminLayoutContent({
   children,
 }: {
   children: React.ReactNode;

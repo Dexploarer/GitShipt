@@ -7,7 +7,6 @@ import {
   WalletNonceResponseSchema,
 } from "@repo/shared";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Issue a single-use, 5-minute SIWS nonce for the given Solana address.

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SidebarProvider } from "@repo/ui";
 import { hasCredentials } from "@/lib/env";
 import { requireAuthSession } from "@/lib/auth/session";
@@ -15,7 +16,19 @@ import { getDefaultSidebarCollapsed } from "@/lib/sidebar-state";
  * This root layout stays minimal so the account shell and per-project shell
  * do not nest inside each other.
  */
-export default async function DashboardLayout({
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </Suspense>
+  );
+}
+
+async function DashboardLayoutContent({
   children,
 }: {
   children: React.ReactNode;

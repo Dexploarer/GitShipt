@@ -17,7 +17,6 @@ import {
 } from "@/lib/cache";
 import { UpdateDraftBodySchema } from "@repo/shared";
 
-export const dynamic = "force-dynamic";
 
 const json = privateNoStoreJson;
 

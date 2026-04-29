@@ -12,7 +12,9 @@ import {
 import { eq, and, desc, sql, asc, isNotNull } from "drizzle-orm";
 import { bags } from "@/lib/bags/client";
 import { redis } from "@/lib/redis";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
+
+import { cacheTags } from "@/lib/cache";
 import {
   GitHubRepoMetaSchema,
   type GitHubRepoMeta,
@@ -208,15 +210,11 @@ export async function getProjectBySlug(
   ghOwner: string,
   ghRepo: string,
 ): Promise<ProjectHeader | null> {
-  const slug = `${ghOwner}/${ghRepo}`;
-  return getCachedValue(
-    () => getProjectBySlugUncached(ghOwner, ghRepo),
-    ["gitshipt:project-by-slug:v1", slug],
-    {
-      tags: [cacheTags.public, cacheTags.projectSlug(slug)],
-      revalidate: CACHE_SECONDS.live,
-    },
-  );
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.projectSlug(`${ghOwner}/${ghRepo}`));
+  return await getProjectBySlugUncached(ghOwner, ghRepo);
 }
 
 async function getProjectLeaderboardUncached(
@@ -271,19 +269,11 @@ export async function getProjectLeaderboard(
   projectId: string,
   payoutConfig: PayoutConfig,
 ): Promise<LeaderboardRow[]> {
-  return getCachedValue(
-    () => getProjectLeaderboardUncached(projectId, payoutConfig),
-    [
-      "gitshipt:project-leaderboard:v1",
-      projectId,
-      String(payoutConfig.topN),
-      JSON.stringify(payoutConfig.tierWeights),
-    ],
-    {
-      tags: [cacheTags.public, cacheTags.project(projectId)],
-      revalidate: CACHE_SECONDS.live,
-    },
-  );
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.project(projectId));
+  return await getProjectLeaderboardUncached(projectId, payoutConfig);
 }
 
 async function getRecentPayoutsUncached(
@@ -322,18 +312,12 @@ export async function getRecentPayouts(
   projectId: string,
   limit = 5,
 ): Promise<RecentPayoutRow[]> {
-  return getCachedValue(
-    () => getRecentPayoutsUncached(projectId, limit),
-    ["gitshipt:recent-payouts:v1", projectId, String(limit)],
-    {
-      tags: [
-        cacheTags.public,
-        cacheTags.project(projectId),
-        cacheTags.projectPayouts(projectId),
-      ],
-      revalidate: CACHE_SECONDS.live,
-    },
-  );
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.projectPayouts(projectId));
+  return await getRecentPayoutsUncached(projectId, limit);
 }
 
 async function getPoolOverviewUncached(
@@ -383,24 +367,12 @@ async function getPoolOverviewUncached(
 export async function getPoolOverview(
   header: ProjectHeader,
 ): Promise<PoolOverview> {
-  return getCachedValue(
-    () => getPoolOverviewUncached(header),
-    [
-      "gitshipt:pool-overview:v1",
-      header.id,
-      header.tokenMint ?? "no-token",
-      header.status,
-      String(header.platformFeeBps),
-    ],
-    {
-      tags: [
-        cacheTags.public,
-        cacheTags.project(header.id),
-        cacheTags.projectPayouts(header.id),
-      ],
-      revalidate: CACHE_SECONDS.live,
-    },
-  );
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.project(header.id));
+  cacheTag(cacheTags.projectPayouts(header.id));
+  return await getPoolOverviewUncached(header);
 }
 
 function buildStubSparkline(
@@ -446,13 +418,9 @@ export async function getProjectPageData(
   ghOwner: string,
   ghRepo: string,
 ): Promise<ProjectPageData | null> {
-  const slug = `${ghOwner}/${ghRepo}`;
-  return getCachedValue(
-    () => getProjectPageDataUncached(ghOwner, ghRepo),
-    ["gitshipt:project-page-data:v1", slug],
-    {
-      tags: [cacheTags.public, cacheTags.projectSlug(slug)],
-      revalidate: CACHE_SECONDS.live,
-    },
-  );
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.projectSlug(`${ghOwner}/${ghRepo}`));
+  return await getProjectPageDataUncached(ghOwner, ghRepo);
 }

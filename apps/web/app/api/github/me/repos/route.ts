@@ -14,7 +14,6 @@ import {
   type GithubRepo,
 } from "@repo/shared";
 
-export const dynamic = "force-dynamic";
 
 const CACHE_TTL_SECONDS = 30;
 

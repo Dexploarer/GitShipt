@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
 import { loadProjectFor } from "../../../_components/loadProject";
@@ -6,9 +7,20 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ProjectDocsEditor } from "./_components/ProjectDocsEditor";
 
-export const dynamic = "force-dynamic";
 
-export default async function DocsPage({
+export default function DocsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <DocsPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function DocsPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

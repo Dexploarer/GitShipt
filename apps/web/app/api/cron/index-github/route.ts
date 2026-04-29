@@ -3,7 +3,6 @@ import { start } from "workflow/api";
 import { isAuthorizedCron } from "@/lib/cron-auth";
 import { indexGithubDeltas } from "@/workflows/indexGithubDeltas";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 800;
 
 /**

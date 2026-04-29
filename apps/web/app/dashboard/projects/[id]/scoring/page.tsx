@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   Bot,
   Calculator,
@@ -17,9 +18,20 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ScoringConfigEditor } from "../leaderboard/_components/ScoringConfigEditor";
 
-export const dynamic = "force-dynamic";
 
-export default async function ScoringPage({
+export default function ScoringPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ScoringPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ScoringPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalSection } from "@/app/legal/_components/LegalSection";
@@ -16,9 +17,16 @@ const LAST_UPDATED = "2026-04-26";
  * Solana wallet addresses, append-only audit logs, contributor
  * scoring inputs derived from public GitHub data. No analytics.
  */
-export const dynamic = "force-dynamic";
 
-export default async function PrivacyPage() {
+export default function PrivacyPage() {
+  return (
+    <Suspense fallback={null}>
+      <PrivacyPageContent />
+    </Suspense>
+  );
+}
+
+async function PrivacyPageContent() {
   return (
     <article className="mx-auto flex max-w-prose flex-col gap-10 pb-16">
       <header className="flex flex-col gap-3">

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
@@ -6,9 +7,20 @@ import { Badge } from "@repo/ui";
 import { getAllSnapshots, getSnapshotDetail } from "@/lib/queries/admin";
 import { formatRelativeTime, formatSol, formatAddress } from "@repo/lib";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminSnapshotsPage({
+export default function AdminSnapshotsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ id?: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <AdminSnapshotsPageContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function AdminSnapshotsPageContent({
   searchParams,
 }: {
   searchParams: Promise<{ id?: string }>;

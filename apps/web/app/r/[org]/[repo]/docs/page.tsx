@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -25,7 +26,15 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProjectDocsPage({ params }: { params: Params }) {
+export default function ProjectDocsPage({ params }: { params: Params }) {
+  return (
+    <Suspense fallback={null}>
+      <ProjectDocsPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ProjectDocsPageContent({ params }: { params: Params }) {
   const { org, repo } = await params;
   const data = await getProjectPageData(org, repo);
   if (!data) notFound();

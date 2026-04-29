@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { hasCredentials } from "@/lib/env";
 import { loadProjectFor } from "../../../_components/loadProject";
 import {
@@ -15,9 +16,20 @@ import { PauseSection } from "./_components/PauseSection";
 import { TransferForm } from "./_components/TransferForm";
 import { DangerSection } from "./_components/DangerSection";
 
-export const dynamic = "force-dynamic";
 
-export default async function SettingsPage({
+export default function SettingsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <SettingsPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function SettingsPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

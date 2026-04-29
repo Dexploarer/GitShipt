@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Power } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
@@ -6,9 +7,16 @@ import { getPlatformConfigValue } from "@/lib/queries/admin";
 import { KillSwitchPanel } from "./_components/KillSwitchPanel";
 import { BannerForm } from "./_components/BannerForm";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminMaintenancePage() {
+export default function AdminMaintenancePage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminMaintenancePageContent />
+    </Suspense>
+  );
+}
+
+async function AdminMaintenancePageContent() {
   await requireAdminPage("platform.maintenance", "/admin/maintenance");
 
   const ks = await getPlatformConfigValue<{

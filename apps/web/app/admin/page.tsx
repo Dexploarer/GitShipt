@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   Activity,
   AlertCircle,
@@ -23,18 +24,25 @@ import {
 import { solanaConnection, hasSolanaConnection } from "@/lib/solana/connection";
 import { payoutSignerPublicKey } from "@/lib/solana/signer";
 import { hasCredentials } from "@/lib/env";
-import { getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { bags } from "@/lib/bags/client";
 import { formatRelativeTime, formatSol } from "@repo/lib";
 import { cn } from "@repo/lib";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Ops dashboard. Top stat row + 2x2 bento (heartbeats / failed payouts /
  * recent audit / integrations health).
  */
-export default async function AdminOpsPage() {
+export default function AdminOpsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminOpsPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminOpsPageContent() {
   // Layout already gates `admin.access`, but we re-check inside every page
   // so a layout regression cannot silently expose the route.
   await requireAdminPage("admin.access", "/admin");
@@ -123,19 +131,20 @@ async function fetchHotWalletLamports(): Promise<number | null> {
   if (!hasSolanaConnection() || !hasCredentials.payoutKey()) return null;
   const pk = payoutSignerPublicKey();
   if (!pk) return null;
-  return getCachedValue<number | null>(
-    async () => {
-      try {
-        const { PublicKey } = await import("@solana/web3.js");
-        const conn = solanaConnection("confirmed");
-        return await conn.getBalance(new PublicKey(pk));
-      } catch {
-        return null;
-      }
-    },
-    ["gitshipt:admin:hot-wallet-lamports:v1", pk],
-    { tags: ["gitshipt:admin:hot-wallet"], revalidate: 30 },
-  );
+  return await readHotWalletBalance(pk);
+}
+
+async function readHotWalletBalance(pk: string): Promise<number | null> {
+  "use cache";
+  cacheLife({ revalidate: 30, stale: 15, expire: 300 });
+  cacheTag("gitshipt:admin:hot-wallet");
+  try {
+    const { PublicKey } = await import("@solana/web3.js");
+    const conn = solanaConnection("confirmed");
+    return await conn.getBalance(new PublicKey(pk));
+  } catch {
+    return null;
+  }
 }
 
 interface HealthSummary {
@@ -153,43 +162,44 @@ async function pingBags(): Promise<{ ok: boolean; latencyMs: number | null }> {
   // legacy bags.getLifetimeFees(SOL_MINT) probe which derived an on-chain
   // PDA and burned Helius credits. Cached 60s so /admin renders are cheap.
   if (!hasCredentials.bags()) return { ok: false, latencyMs: null };
-  return getCachedValue<{ ok: boolean; latencyMs: number | null }>(
-    async () => {
-      const start = Date.now();
-      try {
-        await bags.authMe();
-        return { ok: true, latencyMs: Date.now() - start };
-      } catch {
-        return { ok: false, latencyMs: null };
-      }
-    },
-    ["gitshipt:admin:ping-bags:v2"],
-    { tags: ["gitshipt:admin:health"], revalidate: 60 },
-  );
+  return await pingBagsCached();
+}
+
+async function pingBagsCached(): Promise<{
+  ok: boolean;
+  latencyMs: number | null;
+}> {
+  "use cache";
+  cacheLife({ revalidate: 60, stale: 30, expire: 600 });
+  cacheTag("gitshipt:admin:health");
+  const start = Date.now();
+  try {
+    await bags.authMe();
+    return { ok: true, latencyMs: Date.now() - start };
+  } catch {
+    return { ok: false, latencyMs: null };
+  }
 }
 
 async function pingGitHub(): Promise<{
   ok: boolean;
   latencyMs: number | null;
 }> {
-  return getCachedValue<{ ok: boolean; latencyMs: number | null }>(
-    async () => {
-      const start = Date.now();
-      try {
-        const res = await fetch("https://api.github.com/octocat", {
-          method: "HEAD",
-        });
-        return {
-          ok: res.ok || res.status === 404,
-          latencyMs: Date.now() - start,
-        };
-      } catch {
-        return { ok: false, latencyMs: null };
-      }
-    },
-    ["gitshipt:admin:ping-github:v1"],
-    { tags: ["gitshipt:admin:health"], revalidate: 30 },
-  );
+  "use cache";
+  cacheLife({ revalidate: 30, stale: 15, expire: 300 });
+  cacheTag("gitshipt:admin:health");
+  const start = Date.now();
+  try {
+    const res = await fetch("https://api.github.com/octocat", {
+      method: "HEAD",
+    });
+    return {
+      ok: res.ok || res.status === 404,
+      latencyMs: Date.now() - start,
+    };
+  } catch {
+    return { ok: false, latencyMs: null };
+  }
 }
 
 function HeartbeatsCard({

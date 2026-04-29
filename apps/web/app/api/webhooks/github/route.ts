@@ -9,7 +9,6 @@ import { indexProjectDeltas } from "@/workflows/indexProjectDeltas";
 import { revalidateProjectCaches } from "@/lib/cache";
 import { enterDbServiceContext } from "@/lib/db-rls";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 type GithubPayload = {

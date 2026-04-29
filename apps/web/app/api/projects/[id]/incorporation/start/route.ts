@@ -12,7 +12,6 @@ import { hasCredentials } from "@/lib/env";
 import { withIdempotency } from "@/lib/idempotency";
 import { revalidateProjectCaches } from "@/lib/cache";
 
-export const dynamic = "force-dynamic";
 
 interface RouteContext {
   params: Promise<{ id: string }>;

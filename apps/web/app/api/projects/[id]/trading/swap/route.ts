@@ -16,7 +16,6 @@ import {
   tradingCredentialsReady,
 } from "@/app/api/bags/_lib/trading";
 
-export const dynamic = "force-dynamic";
 
 interface RouteContext {
   params: Promise<{ id: string }>;

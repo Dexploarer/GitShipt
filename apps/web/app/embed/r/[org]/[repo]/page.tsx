@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getProjectPageData } from "@/lib/queries/project-page";
@@ -29,7 +30,19 @@ export async function generateMetadata({
   };
 }
 
-export default async function EmbedTokenPage({
+export default function EmbedTokenPage({
+  params,
+}: {
+  params: Promise<Params>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <EmbedTokenPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function EmbedTokenPageContent({
   params,
 }: {
   params: Promise<Params>;

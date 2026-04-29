@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType } from "react";
@@ -17,9 +18,16 @@ import {
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ProfileEditor } from "../_components/ProfileEditor";
 
-export const dynamic = "force-dynamic";
 
-export default async function ProfilePage() {
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfilePageContent />
+    </Suspense>
+  );
+}
+
+async function ProfilePageContent() {
   if (!hasCredentials.db()) {
     return (
       <div className="mx-auto w-full max-w-content">

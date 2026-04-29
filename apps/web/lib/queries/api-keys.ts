@@ -4,7 +4,9 @@ import bs58 from "bs58";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { dbHttp } from "@/db";
 import { apiKeys, type ApiKeyRow } from "@/db/schema";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
+
+import { cacheTags } from "@/lib/cache";
 import {
   ProjectApiKeyScopesSchema,
   type ProjectApiKeyScope,
@@ -118,19 +120,13 @@ async function listApiKeysForProjectUncached(
 export async function listApiKeysForProject(
   projectId: string,
 ): Promise<ApiKeyListItem[]> {
-  return getCachedValue(
-    () => listApiKeysForProjectUncached(projectId),
-    ["gitshipt:dashboard:api-keys:v1", projectId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.dashboardProject(projectId),
-        cacheTags.project(projectId),
-        cacheTags.admin,
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.dashboardProject(projectId));
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.admin);
+  return await listApiKeysForProjectUncached(projectId);
 }
 
 /**

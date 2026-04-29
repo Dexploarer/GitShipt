@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Banknote, KeyRound, ShieldCheck, Sparkles, Split } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
@@ -15,9 +16,16 @@ import { formatAddress, formatRelativeTime } from "@repo/lib";
 import { FeesForm } from "./_components/FeesForm";
 import { PartnerFeesClaimForm } from "./_components/PartnerFeesClaimForm";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminFeesPage() {
+export default function AdminFeesPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminFeesPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminFeesPageContent() {
   await requireAdminPage("admin.access", "/admin");
 
   const stored = await getPlatformConfigValue<{

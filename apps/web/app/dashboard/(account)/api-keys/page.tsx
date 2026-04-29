@@ -1,7 +1,6 @@
 import { KeyRound } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
 
-export const dynamic = "force-dynamic";
 
 export default function DashboardApiKeysPage() {
   return (

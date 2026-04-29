@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Flag } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
@@ -5,9 +6,16 @@ import { Badge } from "@repo/ui";
 import { getPlatformConfigValue } from "@/lib/queries/admin";
 import { serverEnv } from "@/lib/env";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminFeatureFlagsPage() {
+export default function AdminFeatureFlagsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminFeatureFlagsPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminFeatureFlagsPageContent() {
   await requireAdminPage("admin.access", "/admin");
 
   const env = serverEnv();

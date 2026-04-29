@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ExternalLink, Plus, Sparkles, Wallet } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
@@ -17,9 +18,16 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { CopyButton } from "@/components/shared";
 import { solscanAddressUrl } from "@/lib/solana/explorer";
 
-export const dynamic = "force-dynamic";
 
-export default async function WalletsPage() {
+export default function WalletsPage() {
+  return (
+    <Suspense fallback={null}>
+      <WalletsPageContent />
+    </Suspense>
+  );
+}
+
+async function WalletsPageContent() {
   if (!hasCredentials.db()) {
     return (
       <div className="mx-auto w-full max-w-content">

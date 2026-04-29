@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Coins } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
@@ -8,7 +9,6 @@ import { getAllPayouts } from "@/lib/queries/admin";
 import { formatRelativeTime, formatSol } from "@repo/lib";
 import { PayoutRowActions } from "./_components/PayoutRowActions";
 
-export const dynamic = "force-dynamic";
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
@@ -20,7 +20,19 @@ const STATUS_FILTERS = [
   { key: "cancelled", label: "Cancelled" },
 ] as const;
 
-export default async function AdminPayoutsPage({
+export default function AdminPayoutsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <AdminPayoutsPageContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function AdminPayoutsPageContent({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;

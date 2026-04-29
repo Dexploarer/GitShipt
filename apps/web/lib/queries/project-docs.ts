@@ -2,7 +2,9 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { dbHttp } from "@/db";
 import { platformConfig } from "@/db/schema";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
+
+import { cacheTags } from "@/lib/cache";
 import { z } from "zod";
 
 export interface ProjectDocsValue {
@@ -56,17 +58,11 @@ async function getProjectDocsUncached(
 export async function getProjectDocs(
   projectId: string,
 ): Promise<ProjectDocsValue> {
-  return getCachedValue(
-    () => getProjectDocsUncached(projectId),
-    ["gitshipt:dashboard:project-docs:v1", projectId],
-    {
-      tags: [
-        cacheTags.dashboard,
-        cacheTags.dashboardProject(projectId),
-        cacheTags.project(projectId),
-        cacheTags.platformConfig,
-      ],
-      revalidate: CACHE_SECONDS.auth,
-    },
-  );
+  "use cache";
+  cacheLife("auth");
+  cacheTag(cacheTags.dashboard);
+  cacheTag(cacheTags.dashboardProject(projectId));
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.platformConfig);
+  return await getProjectDocsUncached(projectId);
 }

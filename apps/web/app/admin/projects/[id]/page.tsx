@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -17,9 +18,20 @@ import { getAuditLogs, getProjectAdminDetail } from "@/lib/queries/admin";
 import { formatRelativeTime } from "@repo/lib";
 import { ProjectGodModeControls } from "./_components/ProjectGodModeControls";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminProjectDetailPage({
+export default function AdminProjectDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <AdminProjectDetailPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function AdminProjectDetailPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

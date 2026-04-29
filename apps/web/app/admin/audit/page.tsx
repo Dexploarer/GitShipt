@@ -1,11 +1,28 @@
+import { Suspense } from "react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { getAuditLogs } from "@/lib/queries/admin";
 import { AuditLogViewer } from "@/components/admin/AuditLogViewer";
 import { ExportAuditButton } from "./_components/ExportAuditButton";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminAuditPage({
+export default function AdminAuditPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    prefix?: string;
+    sinceHours?: string;
+    targetId?: string;
+    targetType?: string;
+  }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <AdminAuditPageContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function AdminAuditPageContent({
   searchParams,
 }: {
   searchParams: Promise<{

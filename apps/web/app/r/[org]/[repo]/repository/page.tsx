@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -34,7 +35,19 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProjectRepositoryPage({
+export default function ProjectRepositoryPage({
+  params,
+}: {
+  params: Params;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ProjectRepositoryPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ProjectRepositoryPageContent({
   params,
 }: {
   params: Params;

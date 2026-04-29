@@ -16,7 +16,6 @@ import { hasCredentials, serverEnv } from "@/lib/env";
 import { revalidateProjectCaches } from "@/lib/cache";
 import { withIdempotency } from "@/lib/idempotency";
 
-export const dynamic = "force-dynamic";
 
 /**
  * GET /api/projects/[id]/install-github/callback

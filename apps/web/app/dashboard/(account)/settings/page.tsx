@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import {
@@ -29,9 +30,16 @@ import {
 import { EmptyState } from "@/components/shared/EmptyState";
 import { AccountPreferencesForm } from "../_components/AccountPreferencesForm";
 
-export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsPageContent />
+    </Suspense>
+  );
+}
+
+async function SettingsPageContent() {
   if (!hasCredentials.db()) {
     return (
       <div className="mx-auto w-full max-w-content">

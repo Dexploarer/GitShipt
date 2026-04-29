@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -29,7 +30,21 @@ export async function generateMetadata({
 
 const PAGE_SIZE = 50;
 
-export default async function ProjectPayoutsPage({
+export default function ProjectPayoutsPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Promise<{ page?: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ProjectPayoutsPageContent params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ProjectPayoutsPageContent({
   params,
   searchParams,
 }: {

@@ -1,6 +1,8 @@
 import "server-only";
+import { cacheLife, cacheTag } from "next/cache";
+
 import { hasCredentials } from "@/lib/env";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheTags } from "@/lib/cache";
 
 export interface LaunchWizardConfig {
   isStubMode: boolean;
@@ -15,12 +17,8 @@ async function getLaunchWizardConfigUncached(): Promise<LaunchWizardConfig> {
 }
 
 export async function getLaunchWizardConfig(): Promise<LaunchWizardConfig> {
-  return getCachedValue(
-    () => getLaunchWizardConfigUncached(),
-    ["gitshipt:launch:wizard-config:v1"],
-    {
-      tags: [cacheTags.launch],
-      revalidate: CACHE_SECONDS.browse,
-    },
-  );
+  "use cache";
+  cacheLife("browse");
+  cacheTag(cacheTags.launch);
+  return await getLaunchWizardConfigUncached();
 }

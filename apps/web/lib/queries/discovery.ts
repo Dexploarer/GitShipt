@@ -10,7 +10,9 @@ import {
   type LeaderboardEntry,
 } from "@/db/schema";
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
+
+import { cacheTags } from "@/lib/cache";
 
 /**
  * Discovery queries — back the public browse surfaces (/explore, /u/[username],
@@ -170,21 +172,17 @@ export async function getAllPublicProjects(
     search: filters.search?.trim() || undefined,
     limit: filters.limit ?? 60,
   };
+  return getAllPublicProjectsCached(normalized);
+}
 
-  return getCachedValue(
-    () => getAllPublicProjectsUncached(normalized),
-    [
-      "gitshipt:public-projects:v1",
-      normalized.status ?? "all",
-      normalized.sort ?? "trending",
-      normalized.search ?? "",
-      String(normalized.limit ?? 60),
-    ],
-    {
-      tags: [cacheTags.public, cacheTags.explore],
-      revalidate: CACHE_SECONDS.browse,
-    },
-  );
+async function getAllPublicProjectsCached(
+  normalized: ExploreFilters,
+): Promise<PublicProjectRow[]> {
+  "use cache";
+  cacheLife("browse");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.explore);
+  return await getAllPublicProjectsUncached(normalized);
 }
 
 // ---------------------------------------------------------------------------
@@ -375,15 +373,17 @@ async function getContributorProfileUncached(
 export async function getContributorProfile(
   username: string,
 ): Promise<ContributorProfile | null> {
-  const normalized = username.toLowerCase();
-  return getCachedValue(
-    () => getContributorProfileUncached(username),
-    ["gitshipt:contributor-profile:v1", normalized],
-    {
-      tags: [cacheTags.public, cacheTags.contributor(normalized)],
-      revalidate: CACHE_SECONDS.profile,
-    },
-  );
+  return getContributorProfileCached(username.toLowerCase());
+}
+
+async function getContributorProfileCached(
+  normalized: string,
+): Promise<ContributorProfile | null> {
+  "use cache";
+  cacheLife("profile");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.contributor(normalized));
+  return await getContributorProfileUncached(normalized);
 }
 
 // ---------------------------------------------------------------------------
@@ -459,18 +459,12 @@ export async function getProjectSnapshots(
   projectId: string,
   limit = 50,
 ): Promise<SnapshotRow[]> {
-  return getCachedValue(
-    () => getProjectSnapshotsUncached(projectId, limit),
-    ["gitshipt:project-snapshots:v1", projectId, String(limit)],
-    {
-      tags: [
-        cacheTags.public,
-        cacheTags.project(projectId),
-        cacheTags.projectSnapshots(projectId),
-      ],
-      revalidate: CACHE_SECONDS.browse,
-    },
-  );
+  "use cache";
+  cacheLife("browse");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.projectSnapshots(projectId));
+  return await getProjectSnapshotsUncached(projectId, limit);
 }
 
 function previewLeaderboard(

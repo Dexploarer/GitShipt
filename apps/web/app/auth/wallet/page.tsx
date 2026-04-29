@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Sparkles } from "lucide-react";
@@ -5,7 +6,6 @@ import { getAuthSession } from "@/lib/auth/session";
 import { SignInWithSolanaFlow } from "@/components/wallet/SignInWithSolanaFlow";
 
 export const metadata = { title: "Link wallet" };
-export const dynamic = "force-dynamic";
 
 /**
  * SIWS link page (server component).
@@ -14,7 +14,15 @@ export const dynamic = "force-dynamic";
  * to that session via /api/wallets/verify. Unauthenticated users are sent to
  * /auth/signin with `next` set so they bounce back here after sign-in.
  */
-export default async function WalletAuthPage() {
+export default function WalletAuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <WalletAuthPageContent />
+    </Suspense>
+  );
+}
+
+async function WalletAuthPageContent() {
   const session = await getAuthSession();
   if (!session?.user) {
     redirect("/auth/signin?next=/auth/wallet");

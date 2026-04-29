@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getProjectPageData } from "@/lib/queries/project-page";
@@ -37,7 +38,19 @@ export async function generateMetadata({
  * renders the leaderboard content so navigating between project tabs does not
  * remount the sidebar or briefly fall back to visitor state.
  */
-export default async function ProjectPage({
+export default function ProjectPage({
+  params,
+}: {
+  params: Promise<Params>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ProjectPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ProjectPageContent({
   params,
 }: {
   params: Promise<Params>;

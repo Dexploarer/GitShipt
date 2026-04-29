@@ -11,7 +11,6 @@ import {
 import { getProjectRecord } from "@/lib/queries/dashboard";
 import { hasCredentials, serverEnv } from "@/lib/env";
 
-export const dynamic = "force-dynamic";
 
 /**
  * GET /api/projects/[id]/install-github

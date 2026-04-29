@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Coins, FolderGit2, Rocket, Wallet, Sparkles } from "lucide-react";
 import { hasCredentials } from "@/lib/env";
@@ -21,7 +22,6 @@ import {
 } from "@repo/ui";
 import { Button } from "@repo/ui";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Dashboard root — overview of all projects the user owns or admins.
@@ -29,7 +29,15 @@ export const dynamic = "force-dynamic";
  * CVE-2025-29927 mitigation: re-validates the session inside the Server
  * Component even though `proxy.ts` already redirects unauthenticated traffic.
  */
-export default async function DashboardPage() {
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardPageContent />
+    </Suspense>
+  );
+}
+
+async function DashboardPageContent() {
   if (!hasCredentials.db()) return <DashboardStub />;
 
   const session = await requireAuthSession("/dashboard");

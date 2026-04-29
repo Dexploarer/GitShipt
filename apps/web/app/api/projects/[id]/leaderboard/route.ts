@@ -9,7 +9,6 @@ import { getProjectRecord } from "@/lib/queries/dashboard";
 import { getProjectLeaderboard } from "@/lib/queries/project-page";
 import { ProjectLeaderboardResponseSchema } from "@repo/shared";
 
-export const dynamic = "force-dynamic";
 
 /**
  * Public leaderboard API for embeds, docs, and partner integrations.

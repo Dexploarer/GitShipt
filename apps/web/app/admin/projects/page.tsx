@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Layers } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
@@ -7,7 +8,6 @@ import { Pill } from "@repo/ui";
 import { getAllProjects } from "@/lib/queries/admin";
 import { formatRelativeTime } from "@repo/lib";
 
-export const dynamic = "force-dynamic";
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
@@ -17,7 +17,19 @@ const STATUS_FILTERS = [
   { key: "killed", label: "Killed" },
 ] as const;
 
-export default async function AdminProjectsPage({
+export default function AdminProjectsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <AdminProjectsPageContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function AdminProjectsPageContent({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;

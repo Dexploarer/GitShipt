@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   Activity,
@@ -33,9 +34,20 @@ import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 
-export const dynamic = "force-dynamic";
 
-export default async function ProjectOverviewPage({
+export default function ProjectOverviewPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ProjectOverviewPageContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ProjectOverviewPageContent({
   params,
 }: {
   params: Promise<{ id: string }>;

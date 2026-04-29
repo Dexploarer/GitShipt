@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { hasCredentials } from "@/lib/env";
 
-export const dynamic = "force-dynamic";
 
 /**
  * better-auth catch-all handler. Constructed lazily so the build can succeed

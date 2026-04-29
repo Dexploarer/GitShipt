@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -24,9 +25,22 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { ReindexButton } from "./_components/ReindexButton";
 
-export const dynamic = "force-dynamic";
 
-export default async function RepositoryPage({
+export default function RepositoryPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ installed?: string }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <RepositoryPageContent params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function RepositoryPageContent({
   params,
   searchParams,
 }: {

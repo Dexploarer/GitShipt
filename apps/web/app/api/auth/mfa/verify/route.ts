@@ -14,7 +14,6 @@ import { withIdempotency } from "@/lib/idempotency";
 import { MfaVerifyResponseSchema } from "@repo/shared";
 import { revalidateUserCaches } from "@/lib/cache";
 
-export const dynamic = "force-dynamic";
 
 const BodySchema = z.object({
   token: z.string().regex(/^\d{6}$/, "must be 6 digits"),

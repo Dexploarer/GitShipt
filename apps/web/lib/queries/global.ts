@@ -9,7 +9,9 @@ import {
 } from "@/db/schema";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { redis } from "@/lib/redis";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
+
+import { cacheTags } from "@/lib/cache";
 import { z } from "zod";
 
 /**
@@ -204,11 +206,12 @@ async function getLandingDataUncached(): Promise<LandingData> {
   };
 }
 
-export function getLandingData(): Promise<LandingData> {
-  return getCachedValue(getLandingDataUncached, ["gitshipt:landing-data:v2"], {
-    tags: [cacheTags.public, cacheTags.landing],
-    revalidate: CACHE_SECONDS.live,
-  });
+export async function getLandingData(): Promise<LandingData> {
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.landing);
+  return await getLandingDataUncached();
 }
 
 /**
@@ -370,18 +373,15 @@ async function getGlobalLeaderboardUncached(): Promise<{
   return { byContributor, byProject };
 }
 
-export function getGlobalLeaderboard(): Promise<{
+export async function getGlobalLeaderboard(): Promise<{
   byContributor: GlobalLeaderboardEntry[];
   byProject: GlobalProjectEntry[];
 }> {
-  return getCachedValue(
-    getGlobalLeaderboardUncached,
-    ["gitshipt:global-leaderboard:v1"],
-    {
-      tags: [cacheTags.public, cacheTags.globalLeaderboard],
-      revalidate: CACHE_SECONDS.browse,
-    },
-  );
+  "use cache";
+  cacheLife("browse");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.globalLeaderboard);
+  return await getGlobalLeaderboardUncached();
 }
 
 /**
@@ -421,15 +421,13 @@ export async function getLiveTickerDataUncached(): Promise<LandingTicker> {
   };
 }
 
-export function getLiveTickerData(): Promise<LandingTicker> {
-  return getCachedValue(
-    getLiveTickerDataUncached,
-    ["gitshipt:live-ticker:v2"],
-    {
-      tags: [cacheTags.public, cacheTags.liveTicker, cacheTags.landing],
-      revalidate: CACHE_SECONDS.live,
-    },
-  );
+export async function getLiveTickerData(): Promise<LandingTicker> {
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.liveTicker);
+  cacheTag(cacheTags.landing);
+  return await getLiveTickerDataUncached();
 }
 
 /**

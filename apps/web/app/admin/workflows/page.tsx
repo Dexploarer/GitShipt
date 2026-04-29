@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Workflow } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
@@ -8,7 +9,6 @@ import { cn } from "@repo/lib";
 import vercelConfig from "../../../../../vercel.json";
 import { WorkflowRetriggerButton } from "./_components/WorkflowRetriggerButton";
 
-export const dynamic = "force-dynamic";
 
 type WorkflowName =
   | "healthPulse"
@@ -165,7 +165,15 @@ const WORKFLOWS: WorkflowDef[] = [
   },
 ];
 
-export default async function AdminWorkflowsPage() {
+export default function AdminWorkflowsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminWorkflowsPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminWorkflowsPageContent() {
   await requireAdminPage("admin.workflows.inspect", "/admin/workflows");
 
   const beats = await getHeartbeats();

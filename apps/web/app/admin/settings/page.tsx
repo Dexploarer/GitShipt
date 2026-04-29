@@ -1,11 +1,19 @@
+import { Suspense } from "react";
 import { Settings } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth/page-guards";
 import { Card, CardContent } from "@repo/ui";
 import { EmptyState } from "@/components/shared/EmptyState";
 
-export const dynamic = "force-dynamic";
 
-export default async function AdminSettingsPage() {
+export default function AdminSettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminSettingsPageContent />
+    </Suspense>
+  );
+}
+
+async function AdminSettingsPageContent() {
   await requireAdminPage("admin.access", "/admin/settings");
 
   return (

@@ -1,6 +1,8 @@
 import "server-only";
 import { bags } from "@/lib/bags/client";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+import { cacheLife, cacheTag } from "next/cache";
+
+import { cacheTags } from "@/lib/cache";
 import type { TokenClaimEvent, TokenCreator } from "@/lib/bags/types";
 import type { ProjectHeader } from "./project-page";
 
@@ -84,23 +86,12 @@ async function getTokenStatsUncached(
 export async function getTokenStats(
   header: ProjectHeader,
 ): Promise<TokenStats | null> {
-  return getCachedValue(
-    () => getTokenStatsUncached(header),
-    [
-      "gitshipt:token-stats:v1",
-      header.id,
-      header.tokenMint ?? "no-token",
-      header.status,
-    ],
-    {
-      tags: [
-        cacheTags.public,
-        cacheTags.project(header.id),
-        cacheTags.projectPayouts(header.id),
-      ],
-      revalidate: CACHE_SECONDS.live,
-    },
-  );
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.project(header.id));
+  cacheTag(cacheTags.projectPayouts(header.id));
+  return await getTokenStatsUncached(header);
 }
 
 async function getTokenCreatorsUncached(
@@ -113,14 +104,11 @@ export async function getTokenCreators(
   projectId: string,
   tokenMint: string,
 ): Promise<TokenCreator[]> {
-  return getCachedValue(
-    () => getTokenCreatorsUncached(tokenMint),
-    ["gitshipt:token-creators:v1", projectId, tokenMint],
-    {
-      tags: [cacheTags.public, cacheTags.project(projectId)],
-      revalidate: CACHE_SECONDS.profile,
-    },
-  );
+  "use cache";
+  cacheLife("profile");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.project(projectId));
+  return await getTokenCreatorsUncached(tokenMint);
 }
 
 async function getTokenClaimEventsUncached(
@@ -135,16 +123,10 @@ export async function getTokenClaimEvents(
   tokenMint: string,
   limit = 5,
 ): Promise<TokenClaimEvent[]> {
-  return getCachedValue(
-    () => getTokenClaimEventsUncached(tokenMint, limit),
-    ["gitshipt:token-claim-events:v1", projectId, tokenMint, String(limit)],
-    {
-      tags: [
-        cacheTags.public,
-        cacheTags.project(projectId),
-        cacheTags.projectPayouts(projectId),
-      ],
-      revalidate: CACHE_SECONDS.live,
-    },
-  );
+  "use cache";
+  cacheLife("live");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.project(projectId));
+  cacheTag(cacheTags.projectPayouts(projectId));
+  return await getTokenClaimEventsUncached(tokenMint, limit);
 }

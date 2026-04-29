@@ -1,6 +1,8 @@
 import "server-only";
+import { cacheLife, cacheTag } from "next/cache";
 import { z } from "zod";
-import { CACHE_SECONDS, cacheTags, getCachedValue } from "@/lib/cache";
+
+import { cacheTags } from "@/lib/cache";
 import { fetchGitHubJsonWithEtag } from "@/lib/github/http-cache";
 import {
   GitHubUserProfileSchema,
@@ -91,13 +93,15 @@ async function getGitHubUserUncached(
 export async function getGitHubUser(
   username: string,
 ): Promise<GitHubUserProfile | null> {
-  const normalized = username.toLowerCase();
-  return getCachedValue(
-    () => getGitHubUserUncached(username),
-    ["gitshipt:github-user:v1", normalized],
-    {
-      tags: [cacheTags.public, cacheTags.githubUser(normalized)],
-      revalidate: CACHE_SECONDS.profile,
-    },
-  );
+  return getGitHubUserCached(username.toLowerCase());
+}
+
+async function getGitHubUserCached(
+  normalized: string,
+): Promise<GitHubUserProfile | null> {
+  "use cache";
+  cacheLife("profile");
+  cacheTag(cacheTags.public);
+  cacheTag(cacheTags.githubUser(normalized));
+  return await getGitHubUserUncached(normalized);
 }
