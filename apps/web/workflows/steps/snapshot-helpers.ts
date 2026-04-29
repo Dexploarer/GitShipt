@@ -421,6 +421,34 @@ export async function snapshotRevalidateProjectCachesStep(
 }
 
 /**
+ * Write the period_digest feed entry for the snapshot we just froze.
+ * Idempotent on (project_id, kind, period) UNIQUE — re-running the workflow
+ * (cron retry, force-snapshot, race) will not create duplicates.
+ *
+ * Errors here are non-fatal: the feed is downstream of the canonical
+ * snapshot, so a failure to render the digest must not poison the
+ * snapshot-paid path. We capture and continue.
+ */
+export async function snapshotWriteFeedDigestStep(
+  snapshotId: string,
+): Promise<void> {
+  "use step";
+  enterDbWorkflowContext("takeSnapshot:writeFeedDigest");
+  if (!snapshotId) return;
+  try {
+    const { writePeriodDigestForSnapshot } = await import("@/lib/feed/writer");
+    await writePeriodDigestForSnapshot(snapshotId);
+  } catch (err) {
+    // Don't propagate: feed write failures must not gate snapshot finalize.
+    const { captureException } = await import("@/lib/observability");
+    captureException(err, {
+      area: "feed.write_period_digest",
+      tags: { snapshotId },
+    });
+  }
+}
+
+/**
  * `start()` cannot run inside workflow context — wrap it in a step. Spawns the
  * per-project child workflow for each eligible project.
  */

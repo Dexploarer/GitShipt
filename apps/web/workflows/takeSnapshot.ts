@@ -10,6 +10,7 @@ import {
   prepareFeeShareUpdateStep,
   executeFeeShareUpdateStep,
   snapshotRevalidateProjectCachesStep,
+  snapshotWriteFeedDigestStep,
   startTakeProjectSnapshotStep,
   buildLeaderboardEntries,
 } from "@/workflows/steps/snapshot-helpers";
@@ -83,6 +84,11 @@ export async function takeProjectSnapshot(projectId: string): Promise<{
     if (preparedUpdate.attemptId) {
       await executeFeeShareUpdateStep(preparedUpdate.attemptId);
     }
+
+    // Write the period_digest feed card before revalidating caches so the
+    // first reader after this snapshot sees the new card. Failures inside
+    // the step are captured and swallowed — feed must not gate finalize.
+    await snapshotWriteFeedDigestStep(result.snapshotId);
 
     await snapshotRevalidateProjectCachesStep(projectId);
 
