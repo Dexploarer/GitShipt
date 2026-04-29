@@ -52,7 +52,7 @@ silently fix it** — failure is the signal. Surface it.
 
 Write `/spikes/SPIKE_REPORT.md` with this shape:
 
-```
+```text
 # Spike report — <feature name>
 
 ## Assumption 1: <one-line>

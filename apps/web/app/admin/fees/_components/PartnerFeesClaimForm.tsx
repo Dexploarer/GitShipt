@@ -121,6 +121,7 @@ export function PartnerFeesClaimForm({
           });
           return result;
         }}
+        successToast="Partner fees claim broadcast"
       />
     </div>
   );

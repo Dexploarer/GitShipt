@@ -17,3 +17,4 @@ export * from "./api-keys";
 export * from "./organizations";
 export * from "./contributor-penalties";
 export * from "./pending-draft-reviews";
+export * from "./project-feed-entries";

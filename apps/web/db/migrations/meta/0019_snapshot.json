@@ -1,5 +1,5 @@
 {
-  "id": "bb781087-142d-42e9-a919-6861ca8f1ffc",
+  "id": "6b494311-9a8e-48be-be5e-cd2ea117afbf",
   "prevId": "76e7c192-7841-41d5-aea0-c0ec40d7ea1e",
   "version": "7",
   "dialect": "postgresql",
@@ -317,193 +317,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.contributor_penalties": {
-      "name": "contributor_penalties",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "contributor_id": {
-          "name": "contributor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "level": {
-          "name": "level",
-          "type": "contributor_penalty_level",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evidence_pr_url": {
-          "name": "evidence_pr_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "evidence_url": {
-          "name": "evidence_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "issued_by": {
-          "name": "issued_by",
-          "type": "contributor_penalty_issued_by",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "issued_by_user_id": {
-          "name": "issued_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "issued_at": {
-          "name": "issued_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cleared_at": {
-          "name": "cleared_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cleared_by_user_id": {
-          "name": "cleared_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "contributor_penalties_active_idx": {
-          "name": "contributor_penalties_active_idx",
-          "columns": [
-            {
-              "expression": "contributor_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "expires_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "cleared_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "contributor_penalties_project_level_idx": {
-          "name": "contributor_penalties_project_level_idx",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "level",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "expires_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "contributor_penalties_contributor_id_contributors_id_fk": {
-          "name": "contributor_penalties_contributor_id_contributors_id_fk",
-          "tableFrom": "contributor_penalties",
-          "tableTo": "contributors",
-          "columnsFrom": [
-            "contributor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "contributor_penalties_project_id_projects_id_fk": {
-          "name": "contributor_penalties_project_id_projects_id_fk",
-          "tableFrom": "contributor_penalties",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "contributor_penalties_ci_evidence_required": {
-          "name": "contributor_penalties_ci_evidence_required",
-          "value": "\"contributor_penalties\".\"issued_by\" <> 'ci_workflow' OR \"contributor_penalties\".\"evidence_url\" IS NOT NULL"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.contributor_claims": {
       "name": "contributor_claims",
       "schema": "",
@@ -649,7 +462,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'{\"mergedPRs\":0,\"commits\":0,\"reviews\":0,\"issues\":0,\"netLines\":0,\"merges\":0,\"reviewSubstantiveScore\":0,\"coAuthored\":0,\"ci\":{\"prsTotal\":0,\"prsGreenOnFirstPush\":0,\"coverageDeltaBp\":0,\"bundleDeltaBytes\":0,\"perfDeltaBp\":0,\"vulnsIntroduced\":0,\"vulnsEliminated\":0,\"brokeMain\":0}}'::jsonb"
+          "default": "'{\"mergedPRs\":0,\"commits\":0,\"reviews\":0,\"issues\":0,\"netLines\":0}'::jsonb"
         },
         "excluded": {
           "name": "excluded",
@@ -661,39 +474,6 @@
         "excluded_reason": {
           "name": "excluded_reason",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "attribution_type": {
-          "name": "attribution_type",
-          "type": "contributor_attribution_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'human'"
-        },
-        "routes_to_contributor_id": {
-          "name": "routes_to_contributor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "community_verified": {
-          "name": "community_verified",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "community_verified_by": {
-          "name": "community_verified_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "community_verified_at": {
-          "name": "community_verified_at",
-          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -759,42 +539,6 @@
           "columns": [
             {
               "expression": "gh_username",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "contributors_attribution_idx": {
-          "name": "contributors_attribution_idx",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "attribution_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "contributors_gh_user_id_idx": {
-          "name": "contributors_gh_user_id_idx",
-          "columns": [
-            {
-              "expression": "gh_user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2323,12 +2067,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "gh_org_id": {
-          "name": "gh_org_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "name": {
           "name": "name",
           "type": "text",
@@ -2447,56 +2185,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "alignment_config": {
-          "name": "alignment_config",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "agent_routing_policy": {
-          "name": "agent_routing_policy",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "community_links": {
-          "name": "community_links",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "install_preferences": {
-          "name": "install_preferences",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "launch_state": {
-          "name": "launch_state",
-          "type": "project_launch_state",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending_install'"
-        },
-        "install_runbook_pr_url": {
-          "name": "install_runbook_pr_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "install_runbook_pr_number": {
-          "name": "install_runbook_pr_number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "installer_gh_user_id": {
-          "name": "installer_gh_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "paused_at": {
           "name": "paused_at",
           "type": "timestamp with time zone",
@@ -2578,36 +2266,6 @@
           "columns": [
             {
               "expression": "owner_user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "projects_gh_org_id_idx": {
-          "name": "projects_gh_org_id_idx",
-          "columns": [
-            {
-              "expression": "gh_org_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "projects_launch_state_idx": {
-          "name": "projects_launch_state_idx",
-          "columns": [
-            {
-              "expression": "launch_state",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3768,154 +3426,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.organizations": {
-      "name": "organizations",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "gh_org_id": {
-          "name": "gh_org_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "gh_login": {
-          "name": "gh_login",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "display_name": {
-          "name": "display_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "default_scoring_config": {
-          "name": "default_scoring_config",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "default_alignment_config": {
-          "name": "default_alignment_config",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "default_agent_routing_policy": {
-          "name": "default_agent_routing_policy",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "default_community_links": {
-          "name": "default_community_links",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "default_payout_config": {
-          "name": "default_payout_config",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "primary_wallet_address": {
-          "name": "primary_wallet_address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "installed_at": {
-          "name": "installed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "installed_by_user_id": {
-          "name": "installed_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "organizations_gh_org_id_uq": {
-          "name": "organizations_gh_org_id_uq",
-          "columns": [
-            {
-              "expression": "gh_org_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "organizations_gh_login_uq": {
-          "name": "organizations_gh_login_uq",
-          "columns": [
-            {
-              "expression": "gh_login",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "organizations_installed_by_idx": {
-          "name": "organizations_installed_by_idx",
-          "columns": [
-            {
-              "expression": "installed_by_user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.pending_draft_reviews": {
-      "name": "pending_draft_reviews",
+    "public.project_feed_entries": {
+      "name": "project_feed_entries",
       "schema": "",
       "columns": {
         "id": {
@@ -3930,59 +3442,39 @@
           "primaryKey": false,
           "notNull": true
         },
-        "pr_number": {
-          "name": "pr_number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pr_head_sha": {
-          "name": "pr_head_sha",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "draft_review_state",
+        "kind": {
+          "name": "kind",
+          "type": "feed_entry_kind",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'pending_review'"
+          "notNull": true
         },
-        "first_reviewed_at": {
-          "name": "first_reviewed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "elevated_at": {
-          "name": "elevated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reminder_sent_at": {
-          "name": "reminder_sent_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "closed_at": {
-          "name": "closed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "close_reason": {
-          "name": "close_reason",
+        "period": {
+          "name": "period",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "updated_at": {
-          "name": "updated_at",
+        "subjects": {
+          "name": "subjects",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body_md": {
+          "name": "body_md",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pinned_until": {
+          "name": "pinned_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
@@ -3990,8 +3482,8 @@
         }
       },
       "indexes": {
-        "pending_draft_reviews_project_pr_uq": {
-          "name": "pending_draft_reviews_project_pr_uq",
+        "project_feed_entries_project_created_idx": {
+          "name": "project_feed_entries_project_created_idx",
           "columns": [
             {
               "expression": "project_id",
@@ -4000,28 +3492,50 @@
               "nulls": "last"
             },
             {
-              "expression": "pr_number",
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "project_feed_entries_project_period_kind_uq": {
+          "name": "project_feed_entries_project_period_kind_uq",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "period",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": true,
+          "where": "\"project_feed_entries\".\"period\" IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "pending_draft_reviews_state_age_idx": {
-          "name": "pending_draft_reviews_state_age_idx",
+        "project_feed_entries_pinned_idx": {
+          "name": "project_feed_entries_pinned_idx",
           "columns": [
             {
-              "expression": "state",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "first_reviewed_at",
+              "expression": "pinned_until",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4034,9 +3548,9 @@
         }
       },
       "foreignKeys": {
-        "pending_draft_reviews_project_id_projects_id_fk": {
-          "name": "pending_draft_reviews_project_id_projects_id_fk",
-          "tableFrom": "pending_draft_reviews",
+        "project_feed_entries_project_id_projects_id_fk": {
+          "name": "project_feed_entries_project_id_projects_id_fk",
+          "tableFrom": "project_feed_entries",
           "tableTo": "projects",
           "columnsFrom": [
             "project_id"
@@ -4056,33 +3570,6 @@
     }
   },
   "enums": {
-    "public.contributor_penalty_issued_by": {
-      "name": "contributor_penalty_issued_by",
-      "schema": "public",
-      "values": [
-        "human_maintainer",
-        "ci_workflow"
-      ]
-    },
-    "public.contributor_penalty_level": {
-      "name": "contributor_penalty_level",
-      "schema": "public",
-      "values": [
-        "yellow",
-        "red",
-        "black"
-      ]
-    },
-    "public.contributor_attribution_type": {
-      "name": "contributor_attribution_type",
-      "schema": "public",
-      "values": [
-        "human",
-        "agent_routed",
-        "bot_treasury",
-        "agent_unrouted"
-      ]
-    },
     "public.fee_share_update_status": {
       "name": "fee_share_update_status",
       "schema": "public",
@@ -4124,17 +3611,6 @@
         "super_admin"
       ]
     },
-    "public.project_launch_state": {
-      "name": "project_launch_state",
-      "schema": "public",
-      "values": [
-        "pending_install",
-        "awaiting_pr_merge",
-        "ready_to_launch",
-        "launched",
-        "failed"
-      ]
-    },
     "public.project_member_role": {
       "name": "project_member_role",
       "schema": "public",
@@ -4152,7 +3628,8 @@
         "live",
         "paused",
         "killed",
-        "simulated_live"
+        "simulated_live",
+        "tracked"
       ]
     },
     "public.snapshot_status": {
@@ -4201,16 +3678,14 @@
         "expired"
       ]
     },
-    "public.draft_review_state": {
-      "name": "draft_review_state",
+    "public.feed_entry_kind": {
+      "name": "feed_entry_kind",
       "schema": "public",
       "values": [
-        "pending_review",
-        "elevated_awaiting_maintainer",
-        "elevated_reminded",
-        "stale_closed",
-        "no_penalty_closed",
-        "merged_via_maintainer"
+        "period_digest",
+        "first_contributor",
+        "score_threshold",
+        "first_payout"
       ]
     }
   },

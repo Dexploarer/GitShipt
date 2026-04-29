@@ -22,10 +22,11 @@ import { projects } from "./projects";
  * Black: permaban; only two-super-admin cosign can clear.
  */
 
-export const contributorPenaltyLevelEnum = pgEnum(
-  "contributor_penalty_level",
-  ["yellow", "red", "black"],
-);
+export const contributorPenaltyLevelEnum = pgEnum("contributor_penalty_level", [
+  "yellow",
+  "red",
+  "black",
+]);
 
 export const contributorPenaltyIssuedByEnum = pgEnum(
   "contributor_penalty_issued_by",
@@ -76,11 +77,15 @@ export const contributorPenalties = pgTable(
     ),
     // CI-issued penalties must include an evidence URL (CI run); human-issued
     // penalties may include one but it's not required. Mirror of the CHECK
-    // constraint hand-written into 0018_awesome_boom_boom.sql so future
+    // constraint hand-written into 0020_shipshape_spine_v1.sql so future
     // db:generate runs don't try to drop it as drift.
     ciEvidenceRequired: check(
       "contributor_penalties_ci_evidence_required",
-      sql`${t.issuedBy} <> 'ci_workflow' OR ${t.evidenceUrl} IS NOT NULL`,
+      sql`${t.issuedBy} <> 'ci_workflow' OR (${t.evidenceUrl} IS NOT NULL AND length(trim(${t.evidenceUrl})) > 0)`,
+    ),
+    issuerIdentityConsistency: check(
+      "contributor_penalties_issuer_identity_consistency",
+      sql`(${t.issuedBy} = 'human_maintainer' AND ${t.issuedByUserId} IS NOT NULL AND length(trim(${t.issuedByUserId})) > 0) OR (${t.issuedBy} = 'ci_workflow' AND ${t.issuedByUserId} IS NULL)`,
     ),
   }),
 );

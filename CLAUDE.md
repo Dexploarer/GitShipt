@@ -100,7 +100,7 @@ Cron triggers in `vercel.json` hit `/api/cron/*` handlers (protected by `CRON_SE
 - `better-auth` with GitHub OAuth + custom SIWS plugin (Phantom sign-in-with-Solana) for wallet linking.
 - TOTP MFA via `otpauth`, used to gate destructive admin actions.
 - Irreversible super-admin actions go through a **two-super-admin cosign gate** (`lib/auth/destructive-action.ts` + `db/schema/pending-admin-actions.ts`): the first submit stores a pending row with the idempotency key; a second distinct super_admin must approve before execution. The stored idempotency key is forwarded to the action fn so the resumed execution dedupes against the original submission.
-- `proxy.ts` (Next 16's renamed middleware) handles redirects **and** mints per-request CSP nonces (`x-nonce` header consumed by layouts for inline-script tags); the `script-src 'unsafe-inline'` fallback in `next.config.ts` only applies to non-HTML routes the proxy doesn't touch. Auth must still be revalidated inside every protected Server Component, Server Action, and route handler (CVE-2025-29927).
+- `proxy.ts` (Next 16's renamed middleware) is for redirects only. CSP and nonce handling belongs in app layouts or request handlers, and auth must be revalidated inside every protected Server Component, Server Action, and route handler (CVE-2025-29927).
 - Mutations must: revalidate session → `requirePermission` → Zod-validate input → respect `Idempotency-Key` (`lib/idempotency.ts`) → write audit log on success (`lib/audit.ts`) → revalidate cache tags.
 
 **External clients** (all stub-flippable based on env presence; never invent secrets):

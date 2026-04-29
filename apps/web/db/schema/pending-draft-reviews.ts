@@ -6,7 +6,9 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createId } from "@repo/lib";
 import { projects } from "./projects";
 
@@ -58,6 +60,19 @@ export const pendingDraftReviews = pgTable(
     stateAgeIdx: index("pending_draft_reviews_state_age_idx").on(
       t.state,
       t.firstReviewedAt,
+    ),
+    closeMetadataConsistency: check(
+      "pending_draft_reviews_close_metadata_consistency",
+      sql`(
+        ${t.state} IN ('stale_closed', 'no_penalty_closed', 'merged_via_maintainer')
+        AND ${t.closedAt} IS NOT NULL
+        AND ${t.closeReason} IS NOT NULL
+        AND length(trim(${t.closeReason})) > 0
+      ) OR (
+        ${t.state} NOT IN ('stale_closed', 'no_penalty_closed', 'merged_via_maintainer')
+        AND ${t.closedAt} IS NULL
+        AND ${t.closeReason} IS NULL
+      )`,
     ),
   }),
 );

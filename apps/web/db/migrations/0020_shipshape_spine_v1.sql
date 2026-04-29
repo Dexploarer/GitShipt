@@ -104,7 +104,20 @@ CREATE TABLE IF NOT EXISTS "contributor_penalties" (
   -- CI-issued penalties must include an evidence URL (CI run); human-issued
   -- penalties may include one but it's not required.
   CONSTRAINT "contributor_penalties_ci_evidence_required"
-    CHECK ("issued_by" <> 'ci_workflow' OR "evidence_url" IS NOT NULL)
+    CHECK ("issued_by" <> 'ci_workflow' OR ("evidence_url" IS NOT NULL AND length(trim("evidence_url")) > 0)),
+  CONSTRAINT "contributor_penalties_issuer_identity_consistency"
+    CHECK (
+      (
+        "issued_by" = 'human_maintainer'
+        AND "issued_by_user_id" IS NOT NULL
+        AND length(trim("issued_by_user_id")) > 0
+      )
+      OR
+      (
+        "issued_by" = 'ci_workflow'
+        AND "issued_by_user_id" IS NULL
+      )
+    )
 );
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "contributor_penalties_active_idx"
@@ -131,7 +144,22 @@ CREATE TABLE IF NOT EXISTS "pending_draft_reviews" (
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
   CONSTRAINT "pending_draft_reviews_project_id_fk"
     FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id")
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT "pending_draft_reviews_close_metadata_consistency"
+    CHECK (
+      (
+        "state" IN ('stale_closed', 'no_penalty_closed', 'merged_via_maintainer')
+        AND "closed_at" IS NOT NULL
+        AND "close_reason" IS NOT NULL
+        AND length(trim("close_reason")) > 0
+      )
+      OR
+      (
+        "state" NOT IN ('stale_closed', 'no_penalty_closed', 'merged_via_maintainer')
+        AND "closed_at" IS NULL
+        AND "close_reason" IS NULL
+      )
+    )
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "pending_draft_reviews_project_pr_uq"
@@ -193,7 +221,7 @@ ALTER TABLE "projects"
 --> statement-breakpoint
 ALTER TABLE "projects"
   ADD COLUMN IF NOT EXISTS "launch_state" "project_launch_state"
-    DEFAULT 'pending_install' NOT NULL;
+    NULL;
 --> statement-breakpoint
 ALTER TABLE "projects"
   ADD COLUMN IF NOT EXISTS "install_runbook_pr_url" text;
@@ -210,17 +238,36 @@ CREATE INDEX IF NOT EXISTS "projects_gh_org_id_idx"
 CREATE INDEX IF NOT EXISTS "projects_launch_state_idx"
   ON "projects" USING btree ("launch_state");
 --> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "projects"
+    ADD CONSTRAINT "projects_tracked_has_no_launch_state"
+    CHECK ("status" <> 'tracked' OR "launch_state" IS NULL);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "projects"
+    ADD CONSTRAINT "projects_install_state_has_metadata"
+    CHECK (
+      "launch_state" IS NULL
+      OR "launch_state" NOT IN ('awaiting_pr_merge', 'ready_to_launch')
+      OR (
+        "installer_gh_user_id" IS NOT NULL
+        AND "install_runbook_pr_url" IS NOT NULL
+        AND "install_runbook_pr_number" IS NOT NULL
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+--> statement-breakpoint
 
 -- Backfill: existing live projects predate the launch_state machine, so
 -- mark them 'launched' to avoid them being gated by §12 launch-gate logic
--- when PR 2 ships. The 14-day shipshape migration window (§11) handles the
--- runbook side separately.
+-- when PR 2 ships. There is no grace or migration window; the runbook side
+-- stays opt-in until each owner installs the GitShipt App.
 --
--- The `AND launch_state != 'launched'` clause is a no-op when the migration
--- runs cleanly (the column was just added with default 'pending_install'),
--- but it scopes a re-run / partially-applied retry to only the rows that
+-- The `AND launch_state IS DISTINCT FROM 'launched'` clause is a no-op when
+-- the migration runs cleanly, but it scopes a re-run / partially-applied retry to only the rows that
 -- still need promotion — cheaper, idempotent, and self-documenting.
 UPDATE "projects"
    SET "launch_state" = 'launched'
  WHERE "status" IN ('live', 'paused', 'killed', 'simulated_live')
-   AND "launch_state" <> 'launched';
+   AND "launch_state" IS DISTINCT FROM 'launched';

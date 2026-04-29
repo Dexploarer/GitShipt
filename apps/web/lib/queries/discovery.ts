@@ -81,25 +81,29 @@ async function getAllPublicProjectsUncached(
   const status = filters.status ?? "all";
   const sort = filters.sort ?? "trending";
 
-  // Status filter — never show 'killed' or 'draft' on the public explore.
-  // Project becomes visible the moment it goes live (or is temp paused).
-  // 'tracked' is for externally-launched Bags tokens we index but don't
-  // operate; included in the default 'all' view so they're discoverable.
+  // Status filter — never show 'killed', 'draft', or 'launch_configured' on
+  // the public explore. A project becomes visible the moment it goes live
+  // (or is temp paused).
+  //   - 'simulated_live' rolls into the "Live" bucket because those projects
+  //     are operationally running on stub fallbacks; ProjectCard surfaces a
+  //     "Simulated" badge so visitors can tell them apart.
+  //   - 'tracked' is for externally-launched Bags tokens we index but don't
+  //     operate; surfaced in the default 'all' view (and via ?status=tracked).
   const statusValues =
     status === "live"
-      ? ["live"]
+      ? ["live", "simulated_live"]
       : status === "paused"
         ? ["paused"]
         : status === "tracked"
           ? ["tracked"]
-          : ["live", "paused", "tracked"];
+          : ["live", "paused", "simulated_live", "tracked"];
 
   const search = filters.search?.trim();
 
   const whereParts = [
     inArray(
       projects.status,
-      statusValues as ("live" | "paused" | "tracked")[],
+      statusValues as ("live" | "paused" | "simulated_live" | "tracked")[],
     ),
   ];
   if (search) {

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui";
 import { discardDraftAction } from "@/app/(public)/launch/actions";
 import { StatusBadge } from "./ProjectList";
@@ -44,8 +45,10 @@ export function DraftRow({ row }: { row: DraftRowProps }) {
       setPending(false);
       if (!result.ok) {
         setError(result.message);
+        toast.error(result.message);
         return;
       }
+      toast.success(`Draft for ${row.slug} discarded`);
       router.refresh();
     });
   }

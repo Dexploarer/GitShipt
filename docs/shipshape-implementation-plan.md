@@ -34,7 +34,7 @@ shape of these commits is approved.
 
 ## Dependency graph
 
-```
+```text
    (DONE)  18: schema migration  ──┐
                                    │
                                    ▼
@@ -169,12 +169,12 @@ flipping to v1 immediately get the new behavior.
 
 | # | Title | Files | Tests | Depends on |
 |---|---|---|---|---|
-| 44 | db: 0019_promote_v0_to_v1 backfill | `apps/web/db/migrations/0019_promote_v0_to_v1.sql` | unit (verify v1 fields populated for promoted projects), e2e (one v0 project rendered as v1 after migration) | 39, 40, 41, 42, 43 |
+| 44 | db: 0021_promote_v0_to_v1 backfill | `apps/web/db/migrations/0021_promote_v0_to_v1.sql` | unit (verify v1 fields populated for promoted projects), e2e (one v0 project rendered as v1 after migration) | 39, 40, 41, 42, 43 |
 
 The backfill:
 - `UPDATE projects SET scoring_config = jsonb_set(scoring_config, '{formulaVersion}', '"v1"')` for all rows where current `formulaVersion = 'v0'`.
 - Same UPDATE adds the v1 config defaults: `perPrCommitCap = 5`,
-  `perDayMergedPrCap = 10`, `draftQueueEnabled = true`,
+  `perWindowPrCap = 10`, `draftQueueEnabled = true`,
   `draftAutoReviewDelayHours = 24`, `trivialCommitFilter = true`,
   `substantiveReviewFloor = {minBodyChars: 200, minAnchoredComments: 1}`,
   weights for `merges = 2.0`, `reviewSubstantiveScore = 1.0`,
@@ -254,7 +254,7 @@ Estimated 18–24 working hours of focused work.
   repo). PR 2 has the stub workflow that calls it; the action repo itself
   is independent.
 
-(Removed: 14-day migration window enforcement. Per design §11, existing
+(Removed: grace-window enforcement. Per design §11, existing
 projects auto-promote to v1 in commit 44 — no grace window, consistent
 with `SPEC.md`'s no-grace-windows rule.)
 

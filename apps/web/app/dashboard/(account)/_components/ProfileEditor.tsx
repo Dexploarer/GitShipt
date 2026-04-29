@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Save } from "lucide-react";
+import { toast } from "sonner";
 import { Button, Input } from "@repo/ui";
 import { FormError, FormField } from "@/components/shared";
 import {
@@ -39,9 +40,13 @@ export function ProfileEditor({
           idempotencyKey: `profile-${Date.now()}`,
         });
         setSaved(true);
+        toast.success("Profile updated");
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Profile save failed.");
+        const message =
+          err instanceof Error ? err.message : "Profile save failed.";
+        setError(message);
+        toast.error(message);
       }
     });
   }
@@ -55,9 +60,13 @@ export function ProfileEditor({
           idempotencyKey: `github-sync-${Date.now()}`,
         });
         setSaved(true);
+        toast.success("GitHub identity refreshed");
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "GitHub sync failed.");
+        const message =
+          err instanceof Error ? err.message : "GitHub sync failed.";
+        setError(message);
+        toast.error(message);
       }
     });
   }

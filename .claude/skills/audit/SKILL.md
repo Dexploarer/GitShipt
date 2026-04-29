@@ -60,7 +60,7 @@ P1 = ships now is risky but not broken. Check:
 
 Output a single markdown report with this exact shape. No prose preamble.
 
-```
+```text
 ## Audit — <branch>
 
 ### P0 (block ship)

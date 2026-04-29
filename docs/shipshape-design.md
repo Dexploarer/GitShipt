@@ -38,7 +38,7 @@ doc is approved.
 - **Fiat billing for any GitShipt-side service.** SOL only.
 - **Existing-project grace windows of any kind.** Forbidden by SPEC.md.
   Existing v0 projects auto-promote to v1 at PR 1 deploy via SQL backfill;
-  see §11. The earlier 14-day migration window in this doc was a grace
+  see §11. The earlier grace-window draft in this doc was a grace
   window in disguise and has been removed.
 
 ## 3. Three-PR plan
@@ -159,7 +159,7 @@ export interface ScoringConfig {
 ```ts
 export interface AlignmentConfig {
   enabled: boolean;
-  mode: "informational" | "asymmetric" | "multiplicative" | "gate";
+  mode: "informational" | "asymmetric";
   // Asymmetric mode parameters (the v1 default)
   floor: number;     // default 0.3 — below this, payout × 0.5
   ceiling: number;   // default 0.7 — above this, payout × 1.2
@@ -231,7 +231,7 @@ projects (preserves current behavior); new projects default to `"v1"`.
 
 ### 6.1 Formula
 
-```
+```text
 score = w_PR        * mergedPRs                    (default w 3.0)
       + w_commit    * cappedCommits                (default w 0.5, was 1.0 — codegen-era discount)
       + w_review    * reviews                      (default w 1.5; substantive only counts toward reviews)
@@ -587,7 +587,7 @@ Replace the current "1 commit on default branch = 1 commit credit" with:
 
 Per contributor per period:
 
-```
+```text
 alignment_factor = clamp(0.0, 1.0, baseline + Σ(signal_value × signal_weight))
 ```
 
@@ -620,15 +620,15 @@ positive recognition that deferred work proved valuable when it landed.
 
 ### 8.2 Application — asymmetric multiplier (mode: "asymmetric")
 
-```
+```text
 if alignment_factor < floor:        payout *= 0.5
 elif alignment_factor > ceiling:    payout *= 1.2
 else:                                payout *= 1.0
 ```
 
 Defaults: floor 0.3, ceiling 0.7. Multipliers are owner-configurable.
-Other modes (`informational`, `multiplicative`, `gate`) defined in the
-schema for future use; v1 ships with `asymmetric` as default.
+v1 ships `informational` and `asymmetric`; any other persisted mode is rejected
+by validation until a later PR wires it.
 
 ### 8.3 Fallback
 
@@ -650,7 +650,7 @@ Pure function over the project state. No live activity reads; that's logbook.
 
 ### 9.2 Output sections (in shipshape.md)
 
-```
+```text
 1. Project header (name, repo, token, fee-share %, payout cadence,
    leaderboard URL)
 2. Active scoring rubric (live formula + weights)
@@ -737,17 +737,17 @@ events and notifies the project owner).
 
 ## 11. v0 → v1 promotion at deploy (no migration window)
 
-The earlier draft of this doc proposed a 14-day grace window for existing v0
-projects. That was a grace window, which `SPEC.md` already forbids. Removed.
+The earlier draft of this doc proposed a grace window for existing v0 projects.
+That was already forbidden by `SPEC.md`, so it has been removed.
 
-Replacement: at PR 1 deploy, a single SQL backfill (`0019_promote_v0_to_v1.sql`,
+Replacement: at PR 1 deploy, a single SQL backfill (`0021_promote_v0_to_v1.sql`,
 runs after all Phase 4 wiring is in place per the implementation plan) promotes
 every existing project to v1 in one cut-over:
 
 - `scoringConfig.formulaVersion` flipped from `"v0"` to `"v1"`.
 - Missing v1 config fields filled with defaults:
   - `perPrCommitCap = 5`
-  - `perDayMergedPrCap = 10`
+  - `perWindowPrCap = 10`
   - `draftQueueEnabled = true`
   - `draftAutoReviewDelayHours = 24`
   - `trivialCommitFilter = true`
@@ -779,7 +779,7 @@ URL works regardless.
 
 State machine on `projects.launchState`:
 
-```
+```text
                      [user creates project]
                               ↓
                       pending_install
@@ -983,7 +983,7 @@ These need their own design pass; the v1 namespace+inheritance gets
 | Trivial-commit filter false-positives (e.g., legitimate dist/ commits in build-output repos) | Filter disable per project (`trivialCommitFilter: false`) |
 | OIDC verification adds latency to CI ingest | JWKS cached for 24h; verification ~5ms per request |
 | Co-authored-by spam (claim every commit as co-author) | Co-author credit is `+= 1` per *unique* commit, deduped by SHA; co-author share capped by `coAuthorSplitRatio` |
-| Existing project owners caught off-guard by 14-day window | Multiple notifications (in-app, email, dashboard banner); explicit unpause is one-click |
+| Existing project owners caught off-guard by immediate v0→v1 cut-over | Pre-deploy comms, in-app notice, email, and dashboard banner; per-project `formulaVersion: "v0"` rollback remains available as the explicit kill switch |
 
 ## 16. Test plan
 

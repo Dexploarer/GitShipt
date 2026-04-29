@@ -7,7 +7,9 @@ import {
   jsonb,
   uniqueIndex,
   index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { users } from "./users";
 import { createId } from "@repo/lib";
 
@@ -63,7 +65,7 @@ export interface ScoringConfig {
   perPrCommitCap?: number;
   /** v1: max merged PRs per contributor per snapshot day that earn full
    *  credit. Excess carry-forward to the period they merge in. Default 10. */
-  perDayMergedPrCap?: number;
+  perWindowPrCap?: number;
   /** v1: enable the §6.5 draft auto-review pipeline. Default true. */
   draftQueueEnabled?: boolean;
   /** v1: hours an open draft must be unmodified before processDraftQueue
@@ -79,7 +81,7 @@ export interface ScoringConfig {
 
 export interface AlignmentConfig {
   enabled: boolean;
-  mode: "informational" | "asymmetric" | "multiplicative" | "gate";
+  mode: "informational" | "asymmetric";
   floor: number;
   ceiling: number;
   belowFloorMultiplier: number;
@@ -125,8 +127,8 @@ export interface CommunityLinks {
 }
 
 export interface InstallPreferences {
-  shipshapeMd: true;          // required, locked
-  workflowYml: true;          // required, locked
+  shipshapeMd: true; // required, locked
+  workflowYml: true; // required, locked
   readmeBadge: boolean;
   claudeMd: boolean;
   cursorRules: boolean;
@@ -210,18 +212,20 @@ export const projects = pgTable(
     alignmentConfig: jsonb("alignment_config").$type<AlignmentConfig>(),
     /** v1 (shipshape §6.1, §5.5). Per-bot operator bindings + per-project
      *  attribution policy. Snapshotted from organization defaults. */
-    agentRoutingPolicy: jsonb("agent_routing_policy").$type<AgentRoutingPolicy>(),
+    agentRoutingPolicy: jsonb(
+      "agent_routing_policy",
+    ).$type<AgentRoutingPolicy>(),
     /** v1 (shipshape §6.7). Discord/Telegram/X/custom links surfaced in
      *  shipshape.md as advised due-diligence channels. */
     communityLinks: jsonb("community_links").$type<CommunityLinks>(),
     /** v1 (shipshape §13.4). Owner's per-file install opt-in/out at App
      *  install time. Re-runs honor previous selections. */
-    installPreferences: jsonb("install_preferences").$type<InstallPreferences>(),
+    installPreferences: jsonb(
+      "install_preferences",
+    ).$type<InstallPreferences>(),
 
     /** v1 (shipshape §12). Launch state machine. */
-    launchState: projectLaunchStateEnum("launch_state")
-      .notNull()
-      .default("pending_install"),
+    launchState: projectLaunchStateEnum("launch_state"),
     /** PR opened by the GitShipt App during install. */
     installRunbookPullRequestUrl: text("install_runbook_pr_url"),
     installRunbookPullRequestNumber: integer("install_runbook_pr_number"),
@@ -249,6 +253,14 @@ export const projects = pgTable(
     /** Cheap filter for the org dashboard (§14.5). */
     ghOrgIdIdx: index("projects_gh_org_id_idx").on(t.ghOrgId),
     launchStateIdx: index("projects_launch_state_idx").on(t.launchState),
+    trackedHasNoLaunchState: check(
+      "projects_tracked_has_no_launch_state",
+      sql`${t.status} <> 'tracked' OR ${t.launchState} IS NULL`,
+    ),
+    installStateHasMetadata: check(
+      "projects_install_state_has_metadata",
+      sql`${t.launchState} IS NULL OR ${t.launchState} NOT IN ('awaiting_pr_merge', 'ready_to_launch') OR (${t.installerGhUserId} IS NOT NULL AND ${t.installRunbookPullRequestUrl} IS NOT NULL AND ${t.installRunbookPullRequestNumber} IS NOT NULL)`,
+    ),
   }),
 );
 

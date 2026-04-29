@@ -23,7 +23,7 @@ cd "$repo_root" || exit 0
 
 # Only check files that are actually modified (staged or unstaged) right now.
 # Untracked files we deliberately ignore — those are usually scratch.
-changed_ts=$(git diff --name-only --diff-filter=ACMR HEAD 2>/dev/null | grep -E '\.(ts|tsx)$' || true)
+changed_ts=$(git diff --name-only --diff-filter=ACMRD HEAD 2>/dev/null | grep -E '\.(ts|tsx)$' || true)
 
 if [ -z "$changed_ts" ]; then
   exit 0
