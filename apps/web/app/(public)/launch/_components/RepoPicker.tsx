@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { AlertCircle, GitFork, Loader2, Search, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  AlertCircle,
+  ArrowRight,
+  GitFork,
+  Loader2,
+  Search,
+  Star,
+} from "lucide-react";
 import { cn } from "@repo/lib";
 import {
   ApiErrorResponseSchema,
@@ -23,6 +31,7 @@ interface FetchState {
 }
 
 export function RepoPicker({ selectedId, onSelect }: RepoPickerProps) {
+  const router = useRouter();
   const [state, setState] = useState<FetchState>({
     status: "loading",
     data: null,
@@ -157,15 +166,33 @@ export function RepoPicker({ selectedId, onSelect }: RepoPickerProps) {
             <ul className="max-h-[min(58vh,34rem)] divide-y divide-border overflow-y-auto rounded-md border border-border bg-surface/60 [scrollbar-width:thin] [scrollbar-color:var(--border-strong)_transparent]">
               {filtered.map((repo) => {
                 const isSelected = selectedId === repo.id;
+                // Disable selection for repos with a real launched project
+                // (status: live/paused/killed/simulated_live). For drafts
+                // (status: draft/launch_configured) the row stays clickable
+                // and routes to the project console so the user can resume.
                 const isDisabled = repo.alreadyLaunched;
+                const hasDraft = !!repo.draftProjectId;
+                const handleClick = () => {
+                  if (isDisabled) return;
+                  if (hasDraft && repo.draftProjectId) {
+                    router.push(`/dashboard/projects/${repo.draftProjectId}`);
+                    return;
+                  }
+                  onSelect(repo);
+                };
                 return (
                   <li key={repo.id}>
                     <button
                       type="button"
-                      onClick={() => !isDisabled && onSelect(repo)}
+                      onClick={handleClick}
                       disabled={isDisabled}
                       aria-pressed={isSelected}
                       aria-disabled={isDisabled}
+                      aria-label={
+                        hasDraft
+                          ? `Continue draft for ${repo.fullName}`
+                          : undefined
+                      }
                       className={cn(
                         "gb-control grid w-full grid-cols-[32px_minmax(0,1fr)] gap-3 rounded-none border-x-0 border-t-0 px-4 py-3 text-left transition-[background-color,border-color,box-shadow,color,transform]",
                         !isDisabled && "gb-control-ghost hover:text-fg",
@@ -190,6 +217,11 @@ export function RepoPicker({ selectedId, onSelect }: RepoPickerProps) {
                           {repo.alreadyLaunched ? (
                             <span className="shrink-0 rounded-full bg-warning-soft px-2 py-0.5 text-label-sm text-warning">
                               Already launched
+                            </span>
+                          ) : hasDraft ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-info-soft px-2 py-0.5 text-label-sm text-info">
+                              Continue draft
+                              <ArrowRight className="size-3" aria-hidden />
                             </span>
                           ) : null}
                         </div>

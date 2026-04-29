@@ -43,8 +43,13 @@ interface GithubRepoApiResponse {
  * persists it there during OAuth callback). Calls Octokit user-context
  * `GET /user/repos`. Filters to repos where `permissions.admin === true`.
  *
- * Marks repos that already exist in `projects` (any status) as
- * `alreadyLaunched: true` so the UI can disable them.
+ * Repos that already exist in `projects` are tagged so the UI can react
+ * appropriately:
+ *  - Statuses `live` / `paused` / `killed` / `simulated_live` →
+ *    `alreadyLaunched: true` (UI disables the row)
+ *  - Statuses `draft` / `launch_configured` →
+ *    `draftProjectId: <id>` (UI shows "Continue draft" and links to the
+ *    project console so the user can resume)
  *
  * Cached 30s in Redis under `gitshipt:gh:me:repos:{userId}`.
  */
@@ -146,6 +151,10 @@ export async function GET(req: Request): Promise<Response> {
     name: r.name,
   }));
   const launchedSet = new Set<string>();
+  const draftByRepo = new Map<string, string>();
+  // Statuses where the project hasn't actually been broadcast yet — the
+  // repo should still be reachable from the wizard via "Continue draft".
+  const draftStatuses = new Set(["draft", "launch_configured"]);
   if (ownerRepoPairs.length > 0) {
     // Single round-trip: pull every project for these owners and filter
     // by repo names client-side. Owners list is bounded by GitHub's 100
@@ -154,13 +163,19 @@ export async function GET(req: Request): Promise<Response> {
     if (ownerLogins.length > 0) {
       const existing = await dbHttp
         .select({
+          id: projects.id,
           ghOwner: projects.ghOwner,
           ghRepo: projects.ghRepo,
+          status: projects.status,
         })
         .from(projects);
       for (const row of existing) {
-        if (ownerLogins.includes(row.ghOwner)) {
-          launchedSet.add(`${row.ghOwner}/${row.ghRepo}`);
+        if (!ownerLogins.includes(row.ghOwner)) continue;
+        const key = `${row.ghOwner}/${row.ghRepo}`;
+        if (draftStatuses.has(row.status)) {
+          draftByRepo.set(key, row.id);
+        } else {
+          launchedSet.add(key);
         }
       }
     }
@@ -177,6 +192,7 @@ export async function GET(req: Request): Promise<Response> {
     forksCount: r.forks_count,
     ownerAvatarUrl: r.owner.avatar_url,
     alreadyLaunched: launchedSet.has(r.full_name),
+    draftProjectId: draftByRepo.get(r.full_name) ?? null,
     homepage: normalizeHomepage(r.homepage),
     topics: r.topics ?? [],
     license: r.license?.spdx_id ?? null,

@@ -233,6 +233,10 @@ export const GithubRepoSchema = z.object({
   forksCount: z.number().int(),
   ownerAvatarUrl: z.string().url(),
   alreadyLaunched: z.boolean().default(false),
+  // Set to the project id when the repo has an in-progress draft
+  // (status `draft` or `launch_configured`). UI uses this to render a
+  // "Continue draft" link instead of disabling the row.
+  draftProjectId: z.string().nullable().default(null),
   homepage: z.string().nullable().default(null),
   topics: z.array(z.string()).default([]),
   license: z.string().nullable().default(null),

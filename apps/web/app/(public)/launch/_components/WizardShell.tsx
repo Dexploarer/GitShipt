@@ -461,6 +461,7 @@ function draftRepoShim(draft: DraftHydration): GithubRepo {
     forksCount: 0,
     ownerAvatarUrl: `https://github.com/${draft.ghOwner}.png`,
     alreadyLaunched: false,
+    draftProjectId: null,
     homepage: null,
     topics: [],
     license: null,

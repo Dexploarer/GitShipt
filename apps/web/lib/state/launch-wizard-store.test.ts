@@ -17,6 +17,7 @@ const repo: GithubRepo = {
   forksCount: 3,
   ownerAvatarUrl: "https://avatars.githubusercontent.com/u/42?v=4",
   alreadyLaunched: false,
+  draftProjectId: null,
   homepage: "https://gitshipt.dev",
   topics: ["solana", "bags"],
   license: "MIT",
