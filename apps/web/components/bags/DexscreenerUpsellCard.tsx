@@ -32,7 +32,7 @@ export function DexscreenerUpsellCard({ projectId, tokenMint, order }: Props) {
             </CardTitle>
             <CardDescription>
               Add logo, header image, description, and social links to the
-              token's public DexScreener listing.
+              token&apos;s public DexScreener listing.
             </CardDescription>
           </div>
           <StatusBadge order={order} />
@@ -155,7 +155,7 @@ function PendingState({ order }: { order: DexscreenerOrderSummary }) {
   return (
     <div className="space-y-2">
       <p className="text-body-sm text-fg-secondary">
-        Payment is in flight. We'll mark this card as upgraded once Bags
+        Payment is in flight. We&apos;ll mark this card as upgraded once Bags
         confirms the on-chain payment. If this state persists for more than
         a few minutes, contact support with order id{" "}
         <span className="text-mono-sm text-fg">{order.orderUuid}</span>.

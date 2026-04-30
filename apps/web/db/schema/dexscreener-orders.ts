@@ -1,7 +1,6 @@
 import {
   pgEnum,
   pgTable,
-  text,
   integer,
   numeric,
   boolean,
