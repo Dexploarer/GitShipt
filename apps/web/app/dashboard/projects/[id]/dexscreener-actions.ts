@@ -146,6 +146,7 @@ export async function createDexscreenerOrderAction(
   const [project] = await dbHttp
     .select({
       id: projects.id,
+      name: projects.name,
       ghOwner: projects.ghOwner,
       ghRepo: projects.ghRepo,
       tokenMint: projects.tokenMint,
