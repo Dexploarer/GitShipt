@@ -179,7 +179,7 @@ export async function createDexscreenerOrderAction(
   );
   if (!availability.available) return { ok: false, error: "not_available" };
 
-  const description = data.descriptionOverride ?? project.description ?? project.id;
+  const description = data.descriptionOverride ?? project.description ?? project.name;
   const iconImageUrl = data.iconImageUrlOverride ?? project.imageUrl ?? data.headerImageUrl;
   const links = deriveLinks(data.links, project);
 
