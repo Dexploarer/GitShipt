@@ -4,7 +4,13 @@ import type {
   ResolvedWallet,
   ClaimablePositionsResponse,
   LifetimeFees,
+  DexscreenerAvailability,
+  DexscreenerOrder,
 } from "./types";
+import {
+  DEXSCREENER_PRICE_USDC,
+  DEXSCREENER_STUB_TX_SENTINEL,
+} from "@repo/shared";
 
 const FAKE_PUBKEY = "GitShipt1111111111111111111111111111111111111";
 
@@ -68,5 +74,32 @@ export const stubBags = {
       totalLifetimeUsd: 21_375.0,
       __stub: true,
     };
+  },
+
+  dexscreenerAvailability(): DexscreenerAvailability {
+    // In stub mode the upsell is always available so dev / E2E can exercise
+    // the full flow against a fresh token without setting up real Bags
+    // credentials.
+    return { available: true };
+  },
+
+  dexscreenerOrder(): DexscreenerOrder {
+    // Returns the sentinel transaction string so the client dialog can
+    // detect stub mode and skip the wallet-signing leg. The recipient
+    // wallet is the same FAKE_PUBKEY used elsewhere in stubs so the row
+    // is recognizable in DB inspection.
+    return {
+      orderUUID: `stub-ds-${Date.now().toString(36)}`,
+      recipientWallet: FAKE_PUBKEY,
+      priceUSDC: DEXSCREENER_PRICE_USDC,
+      transaction: DEXSCREENER_STUB_TX_SENTINEL,
+      lastValidBlockHeight: 1,
+    };
+  },
+
+  dexscreenerSubmitPayment(orderUUID: string): string {
+    // Stable, recognizable signature for stub_paid rows so audit log
+    // entries are easy to grep for.
+    return `stub-ds-payment-${orderUUID}`;
   },
 };
