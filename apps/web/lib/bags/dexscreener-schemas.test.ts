@@ -102,18 +102,40 @@ describe("CreateDexscreenerOrderInputSchema", () => {
 });
 
 describe("SubmitDexscreenerPaymentInputSchema", () => {
-  it("requires a payment signature of plausible length", () => {
+  it("rejects short signatures", () => {
     expect(() =>
       SubmitDexscreenerPaymentInputSchema.parse({
         orderUuid: "u",
         paymentSignature: "tooShort",
       }),
     ).toThrow();
-    const goodSig = "x".repeat(64);
+  });
+  it("rejects non-base58 signatures of correct length", () => {
+    // 88 chars but contains '0' which is not in the base58 alphabet
+    const bad = "0".repeat(88);
+    expect(() =>
+      SubmitDexscreenerPaymentInputSchema.parse({
+        orderUuid: "u",
+        paymentSignature: bad,
+      }),
+    ).toThrow();
+  });
+  it("accepts a real base58 ed25519 signature shape", () => {
+    // 87 chars of valid base58 alphabet
+    const goodSig =
+      "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW";
     expect(() =>
       SubmitDexscreenerPaymentInputSchema.parse({
         orderUuid: "u",
         paymentSignature: goodSig,
+      }),
+    ).not.toThrow();
+  });
+  it("accepts stub-mode payment signatures", () => {
+    expect(() =>
+      SubmitDexscreenerPaymentInputSchema.parse({
+        orderUuid: "u",
+        paymentSignature: "stub-ds-payment-stub-ds-1",
       }),
     ).not.toThrow();
   });

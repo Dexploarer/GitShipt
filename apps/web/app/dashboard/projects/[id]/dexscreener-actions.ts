@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { dbHttp } from "@/db";
 import {
   dexscreenerOrders,
@@ -127,12 +128,20 @@ export type CreateDexscreenerOrderResult =
 export async function createDexscreenerOrderAction(
   input: CreateDexscreenerOrderInput,
 ): Promise<CreateDexscreenerOrderResult> {
-  const data = CreateDexscreenerOrderInputSchema.parse(input);
+  // Auth-first contract per AGENTS.md: revalidate session before doing
+  // anything else. We then do a minimal projectId extraction for the
+  // permission scope, and only run the full Zod validation after the
+  // caller is authorized.
   const userId = await requireSessionUserId();
+  const targetProjectId = z
+    .object({ projectId: z.string().min(1) })
+    .parse(input).projectId;
   await requirePermission("project.update", {
     userId,
-    projectId: data.projectId,
+    projectId: targetProjectId,
   });
+
+  const data = CreateDexscreenerOrderInputSchema.parse(input);
 
   const rl = await check(
     "default",
@@ -161,19 +170,6 @@ export async function createDexscreenerOrderAction(
     .limit(1);
   if (!project || !project.tokenMint) return { ok: false, error: "not_launched" };
 
-  // Refuse to create a second order while one is open or completed.
-  const [existing] = await dbHttp
-    .select({ id: dexscreenerOrders.id })
-    .from(dexscreenerOrders)
-    .where(
-      and(
-        eq(dexscreenerOrders.projectId, project.id),
-        inArray(dexscreenerOrders.status, ACTIVE_STATUSES),
-      ),
-    )
-    .limit(1);
-  if (existing) return { ok: false, error: "already_ordered" };
-
   // Bags availability gate — stub mode short-circuits to true.
   const availability = await bags.checkDexscreenerOrderAvailability(
     project.tokenMint,
@@ -181,7 +177,12 @@ export async function createDexscreenerOrderAction(
   if (!availability.available) return { ok: false, error: "not_available" };
 
   const description = data.descriptionOverride ?? project.description ?? project.name;
-  const iconImageUrl = data.iconImageUrlOverride ?? project.imageUrl ?? data.headerImageUrl;
+  // GitHub identicon URL is square and always exists for any GitHub user
+  // or org — better than re-using the wide header image.
+  const iconImageUrl =
+    data.iconImageUrlOverride ??
+    project.imageUrl ??
+    `https://github.com/${project.ghOwner}.png`;
   const links = deriveLinks(data.links, project);
 
   const idemKey = deriveKey(
@@ -194,6 +195,23 @@ export async function createDexscreenerOrderAction(
   const result = await withIdempotency(
     idemKey,
     async (): Promise<CreateDexscreenerOrderResult> => {
+      // Duplicate-order guard runs INSIDE the idempotency wrapper so a
+      // legitimate retry on the same idemKey returns the cached envelope
+      // (with orderUuid + tx blob) instead of `already_ordered`. A retry
+      // with a *different* idemKey (e.g. different headerImageUrl) still
+      // hits this check and gets the duplicate rejection.
+      const [existing] = await dbHttp
+        .select({ id: dexscreenerOrders.id })
+        .from(dexscreenerOrders)
+        .where(
+          and(
+            eq(dexscreenerOrders.projectId, project.id),
+            inArray(dexscreenerOrders.status, ACTIVE_STATUSES),
+          ),
+        )
+        .limit(1);
+      if (existing) return { ok: false, error: "already_ordered" };
+
       const order = await bags.createDexscreenerOrder({
         tokenAddress: project.tokenMint!,
         description,
@@ -302,10 +320,14 @@ export type SubmitDexscreenerPaymentResult =
 export async function submitDexscreenerPaymentAction(
   input: SubmitDexscreenerPaymentInput,
 ): Promise<SubmitDexscreenerPaymentResult> {
-  const data = SubmitDexscreenerPaymentInputSchema.parse(input);
+  // Auth-first: session before parse. The orderUuid is the routing key
+  // for finding the project, so we extract a minimal shape to do the
+  // initial DB lookup before running the full Zod validation.
   const userId = await requireSessionUserId();
+  const orderUuidLookup = z
+    .object({ orderUuid: z.string().min(1) })
+    .parse(input).orderUuid;
 
-  // Look up the row first so we can scope permission to the project owner.
   const [row] = await dbHttp
     .select({
       id: dexscreenerOrders.id,
@@ -313,7 +335,7 @@ export async function submitDexscreenerPaymentAction(
       status: dexscreenerOrders.status,
     })
     .from(dexscreenerOrders)
-    .where(eq(dexscreenerOrders.orderUuid, data.orderUuid))
+    .where(eq(dexscreenerOrders.orderUuid, orderUuidLookup))
     .limit(1);
   if (!row) return { ok: false, error: "not_found" };
 
@@ -322,7 +344,15 @@ export async function submitDexscreenerPaymentAction(
     projectId: row.projectId,
   });
 
-  if (!["pending", "broadcast", "failed"].includes(row.status)) {
+  // Full payload validation only after the caller is authorized to act
+  // on this project.
+  const data = SubmitDexscreenerPaymentInputSchema.parse(input);
+
+  // `failed` is a terminal state — retries must create a fresh order
+  // (the dashboard's "Retry order" button does this). Allowing
+  // failed → paid would also race the partial unique index if a newer
+  // active order exists for the same project.
+  if (!["pending", "broadcast"].includes(row.status)) {
     return { ok: false, error: "wrong_state" };
   }
 
@@ -386,4 +416,76 @@ export async function submitDexscreenerPaymentAction(
     await updateProjectCaches(row.projectId);
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// cancelDexscreenerOrderAction — release the partial-unique-index slot when
+// the client-side wallet flow aborts before broadcasting (user rejects the
+// signature, wallet RPC fails, tab closes mid-sign, etc.). Without this
+// the project is stuck in `pending` forever, since the create action's
+// duplicate-order guard refuses to mint a fresh row while one is active.
+// ---------------------------------------------------------------------------
+
+const CancelDexscreenerOrderInputSchema = z.object({
+  orderUuid: z.string().min(1),
+  reason: z.string().max(280).optional(),
+});
+
+export type CancelDexscreenerOrderResult =
+  | { ok: true }
+  | { ok: false; error: "not_found" | "wrong_state" };
+
+export async function cancelDexscreenerOrderAction(
+  input: z.input<typeof CancelDexscreenerOrderInputSchema>,
+): Promise<CancelDexscreenerOrderResult> {
+  const userId = await requireSessionUserId();
+  const { orderUuid, reason } = CancelDexscreenerOrderInputSchema.parse(input);
+
+  const [row] = await dbHttp
+    .select({
+      id: dexscreenerOrders.id,
+      projectId: dexscreenerOrders.projectId,
+      status: dexscreenerOrders.status,
+    })
+    .from(dexscreenerOrders)
+    .where(eq(dexscreenerOrders.orderUuid, orderUuid))
+    .limit(1);
+  if (!row) return { ok: false, error: "not_found" };
+
+  await requirePermission("project.update", {
+    userId,
+    projectId: row.projectId,
+  });
+
+  // Only `pending` rows can be cancelled — once we've broadcast the tx
+  // we can't safely undo it from this side, and `paid`/`stub_paid`/
+  // `failed` are all terminal.
+  if (row.status !== "pending") {
+    return { ok: false, error: "wrong_state" };
+  }
+
+  await dbHttp
+    .update(dexscreenerOrders)
+    .set({
+      status: "failed",
+      errorMessage: truncate(reason ?? "Cancelled by user before broadcast"),
+      updatedAt: new Date(),
+    })
+    .where(eq(dexscreenerOrders.id, row.id));
+
+  await audit({
+    actorUserId: userId,
+    action: "dexscreener.order_failed",
+    targetType: "project",
+    targetId: row.projectId,
+    metadata: {
+      orderUuid,
+      cancelled: true,
+      reason: truncate(reason ?? "client_abort"),
+    },
+  });
+
+  revalidatePath(`/dashboard/projects/${row.projectId}/token`);
+  await updateProjectCaches(row.projectId);
+  return { ok: true };
 }

@@ -1,6 +1,25 @@
 import { z } from "zod";
 
-const SolanaAddress = z.string().min(32).max(64);
+// Solana addresses are base58-encoded ed25519 public keys: 32 raw bytes,
+// which encode to 32–44 base58 characters. The shared package keeps no
+// dependency on bs58 (apps/web has it; packages/shared stays pure), so we
+// approximate the check with a base58-alphabet regex + the canonical
+// length window. Anything that passes this gate still has to go through
+// `new PublicKey(...)` in the bags-client wrappers, which is the
+// authoritative parser.
+const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]+$/;
+const SolanaAddress = z
+  .string()
+  .min(32, "address too short")
+  .max(44, "address too long")
+  .regex(BASE58_RE, "address must be base58-encoded");
+
+// Solana ed25519 signatures are 64 raw bytes → 87–88 base58 characters.
+const SolanaSignature = z
+  .string()
+  .min(87, "signature too short")
+  .max(88, "signature too long")
+  .regex(BASE58_RE, "signature must be base58-encoded");
 
 /**
  * Sentinel transaction string written by the bags-client stub when no
@@ -67,9 +86,20 @@ export type CreateDexscreenerOrderInput = z.infer<
   typeof CreateDexscreenerOrderInputSchema
 >;
 
+// Stub-mode signatures are short sentinel strings (`stub-ds-payment-...`)
+// that don't pass real base58 validation. Accept either form so the
+// stub_paid path doesn't require a separate schema; the action layer
+// disambiguates via the row's `stub` flag.
+const STUB_SIGNATURE_RE = /^stub-ds-payment-/;
+
 export const SubmitDexscreenerPaymentInputSchema = z.object({
   orderUuid: z.string().min(1),
-  paymentSignature: z.string().min(32).max(128),
+  paymentSignature: z
+    .string()
+    .refine(
+      (v) => STUB_SIGNATURE_RE.test(v) || SolanaSignature.safeParse(v).success,
+      "paymentSignature must be a base58 Solana signature",
+    ),
 });
 export type SubmitDexscreenerPaymentInput = z.infer<
   typeof SubmitDexscreenerPaymentInputSchema

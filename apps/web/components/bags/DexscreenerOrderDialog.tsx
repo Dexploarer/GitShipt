@@ -23,6 +23,7 @@ import {
 import { DEXSCREENER_PRICE_USDC } from "@repo/shared";
 
 import {
+  cancelDexscreenerOrderAction,
   createDexscreenerOrderAction,
   submitDexscreenerPaymentAction,
   type CreateDexscreenerOrderResult,
@@ -122,6 +123,19 @@ export function DexscreenerOrderDialog({
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Wallet signing failed.";
+      // Release the partial-unique-index slot so the user can immediately
+      // retry. Without this the row stays `pending` forever and every
+      // subsequent create attempt returns `already_ordered`.
+      try {
+        await cancelDexscreenerOrderAction({
+          orderUuid: result.orderUuid,
+          reason: `client_abort: ${message.slice(0, 200)}`,
+        });
+        router.refresh();
+      } catch {
+        // Best-effort cleanup; the user can also retry from the dashboard
+        // card's "Retry order" affordance which surfaces the failed row.
+      }
       setErrorMessage(message);
       setPhase("error");
       return;

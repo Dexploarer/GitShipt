@@ -644,7 +644,10 @@ function DexscreenerUpsellRow({ result }: { result: LaunchSuccess }) {
             Upgrade your DexScreener page
           </p>
           <p className="text-caption text-fg-muted">
-            ${DEXSCREENER_PRICE_USDC} pay-once · SOL or USDC · Bags collects
+            <span className="text-mono-sm text-fg">
+              ${DEXSCREENER_PRICE_USDC}
+            </span>{" "}
+            pay-once · SOL or USDC · Bags collects
           </p>
         </div>
       </div>
